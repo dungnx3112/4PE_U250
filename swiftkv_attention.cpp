@@ -1632,6 +1632,41 @@ rope_broadcast_head_loop:
     }
 }
 
+// The global decoder controller is intentionally terminated in the shared
+// SLR1 control island.  Each SwiftKV PE receives only one 18-bit command via
+// its own FIFO, then uses PE-local layer/position registers for all address
+// generation.  This prevents the controller register bank from becoming a
+// four-SLR fanout root in generated RTL.
+typedef ap_uint<18> swiftkv_pe_command_t;
+
+static swiftkv_pe_command_t swiftkv_pack_pe_command(
+    ap_uint<6> layer_index,
+    ap_uint<12> position
+) {
+#pragma HLS INLINE
+    swiftkv_pe_command_t command = 0;
+    command.range(5, 0) = layer_index;
+    command.range(17, 6) = position;
+    return command;
+}
+
+static void swiftkv_broadcast_pe_commands(
+    hls::stream<swiftkv_pe_command_t>& swiftkv_command_pe0,
+    hls::stream<swiftkv_pe_command_t>& swiftkv_command_pe1,
+    hls::stream<swiftkv_pe_command_t>& swiftkv_command_pe2,
+    hls::stream<swiftkv_pe_command_t>& swiftkv_command_pe3,
+    ap_uint<6> layer_index,
+    ap_uint<12> position
+) {
+#pragma HLS INLINE off
+    const swiftkv_pe_command_t command =
+        swiftkv_pack_pe_command(layer_index, position);
+    swiftkv_command_pe0.write(command);
+    swiftkv_command_pe1.write(command);
+    swiftkv_command_pe2.write(command);
+    swiftkv_command_pe3.write(command);
+}
+
 static void swiftkv_run_bank(
     const int4_output_word_t* q,
     const int4_output_word_t* k,
@@ -1641,7 +1676,8 @@ static void swiftkv_run_bank(
     hls::stream<swiftkv_rope_raw_t>& sine_stream,
     hls::stream<int4_quant_word_t>& quantized_stream,
     hls::stream<float>& scale_stream,
-    const Int4Controller& controller
+    ap_uint<6> layer_index,
+    ap_uint<12> position
 ) {
 #pragma HLS INLINE off
 
@@ -1664,12 +1700,12 @@ pe_head_loop:
 #pragma HLS BIND_STORAGE variable=rotated_k_words type=ram_1p impl=bram
 #pragma HLS ARRAY_PARTITION variable=compressed_kv_record complete
         const int cache_head_base =
-            ((int)controller.layer_index * SWIFTKV_LOCAL_HEADS +
+            ((int)layer_index * SWIFTKV_LOCAL_HEADS +
              local_head) *
             SWIFTKV_KV_WORDS_PER_HEAD;
         const int current_token_base =
             cache_head_base +
-            (int)controller.position *
+            (int)position *
                 SWIFTKV_KV_WORDS_PER_TOKEN_HEAD;
         // Keep AXI transactions out of the pipelined RoPE datapath.  Besides
         // eliminating the artificial read-after-write II constraint, this
@@ -1784,7 +1820,7 @@ pe_head_loop:
         swiftkv_attention_head(
             query, kv_cache, cache_head_base,
             compressed_kv_record,
-            controller.position,
+            position,
             quantized_stream, scale_stream);
     }
 }
@@ -1799,7 +1835,7 @@ static void swiftkv_run_pe(
     hls::stream<swiftkv_rope_raw_t>& sine_stream,
     hls::stream<int4_quant_word_t>& quantized_stream,
     hls::stream<float>& scale_stream,
-    const Int4Controller& controller
+    hls::stream<swiftkv_pe_command_t>& command_stream
 ) {
 #pragma HLS INLINE off
     // PE_ID creates four distinct hierarchy instances.  Each instance owns
@@ -1809,11 +1845,15 @@ static void swiftkv_run_pe(
     // boundary.  All persistent compressed K/V records remain in that PE's
     // external DDR bank.
 
+    const swiftkv_pe_command_t command = command_stream.read();
+    const ap_uint<6> layer_index = command.range(5, 0);
+    const ap_uint<12> position = command.range(17, 6);
+
     swiftkv_run_bank(
         q, k, v, kv_cache,
         cosine_stream, sine_stream,
         quantized_stream, scale_stream,
-        controller);
+        layer_index, position);
 }
 
 template <int PE_ID>
@@ -1999,6 +2039,10 @@ static void swiftkv_run_four_pes(
     hls::stream<int4_quant_word_t> quantized_pe2;
     hls::stream<int4_quant_word_t> quantized_pe3;
     hls::stream<float> scale_pe0, scale_pe1, scale_pe2, scale_pe3;
+    hls::stream<swiftkv_pe_command_t> swiftkv_command_pe0;
+    hls::stream<swiftkv_pe_command_t> swiftkv_command_pe1;
+    hls::stream<swiftkv_pe_command_t> swiftkv_command_pe2;
+    hls::stream<swiftkv_pe_command_t> swiftkv_command_pe3;
 #pragma HLS STREAM variable=cos_pe0 depth=4
 #pragma HLS STREAM variable=cos_pe1 depth=4
 #pragma HLS STREAM variable=cos_pe2 depth=4
@@ -2017,6 +2061,10 @@ static void swiftkv_run_four_pes(
 #pragma HLS STREAM variable=scale_pe1 depth=4
 #pragma HLS STREAM variable=scale_pe2 depth=4
 #pragma HLS STREAM variable=scale_pe3 depth=4
+#pragma HLS STREAM variable=swiftkv_command_pe0 depth=2
+#pragma HLS STREAM variable=swiftkv_command_pe1 depth=2
+#pragma HLS STREAM variable=swiftkv_command_pe2 depth=2
+#pragma HLS STREAM variable=swiftkv_command_pe3 depth=2
 #pragma HLS BIND_STORAGE variable=cos_pe0 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=cos_pe1 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=cos_pe2 type=fifo impl=srl
@@ -2033,6 +2081,15 @@ static void swiftkv_run_four_pes(
 #pragma HLS BIND_STORAGE variable=scale_pe1 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=scale_pe2 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=scale_pe3 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=swiftkv_command_pe0 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=swiftkv_command_pe1 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=swiftkv_command_pe2 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=swiftkv_command_pe3 type=fifo impl=srl
+
+    swiftkv_broadcast_pe_commands(
+        swiftkv_command_pe0, swiftkv_command_pe1,
+        swiftkv_command_pe2, swiftkv_command_pe3,
+        controller.layer_index, controller.position);
 
     swiftkv_broadcast_rope(
         current_cos, current_sin,
@@ -2042,22 +2099,22 @@ static void swiftkv_run_four_pes(
         q_pe0, k_pe0, v_pe0, kv_cache_pe0,
         cos_pe0, sin_pe0,
         quantized_pe0, scale_pe0,
-        controller);
+        swiftkv_command_pe0);
     swiftkv_run_pe<1>(
         q_pe1, k_pe1, v_pe1, kv_cache_pe1,
         cos_pe1, sin_pe1,
         quantized_pe1, scale_pe1,
-        controller);
+        swiftkv_command_pe1);
     swiftkv_run_pe<2>(
         q_pe2, k_pe2, v_pe2, kv_cache_pe2,
         cos_pe2, sin_pe2,
         quantized_pe2, scale_pe2,
-        controller);
+        swiftkv_command_pe2);
     swiftkv_run_pe<3>(
         q_pe3, k_pe3, v_pe3, kv_cache_pe3,
         cos_pe3, sin_pe3,
         quantized_pe3, scale_pe3,
-        controller);
+        swiftkv_command_pe3);
 #ifdef SWIFTKV_INTEGRATED_TOP
     swiftkv_gather_attention_streams(
         quantized_pe0, quantized_pe1,

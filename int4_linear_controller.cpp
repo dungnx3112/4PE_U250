@@ -182,7 +182,14 @@ static ap_int<27> int4_pack_two_weights(
 #pragma HLS INLINE
     ap_int<27> high_wide = (ap_int<27>)high;
     ap_int<27> low_wide = (ap_int<27>)low;
-    return (high_wide << 23) + low_wide;
+    ap_int<27> packed_weight = (high_wide << 23) + low_wide;
+    // Do not let HLS absorb this signed packing add into the DSP48E2
+    // pre-adder.  That produced one 3.333 ns add->multiply stage with no
+    // implementation margin.  A one-cycle fabric/register stage keeps the
+    // paper's exact arithmetic while presenting a registered 27-bit operand
+    // to the packed multiplier.
+#pragma HLS BIND_OP variable=packed_weight op=add impl=fabric latency=1
+    return packed_weight;
 }
 
 static void int4_unpack_pair_sum(
@@ -473,7 +480,7 @@ integer_local_tile_loop:
                                     int4_packed_product_t packed_product =
                                         int4_pack_two_weights(high, low) *
                                         activation;
-#pragma HLS BIND_OP variable=packed_product op=mul impl=dsp
+#pragma HLS BIND_OP variable=packed_product op=mul impl=dsp latency=4
                                     pair_sum[pair] += packed_product;
                                 }
                             }
@@ -733,20 +740,72 @@ static void int4_write_outputs(
     }
 }
 
+// Only this compact, registered command is allowed to cross from the shared
+// controller island into a linear PE.  Passing four C integers/booleans
+// directly to every PE lets HLS create one high-fanout control cone spanning
+// all SLRs.  The per-PE command FIFOs below make the crossing point explicit
+// in both generated RTL and the post-synthesis floorplan.
+typedef ap_uint<14> int4_linear_pe_command_t;
+
+static int4_linear_pe_command_t int4_pack_linear_pe_command(
+    int local_tiles,
+    int input_tiles,
+    bool output_fxp,
+    bool fuse_residual
+) {
+#pragma HLS INLINE
+    int4_linear_pe_command_t command = 0;
+    command.range(5, 0) = (ap_uint<6>)local_tiles;
+    command.range(11, 6) = (ap_uint<6>)input_tiles;
+    command[12] = output_fxp;
+    command[13] = fuse_residual;
+    return command;
+}
+
+static void int4_broadcast_linear_commands(
+    hls::stream<int4_linear_pe_command_t>& linear_command_pe0,
+    hls::stream<int4_linear_pe_command_t>& linear_command_pe1,
+    hls::stream<int4_linear_pe_command_t>& linear_command_pe2,
+    hls::stream<int4_linear_pe_command_t>& linear_command_pe3,
+    int local_tiles_0,
+    int local_tiles_1,
+    int local_tiles_2,
+    int local_tiles_3,
+    int input_tiles,
+    bool output_fxp,
+    bool fuse_residual
+) {
+#pragma HLS INLINE off
+    linear_command_pe0.write(int4_pack_linear_pe_command(
+        local_tiles_0, input_tiles, output_fxp, fuse_residual));
+    linear_command_pe1.write(int4_pack_linear_pe_command(
+        local_tiles_1, input_tiles, output_fxp, fuse_residual));
+    linear_command_pe2.write(int4_pack_linear_pe_command(
+        local_tiles_2, input_tiles, output_fxp, fuse_residual));
+    linear_command_pe3.write(int4_pack_linear_pe_command(
+        local_tiles_3, input_tiles, output_fxp, fuse_residual));
+}
+
 template <int PE_ID>
 static void int4_run_pe_dataflow(
     const int4_weight_word_t* weight_mem,
     const int4_weight_scale_word_t* scale_mem,
     hls::stream<int4_quant_word_t>& activation_stream,
     hls::stream<float>& activation_scale_stream,
-    int4_output_word_t* output_mem,
-    int local_tiles,
-    int input_tiles,
-    bool output_fxp,
-    bool fuse_residual
+    hls::stream<int4_linear_pe_command_t>& command_stream,
+    int4_output_word_t* output_mem
 ) {
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW disable_start_propagation
+
+    // The command FIFO is consumed by this PE's dataflow entry process.  This
+    // preserves a registered SLR boundary without the extra ap_ctrl_hs
+    // wrapper whose call path was estimated at 4.190 ns.
+    const int4_linear_pe_command_t command = command_stream.read();
+    const ap_uint<6> local_tiles = command.range(5, 0);
+    const ap_uint<6> input_tiles = command.range(11, 6);
+    const bool output_fxp = command[12];
+    const bool fuse_residual = command[13];
 
     hls::stream<int4_weight_word_t> weight_stream;
 #ifndef INT4_INTEGRATED_TOP
@@ -824,7 +883,7 @@ static void int4_run_pe_dataflow(
         residual_stream,
 #endif
         output_mem,
-        local_tiles, fuse_residual);
+        (int)local_tiles, fuse_residual);
 }
 
 static void int4_run_four_pes(
@@ -870,6 +929,10 @@ static void int4_run_four_pes(
     hls::stream<float> activation_scale_pe1;
     hls::stream<float> activation_scale_pe2;
     hls::stream<float> activation_scale_pe3;
+    hls::stream<int4_linear_pe_command_t> linear_command_pe0;
+    hls::stream<int4_linear_pe_command_t> linear_command_pe1;
+    hls::stream<int4_linear_pe_command_t> linear_command_pe2;
+    hls::stream<int4_linear_pe_command_t> linear_command_pe3;
 #pragma HLS STREAM variable=quantized_pe0 depth=2
 #pragma HLS STREAM variable=quantized_pe1 depth=2
 #pragma HLS STREAM variable=quantized_pe2 depth=2
@@ -878,6 +941,10 @@ static void int4_run_four_pes(
 #pragma HLS STREAM variable=activation_scale_pe1 depth=2
 #pragma HLS STREAM variable=activation_scale_pe2 depth=2
 #pragma HLS STREAM variable=activation_scale_pe3 depth=2
+#pragma HLS STREAM variable=linear_command_pe0 depth=2
+#pragma HLS STREAM variable=linear_command_pe1 depth=2
+#pragma HLS STREAM variable=linear_command_pe2 depth=2
+#pragma HLS STREAM variable=linear_command_pe3 depth=2
 #pragma HLS BIND_STORAGE variable=quantized_pe0 type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=quantized_pe1 type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=quantized_pe2 type=fifo impl=bram
@@ -886,6 +953,17 @@ static void int4_run_four_pes(
 #pragma HLS BIND_STORAGE variable=activation_scale_pe1 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=activation_scale_pe2 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=activation_scale_pe3 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=linear_command_pe0 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=linear_command_pe1 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=linear_command_pe2 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=linear_command_pe3 type=fifo impl=srl
+
+    int4_broadcast_linear_commands(
+        linear_command_pe0, linear_command_pe1,
+        linear_command_pe2, linear_command_pe3,
+        local_tiles_0, local_tiles_1,
+        local_tiles_2, local_tiles_3,
+        input_tiles, output_fxp, fuse_residual);
 
     int4_broadcast_activation(
 #ifdef INT4_INTEGRATED_TOP
@@ -907,20 +985,20 @@ static void int4_run_four_pes(
 
     int4_run_pe_dataflow<0>(
         weight_pe0, scale_pe0,
-        quantized_pe0, activation_scale_pe0, output_pe0,
-        local_tiles_0, input_tiles, output_fxp, fuse_residual);
+        quantized_pe0, activation_scale_pe0,
+        linear_command_pe0, output_pe0);
     int4_run_pe_dataflow<1>(
         weight_pe1, scale_pe1,
-        quantized_pe1, activation_scale_pe1, output_pe1,
-        local_tiles_1, input_tiles, output_fxp, fuse_residual);
+        quantized_pe1, activation_scale_pe1,
+        linear_command_pe1, output_pe1);
     int4_run_pe_dataflow<2>(
         weight_pe2, scale_pe2,
-        quantized_pe2, activation_scale_pe2, output_pe2,
-        local_tiles_2, input_tiles, output_fxp, fuse_residual);
+        quantized_pe2, activation_scale_pe2,
+        linear_command_pe2, output_pe2);
     int4_run_pe_dataflow<3>(
         weight_pe3, scale_pe3,
-        quantized_pe3, activation_scale_pe3, output_pe3,
-        local_tiles_3, input_tiles, output_fxp, fuse_residual);
+        quantized_pe3, activation_scale_pe3,
+        linear_command_pe3, output_pe3);
 }
 
 static void int4_advance_controller_after_linear(
