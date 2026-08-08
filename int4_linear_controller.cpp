@@ -240,6 +240,11 @@ load_activation_quant_loop:
 }
 #endif
 
+// Cross an SLR boundary exactly once per input G32.  The old implementation
+// replayed the same 480-bit activation word once for every local output tile,
+// turning a small shared input vector into the widest repeated inter-SLR
+// traffic in the kernel.  Each destination PE now caches this seed stream and
+// performs the tile replay locally.
 static void int4_broadcast_activation(
 #ifdef INT4_INTEGRATED_TOP
     int4_quant_word_t* quantized,
@@ -266,99 +271,120 @@ static void int4_broadcast_activation(
     int input_tiles
 ) {
 #pragma HLS INLINE off
-    int maximum_local_tiles = local_tiles_0;
-    if (local_tiles_1 > maximum_local_tiles) {
-        maximum_local_tiles = local_tiles_1;
-    }
-    if (local_tiles_2 > maximum_local_tiles) {
-        maximum_local_tiles = local_tiles_2;
-    }
-    if (local_tiles_3 > maximum_local_tiles) {
-        maximum_local_tiles = local_tiles_3;
-    }
 #ifdef INT4_INTEGRATED_TOP
     int4_scale_word_t streamed_scale_word = 0;
+    int4_scale_word_t cached_scale_word = 0;
 #endif
+    const bool active_0 = local_tiles_0 > 0;
+    const bool active_1 = local_tiles_1 > 0;
+    const bool active_2 = local_tiles_2 > 0;
+    const bool active_3 = local_tiles_3 > 0;
+    const int input_groups = input_tiles * INT4_GROUPS_PER_TILE;
 
-broadcast_local_tile_loop:
-    for (int local_tile = 0;
-         local_tile < maximum_local_tiles;
-         ++local_tile) {
-#pragma HLS LOOP_TRIPCOUNT min=8 max=63
-#ifdef INT4_INTEGRATED_TOP
-        int4_scale_word_t cached_scale_word = 0;
-#endif
-        const bool active_0 = local_tile < local_tiles_0;
-        const bool active_1 = local_tile < local_tiles_1;
-        const bool active_2 = local_tile < local_tiles_2;
-        const bool active_3 = local_tile < local_tiles_3;
-        if (active_0 || active_1 || active_2 || active_3) {
-        broadcast_col_tile_loop:
-            for (int col_tile = 0;
-                 col_tile < input_tiles;
-                 ++col_tile) {
-#pragma HLS LOOP_TRIPCOUNT min=16 max=43
-                broadcast_group_loop:
-                    for (int group = 0;
-                         group < INT4_GROUPS_PER_TILE;
-                         ++group) {
+broadcast_activation_seed_loop:
+    for (int activation_group = 0;
+         activation_group < input_groups;
+         ++activation_group) {
 #pragma HLS PIPELINE II=1
-                        const int activation_group =
-                            col_tile * INT4_GROUPS_PER_TILE + group;
-                        int4_quant_word_t q = 0;
+#pragma HLS LOOP_TRIPCOUNT min=128 max=344
+        int4_quant_word_t q = 0;
 #ifdef INT4_INTEGRATED_TOP
-                        const int scale_lane =
-                            activation_group &
-                            (INT4_OUTPUTS_PER_WORD - 1);
-                        float sx = 0.0f;
-                        if (stream_activation && local_tile == 0) {
-                            q = input_quantized_stream.read();
-                            sx = input_scale_stream.read();
-                            quantized[activation_group] = q;
-                            streamed_scale_word >>= 32;
-                            streamed_scale_word.range(511, 480) =
-                                int4_float_to_bits(sx);
-                            if (scale_lane ==
-                                INT4_OUTPUTS_PER_WORD - 1) {
-                                packed_scales[
-                                    activation_group /
-                                    INT4_OUTPUTS_PER_WORD] =
-                                        streamed_scale_word;
-                            }
-                        } else {
-                            q = quantized[activation_group];
-                            if (scale_lane == 0) {
-                                cached_scale_word =
-                                    packed_scales[
-                                        activation_group /
-                                        INT4_OUTPUTS_PER_WORD];
-                            }
-                            sx = int4_bits_to_float(
-                                cached_scale_word.range(31, 0));
-                            cached_scale_word >>= 32;
-                        }
-#else
-                        q = quantized[activation_group];
-                        const float sx = scales[activation_group];
-#endif
-                        if (active_0) {
-                            quantized_pe0.write(q);
-                            scale_pe0.write(sx);
-                        }
-                        if (active_1) {
-                            quantized_pe1.write(q);
-                            scale_pe1.write(sx);
-                        }
-                        if (active_2) {
-                            quantized_pe2.write(q);
-                            scale_pe2.write(sx);
-                        }
-                        if (active_3) {
-                            quantized_pe3.write(q);
-                            scale_pe3.write(sx);
-                        }
-                    }
+        const int scale_lane =
+            activation_group & (INT4_OUTPUTS_PER_WORD - 1);
+        float sx = 0.0f;
+        if (stream_activation) {
+            q = input_quantized_stream.read();
+            sx = input_scale_stream.read();
+            quantized[activation_group] = q;
+            streamed_scale_word >>= 32;
+            streamed_scale_word.range(511, 480) =
+                int4_float_to_bits(sx);
+            if (scale_lane == INT4_OUTPUTS_PER_WORD - 1) {
+                packed_scales[
+                    activation_group / INT4_OUTPUTS_PER_WORD] =
+                        streamed_scale_word;
             }
+        } else {
+            q = quantized[activation_group];
+            if (scale_lane == 0) {
+                cached_scale_word =
+                    packed_scales[
+                        activation_group / INT4_OUTPUTS_PER_WORD];
+            }
+            sx = int4_bits_to_float(
+                cached_scale_word.range(31, 0));
+            cached_scale_word >>= 32;
+        }
+#else
+        q = quantized[activation_group];
+        const float sx = scales[activation_group];
+#endif
+        if (active_0) {
+            quantized_pe0.write(q);
+            scale_pe0.write(sx);
+        }
+        if (active_1) {
+            quantized_pe1.write(q);
+            scale_pe1.write(sx);
+        }
+        if (active_2) {
+            quantized_pe2.write(q);
+            scale_pe2.write(sx);
+        }
+        if (active_3) {
+            quantized_pe3.write(q);
+            scale_pe3.write(sx);
+        }
+    }
+#ifdef INT4_INTEGRATED_TOP
+    // INT4_HIDDEN_DIM/G32 is 344, so the final packed scale word contains
+    // only eight entries.  Align that partial word to the LSBs exactly as a
+    // consumer that shifts right by 32 expects.
+    const int remaining_scale_lanes =
+        input_groups & (INT4_OUTPUTS_PER_WORD - 1);
+    if (stream_activation && remaining_scale_lanes != 0) {
+        streamed_scale_word >>=
+            32 * (INT4_OUTPUTS_PER_WORD - remaining_scale_lanes);
+        packed_scales[input_groups / INT4_OUTPUTS_PER_WORD] =
+            streamed_scale_word;
+    }
+#endif
+}
+
+template <int PE_ID>
+static void int4_cache_and_replay_activation(
+    hls::stream<int4_quant_word_t>& seed_activation_stream,
+    hls::stream<float>& seed_scale_stream,
+    hls::stream<int4_quant_word_t>& replay_activation_stream,
+    hls::stream<float>& replay_scale_stream,
+    int local_tiles,
+    int input_tiles
+) {
+#pragma HLS INLINE off
+    int4_quant_word_t activation_cache[INT4_MAX_INPUT_GROUPS];
+    float scale_cache[INT4_MAX_INPUT_GROUPS];
+#pragma HLS BIND_STORAGE variable=activation_cache type=ram_1p impl=bram latency=1
+#pragma HLS BIND_STORAGE variable=scale_cache type=ram_1p impl=bram latency=1
+
+    const int input_groups = input_tiles * INT4_GROUPS_PER_TILE;
+
+cache_local_activation_loop:
+    for (int group = 0; group < input_groups; ++group) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=128 max=344
+        activation_cache[group] = seed_activation_stream.read();
+        scale_cache[group] = seed_scale_stream.read();
+    }
+
+replay_local_activation_tile_loop:
+    for (int local_tile = 0; local_tile < local_tiles; ++local_tile) {
+#pragma HLS LOOP_TRIPCOUNT min=8 max=63
+    replay_local_activation_group_loop:
+        for (int group = 0; group < input_groups; ++group) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=128 max=344
+            replay_activation_stream.write(activation_cache[group]);
+            replay_scale_stream.write(scale_cache[group]);
         }
     }
 }
@@ -814,6 +840,8 @@ static void int4_run_pe_dataflow(
     hls::stream<int4_output_word_t> residual_stream;
 #endif
     hls::stream<int4_group_block_t> group_stream;
+    hls::stream<int4_quant_word_t> replay_activation_stream;
+    hls::stream<float> replay_scale_stream;
     hls::stream<int4_final_row_block_t> final_block_stream;
     hls::stream<int4_output_word_t> output_stream;
 #pragma HLS STREAM variable=weight_stream depth=16384
@@ -822,6 +850,8 @@ static void int4_run_pe_dataflow(
 #pragma HLS STREAM variable=residual_stream depth=64
 #endif
 #pragma HLS STREAM variable=group_stream depth=64
+#pragma HLS STREAM variable=replay_activation_stream depth=2
+#pragma HLS STREAM variable=replay_scale_stream depth=2
 #pragma HLS STREAM variable=final_block_stream depth=32
 #pragma HLS STREAM variable=output_stream depth=16
 #pragma HLS BIND_STORAGE variable=weight_stream type=fifo impl=uram
@@ -830,6 +860,8 @@ static void int4_run_pe_dataflow(
 #pragma HLS BIND_STORAGE variable=residual_stream type=fifo impl=bram
 #endif
 #pragma HLS BIND_STORAGE variable=group_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=replay_activation_stream type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=replay_scale_stream type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=final_block_stream type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=output_stream type=fifo impl=bram
     const int tile_count = local_tiles * input_tiles;
@@ -855,15 +887,22 @@ static void int4_run_pe_dataflow(
         output_words, fuse_residual
 #endif
     );
+    int4_cache_and_replay_activation<PE_ID>(
+        activation_stream,
+        activation_scale_stream,
+        replay_activation_stream,
+        replay_scale_stream,
+        local_tiles,
+        input_tiles);
     int4_stream_integer_blocks(
         weight_stream,
-        activation_stream,
+        replay_activation_stream,
         group_stream,
         local_tiles,
         input_tiles);
     int4_dequantize_final_blocks(
         group_stream,
-        activation_scale_stream,
+        replay_scale_stream,
         final_block_stream,
 #ifdef INT4_INTEGRATED_TOP
         scale_mem,
