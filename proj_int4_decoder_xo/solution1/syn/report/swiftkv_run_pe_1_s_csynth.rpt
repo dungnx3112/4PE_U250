@@ -1,0 +1,234 @@
+
+
+================================================================
+== Vitis HLS Report for 'swiftkv_run_pe_1_s'
+================================================================
+* Date:           Tue Aug 11 09:18:23 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.787 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+-----------+----------+------+--------+---------+
+    |  Latency (cycles) |  Latency (absolute)  |    Interval   | Pipeline|
+    |   min   |   max   |    min    |    max   |  min |   max  |   Type  |
+    +---------+---------+-----------+----------+------+--------+---------+
+    |     7950|   270030|  26.497 us|  0.900 ms|  7950|  270030|       no|
+    +---------+---------+-----------+----------+------+--------+---------+
+
+    + Detail: 
+        * Instance: 
+        +----------------------------+------------------+---------+---------+-----------+----------+------+--------+---------+
+        |                            |                  |  Latency (cycles) |  Latency (absolute)  |    Interval   | Pipeline|
+        |          Instance          |      Module      |   min   |   max   |    min    |    max   |  min |   max  |   Type  |
+        +----------------------------+------------------+---------+---------+-----------+----------+------+--------+---------+
+        |grp_swiftkv_run_bank_fu_84  |swiftkv_run_bank  |     7949|   270029|  26.494 us|  0.900 ms|  7949|  270029|       no|
+        +----------------------------+------------------+---------+---------+-----------+----------+------+--------+---------+
+
+        * Loop: 
+        N/A
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+------+
+|         Name        | BRAM_18K|  DSP  |    FF   |   LUT   | URAM |
++---------------------+---------+-------+---------+---------+------+
+|DSP                  |        -|      -|        -|        -|     -|
+|Expression           |        -|      -|        0|        2|     -|
+|FIFO                 |        -|      -|        -|        -|     -|
+|Instance             |      112|     89|    50144|    45942|    32|
+|Memory               |        -|      -|        -|        -|     -|
+|Multiplexer          |        -|      -|        -|      113|     -|
+|Register             |        -|      -|       22|        -|     -|
++---------------------+---------+-------+---------+---------+------+
+|Total                |      112|     89|    50166|    46057|    32|
++---------------------+---------+-------+---------+---------+------+
+|Available SLR        |     1344|   3072|   864000|   432000|   320|
++---------------------+---------+-------+---------+---------+------+
+|Utilization SLR (%)  |        8|      2|        5|       10|    10|
++---------------------+---------+-------+---------+---------+------+
+|Available            |     5376|  12288|  3456000|  1728000|  1280|
++---------------------+---------+-------+---------+---------+------+
+|Utilization (%)      |        2|     ~0|        1|        2|     2|
++---------------------+---------+-------+---------+---------+------+
+
++ Detail: 
+    * Instance: 
+    +----------------------------+------------------+---------+----+-------+-------+-----+
+    |          Instance          |      Module      | BRAM_18K| DSP|   FF  |  LUT  | URAM|
+    +----------------------------+------------------+---------+----+-------+-------+-----+
+    |grp_swiftkv_run_bank_fu_84  |swiftkv_run_bank  |      112|  89|  50144|  45942|   32|
+    +----------------------------+------------------+---------+----+-------+-------+-----+
+    |Total                       |                  |      112|  89|  50144|  45942|   32|
+    +----------------------------+------------------+---------+----+-------+-------+-----+
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +-----------------+----------+----+---+----+------------+------------+
+    |  Variable Name  | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +-----------------+----------+----+---+----+------------+------------+
+    |ap_block_state1  |        or|   0|  0|   2|           1|           1|
+    +-----------------+----------+----+---+----+------------+------------+
+    |Total            |          |   0|  0|   2|           1|           1|
+    +-----------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +---------------------------+----+-----------+-----+-----------+
+    |            Name           | LUT| Input Size| Bits| Total Bits|
+    +---------------------------+----+-----------+-----+-----------+
+    |ap_NS_fsm                  |  14|          3|    1|          3|
+    |ap_done                    |   9|          2|    1|          2|
+    |cos_pe1_read               |   9|          2|    1|          2|
+    |m_axi_gmem1_ARVALID        |   9|          2|    1|          2|
+    |m_axi_gmem1_AWVALID        |   9|          2|    1|          2|
+    |m_axi_gmem1_BREADY         |   9|          2|    1|          2|
+    |m_axi_gmem1_RREADY         |   9|          2|    1|          2|
+    |m_axi_gmem1_WVALID         |   9|          2|    1|          2|
+    |quantized_pe1_write        |   9|          2|    1|          2|
+    |scale_pe1_write            |   9|          2|    1|          2|
+    |sin_pe1_read               |   9|          2|    1|          2|
+    |swiftkv_command_pe1_blk_n  |   9|          2|    1|          2|
+    +---------------------------+----+-----------+-----+-----------+
+    |Total                      | 113|         25|   12|         25|
+    +---------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +-----------------------------------------+----+----+-----+-----------+
+    |                   Name                  | FF | LUT| Bits| Const Bits|
+    +-----------------------------------------+----+----+-----+-----------+
+    |ap_CS_fsm                                |   2|   0|    2|          0|
+    |ap_done_reg                              |   1|   0|    1|          0|
+    |grp_swiftkv_run_bank_fu_84_ap_start_reg  |   1|   0|    1|          0|
+    |layer_index_reg_131                      |   6|   0|    6|          0|
+    |position_reg_136                         |  12|   0|   12|          0|
+    +-----------------------------------------+----+----+-----+-----------+
+    |Total                                    |  22|   0|   22|          0|
+    +-----------------------------------------+----+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++------------------------------------+-----+-----+------------+---------------------+--------------+
+|              RTL Ports             | Dir | Bits|  Protocol  |    Source Object    |    C Type    |
++------------------------------------+-----+-----+------------+---------------------+--------------+
+|ap_clk                              |   in|    1|  ap_ctrl_hs|    swiftkv_run_pe<1>|  return value|
+|ap_rst                              |   in|    1|  ap_ctrl_hs|    swiftkv_run_pe<1>|  return value|
+|ap_start                            |   in|    1|  ap_ctrl_hs|    swiftkv_run_pe<1>|  return value|
+|ap_done                             |  out|    1|  ap_ctrl_hs|    swiftkv_run_pe<1>|  return value|
+|ap_continue                         |   in|    1|  ap_ctrl_hs|    swiftkv_run_pe<1>|  return value|
+|ap_idle                             |  out|    1|  ap_ctrl_hs|    swiftkv_run_pe<1>|  return value|
+|ap_ready                            |  out|    1|  ap_ctrl_hs|    swiftkv_run_pe<1>|  return value|
+|q_address0                          |  out|    6|   ap_memory|                    q|         array|
+|q_ce0                               |  out|    1|   ap_memory|                    q|         array|
+|q_q0                                |   in|  512|   ap_memory|                    q|         array|
+|k_address0                          |  out|    6|   ap_memory|                    k|         array|
+|k_ce0                               |  out|    1|   ap_memory|                    k|         array|
+|k_q0                                |   in|  512|   ap_memory|                    k|         array|
+|v_address0                          |  out|    6|   ap_memory|                    v|         array|
+|v_ce0                               |  out|    1|   ap_memory|                    v|         array|
+|v_q0                                |   in|  512|   ap_memory|                    v|         array|
+|m_axi_gmem1_AWVALID                 |  out|    1|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_AWREADY                 |   in|    1|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_AWADDR                  |  out|   64|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_AWID                    |  out|    1|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_AWLEN                   |  out|   32|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_AWSIZE                  |  out|    3|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_AWBURST                 |  out|    2|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_AWLOCK                  |  out|    2|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_AWCACHE                 |  out|    4|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_AWPROT                  |  out|    3|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_AWQOS                   |  out|    4|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_AWREGION                |  out|    4|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_AWUSER                  |  out|    1|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_WVALID                  |  out|    1|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_WREADY                  |   in|    1|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_WDATA                   |  out|  512|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_WSTRB                   |  out|   64|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_WLAST                   |  out|    1|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_WID                     |  out|    1|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_WUSER                   |  out|    1|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_ARVALID                 |  out|    1|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_ARREADY                 |   in|    1|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_ARADDR                  |  out|   64|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_ARID                    |  out|    1|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_ARLEN                   |  out|   32|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_ARSIZE                  |  out|    3|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_ARBURST                 |  out|    2|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_ARLOCK                  |  out|    2|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_ARCACHE                 |  out|    4|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_ARPROT                  |  out|    3|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_ARQOS                   |  out|    4|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_ARREGION                |  out|    4|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_ARUSER                  |  out|    1|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_RVALID                  |   in|    1|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_RREADY                  |  out|    1|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_RDATA                   |   in|  512|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_RLAST                   |   in|    1|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_RID                     |   in|    1|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_RFIFONUM                |   in|   12|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_RUSER                   |   in|    1|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_RRESP                   |   in|    2|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_BVALID                  |   in|    1|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_BREADY                  |  out|    1|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_BRESP                   |   in|    2|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_BID                     |   in|    1|       m_axi|                gmem1|       pointer|
+|m_axi_gmem1_BUSER                   |   in|    1|       m_axi|                gmem1|       pointer|
+|kv_cache                            |   in|   64|     ap_none|             kv_cache|        scalar|
+|cos_pe1_dout                        |   in|   19|     ap_fifo|              cos_pe1|       pointer|
+|cos_pe1_num_data_valid              |   in|    3|     ap_fifo|              cos_pe1|       pointer|
+|cos_pe1_fifo_cap                    |   in|    3|     ap_fifo|              cos_pe1|       pointer|
+|cos_pe1_empty_n                     |   in|    1|     ap_fifo|              cos_pe1|       pointer|
+|cos_pe1_read                        |  out|    1|     ap_fifo|              cos_pe1|       pointer|
+|sin_pe1_dout                        |   in|   19|     ap_fifo|              sin_pe1|       pointer|
+|sin_pe1_num_data_valid              |   in|    3|     ap_fifo|              sin_pe1|       pointer|
+|sin_pe1_fifo_cap                    |   in|    3|     ap_fifo|              sin_pe1|       pointer|
+|sin_pe1_empty_n                     |   in|    1|     ap_fifo|              sin_pe1|       pointer|
+|sin_pe1_read                        |  out|    1|     ap_fifo|              sin_pe1|       pointer|
+|quantized_pe1_din                   |  out|  480|     ap_fifo|        quantized_pe1|       pointer|
+|quantized_pe1_num_data_valid        |   in|    3|     ap_fifo|        quantized_pe1|       pointer|
+|quantized_pe1_fifo_cap              |   in|    3|     ap_fifo|        quantized_pe1|       pointer|
+|quantized_pe1_full_n                |   in|    1|     ap_fifo|        quantized_pe1|       pointer|
+|quantized_pe1_write                 |  out|    1|     ap_fifo|        quantized_pe1|       pointer|
+|scale_pe1_din                       |  out|   32|     ap_fifo|            scale_pe1|       pointer|
+|scale_pe1_num_data_valid            |   in|    3|     ap_fifo|            scale_pe1|       pointer|
+|scale_pe1_fifo_cap                  |   in|    3|     ap_fifo|            scale_pe1|       pointer|
+|scale_pe1_full_n                    |   in|    1|     ap_fifo|            scale_pe1|       pointer|
+|scale_pe1_write                     |  out|    1|     ap_fifo|            scale_pe1|       pointer|
+|swiftkv_command_pe1_dout            |   in|   18|     ap_fifo|  swiftkv_command_pe1|       pointer|
+|swiftkv_command_pe1_num_data_valid  |   in|    3|     ap_fifo|  swiftkv_command_pe1|       pointer|
+|swiftkv_command_pe1_fifo_cap        |   in|    3|     ap_fifo|  swiftkv_command_pe1|       pointer|
+|swiftkv_command_pe1_empty_n         |   in|    1|     ap_fifo|  swiftkv_command_pe1|       pointer|
+|swiftkv_command_pe1_read            |  out|    1|     ap_fifo|  swiftkv_command_pe1|       pointer|
++------------------------------------+-----+-----+------------+---------------------+--------------+
+

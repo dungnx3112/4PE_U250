@@ -1,0 +1,156 @@
+
+
+================================================================
+== Vitis HLS Report for 'int4_write_outputs_Pipeline_write_output_direct_loop'
+================================================================
+* Date:           Tue Aug 11 09:19:25 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.220 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+---------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline|
+    |   min   |   max   |    min   |    max   | min | max |   Type  |
+    +---------+---------+----------+----------+-----+-----+---------+
+    |       67|      507|  0.223 us|  1.690 us|   67|  507|       no|
+    +---------+---------+----------+----------+-----+-----+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +----------------------------+---------+---------+----------+-----------+-----------+----------+----------+
+        |                            |  Latency (cycles) | Iteration|  Initiation Interval  |   Trip   |          |
+        |          Loop Name         |   min   |   max   |  Latency |  achieved |   target  |   Count  | Pipelined|
+        +----------------------------+---------+---------+----------+-----------+-----------+----------+----------+
+        |- write_output_direct_loop  |       65|      505|         3|          1|          1|  64 ~ 504|       yes|
+        +----------------------------+---------+---------+----------+-----------+-----------+----------+----------+
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+------+
+|         Name        | BRAM_18K|  DSP  |    FF   |   LUT   | URAM |
++---------------------+---------+-------+---------+---------+------+
+|DSP                  |        -|      -|        -|        -|     -|
+|Expression           |        -|      -|        0|       36|     -|
+|FIFO                 |        -|      -|        -|        -|     -|
+|Instance             |        -|      -|        -|        -|     -|
+|Memory               |        -|      -|        -|        -|     -|
+|Multiplexer          |        -|      -|        -|       45|     -|
+|Register             |        -|      -|      544|        -|     -|
++---------------------+---------+-------+---------+---------+------+
+|Total                |        0|      0|      544|       81|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available SLR        |     1344|   3072|   864000|   432000|   320|
++---------------------+---------+-------+---------+---------+------+
+|Utilization SLR (%)  |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available            |     5376|  12288|  3456000|  1728000|  1280|
++---------------------+---------+-------+---------+---------+------+
+|Utilization (%)      |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+
++ Detail: 
+    * Instance: 
+    N/A
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +---------------------------+----------+----+---+----+------------+------------+
+    |       Variable Name       | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +---------------------------+----------+----+---+----+------------+------------+
+    |add_ln704_fu_99_p2         |         +|   0|  0|  16|           9|           1|
+    |ap_block_pp0_stage0_11001  |       and|   0|  0|   2|           1|           1|
+    |icmp_ln704_fu_93_p2        |      icmp|   0|  0|  16|           9|           9|
+    |ap_enable_pp0              |       xor|   0|  0|   2|           1|           2|
+    +---------------------------+----------+----+---+----+------------+------------+
+    |Total                      |          |   0|  0|  36|          20|          13|
+    +---------------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +-------------------------+----+-----------+-----+-----------+
+    |           Name          | LUT| Input Size| Bits| Total Bits|
+    +-------------------------+----+-----------+-----+-----------+
+    |ap_done_int              |   9|          2|    1|          2|
+    |ap_enable_reg_pp0_iter1  |   9|          2|    1|          2|
+    |ap_sig_allocacmp_word_7  |   9|          2|    9|         18|
+    |output_stream_blk_n      |   9|          2|    1|          2|
+    |word_fu_52               |   9|          2|    9|         18|
+    +-------------------------+----+-----------+-----+-----------+
+    |Total                    |  45|         10|   21|         42|
+    +-------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +----------------------------------+-----+----+-----+-----------+
+    |               Name               |  FF | LUT| Bits| Const Bits|
+    +----------------------------------+-----+----+-----+-----------+
+    |ap_CS_fsm                         |    1|   0|    1|          0|
+    |ap_done_reg                       |    1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter1           |    1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter2           |    1|   0|    1|          0|
+    |ap_loop_exit_ready_pp0_iter1_reg  |    1|   0|    1|          0|
+    |output_stream_read_reg_130        |  512|   0|  512|          0|
+    |word_7_reg_121                    |    9|   0|    9|          0|
+    |word_7_reg_121_pp0_iter1_reg      |    9|   0|    9|          0|
+    |word_fu_52                        |    9|   0|    9|          0|
+    +----------------------------------+-----+----+-----+-----------+
+    |Total                             |  544|   0|  544|          0|
+    +----------------------------------+-----+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++------------------------------+-----+-----+------------+------------------------------------------------------+--------------+
+|           RTL Ports          | Dir | Bits|  Protocol  |                     Source Object                    |    C Type    |
++------------------------------+-----+-----+------------+------------------------------------------------------+--------------+
+|ap_clk                        |   in|    1|  ap_ctrl_hs|  int4_write_outputs_Pipeline_write_output_direct_loop|  return value|
+|ap_rst                        |   in|    1|  ap_ctrl_hs|  int4_write_outputs_Pipeline_write_output_direct_loop|  return value|
+|ap_start                      |   in|    1|  ap_ctrl_hs|  int4_write_outputs_Pipeline_write_output_direct_loop|  return value|
+|ap_done                       |  out|    1|  ap_ctrl_hs|  int4_write_outputs_Pipeline_write_output_direct_loop|  return value|
+|ap_idle                       |  out|    1|  ap_ctrl_hs|  int4_write_outputs_Pipeline_write_output_direct_loop|  return value|
+|ap_ready                      |  out|    1|  ap_ctrl_hs|  int4_write_outputs_Pipeline_write_output_direct_loop|  return value|
+|output_stream_dout            |   in|  512|     ap_fifo|                                         output_stream|       pointer|
+|output_stream_num_data_valid  |   in|    5|     ap_fifo|                                         output_stream|       pointer|
+|output_stream_fifo_cap        |   in|    5|     ap_fifo|                                         output_stream|       pointer|
+|output_stream_empty_n         |   in|    1|     ap_fifo|                                         output_stream|       pointer|
+|output_stream_read            |  out|    1|     ap_fifo|                                         output_stream|       pointer|
+|shl_ln                        |   in|    9|     ap_none|                                                shl_ln|        scalar|
+|output_mem_address1           |  out|    9|   ap_memory|                                            output_mem|         array|
+|output_mem_ce1                |  out|    1|   ap_memory|                                            output_mem|         array|
+|output_mem_we1                |  out|    1|   ap_memory|                                            output_mem|         array|
+|output_mem_d1                 |  out|  512|   ap_memory|                                            output_mem|         array|
++------------------------------+-----+-----+------------+------------------------------------------------------+--------------+
+

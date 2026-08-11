@@ -1,0 +1,177 @@
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:1457:7: warning: Added loop label VITIS_LOOP_1207_1:   [xilinx-label-all-loops]
+      for (i = 0; i < __N - 1; ++i) {
+      ^~~
+      VITIS_LOOP_1207_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:1457:7: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:2431:5: warning: Added loop label VITIS_LOOP_676_1:   [xilinx-label-all-loops]
+    for (unsigned i = low; i != high; ++i) {
+    ^~~
+    VITIS_LOOP_676_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:2431:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:2445:5: warning: Added loop label VITIS_LOOP_690_1:   [xilinx-label-all-loops]
+    for (unsigned i = low; i != high; ++i) {
+    ^~~
+    VITIS_LOOP_690_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:2445:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:2459:5: warning: Added loop label VITIS_LOOP_704_1:   [xilinx-label-all-loops]
+    for (unsigned i = low; i != high; ++i) {
+    ^~~
+    VITIS_LOOP_704_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:2459:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:4088:7: warning: Added loop label VITIS_LOOP_1247_1:   [xilinx-label-all-loops]
+      for (i = 0; i < __N - 1; ++i) {
+      ^~~
+      VITIS_LOOP_1247_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:4088:7: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:6270:5: warning: Added loop label VITIS_LOOP_65_1:   [xilinx-label-all-loops]
+    for (int mode = INT4_LINEAR_Q;
+    ^~~
+    VITIS_LOOP_65_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:6270:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:6280:5: warning: Added loop label VITIS_LOOP_75_1:   [xilinx-label-all-loops]
+    for (int mode = INT4_LINEAR_Q;
+    ^~~
+    VITIS_LOOP_75_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:6280:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:6293:5: warning: Added loop label VITIS_LOOP_88_1:   [xilinx-label-all-loops]
+    for (int prior = INT4_LINEAR_Q; prior < mode; ++prior) {
+    ^~~
+    VITIS_LOOP_88_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:6293:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:6304:5: warning: Added loop label VITIS_LOOP_99_1:   [xilinx-label-all-loops]
+    for (int prior = INT4_LINEAR_Q; prior < mode; ++prior) {
+    ^~~
+    VITIS_LOOP_99_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:6304:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:6662:57: error: Invalid Directive: for current device, fifo + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=quantized_stream type=fifo impl=bram
+                                                        ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:6663:53: error: Invalid Directive: for current device, fifo + srl is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=scale_stream type=fifo impl=srl
+                                                    ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:6929:55: error: Invalid Directive: for current device, fifo + srl is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=command_stream type=fifo impl=srl
+                                                      ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7191:46: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=q_pe0 type=ram_1p impl=bram
+                                             ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7192:46: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=q_pe1 type=ram_1p impl=bram
+                                             ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7193:46: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=q_pe2 type=ram_1p impl=bram
+                                             ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7194:46: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=q_pe3 type=ram_1p impl=bram
+                                             ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7195:46: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=k_pe0 type=ram_1p impl=bram
+                                             ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7196:46: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=k_pe1 type=ram_1p impl=bram
+                                             ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7197:46: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=k_pe2 type=ram_1p impl=bram
+                                             ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7198:46: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=k_pe3 type=ram_1p impl=bram
+                                             ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7199:46: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=v_pe0 type=ram_1p impl=bram
+                                             ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7200:46: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=v_pe1 type=ram_1p impl=bram
+                                             ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7201:46: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=v_pe2 type=ram_1p impl=bram
+                                             ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7202:46: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=v_pe3 type=ram_1p impl=bram
+                                             ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7203:49: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=gate_pe0 type=ram_1p impl=bram
+                                                ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7204:49: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=gate_pe1 type=ram_1p impl=bram
+                                                ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7205:49: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=gate_pe2 type=ram_1p impl=bram
+                                                ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7206:49: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=gate_pe3 type=ram_1p impl=bram
+                                                ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7207:47: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=up_pe0 type=ram_1p impl=bram
+                                              ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7208:47: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=up_pe1 type=ram_1p impl=bram
+                                              ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7209:47: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=up_pe2 type=ram_1p impl=bram
+                                              ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7210:47: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=up_pe3 type=ram_1p impl=bram
+                                              ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7211:57: error: Invalid Directive: for current device, ram_2p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=residual_buffer0 type=ram_2p impl=bram
+                                                        ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7212:57: error: Invalid Directive: for current device, ram_2p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=residual_buffer1 type=ram_2p impl=bram
+                                                        ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7213:57: error: Invalid Directive: for current device, ram_2p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=residual_buffer2 type=ram_2p impl=bram
+                                                        ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7214:57: error: Invalid Directive: for current device, ram_2p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=residual_buffer3 type=ram_2p impl=bram
+                                                        ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7215:54: error: Invalid Directive: for current device, ram_2p + uram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=linear_stage0 type=ram_2p impl=uram
+                                                     ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7216:54: error: Invalid Directive: for current device, ram_2p + uram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=linear_stage1 type=ram_2p impl=uram
+                                                     ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7217:54: error: Invalid Directive: for current device, ram_2p + uram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=linear_stage2 type=ram_2p impl=uram
+                                                     ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7218:54: error: Invalid Directive: for current device, ram_2p + uram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=linear_stage3 type=ram_2p impl=uram
+                                                     ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7240:59: error: Invalid Directive: for current device, ram_1p + uram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=model_scale_cache0 type=ram_1p impl=uram
+                                                          ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7241:59: error: Invalid Directive: for current device, ram_1p + uram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=model_scale_cache1 type=ram_1p impl=uram
+                                                          ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7242:59: error: Invalid Directive: for current device, ram_1p + uram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=model_scale_cache2 type=ram_1p impl=uram
+                                                          ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7243:59: error: Invalid Directive: for current device, ram_1p + uram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=model_scale_cache3 type=ram_1p impl=uram
+                                                          ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7244:58: error: Invalid Directive: for current device, ram_1p + uram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=model_norm_cache0 type=ram_1p impl=uram
+                                                         ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7245:58: error: Invalid Directive: for current device, ram_1p + uram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=model_norm_cache1 type=ram_1p impl=uram
+                                                         ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7246:58: error: Invalid Directive: for current device, ram_1p + uram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=model_norm_cache2 type=ram_1p impl=uram
+                                                         ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7247:58: error: Invalid Directive: for current device, ram_1p + uram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=model_norm_cache3 type=ram_1p impl=uram
+                                                         ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7255:53: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=activation_q type=ram_1p impl=bram
+                                                    ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7256:57: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=activation_scale type=ram_1p impl=bram
+                                                        ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7269:49: error: Invalid Directive: for current device, ram_1p + uram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=rope_lut type=ram_1p impl=uram latency=2
+                                                ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7270:52: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=current_cos type=ram_1p impl=bram latency=1
+                                                   ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_decoder_controller.pp.0.cpp:7271:52: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=current_sin type=ram_1p impl=bram latency=1
+                                                   ^

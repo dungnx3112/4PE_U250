@@ -1,0 +1,132 @@
+
+
+================================================================
+== Vitis HLS Report for 'swiftkv_run_pe_0_s'
+================================================================
+* Date:           Tue Aug 11 09:17:01 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.787 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+-----------+----------+------+--------+---------+
+    |  Latency (cycles) |  Latency (absolute)  |    Interval   | Pipeline|
+    |   min   |   max   |    min    |    max   |  min |   max  |   Type  |
+    +---------+---------+-----------+----------+------+--------+---------+
+    |     7950|   270030|  26.497 us|  0.900 ms|  7950|  270030|       no|
+    +---------+---------+-----------+----------+------+--------+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        N/A
+
+============================================================
++ Verbose Summary: Synthesis Manager
+============================================================
+InlineROM: 1
+ExposeGlobal: 0
+============================================================
++ Verbose Summary: CDFG Model
+============================================================
+IsTopModel: 0
+ResetActiveHigh: 1
+IsCombinational: 2
+IsDatapathOnly: 0
+HasWiredReturn: 1
+HasMFsm: 0
+HasVarLatency: 1
+IsPipeline: 0
+IsRtlPipelined: 0
+IsInstanceOverlapped: 0
+IsDontTouch: 0
+HasImplIP: 0
+IsGatedGlobalClock: 0
+
+
+============================================================
++ Verbose Summary: Schedule
+============================================================
+* Number of FSM states : 2
+* Pipeline : 0
+* Dataflow Pipeline: 0
+
+* FSM state transitions: 
+1 --> 2 
+2 --> 
+
+* FSM state operations: 
+
+State 1 <SV = 0> <Delay = 1.21>
+ST_1 : Operation 3 [1/1] (0.00ns)   --->   "%kv_cache_read = read i64 @_ssdm_op_Read.ap_auto.i64, i64 %kv_cache" [source/swiftkv_attention.cpp:1970]   --->   Operation 3 'read' 'kv_cache_read' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 4 [1/1] (1.21ns)   --->   "%command = read i18 @_ssdm_op_Read.ap_fifo.volatile.i18P0A, i18 %swiftkv_command_pe0" [source/swiftkv_attention.cpp:1988]   --->   Operation 4 'read' 'command' <Predicate = true> <Delay = 1.21> <CoreInst = "FIFO_SRL">   --->   Core 81 'FIFO_SRL' <Latency = 0> <II = 1> <Delay = 1.39> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 18> <Depth = 2> <FIFO>
+ST_1 : Operation 5 [1/1] (0.00ns)   --->   "%layer_index = trunc i18 %command" [source/swiftkv_attention.cpp:1989]   --->   Operation 5 'trunc' 'layer_index' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 6 [1/1] (0.00ns)   --->   "%position = partselect i12 @_ssdm_op_PartSelect.i12.i18.i32.i32, i18 %command, i32 6, i32 17" [source/swiftkv_attention.cpp:1990]   --->   Operation 6 'partselect' 'position' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 7 [2/2] (0.00ns)   --->   "%call_ln1992 = call void @swiftkv_run_bank, i512 %q, i512 %k, i512 %v, i512 %gmem0, i64 %kv_cache_read, i19 %cos_pe0, i19 %sin_pe0, i480 %quantized_pe0, i32 %scale_pe0, i6 %layer_index, i12 %position, i32 %SWIFTKV_EXP2_LUT_Q30" [source/swiftkv_attention.cpp:1992]   --->   Operation 7 'call' 'call_ln1992' <Predicate = true> <Delay = 0.00> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+
+State 2 <SV = 1> <Delay = 0.00>
+ST_2 : Operation 8 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i18 %swiftkv_command_pe0, i64 666, i64 10, i64 18446744073709551615"   --->   Operation 8 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 9 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %scale_pe0, i64 666, i64 10, i64 18446744073709551615"   --->   Operation 9 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 10 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i480 %quantized_pe0, i64 666, i64 8, i64 18446744073709551615"   --->   Operation 10 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 11 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i19 %sin_pe0, i64 666, i64 10, i64 18446744073709551615"   --->   Operation 11 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 12 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i19 %cos_pe0, i64 666, i64 10, i64 18446744073709551615"   --->   Operation 12 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 13 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %q, i64 666, i64 18, i64 18446744073709551615"   --->   Operation 13 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 14 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %k, i64 666, i64 18, i64 18446744073709551615"   --->   Operation 14 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 15 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %v, i64 666, i64 18, i64 18446744073709551615"   --->   Operation 15 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 16 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i18 %swiftkv_command_pe0, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 16 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 17 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i32 %scale_pe0, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 17 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 18 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i480 %quantized_pe0, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 18 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 19 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i19 %sin_pe0, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 19 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 20 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i19 %cos_pe0, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 20 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 21 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i512 %gmem0, void @empty_417, i32 0, i32 0, void @empty_418, i32 64, i32 13043328, void @empty_419, void @empty_420, void @empty_418, i32 8, i32 2, i32 256, i32 64, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 21 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 22 [1/2] (0.00ns)   --->   "%call_ln1992 = call void @swiftkv_run_bank, i512 %q, i512 %k, i512 %v, i512 %gmem0, i64 %kv_cache_read, i19 %cos_pe0, i19 %sin_pe0, i480 %quantized_pe0, i32 %scale_pe0, i6 %layer_index, i12 %position, i32 %SWIFTKV_EXP2_LUT_Q30" [source/swiftkv_attention.cpp:1992]   --->   Operation 22 'call' 'call_ln1992' <Predicate = true> <Delay = 0.00> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+ST_2 : Operation 23 [1/1] (0.00ns)   --->   "%ret_ln1997 = ret" [source/swiftkv_attention.cpp:1997]   --->   Operation 23 'ret' 'ret_ln1997' <Predicate = true> <Delay = 0.00>
+
+
+============================================================
++ Verbose Summary: Timing violations
+============================================================
+Target clock period: 3.333ns, clock uncertainty: 0.900ns.
+
+ <State 1>: 1.217ns
+The critical path consists of the following:
+	fifo read operation ('command', source/swiftkv_attention.cpp:1988) on port 'swiftkv_command_pe0' (source/swiftkv_attention.cpp:1988) [27]  (1.217 ns)
+
+ <State 2>: 0.000ns
+The critical path consists of the following:
+
+
+============================================================
++ Verbose Summary: Binding
+============================================================
+N/A
+* FSMD analyzer results:
+  - Output states:
+ - Input state : 
+  - Chain level:
+	State 1
+	State 2
+
+
+============================================================
++ Verbose Summary: Datapath Resource usage 
+============================================================
+N/A

@@ -1,0 +1,349 @@
+<profile>
+
+<section name = "Vitis HLS Report for 'swiftkv_run_bank'" level="0">
+<item name = "Date">Tue Aug 11 09:18:22 2026
+</item>
+<item name = "Version">2023.2 (Build 4023990 on Oct 11 2023)</item>
+<item name = "Project">proj_int4_decoder_xo</item>
+<item name = "Solution">solution1 (Vitis Kernel Flow Target)</item>
+<item name = "Product family">virtexuplus</item>
+<item name = "Target device">xcu250-figd2104-2L-e</item>
+</section>
+
+<section name = "Performance Estimates" level="0">
+<item name = "Timing">
+<section name = "" level="1">
+<item name = "Summary"><table name="" hasTotal="0">
+<keys size="4">Clock, Target, Estimated, Uncertainty</keys>
+<column name="ap_clk">3.33 ns, 2.787 ns, 0.90 ns</column>
+</table>
+</item>
+</section>
+</item>
+<item name = "Latency">
+<section name = "" level="1">
+<item name = "Summary"><table name="" hasTotal="0">
+<keys size="8">, min, max, min, max, min, max, Type</keys>
+<column name="">7949, 270029, 26.494 us, 0.900 ms, 7949, 270029, no</column>
+</table>
+</item>
+<item name = "Detail">
+<section name = "" level="1">
+<item name = "Instance"><table name="" hasTotal="0">
+<keys size="9">Instance, Module, min, max, min, max, min, max, Type</keys>
+<column name="grp_swiftkv_run_bank_Pipeline_pe_cache_rope_pair_loop_fu_278">swiftkv_run_bank_Pipeline_pe_cache_rope_pair_loop, 66, 66, 0.220 us, 0.220 us, 66, 66, no</column>
+<column name="grp_swiftkv_run_bank_Pipeline_pe_load_q_word_loop_fu_288">swiftkv_run_bank_Pipeline_pe_load_q_word_loop, 10, 10, 33.330 ns, 33.330 ns, 10, 10, no</column>
+<column name="grp_swiftkv_run_bank_Pipeline_pe_load_k_word_loop_fu_296">swiftkv_run_bank_Pipeline_pe_load_k_word_loop, 10, 10, 33.330 ns, 33.330 ns, 10, 10, no</column>
+<column name="grp_swiftkv_run_bank_Pipeline_pe_load_v_word_loop_fu_304">swiftkv_run_bank_Pipeline_pe_load_v_word_loop, 10, 10, 33.330 ns, 33.330 ns, 10, 10, no</column>
+<column name="grp_swiftkv_run_bank_Pipeline_pe_rope_word_loop_pe_rope_pair_phase_loop_fu_312">swiftkv_run_bank_Pipeline_pe_rope_word_loop_pe_rope_pair_phase_loop, 137, 137, 0.457 us, 0.457 us, 137, 137, no</column>
+<column name="grp_swiftkv_quantize_kv_record_fu_337">swiftkv_quantize_kv_record, 137, 137, 0.457 us, 0.457 us, 137, 137, no</column>
+<column name="grp_swiftkv_run_bank_Pipeline_pe_write_kv_word_loop_fu_343">swiftkv_run_bank_Pipeline_pe_write_kv_word_loop, 7, 7, 23.331 ns, 23.331 ns, 7, 7, no</column>
+<column name="grp_swiftkv_attention_head_fu_355">swiftkv_attention_head, 616, 33376, 2.053 us, 0.111 ms, 511, 33271, dataflow</column>
+</table>
+</item>
+<item name = "Loop"><table name="" hasTotal="0">
+<keys size="8">Loop Name, min, max, Latency, achieved, target, Count, Pipelined</keys>
+<column name="- pe_head_loop">7880, 269960, 985 ~ 33745, -, -, 8, no</column>
+</table>
+</item>
+</section>
+</item>
+</section>
+</item>
+</section>
+
+<section name = "Utilization Estimates" level="0">
+<item name = "Summary"><table name="" hasTotal="1">
+<keys size="6">Name, BRAM_18K, DSP, FF, LUT, URAM</keys>
+<column name="DSP">-, -, -, -, -</column>
+<column name="Expression">-, -, 0, 251, -</column>
+<column name="FIFO">-, -, -, -, -</column>
+<column name="Instance">32, 89, 47291, 44194, 32</column>
+<column name="Memory">80, -, 64, 66, -</column>
+<column name="Multiplexer">-, -, -, 1431, -</column>
+<column name="Register">-, -, 2789, -, -</column>
+<specialColumn name="Available SLR">1344, 3072, 864000, 432000, 320</specialColumn>
+<specialColumn name="Utilization SLR (%)">8, 2, 5, 10, 10</specialColumn>
+<specialColumn name="Available">5376, 12288, 3456000, 1728000, 1280</specialColumn>
+<specialColumn name="Utilization (%)">2, ~0, 1, 2, 2</specialColumn>
+</table>
+</item>
+<item name = "Detail">
+<section name = "" level="1">
+<item name = "Instance"><table name="" hasTotal="1">
+<keys size="7">Instance, Module, BRAM_18K, DSP, FF, LUT, URAM</keys>
+<column name="grp_swiftkv_attention_head_fu_355">swiftkv_attention_head, 32, 81, 38218, 35306, 32</column>
+<column name="grp_swiftkv_quantize_kv_record_fu_337">swiftkv_quantize_kv_record, 0, 0, 6015, 6875, 0</column>
+<column name="grp_swiftkv_run_bank_Pipeline_pe_cache_rope_pair_loop_fu_278">swiftkv_run_bank_Pipeline_pe_cache_rope_pair_loop, 0, 0, 17, 89, 0</column>
+<column name="grp_swiftkv_run_bank_Pipeline_pe_load_k_word_loop_fu_296">swiftkv_run_bank_Pipeline_pe_load_k_word_loop, 0, 0, 11, 75, 0</column>
+<column name="grp_swiftkv_run_bank_Pipeline_pe_load_q_word_loop_fu_288">swiftkv_run_bank_Pipeline_pe_load_q_word_loop, 0, 0, 11, 75, 0</column>
+<column name="grp_swiftkv_run_bank_Pipeline_pe_load_v_word_loop_fu_304">swiftkv_run_bank_Pipeline_pe_load_v_word_loop, 0, 0, 11, 75, 0</column>
+<column name="grp_swiftkv_run_bank_Pipeline_pe_rope_word_loop_pe_rope_pair_phase_loop_fu_312">swiftkv_run_bank_Pipeline_pe_rope_word_loop_pe_rope_pair_phase_loop, 0, 8, 2490, 1604, 0</column>
+<column name="grp_swiftkv_run_bank_Pipeline_pe_write_kv_word_loop_fu_343">swiftkv_run_bank_Pipeline_pe_write_kv_word_loop, 0, 0, 518, 95, 0</column>
+</table>
+</item>
+<item name = "DSP"><table name="" hasTotal="0">
+<keys size="3">Instance, Module, Expression</keys>
+</table>
+</item>
+<item name = "Memory"><table name="" hasTotal="1">
+<keys size="10">Memory, Module, BRAM_18K, FF, LUT, URAM, Words, Bits, Banks, W*Bits*Banks</keys>
+<column name="local_cosine_U">swiftkv_run_bank_local_cosine_RAM_1P_LUTRAM_1R1W, 0, 32, 33, 0, 64, 19, 1, 1216</column>
+<column name="local_sine_U">swiftkv_run_bank_local_cosine_RAM_1P_LUTRAM_1R1W, 0, 32, 33, 0, 64, 19, 1, 1216</column>
+<column name="q_words_U">swiftkv_run_bank_q_words_RAM_1P_BRAM_1R1W, 16, 0, 0, 0, 8, 512, 1, 4096</column>
+<column name="k_words_U">swiftkv_run_bank_q_words_RAM_1P_BRAM_1R1W, 16, 0, 0, 0, 8, 512, 1, 4096</column>
+<column name="v_words_U">swiftkv_run_bank_q_words_RAM_1P_BRAM_1R1W, 16, 0, 0, 0, 8, 512, 1, 4096</column>
+<column name="rotated_k_words_U">swiftkv_run_bank_q_words_RAM_1P_BRAM_1R1W, 16, 0, 0, 0, 8, 512, 1, 4096</column>
+<column name="query_U">swiftkv_run_bank_query_RAM_1P_BRAM_1R1W, 1, 0, 0, 0, 8, 32, 1, 256</column>
+<column name="query_1_U">swiftkv_run_bank_query_RAM_1P_BRAM_1R1W, 1, 0, 0, 0, 8, 32, 1, 256</column>
+<column name="query_2_U">swiftkv_run_bank_query_RAM_1P_BRAM_1R1W, 1, 0, 0, 0, 8, 32, 1, 256</column>
+<column name="query_3_U">swiftkv_run_bank_query_RAM_1P_BRAM_1R1W, 1, 0, 0, 0, 8, 32, 1, 256</column>
+<column name="query_4_U">swiftkv_run_bank_query_RAM_1P_BRAM_1R1W, 1, 0, 0, 0, 8, 32, 1, 256</column>
+<column name="query_5_U">swiftkv_run_bank_query_RAM_1P_BRAM_1R1W, 1, 0, 0, 0, 8, 32, 1, 256</column>
+<column name="query_6_U">swiftkv_run_bank_query_RAM_1P_BRAM_1R1W, 1, 0, 0, 0, 8, 32, 1, 256</column>
+<column name="query_7_U">swiftkv_run_bank_query_RAM_1P_BRAM_1R1W, 1, 0, 0, 0, 8, 32, 1, 256</column>
+<column name="query_8_U">swiftkv_run_bank_query_RAM_1P_BRAM_1R1W, 1, 0, 0, 0, 8, 32, 1, 256</column>
+<column name="query_9_U">swiftkv_run_bank_query_RAM_1P_BRAM_1R1W, 1, 0, 0, 0, 8, 32, 1, 256</column>
+<column name="query_10_U">swiftkv_run_bank_query_RAM_1P_BRAM_1R1W, 1, 0, 0, 0, 8, 32, 1, 256</column>
+<column name="query_11_U">swiftkv_run_bank_query_RAM_1P_BRAM_1R1W, 1, 0, 0, 0, 8, 32, 1, 256</column>
+<column name="query_12_U">swiftkv_run_bank_query_RAM_1P_BRAM_1R1W, 1, 0, 0, 0, 8, 32, 1, 256</column>
+<column name="query_13_U">swiftkv_run_bank_query_RAM_1P_BRAM_1R1W, 1, 0, 0, 0, 8, 32, 1, 256</column>
+<column name="query_14_U">swiftkv_run_bank_query_RAM_1P_BRAM_1R1W, 1, 0, 0, 0, 8, 32, 1, 256</column>
+<column name="query_15_U">swiftkv_run_bank_query_RAM_1P_BRAM_1R1W, 1, 0, 0, 0, 8, 32, 1, 256</column>
+</table>
+</item>
+<item name = "FIFO"><table name="" hasTotal="1">
+<keys size="8">Name, BRAM_18K, FF, LUT, URAM, Depth, Bits, Size:D*B</keys>
+</table>
+</item>
+<item name = "Expression"><table name="" hasTotal="1">
+<keys size="7">Variable Name, Operation, DSP, FF, LUT, Bitwidth P0, Bitwidth P1</keys>
+<column name="add_ln1825_fu_438_p2">+, 0, 0, 31, 24, 24</column>
+<column name="add_ln1827_fu_475_p2">+, 0, 0, 12, 4, 1</column>
+<column name="add_ln1828_1_fu_560_p2">+, 0, 0, 71, 64, 64</column>
+<column name="add_ln1828_2_fu_543_p2">+, 0, 0, 41, 34, 34</column>
+<column name="add_ln1828_fu_533_p2">+, 0, 0, 25, 18, 18</column>
+<column name="add_ln1960_fu_634_p2">+, 0, 0, 31, 24, 24</column>
+<column name="mul11_fu_410_p2">+, 0, 0, 22, 15, 15</column>
+<column name="icmp_ln1826_fu_469_p2">icmp, 0, 0, 12, 4, 5</column>
+<column name="ap_block_state6_on_subcall_done">or, 0, 0, 2, 1, 1</column>
+<column name="ap_sync_grp_swiftkv_attention_head_fu_355_ap_done">or, 0, 0, 2, 1, 1</column>
+<column name="ap_sync_grp_swiftkv_attention_head_fu_355_ap_ready">or, 0, 0, 2, 1, 1</column>
+</table>
+</item>
+<item name = "Multiplexer"><table name="" hasTotal="1">
+<keys size="5">Name, LUT, Input Size, Bits, Total Bits</keys>
+<column name="ap_NS_fsm">390, 82, 1, 82</column>
+<column name="cos_pe3_read">9, 2, 1, 2</column>
+<column name="gmem3_blk_n_AW">9, 2, 1, 2</column>
+<column name="gmem3_blk_n_B">9, 2, 1, 2</column>
+<column name="k_words_address0">14, 3, 3, 9</column>
+<column name="k_words_ce0">14, 3, 1, 3</column>
+<column name="k_words_we0">9, 2, 1, 2</column>
+<column name="local_cosine_address0">14, 3, 6, 18</column>
+<column name="local_cosine_ce0">14, 3, 1, 3</column>
+<column name="local_cosine_we0">9, 2, 1, 2</column>
+<column name="local_head_fu_160">9, 2, 4, 8</column>
+<column name="local_sine_address0">14, 3, 6, 18</column>
+<column name="local_sine_ce0">14, 3, 1, 3</column>
+<column name="local_sine_we0">9, 2, 1, 2</column>
+<column name="m_axi_gmem3_ARVALID">9, 2, 1, 2</column>
+<column name="m_axi_gmem3_AWADDR">14, 3, 64, 192</column>
+<column name="m_axi_gmem3_AWBURST">9, 2, 2, 4</column>
+<column name="m_axi_gmem3_AWCACHE">9, 2, 4, 8</column>
+<column name="m_axi_gmem3_AWID">9, 2, 1, 2</column>
+<column name="m_axi_gmem3_AWLEN">14, 3, 32, 96</column>
+<column name="m_axi_gmem3_AWLOCK">9, 2, 2, 4</column>
+<column name="m_axi_gmem3_AWPROT">9, 2, 3, 6</column>
+<column name="m_axi_gmem3_AWQOS">9, 2, 4, 8</column>
+<column name="m_axi_gmem3_AWREGION">9, 2, 4, 8</column>
+<column name="m_axi_gmem3_AWSIZE">9, 2, 3, 6</column>
+<column name="m_axi_gmem3_AWUSER">9, 2, 1, 2</column>
+<column name="m_axi_gmem3_AWVALID">14, 3, 1, 3</column>
+<column name="m_axi_gmem3_BREADY">14, 3, 1, 3</column>
+<column name="m_axi_gmem3_RREADY">9, 2, 1, 2</column>
+<column name="m_axi_gmem3_WVALID">9, 2, 1, 2</column>
+<column name="q_words_address0">14, 3, 3, 9</column>
+<column name="q_words_ce0">14, 3, 1, 3</column>
+<column name="q_words_we0">9, 2, 1, 2</column>
+<column name="quantized_pe3_write">9, 2, 1, 2</column>
+<column name="query_10_address0">14, 3, 3, 9</column>
+<column name="query_10_ce0">14, 3, 1, 3</column>
+<column name="query_10_we0">9, 2, 1, 2</column>
+<column name="query_11_address0">14, 3, 3, 9</column>
+<column name="query_11_ce0">14, 3, 1, 3</column>
+<column name="query_11_we0">9, 2, 1, 2</column>
+<column name="query_12_address0">14, 3, 3, 9</column>
+<column name="query_12_ce0">14, 3, 1, 3</column>
+<column name="query_12_we0">9, 2, 1, 2</column>
+<column name="query_13_address0">14, 3, 3, 9</column>
+<column name="query_13_ce0">14, 3, 1, 3</column>
+<column name="query_13_we0">9, 2, 1, 2</column>
+<column name="query_14_address0">14, 3, 3, 9</column>
+<column name="query_14_ce0">14, 3, 1, 3</column>
+<column name="query_14_we0">9, 2, 1, 2</column>
+<column name="query_15_address0">14, 3, 3, 9</column>
+<column name="query_15_ce0">14, 3, 1, 3</column>
+<column name="query_15_we0">9, 2, 1, 2</column>
+<column name="query_1_address0">14, 3, 3, 9</column>
+<column name="query_1_ce0">14, 3, 1, 3</column>
+<column name="query_1_we0">9, 2, 1, 2</column>
+<column name="query_2_address0">14, 3, 3, 9</column>
+<column name="query_2_ce0">14, 3, 1, 3</column>
+<column name="query_2_we0">9, 2, 1, 2</column>
+<column name="query_3_address0">14, 3, 3, 9</column>
+<column name="query_3_ce0">14, 3, 1, 3</column>
+<column name="query_3_we0">9, 2, 1, 2</column>
+<column name="query_4_address0">14, 3, 3, 9</column>
+<column name="query_4_ce0">14, 3, 1, 3</column>
+<column name="query_4_we0">9, 2, 1, 2</column>
+<column name="query_5_address0">14, 3, 3, 9</column>
+<column name="query_5_ce0">14, 3, 1, 3</column>
+<column name="query_5_we0">9, 2, 1, 2</column>
+<column name="query_6_address0">14, 3, 3, 9</column>
+<column name="query_6_ce0">14, 3, 1, 3</column>
+<column name="query_6_we0">9, 2, 1, 2</column>
+<column name="query_7_address0">14, 3, 3, 9</column>
+<column name="query_7_ce0">14, 3, 1, 3</column>
+<column name="query_7_we0">9, 2, 1, 2</column>
+<column name="query_8_address0">14, 3, 3, 9</column>
+<column name="query_8_ce0">14, 3, 1, 3</column>
+<column name="query_8_we0">9, 2, 1, 2</column>
+<column name="query_9_address0">14, 3, 3, 9</column>
+<column name="query_9_ce0">14, 3, 1, 3</column>
+<column name="query_9_we0">9, 2, 1, 2</column>
+<column name="query_address0">14, 3, 3, 9</column>
+<column name="query_ce0">14, 3, 1, 3</column>
+<column name="query_we0">9, 2, 1, 2</column>
+<column name="rotated_k_words_address0">14, 3, 3, 9</column>
+<column name="rotated_k_words_ce0">14, 3, 1, 3</column>
+<column name="rotated_k_words_we0">9, 2, 1, 2</column>
+<column name="scale_pe3_write">9, 2, 1, 2</column>
+<column name="sin_pe3_read">9, 2, 1, 2</column>
+<column name="v_words_address0">14, 3, 3, 9</column>
+<column name="v_words_ce0">14, 3, 1, 3</column>
+<column name="v_words_we0">9, 2, 1, 2</column>
+</table>
+</item>
+<item name = "Register"><table name="" hasTotal="1">
+<keys size="5">Name, FF, LUT, Bits, Const Bits</keys>
+<column name="add_ln1828_2_reg_693">34, 0, 34, 0</column>
+<column name="add_ln1960_reg_739">12, 0, 24, 12</column>
+<column name="ap_CS_fsm">81, 0, 81, 0</column>
+<column name="ap_sync_reg_grp_swiftkv_attention_head_fu_355_ap_done">1, 0, 1, 0</column>
+<column name="ap_sync_reg_grp_swiftkv_attention_head_fu_355_ap_ready">1, 0, 1, 0</column>
+<column name="compressed_kv_record_1_reg_715">512, 0, 512, 0</column>
+<column name="compressed_kv_record_2_reg_721">512, 0, 512, 0</column>
+<column name="compressed_kv_record_3_reg_727">512, 0, 512, 0</column>
+<column name="compressed_kv_record_4_reg_733">512, 0, 512, 0</column>
+<column name="compressed_kv_record_reg_709">512, 0, 512, 0</column>
+<column name="empty_723_reg_677">3, 0, 3, 0</column>
+<column name="grp_swiftkv_attention_head_fu_355_ap_start_reg">1, 0, 1, 0</column>
+<column name="grp_swiftkv_quantize_kv_record_fu_337_ap_start_reg">1, 0, 1, 0</column>
+<column name="grp_swiftkv_run_bank_Pipeline_pe_cache_rope_pair_loop_fu_278_ap_start_reg">1, 0, 1, 0</column>
+<column name="grp_swiftkv_run_bank_Pipeline_pe_load_k_word_loop_fu_296_ap_start_reg">1, 0, 1, 0</column>
+<column name="grp_swiftkv_run_bank_Pipeline_pe_load_q_word_loop_fu_288_ap_start_reg">1, 0, 1, 0</column>
+<column name="grp_swiftkv_run_bank_Pipeline_pe_load_v_word_loop_fu_304_ap_start_reg">1, 0, 1, 0</column>
+<column name="grp_swiftkv_run_bank_Pipeline_pe_rope_word_loop_pe_rope_pair_phase_loop_fu_312_ap_start_reg">1, 0, 1, 0</column>
+<column name="grp_swiftkv_run_bank_Pipeline_pe_write_kv_word_loop_fu_343_ap_start_reg">1, 0, 1, 0</column>
+<column name="local_head_fu_160">4, 0, 4, 0</column>
+<column name="tmp_13_reg_686">3, 0, 6, 3</column>
+<column name="trunc_ln_reg_698">58, 0, 58, 0</column>
+<column name="zext_ln1825_2_reg_669">24, 0, 32, 8</column>
+</table>
+</item>
+</section>
+</item>
+</section>
+
+<section name = "Interface" level="0">
+<item name = "Summary"><table name="" hasTotal="0">
+<keys size="6">RTL Ports, Dir, Bits, Protocol, Source Object, C Type</keys>
+<column name="ap_clk">in, 1, ap_ctrl_hs, swiftkv_run_bank, return value</column>
+<column name="ap_rst">in, 1, ap_ctrl_hs, swiftkv_run_bank, return value</column>
+<column name="ap_start">in, 1, ap_ctrl_hs, swiftkv_run_bank, return value</column>
+<column name="ap_done">out, 1, ap_ctrl_hs, swiftkv_run_bank, return value</column>
+<column name="ap_idle">out, 1, ap_ctrl_hs, swiftkv_run_bank, return value</column>
+<column name="ap_ready">out, 1, ap_ctrl_hs, swiftkv_run_bank, return value</column>
+<column name="q_address0">out, 6, ap_memory, q, array</column>
+<column name="q_ce0">out, 1, ap_memory, q, array</column>
+<column name="q_q0">in, 512, ap_memory, q, array</column>
+<column name="k_address0">out, 6, ap_memory, k, array</column>
+<column name="k_ce0">out, 1, ap_memory, k, array</column>
+<column name="k_q0">in, 512, ap_memory, k, array</column>
+<column name="v_address0">out, 6, ap_memory, v, array</column>
+<column name="v_ce0">out, 1, ap_memory, v, array</column>
+<column name="v_q0">in, 512, ap_memory, v, array</column>
+<column name="m_axi_gmem3_AWVALID">out, 1, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_AWREADY">in, 1, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_AWADDR">out, 64, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_AWID">out, 1, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_AWLEN">out, 32, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_AWSIZE">out, 3, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_AWBURST">out, 2, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_AWLOCK">out, 2, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_AWCACHE">out, 4, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_AWPROT">out, 3, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_AWQOS">out, 4, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_AWREGION">out, 4, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_AWUSER">out, 1, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_WVALID">out, 1, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_WREADY">in, 1, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_WDATA">out, 512, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_WSTRB">out, 64, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_WLAST">out, 1, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_WID">out, 1, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_WUSER">out, 1, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_ARVALID">out, 1, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_ARREADY">in, 1, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_ARADDR">out, 64, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_ARID">out, 1, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_ARLEN">out, 32, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_ARSIZE">out, 3, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_ARBURST">out, 2, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_ARLOCK">out, 2, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_ARCACHE">out, 4, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_ARPROT">out, 3, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_ARQOS">out, 4, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_ARREGION">out, 4, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_ARUSER">out, 1, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_RVALID">in, 1, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_RREADY">out, 1, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_RDATA">in, 512, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_RLAST">in, 1, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_RID">in, 1, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_RFIFONUM">in, 12, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_RUSER">in, 1, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_RRESP">in, 2, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_BVALID">in, 1, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_BREADY">out, 1, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_BRESP">in, 2, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_BID">in, 1, m_axi, gmem3, pointer</column>
+<column name="m_axi_gmem3_BUSER">in, 1, m_axi, gmem3, pointer</column>
+<column name="kv_cache">in, 64, ap_none, kv_cache, scalar</column>
+<column name="cos_pe3_dout">in, 19, ap_fifo, cos_pe3, pointer</column>
+<column name="cos_pe3_num_data_valid">in, 3, ap_fifo, cos_pe3, pointer</column>
+<column name="cos_pe3_fifo_cap">in, 3, ap_fifo, cos_pe3, pointer</column>
+<column name="cos_pe3_empty_n">in, 1, ap_fifo, cos_pe3, pointer</column>
+<column name="cos_pe3_read">out, 1, ap_fifo, cos_pe3, pointer</column>
+<column name="sin_pe3_dout">in, 19, ap_fifo, sin_pe3, pointer</column>
+<column name="sin_pe3_num_data_valid">in, 3, ap_fifo, sin_pe3, pointer</column>
+<column name="sin_pe3_fifo_cap">in, 3, ap_fifo, sin_pe3, pointer</column>
+<column name="sin_pe3_empty_n">in, 1, ap_fifo, sin_pe3, pointer</column>
+<column name="sin_pe3_read">out, 1, ap_fifo, sin_pe3, pointer</column>
+<column name="quantized_pe3_din">out, 480, ap_fifo, quantized_pe3, pointer</column>
+<column name="quantized_pe3_num_data_valid">in, 3, ap_fifo, quantized_pe3, pointer</column>
+<column name="quantized_pe3_fifo_cap">in, 3, ap_fifo, quantized_pe3, pointer</column>
+<column name="quantized_pe3_full_n">in, 1, ap_fifo, quantized_pe3, pointer</column>
+<column name="quantized_pe3_write">out, 1, ap_fifo, quantized_pe3, pointer</column>
+<column name="scale_pe3_din">out, 32, ap_fifo, scale_pe3, pointer</column>
+<column name="scale_pe3_num_data_valid">in, 3, ap_fifo, scale_pe3, pointer</column>
+<column name="scale_pe3_fifo_cap">in, 3, ap_fifo, scale_pe3, pointer</column>
+<column name="scale_pe3_full_n">in, 1, ap_fifo, scale_pe3, pointer</column>
+<column name="scale_pe3_write">out, 1, ap_fifo, scale_pe3, pointer</column>
+<column name="layer_index_val">in, 6, ap_none, layer_index_val, scalar</column>
+<column name="position_val">in, 12, ap_none, position_val, scalar</column>
+</table>
+</item>
+</section>
+</profile>

@@ -1,0 +1,227 @@
+
+
+================================================================
+== Vitis HLS Report for 'swiftkv_route_compressed_kv_cache_Pipeline_stream_current_compressed_kv_loop'
+================================================================
+* Date:           Tue Aug 11 09:18:09 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  1.346 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+-----------+-----------+-----+-----+---------+
+    |  Latency (cycles) |   Latency (absolute)  |  Interval | Pipeline|
+    |   min   |   max   |    min    |    max    | min | max |   Type  |
+    +---------+---------+-----------+-----------+-----+-----+---------+
+    |        7|        7|  23.331 ns|  23.331 ns|    7|    7|       no|
+    +---------+---------+-----------+-----------+-----+-----+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +-------------------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |                                     |  Latency (cycles) | Iteration|  Initiation Interval  | Trip |          |
+        |              Loop Name              |   min   |   max   |  Latency |  achieved |   target  | Count| Pipelined|
+        +-------------------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |- stream_current_compressed_kv_loop  |        5|        5|         2|          1|          1|     5|       yes|
+        +-------------------------------------+---------+---------+----------+-----------+-----------+------+----------+
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+------+
+|         Name        | BRAM_18K|  DSP  |    FF   |   LUT   | URAM |
++---------------------+---------+-------+---------+---------+------+
+|DSP                  |        -|      -|        -|        -|     -|
+|Expression           |        -|      -|        0|       28|     -|
+|FIFO                 |        -|      -|        -|        -|     -|
+|Instance             |        -|      -|        0|       26|     -|
+|Memory               |        -|      -|        -|        -|     -|
+|Multiplexer          |        -|      -|        -|      144|     -|
+|Register             |        -|      -|      521|        -|     -|
++---------------------+---------+-------+---------+---------+------+
+|Total                |        0|      0|      521|      198|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available SLR        |     1344|   3072|   864000|   432000|   320|
++---------------------+---------+-------+---------+---------+------+
+|Utilization SLR (%)  |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available            |     5376|  12288|  3456000|  1728000|  1280|
++---------------------+---------+-------+---------+---------+------+
+|Utilization (%)      |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+
++ Detail: 
+    * Instance: 
+    +-----------------------------+------------------------+---------+----+---+----+-----+
+    |           Instance          |         Module         | BRAM_18K| DSP| FF| LUT| URAM|
+    +-----------------------------+------------------------+---------+----+---+----+-----+
+    |sparsemux_11_3_512_1_1_U382  |sparsemux_11_3_512_1_1  |        0|   0|  0|  26|    0|
+    +-----------------------------+------------------------+---------+----+---+----+-----+
+    |Total                        |                        |        0|   0|  0|  26|    0|
+    +-----------------------------+------------------------+---------+----+---+----+-----+
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +----------------------------------+----------+----+---+----+------------+------------+
+    |           Variable Name          | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +----------------------------------+----------+----+---+----+------------+------------+
+    |add_ln730_fu_421_p2               |         +|   0|  0|  10|           3|           1|
+    |ap_block_pp0_stage0_01001         |       and|   0|  0|   2|           1|           1|
+    |ap_predicate_op104_write_state2   |       and|   0|  0|   2|           1|           1|
+    |icmp_ln729_fu_415_p2              |      icmp|   0|  0|  10|           3|           3|
+    |ap_block_state2_pp0_stage0_iter1  |        or|   0|  0|   2|           1|           1|
+    |ap_enable_pp0                     |       xor|   0|  0|   2|           1|           2|
+    +----------------------------------+----------+----+---+----+------------+------------+
+    |Total                             |          |   0|  0|  28|          10|           9|
+    +----------------------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +-----------------------------+----+-----------+-----+-----------+
+    |             Name            | LUT| Input Size| Bits| Total Bits|
+    +-----------------------------+----+-----------+-----+-----------+
+    |ap_done_int                  |   9|          2|    1|          2|
+    |ap_enable_reg_pp0_iter1      |   9|          2|    1|          2|
+    |ap_sig_allocacmp_word        |   9|          2|    3|          6|
+    |key0_stream_blk_n            |   9|          2|    1|          2|
+    |key1_stream_blk_n            |   9|          2|    1|          2|
+    |key_metadata_stream_blk_n    |   9|          2|    1|          2|
+    |value0_engine0_stream_blk_n  |   9|          2|    1|          2|
+    |value0_engine1_stream_blk_n  |   9|          2|    1|          2|
+    |value0_engine2_stream_blk_n  |   9|          2|    1|          2|
+    |value0_engine3_stream_blk_n  |   9|          2|    1|          2|
+    |value1_engine0_stream_blk_n  |   9|          2|    1|          2|
+    |value1_engine1_stream_blk_n  |   9|          2|    1|          2|
+    |value1_engine2_stream_blk_n  |   9|          2|    1|          2|
+    |value1_engine3_stream_blk_n  |   9|          2|    1|          2|
+    |value_metadata_stream_blk_n  |   9|          2|    1|          2|
+    |word_5_fu_154                |   9|          2|    3|          6|
+    +-----------------------------+----+-----------+-----+-----------+
+    |Total                        | 144|         32|   20|         40|
+    +-----------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +-------------------------+-----+----+-----+-----------+
+    |           Name          |  FF | LUT| Bits| Const Bits|
+    +-------------------------+-----+----+-----+-----------+
+    |ap_CS_fsm                |    1|   0|    1|          0|
+    |ap_done_reg              |    1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter1  |    1|   0|    1|          0|
+    |value_reg_589            |  512|   0|  512|          0|
+    |word_5_fu_154            |    3|   0|    3|          0|
+    |word_reg_582             |    3|   0|    3|          0|
+    +-------------------------+-----+----+-----+-----------+
+    |Total                    |  521|   0|  521|          0|
+    +-------------------------+-----+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++--------------------------------------+-----+-----+------------+------------------------------------------------------------------------------+--------------+
+|               RTL Ports              | Dir | Bits|  Protocol  |                                 Source Object                                |    C Type    |
++--------------------------------------+-----+-----+------------+------------------------------------------------------------------------------+--------------+
+|ap_clk                                |   in|    1|  ap_ctrl_hs|  swiftkv_route_compressed_kv_cache_Pipeline_stream_current_compressed_kv_loop|  return value|
+|ap_rst                                |   in|    1|  ap_ctrl_hs|  swiftkv_route_compressed_kv_cache_Pipeline_stream_current_compressed_kv_loop|  return value|
+|ap_start                              |   in|    1|  ap_ctrl_hs|  swiftkv_route_compressed_kv_cache_Pipeline_stream_current_compressed_kv_loop|  return value|
+|ap_done                               |  out|    1|  ap_ctrl_hs|  swiftkv_route_compressed_kv_cache_Pipeline_stream_current_compressed_kv_loop|  return value|
+|ap_idle                               |  out|    1|  ap_ctrl_hs|  swiftkv_route_compressed_kv_cache_Pipeline_stream_current_compressed_kv_loop|  return value|
+|ap_ready                              |  out|    1|  ap_ctrl_hs|  swiftkv_route_compressed_kv_cache_Pipeline_stream_current_compressed_kv_loop|  return value|
+|value0_engine0_stream_din             |  out|  128|     ap_fifo|                                                         value0_engine0_stream|       pointer|
+|value0_engine0_stream_num_data_valid  |   in|    6|     ap_fifo|                                                         value0_engine0_stream|       pointer|
+|value0_engine0_stream_fifo_cap        |   in|    6|     ap_fifo|                                                         value0_engine0_stream|       pointer|
+|value0_engine0_stream_full_n          |   in|    1|     ap_fifo|                                                         value0_engine0_stream|       pointer|
+|value0_engine0_stream_write           |  out|    1|     ap_fifo|                                                         value0_engine0_stream|       pointer|
+|value0_engine1_stream_din             |  out|  128|     ap_fifo|                                                         value0_engine1_stream|       pointer|
+|value0_engine1_stream_num_data_valid  |   in|    6|     ap_fifo|                                                         value0_engine1_stream|       pointer|
+|value0_engine1_stream_fifo_cap        |   in|    6|     ap_fifo|                                                         value0_engine1_stream|       pointer|
+|value0_engine1_stream_full_n          |   in|    1|     ap_fifo|                                                         value0_engine1_stream|       pointer|
+|value0_engine1_stream_write           |  out|    1|     ap_fifo|                                                         value0_engine1_stream|       pointer|
+|value0_engine2_stream_din             |  out|  128|     ap_fifo|                                                         value0_engine2_stream|       pointer|
+|value0_engine2_stream_num_data_valid  |   in|    6|     ap_fifo|                                                         value0_engine2_stream|       pointer|
+|value0_engine2_stream_fifo_cap        |   in|    6|     ap_fifo|                                                         value0_engine2_stream|       pointer|
+|value0_engine2_stream_full_n          |   in|    1|     ap_fifo|                                                         value0_engine2_stream|       pointer|
+|value0_engine2_stream_write           |  out|    1|     ap_fifo|                                                         value0_engine2_stream|       pointer|
+|value0_engine3_stream_din             |  out|  128|     ap_fifo|                                                         value0_engine3_stream|       pointer|
+|value0_engine3_stream_num_data_valid  |   in|    6|     ap_fifo|                                                         value0_engine3_stream|       pointer|
+|value0_engine3_stream_fifo_cap        |   in|    6|     ap_fifo|                                                         value0_engine3_stream|       pointer|
+|value0_engine3_stream_full_n          |   in|    1|     ap_fifo|                                                         value0_engine3_stream|       pointer|
+|value0_engine3_stream_write           |  out|    1|     ap_fifo|                                                         value0_engine3_stream|       pointer|
+|key1_stream_din                       |  out|  512|     ap_fifo|                                                                   key1_stream|       pointer|
+|key1_stream_num_data_valid            |   in|    6|     ap_fifo|                                                                   key1_stream|       pointer|
+|key1_stream_fifo_cap                  |   in|    6|     ap_fifo|                                                                   key1_stream|       pointer|
+|key1_stream_full_n                    |   in|    1|     ap_fifo|                                                                   key1_stream|       pointer|
+|key1_stream_write                     |  out|    1|     ap_fifo|                                                                   key1_stream|       pointer|
+|key0_stream_din                       |  out|  512|     ap_fifo|                                                                   key0_stream|       pointer|
+|key0_stream_num_data_valid            |   in|    6|     ap_fifo|                                                                   key0_stream|       pointer|
+|key0_stream_fifo_cap                  |   in|    6|     ap_fifo|                                                                   key0_stream|       pointer|
+|key0_stream_full_n                    |   in|    1|     ap_fifo|                                                                   key0_stream|       pointer|
+|key0_stream_write                     |  out|    1|     ap_fifo|                                                                   key0_stream|       pointer|
+|key_metadata_stream_din               |  out|   40|     ap_fifo|                                                           key_metadata_stream|       pointer|
+|key_metadata_stream_num_data_valid    |   in|    6|     ap_fifo|                                                           key_metadata_stream|       pointer|
+|key_metadata_stream_fifo_cap          |   in|    6|     ap_fifo|                                                           key_metadata_stream|       pointer|
+|key_metadata_stream_full_n            |   in|    1|     ap_fifo|                                                           key_metadata_stream|       pointer|
+|key_metadata_stream_write             |  out|    1|     ap_fifo|                                                           key_metadata_stream|       pointer|
+|value_metadata_stream_din             |  out|   40|     ap_fifo|                                                         value_metadata_stream|       pointer|
+|value_metadata_stream_num_data_valid  |   in|    6|     ap_fifo|                                                         value_metadata_stream|       pointer|
+|value_metadata_stream_fifo_cap        |   in|    6|     ap_fifo|                                                         value_metadata_stream|       pointer|
+|value_metadata_stream_full_n          |   in|    1|     ap_fifo|                                                         value_metadata_stream|       pointer|
+|value_metadata_stream_write           |  out|    1|     ap_fifo|                                                         value_metadata_stream|       pointer|
+|value1_engine0_stream_din             |  out|  128|     ap_fifo|                                                         value1_engine0_stream|       pointer|
+|value1_engine0_stream_num_data_valid  |   in|    6|     ap_fifo|                                                         value1_engine0_stream|       pointer|
+|value1_engine0_stream_fifo_cap        |   in|    6|     ap_fifo|                                                         value1_engine0_stream|       pointer|
+|value1_engine0_stream_full_n          |   in|    1|     ap_fifo|                                                         value1_engine0_stream|       pointer|
+|value1_engine0_stream_write           |  out|    1|     ap_fifo|                                                         value1_engine0_stream|       pointer|
+|value1_engine1_stream_din             |  out|  128|     ap_fifo|                                                         value1_engine1_stream|       pointer|
+|value1_engine1_stream_num_data_valid  |   in|    6|     ap_fifo|                                                         value1_engine1_stream|       pointer|
+|value1_engine1_stream_fifo_cap        |   in|    6|     ap_fifo|                                                         value1_engine1_stream|       pointer|
+|value1_engine1_stream_full_n          |   in|    1|     ap_fifo|                                                         value1_engine1_stream|       pointer|
+|value1_engine1_stream_write           |  out|    1|     ap_fifo|                                                         value1_engine1_stream|       pointer|
+|value1_engine2_stream_din             |  out|  128|     ap_fifo|                                                         value1_engine2_stream|       pointer|
+|value1_engine2_stream_num_data_valid  |   in|    6|     ap_fifo|                                                         value1_engine2_stream|       pointer|
+|value1_engine2_stream_fifo_cap        |   in|    6|     ap_fifo|                                                         value1_engine2_stream|       pointer|
+|value1_engine2_stream_full_n          |   in|    1|     ap_fifo|                                                         value1_engine2_stream|       pointer|
+|value1_engine2_stream_write           |  out|    1|     ap_fifo|                                                         value1_engine2_stream|       pointer|
+|value1_engine3_stream_din             |  out|  128|     ap_fifo|                                                         value1_engine3_stream|       pointer|
+|value1_engine3_stream_num_data_valid  |   in|    6|     ap_fifo|                                                         value1_engine3_stream|       pointer|
+|value1_engine3_stream_fifo_cap        |   in|    6|     ap_fifo|                                                         value1_engine3_stream|       pointer|
+|value1_engine3_stream_full_n          |   in|    1|     ap_fifo|                                                         value1_engine3_stream|       pointer|
+|value1_engine3_stream_write           |  out|    1|     ap_fifo|                                                         value1_engine3_stream|       pointer|
+|current_record_0_val_load             |   in|  512|     ap_none|                                                     current_record_0_val_load|        scalar|
+|current_record_1_val_load             |   in|  512|     ap_none|                                                     current_record_1_val_load|        scalar|
+|current_record_2_val_load             |   in|  512|     ap_none|                                                     current_record_2_val_load|        scalar|
+|current_record_3_val_load             |   in|  512|     ap_none|                                                     current_record_3_val_load|        scalar|
+|current_record_4_val_load             |   in|  512|     ap_none|                                                     current_record_4_val_load|        scalar|
++--------------------------------------+-----+-----+------------+------------------------------------------------------------------------------+--------------+
+

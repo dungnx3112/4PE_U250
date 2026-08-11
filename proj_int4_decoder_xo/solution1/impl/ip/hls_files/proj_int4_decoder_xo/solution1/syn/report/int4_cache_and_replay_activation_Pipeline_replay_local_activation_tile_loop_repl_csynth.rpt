@@ -1,0 +1,167 @@
+
+
+================================================================
+== Vitis HLS Report for 'int4_cache_and_replay_activation_Pipeline_replay_local_activation_tile_loop_repl'
+================================================================
+* Date:           Tue Aug 11 09:19:20 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.605 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+-----------+------+-------+---------+
+    |  Latency (cycles) |  Latency (absolute)  |   Interval   | Pipeline|
+    |   min   |   max   |    min   |    max    |  min |  max  |   Type  |
+    +---------+---------+----------+-----------+------+-------+---------+
+    |     1026|    21674|  3.420 us|  72.239 us|  1026|  21674|       no|
+    +---------+---------+----------+-----------+------+-------+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +------------------------------------------------------------------------+---------+---------+----------+-----------+-----------+--------------+----------+
+        |                                                                        |  Latency (cycles) | Iteration|  Initiation Interval  |     Trip     |          |
+        |                                Loop Name                               |   min   |   max   |  Latency |  achieved |   target  |     Count    | Pipelined|
+        +------------------------------------------------------------------------+---------+---------+----------+-----------+-----------+--------------+----------+
+        |- replay_local_activation_tile_loop_replay_local_activation_group_loop  |     1024|    21672|         2|          1|          1|  1024 ~ 21672|       yes|
+        +------------------------------------------------------------------------+---------+---------+----------+-----------+-----------+--------------+----------+
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+------+
+|         Name        | BRAM_18K|  DSP  |    FF   |   LUT   | URAM |
++---------------------+---------+-------+---------+---------+------+
+|DSP                  |        -|      -|        -|        -|     -|
+|Expression           |        -|      -|        0|       91|     -|
+|FIFO                 |        -|      -|        -|        -|     -|
+|Instance             |        -|      -|        -|        -|     -|
+|Memory               |        -|      -|        -|        -|     -|
+|Multiplexer          |        -|      -|        -|       72|     -|
+|Register             |        -|      -|       27|        -|     -|
++---------------------+---------+-------+---------+---------+------+
+|Total                |        0|      0|       27|      163|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available SLR        |     1344|   3072|   864000|   432000|   320|
++---------------------+---------+-------+---------+---------+------+
+|Utilization SLR (%)  |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available            |     5376|  12288|  3456000|  1728000|  1280|
++---------------------+---------+-------+---------+---------+------+
+|Utilization (%)      |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+
++ Detail: 
+    * Instance: 
+    N/A
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +----------------------------------+----------+----+---+----+------------+------------+
+    |           Variable Name          | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +----------------------------------+----------+----+---+----+------------+------------+
+    |add_ln380_fu_150_p2               |         +|   0|  0|  22|          15|           1|
+    |add_ln383_fu_179_p2               |         +|   0|  0|  16|           9|           1|
+    |ap_block_pp0_stage0_01001         |       and|   0|  0|   2|           1|           1|
+    |icmp_ln380_fu_144_p2              |      icmp|   0|  0|  22|          15|          15|
+    |icmp_ln383_fu_159_p2              |      icmp|   0|  0|  16|           9|           9|
+    |ap_block_state2_pp0_stage0_iter1  |        or|   0|  0|   2|           1|           1|
+    |select_ln380_fu_165_p3            |    select|   0|  0|   9|           1|           1|
+    |ap_enable_pp0                     |       xor|   0|  0|   2|           1|           2|
+    +----------------------------------+----------+----+---+----+------------+------------+
+    |Total                             |          |   0|  0|  91|          52|          31|
+    +----------------------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +--------------------------------------+----+-----------+-----+-----------+
+    |                 Name                 | LUT| Input Size| Bits| Total Bits|
+    +--------------------------------------+----+-----------+-----+-----------+
+    |ap_done_int                           |   9|          2|    1|          2|
+    |ap_enable_reg_pp0_iter1               |   9|          2|    1|          2|
+    |ap_sig_allocacmp_group_2_load         |   9|          2|    9|         18|
+    |ap_sig_allocacmp_indvar_flatten_load  |   9|          2|   15|         30|
+    |group_2_fu_70                         |   9|          2|    9|         18|
+    |indvar_flatten_fu_74                  |   9|          2|   15|         30|
+    |replay_activation_stream_blk_n        |   9|          2|    1|          2|
+    |replay_scale_stream_blk_n             |   9|          2|    1|          2|
+    +--------------------------------------+----+-----------+-----+-----------+
+    |Total                                 |  72|         16|   52|        104|
+    +--------------------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +-------------------------+----+----+-----+-----------+
+    |           Name          | FF | LUT| Bits| Const Bits|
+    +-------------------------+----+----+-----+-----------+
+    |ap_CS_fsm                |   1|   0|    1|          0|
+    |ap_done_reg              |   1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter1  |   1|   0|    1|          0|
+    |group_2_fu_70            |   9|   0|    9|          0|
+    |indvar_flatten_fu_74     |  15|   0|   15|          0|
+    +-------------------------+----+----+-----+-----------+
+    |Total                    |  27|   0|   27|          0|
+    +-------------------------+----+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++-----------------------------------------+-----+-----+------------+----------------------------------------------------------------------------------+--------------+
+|                RTL Ports                | Dir | Bits|  Protocol  |                                   Source Object                                  |    C Type    |
++-----------------------------------------+-----+-----+------------+----------------------------------------------------------------------------------+--------------+
+|ap_clk                                   |   in|    1|  ap_ctrl_hs|  int4_cache_and_replay_activation_Pipeline_replay_local_activation_tile_loop_repl|  return value|
+|ap_rst                                   |   in|    1|  ap_ctrl_hs|  int4_cache_and_replay_activation_Pipeline_replay_local_activation_tile_loop_repl|  return value|
+|ap_start                                 |   in|    1|  ap_ctrl_hs|  int4_cache_and_replay_activation_Pipeline_replay_local_activation_tile_loop_repl|  return value|
+|ap_done                                  |  out|    1|  ap_ctrl_hs|  int4_cache_and_replay_activation_Pipeline_replay_local_activation_tile_loop_repl|  return value|
+|ap_idle                                  |  out|    1|  ap_ctrl_hs|  int4_cache_and_replay_activation_Pipeline_replay_local_activation_tile_loop_repl|  return value|
+|ap_ready                                 |  out|    1|  ap_ctrl_hs|  int4_cache_and_replay_activation_Pipeline_replay_local_activation_tile_loop_repl|  return value|
+|replay_activation_stream_din             |  out|  480|     ap_fifo|                                                          replay_activation_stream|       pointer|
+|replay_activation_stream_num_data_valid  |   in|    3|     ap_fifo|                                                          replay_activation_stream|       pointer|
+|replay_activation_stream_fifo_cap        |   in|    3|     ap_fifo|                                                          replay_activation_stream|       pointer|
+|replay_activation_stream_full_n          |   in|    1|     ap_fifo|                                                          replay_activation_stream|       pointer|
+|replay_activation_stream_write           |  out|    1|     ap_fifo|                                                          replay_activation_stream|       pointer|
+|replay_scale_stream_din                  |  out|   32|     ap_fifo|                                                               replay_scale_stream|       pointer|
+|replay_scale_stream_num_data_valid       |   in|    3|     ap_fifo|                                                               replay_scale_stream|       pointer|
+|replay_scale_stream_fifo_cap             |   in|    3|     ap_fifo|                                                               replay_scale_stream|       pointer|
+|replay_scale_stream_full_n               |   in|    1|     ap_fifo|                                                               replay_scale_stream|       pointer|
+|replay_scale_stream_write                |  out|    1|     ap_fifo|                                                               replay_scale_stream|       pointer|
+|mul_ln380                                |   in|   15|     ap_none|                                                                         mul_ln380|        scalar|
+|shl_ln                                   |   in|    9|     ap_none|                                                                            shl_ln|        scalar|
+|activation_cache_address0                |  out|    9|   ap_memory|                                                                  activation_cache|         array|
+|activation_cache_ce0                     |  out|    1|   ap_memory|                                                                  activation_cache|         array|
+|activation_cache_q0                      |   in|  480|   ap_memory|                                                                  activation_cache|         array|
+|scale_cache_address0                     |  out|    9|   ap_memory|                                                                       scale_cache|         array|
+|scale_cache_ce0                          |  out|    1|   ap_memory|                                                                       scale_cache|         array|
+|scale_cache_q0                           |   in|   32|   ap_memory|                                                                       scale_cache|         array|
++-----------------------------------------+-----+-----+------------+----------------------------------------------------------------------------------+--------------+
+

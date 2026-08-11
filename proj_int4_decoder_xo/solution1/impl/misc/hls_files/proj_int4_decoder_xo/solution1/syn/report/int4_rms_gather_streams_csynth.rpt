@@ -1,0 +1,240 @@
+
+
+================================================================
+== Vitis HLS Report for 'int4_rms_gather_streams'
+================================================================
+* Date:           Tue Aug 11 09:18:46 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.608 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+---------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline|
+    |   min   |   max   |    min   |    max   | min | max |   Type  |
+    +---------+---------+----------+----------+-----+-----+---------+
+    |      131|      131|  0.437 us|  0.437 us|  131|  131|       no|
+    +---------+---------+----------+----------+-----+-----+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +-----------------------------------------------------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |                                                                       |  Latency (cycles) | Iteration|  Initiation Interval  | Trip |          |
+        |                               Loop Name                               |   min   |   max   |  Latency |  achieved |   target  | Count| Pipelined|
+        +-----------------------------------------------------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |- rms_stream_local_tile_loop_rms_stream_pe_loop_rms_stream_group_loop  |      129|      129|         3|          1|          1|   128|       yes|
+        +-----------------------------------------------------------------------+---------+---------+----------+-----------+-----------+------+----------+
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+------+
+|         Name        | BRAM_18K|  DSP  |    FF   |   LUT   | URAM |
++---------------------+---------+-------+---------+---------+------+
+|DSP                  |        -|      -|        -|        -|     -|
+|Expression           |        -|      -|        0|      130|     -|
+|FIFO                 |        -|      -|        -|        -|     -|
+|Instance             |        -|      -|        -|        -|     -|
+|Memory               |        -|      -|        -|        -|     -|
+|Multiplexer          |        -|      -|        -|      232|     -|
+|Register             |        -|      -|     1053|        -|     -|
++---------------------+---------+-------+---------+---------+------+
+|Total                |        0|      0|     1053|      362|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available SLR        |     1344|   3072|   864000|   432000|   320|
++---------------------+---------+-------+---------+---------+------+
+|Utilization SLR (%)  |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available            |     5376|  12288|  3456000|  1728000|  1280|
++---------------------+---------+-------+---------+---------+------+
+|Utilization (%)      |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+
++ Detail: 
+    * Instance: 
+    N/A
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +----------------------------------+----------+----+---+----+------------+------------+
+    |           Variable Name          | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +----------------------------------+----------+----+---+----+------------+------------+
+    |add_ln270_fu_223_p2               |         +|   0|  0|  15|           8|           1|
+    |add_ln274_1_fu_298_p2             |         +|   0|  0|  13|           6|           1|
+    |add_ln278_fu_278_p2               |         +|   0|  0|  10|           3|           1|
+    |pe_3_fu_264_p2                    |         +|   0|  0|  10|           3|           1|
+    |and_ln269_fu_258_p2               |       and|   0|  0|   2|           1|           1|
+    |ap_condition_129                  |       and|   0|  0|   2|           1|           1|
+    |ap_condition_242                  |       and|   0|  0|   2|           1|           1|
+    |ap_condition_244                  |       and|   0|  0|   2|           1|           1|
+    |ap_predicate_op58_read_state2     |       and|   0|  0|   2|           1|           1|
+    |ap_predicate_op61_read_state2     |       and|   0|  0|   2|           1|           1|
+    |ap_predicate_op64_read_state2     |       and|   0|  0|   2|           1|           1|
+    |icmp_ln270_fu_217_p2              |      icmp|   0|  0|  16|           8|           9|
+    |icmp_ln274_fu_232_p2              |      icmp|   0|  0|  13|           6|           5|
+    |icmp_ln277_fu_252_p2              |      icmp|   0|  0|  12|           3|           4|
+    |ap_block_pp0_stage0_01001         |        or|   0|  0|   2|           1|           1|
+    |ap_block_state2_pp0_stage0_iter1  |        or|   0|  0|   2|           1|           1|
+    |ap_block_state3_pp0_stage0_iter2  |        or|   0|  0|   2|           1|           1|
+    |or_ln278_fu_284_p2                |        or|   0|  0|   2|           1|           1|
+    |group_fu_290_p3                   |    select|   0|  0|   3|           1|           1|
+    |select_ln269_fu_238_p3            |    select|   0|  0|   3|           1|           1|
+    |select_ln274_1_fu_304_p3          |    select|   0|  0|   6|           1|           1|
+    |select_ln274_fu_270_p3            |    select|   0|  0|   3|           1|           3|
+    |ap_enable_pp0                     |       xor|   0|  0|   2|           1|           2|
+    |xor_ln269_fu_246_p2               |       xor|   0|  0|   2|           1|           2|
+    +----------------------------------+----------+----+---+----+------------+------------+
+    |Total                             |          |   0|  0| 130|          54|          43|
+    +----------------------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +------------------------------------------+----+-----------+-----+-----------+
+    |                   Name                   | LUT| Input Size| Bits| Total Bits|
+    +------------------------------------------+----+-----------+-----+-----------+
+    |ap_done_int                               |   9|          2|    1|          2|
+    |ap_enable_reg_pp0_iter1                   |   9|          2|    1|          2|
+    |ap_phi_reg_pp0_iter2_empty_reg_174        |  26|          5|   32|        160|
+    |ap_phi_reg_pp0_iter2_quantized_2_reg_160  |  26|          5|  480|       2400|
+    |ap_sig_allocacmp_group_13                 |   9|          2|    3|          6|
+    |ap_sig_allocacmp_indvar_flatten10_load    |   9|          2|    8|         16|
+    |ap_sig_allocacmp_indvar_flatten_load      |   9|          2|    6|         12|
+    |ap_sig_allocacmp_pe_load                  |   9|          2|    3|          6|
+    |group_01_fu_82                            |   9|          2|    3|          6|
+    |indvar_flatten10_fu_94                    |   9|          2|    8|         16|
+    |indvar_flatten_fu_90                      |   9|          2|    6|         12|
+    |pe_fu_86                                  |   9|          2|    3|          6|
+    |quantized_pe0_blk_n                       |   9|          2|    1|          2|
+    |quantized_pe1_blk_n                       |   9|          2|    1|          2|
+    |quantized_pe2_blk_n                       |   9|          2|    1|          2|
+    |quantized_pe3_blk_n                       |   9|          2|    1|          2|
+    |quantized_stream_blk_n                    |   9|          2|    1|          2|
+    |scale_pe0_blk_n                           |   9|          2|    1|          2|
+    |scale_pe1_blk_n                           |   9|          2|    1|          2|
+    |scale_pe2_blk_n                           |   9|          2|    1|          2|
+    |scale_pe3_blk_n                           |   9|          2|    1|          2|
+    |scale_stream_blk_n                        |   9|          2|    1|          2|
+    +------------------------------------------+----+-----------+-----+-----------+
+    |Total                                     | 232|         50|  564|       2664|
+    +------------------------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +------------------------------------------+-----+----+-----+-----------+
+    |                   Name                   |  FF | LUT| Bits| Const Bits|
+    +------------------------------------------+-----+----+-----+-----------+
+    |ap_CS_fsm                                 |    1|   0|    1|          0|
+    |ap_done_reg                               |    1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter1                   |    1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter2                   |    1|   0|    1|          0|
+    |ap_loop_exit_ready_pp0_iter1_reg          |    1|   0|    1|          0|
+    |ap_phi_reg_pp0_iter1_empty_reg_174        |   32|   0|   32|          0|
+    |ap_phi_reg_pp0_iter1_quantized_2_reg_160  |  480|   0|  480|          0|
+    |ap_phi_reg_pp0_iter2_empty_reg_174        |   32|   0|   32|          0|
+    |ap_phi_reg_pp0_iter2_quantized_2_reg_160  |  480|   0|  480|          0|
+    |group_01_fu_82                            |    3|   0|    3|          0|
+    |icmp_ln270_reg_360                        |    1|   0|    1|          0|
+    |indvar_flatten10_fu_94                    |    8|   0|    8|          0|
+    |indvar_flatten_fu_90                      |    6|   0|    6|          0|
+    |pe_fu_86                                  |    3|   0|    3|          0|
+    |select_ln274_reg_364                      |    3|   0|    3|          0|
+    +------------------------------------------+-----+----+-----+-----------+
+    |Total                                     | 1053|   0| 1053|          0|
+    +------------------------------------------+-----+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++---------------------------------+-----+-----+------------+-------------------------+--------------+
+|            RTL Ports            | Dir | Bits|  Protocol  |      Source Object      |    C Type    |
++---------------------------------+-----+-----+------------+-------------------------+--------------+
+|ap_clk                           |   in|    1|  ap_ctrl_hs|  int4_rms_gather_streams|  return value|
+|ap_rst                           |   in|    1|  ap_ctrl_hs|  int4_rms_gather_streams|  return value|
+|ap_start                         |   in|    1|  ap_ctrl_hs|  int4_rms_gather_streams|  return value|
+|ap_done                          |  out|    1|  ap_ctrl_hs|  int4_rms_gather_streams|  return value|
+|ap_continue                      |   in|    1|  ap_ctrl_hs|  int4_rms_gather_streams|  return value|
+|ap_idle                          |  out|    1|  ap_ctrl_hs|  int4_rms_gather_streams|  return value|
+|ap_ready                         |  out|    1|  ap_ctrl_hs|  int4_rms_gather_streams|  return value|
+|quantized_pe2_dout               |   in|  480|     ap_fifo|            quantized_pe2|       pointer|
+|quantized_pe2_num_data_valid     |   in|    3|     ap_fifo|            quantized_pe2|       pointer|
+|quantized_pe2_fifo_cap           |   in|    3|     ap_fifo|            quantized_pe2|       pointer|
+|quantized_pe2_empty_n            |   in|    1|     ap_fifo|            quantized_pe2|       pointer|
+|quantized_pe2_read               |  out|    1|     ap_fifo|            quantized_pe2|       pointer|
+|scale_pe2_dout                   |   in|   32|     ap_fifo|                scale_pe2|       pointer|
+|scale_pe2_num_data_valid         |   in|    3|     ap_fifo|                scale_pe2|       pointer|
+|scale_pe2_fifo_cap               |   in|    3|     ap_fifo|                scale_pe2|       pointer|
+|scale_pe2_empty_n                |   in|    1|     ap_fifo|                scale_pe2|       pointer|
+|scale_pe2_read                   |  out|    1|     ap_fifo|                scale_pe2|       pointer|
+|quantized_pe1_dout               |   in|  480|     ap_fifo|            quantized_pe1|       pointer|
+|quantized_pe1_num_data_valid     |   in|    3|     ap_fifo|            quantized_pe1|       pointer|
+|quantized_pe1_fifo_cap           |   in|    3|     ap_fifo|            quantized_pe1|       pointer|
+|quantized_pe1_empty_n            |   in|    1|     ap_fifo|            quantized_pe1|       pointer|
+|quantized_pe1_read               |  out|    1|     ap_fifo|            quantized_pe1|       pointer|
+|scale_pe1_dout                   |   in|   32|     ap_fifo|                scale_pe1|       pointer|
+|scale_pe1_num_data_valid         |   in|    3|     ap_fifo|                scale_pe1|       pointer|
+|scale_pe1_fifo_cap               |   in|    3|     ap_fifo|                scale_pe1|       pointer|
+|scale_pe1_empty_n                |   in|    1|     ap_fifo|                scale_pe1|       pointer|
+|scale_pe1_read                   |  out|    1|     ap_fifo|                scale_pe1|       pointer|
+|quantized_pe0_dout               |   in|  480|     ap_fifo|            quantized_pe0|       pointer|
+|quantized_pe0_num_data_valid     |   in|    3|     ap_fifo|            quantized_pe0|       pointer|
+|quantized_pe0_fifo_cap           |   in|    3|     ap_fifo|            quantized_pe0|       pointer|
+|quantized_pe0_empty_n            |   in|    1|     ap_fifo|            quantized_pe0|       pointer|
+|quantized_pe0_read               |  out|    1|     ap_fifo|            quantized_pe0|       pointer|
+|scale_pe0_dout                   |   in|   32|     ap_fifo|                scale_pe0|       pointer|
+|scale_pe0_num_data_valid         |   in|    3|     ap_fifo|                scale_pe0|       pointer|
+|scale_pe0_fifo_cap               |   in|    3|     ap_fifo|                scale_pe0|       pointer|
+|scale_pe0_empty_n                |   in|    1|     ap_fifo|                scale_pe0|       pointer|
+|scale_pe0_read                   |  out|    1|     ap_fifo|                scale_pe0|       pointer|
+|quantized_pe3_dout               |   in|  480|     ap_fifo|            quantized_pe3|       pointer|
+|quantized_pe3_num_data_valid     |   in|    3|     ap_fifo|            quantized_pe3|       pointer|
+|quantized_pe3_fifo_cap           |   in|    3|     ap_fifo|            quantized_pe3|       pointer|
+|quantized_pe3_empty_n            |   in|    1|     ap_fifo|            quantized_pe3|       pointer|
+|quantized_pe3_read               |  out|    1|     ap_fifo|            quantized_pe3|       pointer|
+|scale_pe3_dout                   |   in|   32|     ap_fifo|                scale_pe3|       pointer|
+|scale_pe3_num_data_valid         |   in|    3|     ap_fifo|                scale_pe3|       pointer|
+|scale_pe3_fifo_cap               |   in|    3|     ap_fifo|                scale_pe3|       pointer|
+|scale_pe3_empty_n                |   in|    1|     ap_fifo|                scale_pe3|       pointer|
+|scale_pe3_read                   |  out|    1|     ap_fifo|                scale_pe3|       pointer|
+|quantized_stream_din             |  out|  480|     ap_fifo|         quantized_stream|       pointer|
+|quantized_stream_num_data_valid  |   in|    3|     ap_fifo|         quantized_stream|       pointer|
+|quantized_stream_fifo_cap        |   in|    3|     ap_fifo|         quantized_stream|       pointer|
+|quantized_stream_full_n          |   in|    1|     ap_fifo|         quantized_stream|       pointer|
+|quantized_stream_write           |  out|    1|     ap_fifo|         quantized_stream|       pointer|
+|scale_stream_din                 |  out|   32|     ap_fifo|             scale_stream|       pointer|
+|scale_stream_num_data_valid      |   in|    3|     ap_fifo|             scale_stream|       pointer|
+|scale_stream_fifo_cap            |   in|    3|     ap_fifo|             scale_stream|       pointer|
+|scale_stream_full_n              |   in|    1|     ap_fifo|             scale_stream|       pointer|
+|scale_stream_write               |  out|    1|     ap_fifo|             scale_stream|       pointer|
++---------------------------------+-----+-----+------------+-------------------------+--------------+
+

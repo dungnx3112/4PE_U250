@@ -1,0 +1,209 @@
+
+
+================================================================
+== Vitis HLS Report for 'swiftkv_prepare_update_engine_phases_Pipeline_prepare_update_engine_phase_loop_1'
+================================================================
+* Date:           Tue Aug 11 09:18:13 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  1.991 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+-----------+----------+-----+-------+---------+
+    |  Latency (cycles) |  Latency (absolute)  |   Interval  | Pipeline|
+    |   min   |   max   |    min    |    max   | min |  max  |   Type  |
+    +---------+---------+-----------+----------+-----+-------+---------+
+    |       11|    32771|  36.663 ns|  0.109 ms|   11|  32771|       no|
+    +---------+---------+-----------+----------+-----+-------+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +------------------------------------+---------+---------+----------+-----------+-----------+-----------+----------+
+        |                                    |  Latency (cycles) | Iteration|  Initiation Interval  |    Trip   |          |
+        |              Loop Name             |   min   |   max   |  Latency |  achieved |   target  |   Count   | Pipelined|
+        +------------------------------------+---------+---------+----------+-----------+-----------+-----------+----------+
+        |- prepare_update_engine_phase_loop  |        9|    32769|         3|          1|          1|  8 ~ 32768|       yes|
+        +------------------------------------+---------+---------+----------+-----------+-----------+-----------+----------+
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+------+
+|         Name        | BRAM_18K|  DSP  |    FF   |   LUT   | URAM |
++---------------------+---------+-------+---------+---------+------+
+|DSP                  |        -|      -|        -|        -|     -|
+|Expression           |        -|      -|        0|      102|     -|
+|FIFO                 |        -|      -|        -|        -|     -|
+|Instance             |        -|      -|        0|       20|     -|
+|Memory               |        -|      -|        -|        -|     -|
+|Multiplexer          |        -|      -|        -|      135|     -|
+|Register             |        -|      -|      680|        -|     -|
++---------------------+---------+-------+---------+---------+------+
+|Total                |        0|      0|      680|      257|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available SLR        |     1344|   3072|   864000|   432000|   320|
++---------------------+---------+-------+---------+---------+------+
+|Utilization SLR (%)  |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available            |     5376|  12288|  3456000|  1728000|  1280|
++---------------------+---------+-------+---------+---------+------+
+|Utilization (%)      |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+
++ Detail: 
+    * Instance: 
+    +--------------------------+---------------------+---------+----+---+----+-----+
+    |         Instance         |        Module       | BRAM_18K| DSP| FF| LUT| URAM|
+    +--------------------------+---------------------+---------+----+---+----+-----+
+    |sparsemux_9_2_5_1_1_U545  |sparsemux_9_2_5_1_1  |        0|   0|  0|  20|    0|
+    +--------------------------+---------------------+---------+----+---+----+-----+
+    |Total                     |                     |        0|   0|  0|  20|    0|
+    +--------------------------+---------------------+---------+----+---+----+-----+
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +----------------------------------+----------+----+---+----+------------+------------+
+    |           Variable Name          | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +----------------------------------+----------+----+---+----+------------+------------+
+    |update_phase_12_fu_239_p2         |         +|   0|  0|  23|          16|           1|
+    |ap_condition_173                  |       and|   0|  0|   2|           1|           1|
+    |ap_condition_409                  |       and|   0|  0|   2|           1|           1|
+    |ap_predicate_op39_read_state2     |       and|   0|  0|   2|           1|           1|
+    |ap_predicate_op54_read_state2     |       and|   0|  0|   2|           1|           1|
+    |icmp_ln1182_fu_233_p2             |      icmp|   0|  0|  23|          16|          16|
+    |icmp_ln1188_fu_249_p2             |      icmp|   0|  0|  10|           3|           1|
+    |icmp_ln1212_fu_255_p2             |      icmp|   0|  0|  12|           3|           4|
+    |icmp_ln1235_fu_281_p2             |      icmp|   0|  0|  20|          13|           1|
+    |ap_block_pp0_stage0_01001         |        or|   0|  0|   2|           1|           1|
+    |ap_block_state2_pp0_stage0_iter1  |        or|   0|  0|   2|           1|           1|
+    |ap_enable_pp0                     |       xor|   0|  0|   2|           1|           2|
+    +----------------------------------+----------+----+---+----+------------+------------+
+    |Total                             |          |   0|  0| 102|          58|          31|
+    +----------------------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +-------------------------------------------+----+-----------+-----+-----------+
+    |                    Name                   | LUT| Input Size| Bits| Total Bits|
+    +-------------------------------------------+----+-----------+-----+-----------+
+    |ap_done_int                                |   9|          2|    1|          2|
+    |ap_enable_reg_pp0_iter1                    |   9|          2|    1|          2|
+    |ap_phi_mux_value_word_1_phi_fu_194_p4      |   9|          2|  128|        256|
+    |ap_phi_mux_value_word_2_phi_fu_203_p4      |   9|          2|  128|        256|
+    |ap_phi_reg_pp0_iter2_value_word_1_reg_191  |   9|          2|  128|        256|
+    |ap_phi_reg_pp0_iter2_value_word_2_reg_200  |   9|          2|  128|        256|
+    |ap_sig_allocacmp_update_phase_11           |   9|          2|   16|         32|
+    |empty_fu_140                               |   9|          2|   18|         36|
+    |engine2_control_stream_blk_n               |   9|          2|    1|          2|
+    |engine2_phase_stream_blk_n                 |   9|          2|    1|          2|
+    |rescale_history_fu_136                     |   9|          2|    1|          2|
+    |update_phase_fu_132                        |   9|          2|   16|         32|
+    |value0_engine2_stream_blk_n                |   9|          2|    1|          2|
+    |value1_engine2_stream_blk_n                |   9|          2|    1|          2|
+    |value_word_04_fu_128                       |   9|          2|   96|        192|
+    +-------------------------------------------+----+-----------+-----+-----------+
+    |Total                                      | 135|         30|  665|       1330|
+    +-------------------------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +-------------------------------------------+-----+----+-----+-----------+
+    |                    Name                   |  FF | LUT| Bits| Const Bits|
+    +-------------------------------------------+-----+----+-----+-----------+
+    |ap_CS_fsm                                  |    1|   0|    1|          0|
+    |ap_done_reg                                |    1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter1                    |    1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter2                    |    1|   0|    1|          0|
+    |ap_loop_exit_ready_pp0_iter1_reg           |    1|   0|    1|          0|
+    |ap_phi_reg_pp0_iter1_value_word_1_reg_191  |  128|   0|  128|          0|
+    |ap_phi_reg_pp0_iter1_value_word_2_reg_200  |  128|   0|  128|          0|
+    |ap_phi_reg_pp0_iter2_value_word_1_reg_191  |  128|   0|  128|          0|
+    |ap_phi_reg_pp0_iter2_value_word_2_reg_200  |  128|   0|  128|          0|
+    |empty_fu_140                               |   18|   0|   18|          0|
+    |icmp_ln1182_reg_514                        |    1|   0|    1|          0|
+    |icmp_ln1182_reg_514_pp0_iter1_reg          |    1|   0|    1|          0|
+    |icmp_ln1188_reg_518                        |    1|   0|    1|          0|
+    |icmp_ln1188_reg_518_pp0_iter1_reg          |    1|   0|    1|          0|
+    |icmp_ln1212_reg_522                        |    1|   0|    1|          0|
+    |icmp_ln1212_reg_522_pp0_iter1_reg          |    1|   0|    1|          0|
+    |icmp_ln1235_reg_531                        |    1|   0|    1|          0|
+    |icmp_ln1235_reg_531_pp0_iter1_reg          |    1|   0|    1|          0|
+    |rescale_history_fu_136                     |    1|   0|    1|          0|
+    |trunc_ln_reg_526                           |    2|   0|    2|          0|
+    |trunc_ln_reg_526_pp0_iter1_reg             |    2|   0|    2|          0|
+    |update_phase_fu_132                        |   16|   0|   16|          0|
+    |value_shift_12_fu_148                      |    5|   0|    5|          0|
+    |value_shift_13_fu_152                      |    5|   0|    5|          0|
+    |value_shift_14_fu_156                      |    5|   0|    5|          0|
+    |value_shift_fu_144                         |    5|   0|    5|          0|
+    |value_word_04_fu_128                       |   96|   0|   96|          0|
+    +-------------------------------------------+-----+----+-----+-----------+
+    |Total                                      |  680|   0|  680|          0|
+    +-------------------------------------------+-----+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++---------------------------------------+-----+-----+------------+----------------------------------------------------------------------------------+--------------+
+|               RTL Ports               | Dir | Bits|  Protocol  |                                   Source Object                                  |    C Type    |
++---------------------------------------+-----+-----+------------+----------------------------------------------------------------------------------+--------------+
+|ap_clk                                 |   in|    1|  ap_ctrl_hs|  swiftkv_prepare_update_engine_phases_Pipeline_prepare_update_engine_phase_loop.1|  return value|
+|ap_rst                                 |   in|    1|  ap_ctrl_hs|  swiftkv_prepare_update_engine_phases_Pipeline_prepare_update_engine_phase_loop.1|  return value|
+|ap_start                               |   in|    1|  ap_ctrl_hs|  swiftkv_prepare_update_engine_phases_Pipeline_prepare_update_engine_phase_loop.1|  return value|
+|ap_done                                |  out|    1|  ap_ctrl_hs|  swiftkv_prepare_update_engine_phases_Pipeline_prepare_update_engine_phase_loop.1|  return value|
+|ap_idle                                |  out|    1|  ap_ctrl_hs|  swiftkv_prepare_update_engine_phases_Pipeline_prepare_update_engine_phase_loop.1|  return value|
+|ap_ready                               |  out|    1|  ap_ctrl_hs|  swiftkv_prepare_update_engine_phases_Pipeline_prepare_update_engine_phase_loop.1|  return value|
+|engine2_control_stream_dout            |   in|   59|     ap_fifo|                                                            engine2_control_stream|       pointer|
+|engine2_control_stream_num_data_valid  |   in|    3|     ap_fifo|                                                            engine2_control_stream|       pointer|
+|engine2_control_stream_fifo_cap        |   in|    3|     ap_fifo|                                                            engine2_control_stream|       pointer|
+|engine2_control_stream_empty_n         |   in|    1|     ap_fifo|                                                            engine2_control_stream|       pointer|
+|engine2_control_stream_read            |  out|    1|     ap_fifo|                                                            engine2_control_stream|       pointer|
+|value0_engine2_stream_dout             |   in|  128|     ap_fifo|                                                             value0_engine2_stream|       pointer|
+|value0_engine2_stream_num_data_valid   |   in|    6|     ap_fifo|                                                             value0_engine2_stream|       pointer|
+|value0_engine2_stream_fifo_cap         |   in|    6|     ap_fifo|                                                             value0_engine2_stream|       pointer|
+|value0_engine2_stream_empty_n          |   in|    1|     ap_fifo|                                                             value0_engine2_stream|       pointer|
+|value0_engine2_stream_read             |  out|    1|     ap_fifo|                                                             value0_engine2_stream|       pointer|
+|value1_engine2_stream_dout             |   in|  128|     ap_fifo|                                                             value1_engine2_stream|       pointer|
+|value1_engine2_stream_num_data_valid   |   in|    6|     ap_fifo|                                                             value1_engine2_stream|       pointer|
+|value1_engine2_stream_fifo_cap         |   in|    6|     ap_fifo|                                                             value1_engine2_stream|       pointer|
+|value1_engine2_stream_empty_n          |   in|    1|     ap_fifo|                                                             value1_engine2_stream|       pointer|
+|value1_engine2_stream_read             |  out|    1|     ap_fifo|                                                             value1_engine2_stream|       pointer|
+|engine2_phase_stream_din               |  out|   57|     ap_fifo|                                                              engine2_phase_stream|       pointer|
+|engine2_phase_stream_num_data_valid    |   in|    4|     ap_fifo|                                                              engine2_phase_stream|       pointer|
+|engine2_phase_stream_fifo_cap          |   in|    4|     ap_fifo|                                                              engine2_phase_stream|       pointer|
+|engine2_phase_stream_full_n            |   in|    1|     ap_fifo|                                                              engine2_phase_stream|       pointer|
+|engine2_phase_stream_write             |  out|    1|     ap_fifo|                                                              engine2_phase_stream|       pointer|
+|update_phase_count                     |   in|   16|     ap_none|                                                                update_phase_count|        scalar|
++---------------------------------------+-----+-----+------------+----------------------------------------------------------------------------------+--------------+
+

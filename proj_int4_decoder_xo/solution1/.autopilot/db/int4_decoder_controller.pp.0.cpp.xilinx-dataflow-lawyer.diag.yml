@@ -1,0 +1,12 @@
+---
+MainSourceFile:  'C:/KLTN/u250/proj_int4_decoder_xo/solution1/.autopilot/db/int4_decoder_controller.pp.0.cpp'
+Diagnostics:     
+  - DiagnosticName:  clang-diagnostic-warning
+    Message:         '[xlx-df-check-10] Either use an argument of the function or declare the variable inside the dataflow loop body'
+    FileOffset:      '113:9'
+    FilePath:        source/int4_decoder_controller.cpp
+  - DiagnosticName:  clang-diagnostic-warning
+    Message:         '[xlx-df-check-10] Either use an argument of the function or declare the variable inside the dataflow loop body'
+    FileOffset:      '381:23'
+    FilePath:        source/int4_decoder_controller.cpp
+...

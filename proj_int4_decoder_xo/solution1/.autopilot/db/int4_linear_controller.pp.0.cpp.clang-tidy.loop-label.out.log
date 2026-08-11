@@ -1,0 +1,103 @@
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:1317:7: warning: Added loop label VITIS_LOOP_1207_1:   [xilinx-label-all-loops]
+      for (i = 0; i < __N - 1; ++i) {
+      ^~~
+      VITIS_LOOP_1207_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:1317:7: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:2291:5: warning: Added loop label VITIS_LOOP_676_1:   [xilinx-label-all-loops]
+    for (unsigned i = low; i != high; ++i) {
+    ^~~
+    VITIS_LOOP_676_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:2291:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:2305:5: warning: Added loop label VITIS_LOOP_690_1:   [xilinx-label-all-loops]
+    for (unsigned i = low; i != high; ++i) {
+    ^~~
+    VITIS_LOOP_690_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:2305:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:2319:5: warning: Added loop label VITIS_LOOP_704_1:   [xilinx-label-all-loops]
+    for (unsigned i = low; i != high; ++i) {
+    ^~~
+    VITIS_LOOP_704_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:2319:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:3948:7: warning: Added loop label VITIS_LOOP_1247_1:   [xilinx-label-all-loops]
+      for (i = 0; i < __N - 1; ++i) {
+      ^~~
+      VITIS_LOOP_1247_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:3948:7: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:6692:9: error: Invalid Directive: for current device, add + fabric is invalid combination for bind_op [clang-diagnostic-error]
+#pragma HLS BIND_OP variable=packed_weight op=add impl=fabric latency=1
+        ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:6828:57: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=activation_cache type=ram_1p impl=bram latency=1
+                                                        ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:6829:52: error: Invalid Directive: for current device, ram_1p + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=scale_cache type=ram_1p impl=bram latency=1
+                                                   ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:6950:9: error: Invalid Directive: for current device, mul + dsp is invalid combination for bind_op [clang-diagnostic-error]
+#pragma HLS BIND_OP variable=packed_product op=mul impl=dsp latency=4
+        ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7016:9: error: Invalid Directive: for current device, mul + dsp is invalid combination for bind_op [clang-diagnostic-error]
+#pragma HLS BIND_OP variable=combined_scale op=mul impl=dsp
+        ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7074:9: error: Invalid Directive: for current device, mul + dsp is invalid combination for bind_op [clang-diagnostic-error]
+#pragma HLS BIND_OP variable=contribution op=mul impl=dsp
+        ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7298:54: error: Invalid Directive: for current device, fifo + uram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=weight_stream type=fifo impl=uram
+                                                     ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7303:53: error: Invalid Directive: for current device, fifo + srl is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=group_stream type=fifo impl=srl
+                                                    ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7304:65: error: Invalid Directive: for current device, fifo + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=replay_activation_stream type=fifo impl=bram
+                                                                ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7305:60: error: Invalid Directive: for current device, fifo + srl is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=replay_scale_stream type=fifo impl=srl
+                                                           ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7306:59: error: Invalid Directive: for current device, fifo + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=final_block_stream type=fifo impl=bram
+                                                          ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7307:54: error: Invalid Directive: for current device, fifo + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=output_stream type=fifo impl=bram
+                                                     ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7428:54: error: Invalid Directive: for current device, fifo + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=quantized_pe0 type=fifo impl=bram
+                                                     ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7429:54: error: Invalid Directive: for current device, fifo + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=quantized_pe1 type=fifo impl=bram
+                                                     ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7430:54: error: Invalid Directive: for current device, fifo + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=quantized_pe2 type=fifo impl=bram
+                                                     ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7431:54: error: Invalid Directive: for current device, fifo + bram is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=quantized_pe3 type=fifo impl=bram
+                                                     ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7432:61: error: Invalid Directive: for current device, fifo + srl is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=activation_scale_pe0 type=fifo impl=srl
+                                                            ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7433:61: error: Invalid Directive: for current device, fifo + srl is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=activation_scale_pe1 type=fifo impl=srl
+                                                            ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7434:61: error: Invalid Directive: for current device, fifo + srl is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=activation_scale_pe2 type=fifo impl=srl
+                                                            ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7435:61: error: Invalid Directive: for current device, fifo + srl is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=activation_scale_pe3 type=fifo impl=srl
+                                                            ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7436:59: error: Invalid Directive: for current device, fifo + srl is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=linear_command_pe0 type=fifo impl=srl
+                                                          ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7437:59: error: Invalid Directive: for current device, fifo + srl is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=linear_command_pe1 type=fifo impl=srl
+                                                          ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7438:59: error: Invalid Directive: for current device, fifo + srl is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=linear_command_pe2 type=fifo impl=srl
+                                                          ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7439:59: error: Invalid Directive: for current device, fifo + srl is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=linear_command_pe3 type=fifo impl=srl
+                                                          ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7761:61: error: Invalid Directive: for current device, fifo + srl is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=rms_quantized_stream type=fifo impl=srl
+                                                            ^
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_linear_controller.pp.0.cpp:7762:57: error: Invalid Directive: for current device, fifo + srl is invalid combination for BIND_STORAGE's option 'type + impl' [clang-diagnostic-error]
+#pragma HLS BIND_STORAGE variable=rms_scale_stream type=fifo impl=srl
+                                                        ^

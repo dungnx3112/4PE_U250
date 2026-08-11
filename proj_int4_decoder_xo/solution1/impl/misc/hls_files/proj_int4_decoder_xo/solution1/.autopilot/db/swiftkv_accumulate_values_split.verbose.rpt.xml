@@ -1,0 +1,367 @@
+<profile>
+
+<section name = "Vitis HLS Report for 'swiftkv_accumulate_values_split'" level="0">
+<item name = "Date">Tue Aug 11 09:18:18 2026
+</item>
+<item name = "Version">2023.2 (Build 4023990 on Oct 11 2023)</item>
+<item name = "Project">proj_int4_decoder_xo</item>
+<item name = "Solution">solution1 (Vitis Kernel Flow Target)</item>
+<item name = "Product family">virtexuplus</item>
+<item name = "Target device">xcu250-figd2104-2L-e</item>
+</section>
+
+<section name = "Performance Estimates" level="0">
+<item name = "Timing">
+<section name = "" level="1">
+<item name = "Summary"><table name="" hasTotal="0">
+<keys size="4">Clock, Target, Estimated, Uncertainty</keys>
+<column name="ap_clk">3.33 ns, 2.433 ns, 0.90 ns</column>
+</table>
+</item>
+</section>
+</item>
+<item name = "Latency">
+<section name = "" level="1">
+<item name = "Summary"><table name="" hasTotal="0">
+<keys size="8">, min, max, min, max, min, max, Type</keys>
+<column name="">32, 32792, 0.107 us, 0.109 ms, 31, 32791, dataflow</column>
+</table>
+</item>
+<item name = "Detail">
+<section name = "" level="1">
+<item name = "Instance"><table name="" hasTotal="0">
+<keys size="9">Instance, Module, min, max, min, max, min, max, Type</keys>
+<column name="swiftkv_broadcast_update_controls_U0">swiftkv_broadcast_update_controls, 5, 4100, 16.665 ns, 13.665 us, 5, 4100, no</column>
+<column name="swiftkv_prepare_update_engine_phases_0_U0">swiftkv_prepare_update_engine_phases_0_s, 13, 32773, 43.329 ns, 0.109 ms, 13, 32773, no</column>
+<column name="swiftkv_prepare_update_engine_phases_1_U0">swiftkv_prepare_update_engine_phases_1_s, 13, 32773, 43.329 ns, 0.109 ms, 13, 32773, no</column>
+<column name="swiftkv_prepare_update_engine_phases_2_U0">swiftkv_prepare_update_engine_phases_2_s, 13, 32773, 43.329 ns, 0.109 ms, 13, 32773, no</column>
+<column name="swiftkv_prepare_update_engine_phases_3_U0">swiftkv_prepare_update_engine_phases_3_s, 13, 32773, 43.329 ns, 0.109 ms, 13, 32773, no</column>
+<column name="swiftkv_update_value_engine_0_U0">swiftkv_update_value_engine_0_s, 30, 32790, 99.990 ns, 0.109 ms, 30, 32790, no</column>
+<column name="swiftkv_update_value_engine_1_U0">swiftkv_update_value_engine_1_s, 30, 32790, 99.990 ns, 0.109 ms, 30, 32790, no</column>
+<column name="swiftkv_update_value_engine_2_U0">swiftkv_update_value_engine_2_s, 30, 32790, 99.990 ns, 0.109 ms, 30, 32790, no</column>
+<column name="swiftkv_update_value_engine_3_U0">swiftkv_update_value_engine_3_s, 30, 32790, 99.990 ns, 0.109 ms, 30, 32790, no</column>
+</table>
+</item>
+<item name = "Loop"><table name="" hasTotal="0">
+<keys size="8">Loop Name, min, max, Latency, achieved, target, Count, Pipelined</keys>
+</table>
+</item>
+</section>
+</item>
+</section>
+</item>
+</section>
+
+<section name = "Utilization Estimates" level="0">
+<item name = "Summary"><table name="" hasTotal="1">
+<keys size="6">Name, BRAM_18K, DSP, FF, LUT, URAM</keys>
+<column name="DSP">-, -, -, -, -</column>
+<column name="Expression">-, -, 0, 36, -</column>
+<column name="FIFO">-, -, 336, 536, -</column>
+<column name="Instance">-, 32, 9918, 13921, -</column>
+<column name="Memory">-, -, -, -, -</column>
+<column name="Multiplexer">-, -, -, 45, -</column>
+<column name="Register">-, -, 9, -, -</column>
+<specialColumn name="Available SLR">1344, 3072, 864000, 432000, 320</specialColumn>
+<specialColumn name="Utilization SLR (%)">0, 1, 1, 3, 0</specialColumn>
+<specialColumn name="Available">5376, 12288, 3456000, 1728000, 1280</specialColumn>
+<specialColumn name="Utilization (%)">0, ~0, ~0, ~0, 0</specialColumn>
+</table>
+</item>
+<item name = "Detail">
+<section name = "" level="1">
+<item name = "Instance"><table name="" hasTotal="1">
+<keys size="7">Instance, Module, BRAM_18K, DSP, FF, LUT, URAM</keys>
+<column name="swiftkv_broadcast_update_controls_U0">swiftkv_broadcast_update_controls, 0, 0, 34, 277, 0</column>
+<column name="swiftkv_prepare_update_engine_phases_0_U0">swiftkv_prepare_update_engine_phases_0_s, 0, 0, 710, 365, 0</column>
+<column name="swiftkv_prepare_update_engine_phases_1_U0">swiftkv_prepare_update_engine_phases_1_s, 0, 0, 710, 365, 0</column>
+<column name="swiftkv_prepare_update_engine_phases_2_U0">swiftkv_prepare_update_engine_phases_2_s, 0, 0, 710, 365, 0</column>
+<column name="swiftkv_prepare_update_engine_phases_3_U0">swiftkv_prepare_update_engine_phases_3_s, 0, 0, 710, 365, 0</column>
+<column name="swiftkv_update_value_engine_0_U0">swiftkv_update_value_engine_0_s, 0, 8, 1761, 3046, 0</column>
+<column name="swiftkv_update_value_engine_1_U0">swiftkv_update_value_engine_1_s, 0, 8, 1761, 3046, 0</column>
+<column name="swiftkv_update_value_engine_2_U0">swiftkv_update_value_engine_2_s, 0, 8, 1761, 3046, 0</column>
+<column name="swiftkv_update_value_engine_3_U0">swiftkv_update_value_engine_3_s, 0, 8, 1761, 3046, 0</column>
+</table>
+</item>
+<item name = "DSP"><table name="" hasTotal="0">
+<keys size="3">Instance, Module, Expression</keys>
+</table>
+</item>
+<item name = "Memory"><table name="" hasTotal="1">
+<keys size="10">Memory, Module, BRAM_18K, FF, LUT, URAM, Words, Bits, Banks, W*Bits*Banks</keys>
+</table>
+</item>
+<item name = "FIFO"><table name="" hasTotal="1">
+<keys size="8">Name, BRAM_18K, FF, LUT, URAM, Depth, Bits, Size:D*B</keys>
+<column name="engine0_control_stream_U">0, 5, 0, -, 4, 59, 236</column>
+<column name="engine0_phase_stream_U">0, 7, 0, -, 8, 57, 456</column>
+<column name="engine1_control_stream_U">0, 5, 0, -, 4, 59, 236</column>
+<column name="engine1_phase_stream_U">0, 7, 0, -, 8, 57, 456</column>
+<column name="engine2_control_stream_U">0, 5, 0, -, 4, 59, 236</column>
+<column name="engine2_phase_stream_U">0, 7, 0, -, 8, 57, 456</column>
+<column name="engine3_control_stream_U">0, 5, 0, -, 4, 59, 236</column>
+<column name="engine3_phase_stream_U">0, 7, 0, -, 8, 57, 456</column>
+<column name="position_val_c30_U">0, 36, 0, -, 2, 12, 24</column>
+<column name="position_val_c31_U">0, 36, 0, -, 2, 12, 24</column>
+<column name="position_val_c32_U">0, 36, 0, -, 2, 12, 24</column>
+<column name="position_val_c33_U">0, 36, 0, -, 2, 12, 24</column>
+<column name="position_val_c34_U">0, 36, 0, -, 2, 12, 24</column>
+<column name="position_val_c35_U">0, 36, 0, -, 2, 12, 24</column>
+<column name="position_val_c36_U">0, 36, 0, -, 2, 12, 24</column>
+<column name="position_val_c_U">0, 36, 0, -, 2, 12, 24</column>
+</table>
+</item>
+<item name = "Expression"><table name="" hasTotal="1">
+<keys size="7">Variable Name, Operation, DSP, FF, LUT, Bitwidth P0, Bitwidth P1</keys>
+<column name="ap_idle">and, 0, 0, 2, 1, 1</column>
+<column name="ap_sync_continue">and, 0, 0, 2, 1, 1</column>
+<column name="ap_sync_done">and, 0, 0, 2, 1, 1</column>
+<column name="ap_sync_ready">and, 0, 0, 2, 1, 1</column>
+<column name="swiftkv_broadcast_update_controls_U0_ap_start">and, 0, 0, 2, 1, 1</column>
+<column name="swiftkv_update_value_engine_0_U0_ap_start">and, 0, 0, 2, 1, 1</column>
+<column name="swiftkv_update_value_engine_1_U0_ap_start">and, 0, 0, 2, 1, 1</column>
+<column name="swiftkv_update_value_engine_2_U0_ap_start">and, 0, 0, 2, 1, 1</column>
+<column name="swiftkv_update_value_engine_3_U0_ap_start">and, 0, 0, 2, 1, 1</column>
+<column name="ap_sync_swiftkv_broadcast_update_controls_U0_ap_ready">or, 0, 0, 2, 1, 1</column>
+<column name="ap_sync_swiftkv_update_value_engine_0_U0_ap_ready">or, 0, 0, 2, 1, 1</column>
+<column name="ap_sync_swiftkv_update_value_engine_1_U0_ap_ready">or, 0, 0, 2, 1, 1</column>
+<column name="ap_sync_swiftkv_update_value_engine_2_U0_ap_ready">or, 0, 0, 2, 1, 1</column>
+<column name="ap_sync_swiftkv_update_value_engine_3_U0_ap_ready">or, 0, 0, 2, 1, 1</column>
+<column name="swiftkv_prepare_update_engine_phases_0_U0_ap_start">or, 0, 0, 2, 1, 1</column>
+<column name="swiftkv_prepare_update_engine_phases_1_U0_ap_start">or, 0, 0, 2, 1, 1</column>
+<column name="swiftkv_prepare_update_engine_phases_2_U0_ap_start">or, 0, 0, 2, 1, 1</column>
+<column name="swiftkv_prepare_update_engine_phases_3_U0_ap_start">or, 0, 0, 2, 1, 1</column>
+</table>
+</item>
+<item name = "Multiplexer"><table name="" hasTotal="1">
+<keys size="5">Name, LUT, Input Size, Bits, Total Bits</keys>
+<column name="ap_sync_reg_swiftkv_broadcast_update_controls_U0_ap_ready">9, 2, 1, 2</column>
+<column name="ap_sync_reg_swiftkv_update_value_engine_0_U0_ap_ready">9, 2, 1, 2</column>
+<column name="ap_sync_reg_swiftkv_update_value_engine_1_U0_ap_ready">9, 2, 1, 2</column>
+<column name="ap_sync_reg_swiftkv_update_value_engine_2_U0_ap_ready">9, 2, 1, 2</column>
+<column name="ap_sync_reg_swiftkv_update_value_engine_3_U0_ap_ready">9, 2, 1, 2</column>
+</table>
+</item>
+<item name = "Register"><table name="" hasTotal="1">
+<keys size="5">Name, FF, LUT, Bits, Const Bits</keys>
+<column name="ap_sync_reg_swiftkv_broadcast_update_controls_U0_ap_ready">1, 0, 1, 0</column>
+<column name="ap_sync_reg_swiftkv_prepare_update_engine_phases_0_U0_ap_start">1, 0, 1, 0</column>
+<column name="ap_sync_reg_swiftkv_prepare_update_engine_phases_1_U0_ap_start">1, 0, 1, 0</column>
+<column name="ap_sync_reg_swiftkv_prepare_update_engine_phases_2_U0_ap_start">1, 0, 1, 0</column>
+<column name="ap_sync_reg_swiftkv_prepare_update_engine_phases_3_U0_ap_start">1, 0, 1, 0</column>
+<column name="ap_sync_reg_swiftkv_update_value_engine_0_U0_ap_ready">1, 0, 1, 0</column>
+<column name="ap_sync_reg_swiftkv_update_value_engine_1_U0_ap_ready">1, 0, 1, 0</column>
+<column name="ap_sync_reg_swiftkv_update_value_engine_2_U0_ap_ready">1, 0, 1, 0</column>
+<column name="ap_sync_reg_swiftkv_update_value_engine_3_U0_ap_ready">1, 0, 1, 0</column>
+</table>
+</item>
+</section>
+</item>
+</section>
+
+<section name = "Interface" level="0">
+<item name = "Summary"><table name="" hasTotal="0">
+<keys size="6">RTL Ports, Dir, Bits, Protocol, Source Object, C Type</keys>
+<column name="value_metadata_stream_dout">in, 40, ap_fifo, value_metadata_stream, pointer</column>
+<column name="value_metadata_stream_empty_n">in, 1, ap_fifo, value_metadata_stream, pointer</column>
+<column name="value_metadata_stream_read">out, 1, ap_fifo, value_metadata_stream, pointer</column>
+<column name="value0_engine0_stream_dout">in, 128, ap_fifo, value0_engine0_stream, pointer</column>
+<column name="value0_engine0_stream_empty_n">in, 1, ap_fifo, value0_engine0_stream, pointer</column>
+<column name="value0_engine0_stream_read">out, 1, ap_fifo, value0_engine0_stream, pointer</column>
+<column name="value0_engine1_stream_dout">in, 128, ap_fifo, value0_engine1_stream, pointer</column>
+<column name="value0_engine1_stream_empty_n">in, 1, ap_fifo, value0_engine1_stream, pointer</column>
+<column name="value0_engine1_stream_read">out, 1, ap_fifo, value0_engine1_stream, pointer</column>
+<column name="value0_engine2_stream_dout">in, 128, ap_fifo, value0_engine2_stream, pointer</column>
+<column name="value0_engine2_stream_empty_n">in, 1, ap_fifo, value0_engine2_stream, pointer</column>
+<column name="value0_engine2_stream_read">out, 1, ap_fifo, value0_engine2_stream, pointer</column>
+<column name="value0_engine3_stream_dout">in, 128, ap_fifo, value0_engine3_stream, pointer</column>
+<column name="value0_engine3_stream_empty_n">in, 1, ap_fifo, value0_engine3_stream, pointer</column>
+<column name="value0_engine3_stream_read">out, 1, ap_fifo, value0_engine3_stream, pointer</column>
+<column name="value1_engine0_stream_dout">in, 128, ap_fifo, value1_engine0_stream, pointer</column>
+<column name="value1_engine0_stream_empty_n">in, 1, ap_fifo, value1_engine0_stream, pointer</column>
+<column name="value1_engine0_stream_read">out, 1, ap_fifo, value1_engine0_stream, pointer</column>
+<column name="value1_engine1_stream_dout">in, 128, ap_fifo, value1_engine1_stream, pointer</column>
+<column name="value1_engine1_stream_empty_n">in, 1, ap_fifo, value1_engine1_stream, pointer</column>
+<column name="value1_engine1_stream_read">out, 1, ap_fifo, value1_engine1_stream, pointer</column>
+<column name="value1_engine2_stream_dout">in, 128, ap_fifo, value1_engine2_stream, pointer</column>
+<column name="value1_engine2_stream_empty_n">in, 1, ap_fifo, value1_engine2_stream, pointer</column>
+<column name="value1_engine2_stream_read">out, 1, ap_fifo, value1_engine2_stream, pointer</column>
+<column name="value1_engine3_stream_dout">in, 128, ap_fifo, value1_engine3_stream, pointer</column>
+<column name="value1_engine3_stream_empty_n">in, 1, ap_fifo, value1_engine3_stream, pointer</column>
+<column name="value1_engine3_stream_read">out, 1, ap_fifo, value1_engine3_stream, pointer</column>
+<column name="control_stream_dout">in, 19, ap_fifo, control_stream, pointer</column>
+<column name="control_stream_empty_n">in, 1, ap_fifo, control_stream, pointer</column>
+<column name="control_stream_read">out, 1, ap_fifo, control_stream, pointer</column>
+<column name="position_val">in, 12, ap_none, position_val, scalar</column>
+<column name="position_val_ap_vld">in, 1, ap_none, position_val, scalar</column>
+<column name="weighted_value_engine0_0_address0">out, 3, ap_memory, weighted_value_engine0_0, array</column>
+<column name="weighted_value_engine0_0_ce0">out, 1, ap_memory, weighted_value_engine0_0, array</column>
+<column name="weighted_value_engine0_0_d0">out, 32, ap_memory, weighted_value_engine0_0, array</column>
+<column name="weighted_value_engine0_0_q0">in, 32, ap_memory, weighted_value_engine0_0, array</column>
+<column name="weighted_value_engine0_0_we0">out, 1, ap_memory, weighted_value_engine0_0, array</column>
+<column name="weighted_value_engine0_0_address1">out, 3, ap_memory, weighted_value_engine0_0, array</column>
+<column name="weighted_value_engine0_0_ce1">out, 1, ap_memory, weighted_value_engine0_0, array</column>
+<column name="weighted_value_engine0_0_d1">out, 32, ap_memory, weighted_value_engine0_0, array</column>
+<column name="weighted_value_engine0_0_q1">in, 32, ap_memory, weighted_value_engine0_0, array</column>
+<column name="weighted_value_engine0_0_we1">out, 1, ap_memory, weighted_value_engine0_0, array</column>
+<column name="weighted_value_engine0_1_address0">out, 3, ap_memory, weighted_value_engine0_1, array</column>
+<column name="weighted_value_engine0_1_ce0">out, 1, ap_memory, weighted_value_engine0_1, array</column>
+<column name="weighted_value_engine0_1_d0">out, 32, ap_memory, weighted_value_engine0_1, array</column>
+<column name="weighted_value_engine0_1_q0">in, 32, ap_memory, weighted_value_engine0_1, array</column>
+<column name="weighted_value_engine0_1_we0">out, 1, ap_memory, weighted_value_engine0_1, array</column>
+<column name="weighted_value_engine0_1_address1">out, 3, ap_memory, weighted_value_engine0_1, array</column>
+<column name="weighted_value_engine0_1_ce1">out, 1, ap_memory, weighted_value_engine0_1, array</column>
+<column name="weighted_value_engine0_1_d1">out, 32, ap_memory, weighted_value_engine0_1, array</column>
+<column name="weighted_value_engine0_1_q1">in, 32, ap_memory, weighted_value_engine0_1, array</column>
+<column name="weighted_value_engine0_1_we1">out, 1, ap_memory, weighted_value_engine0_1, array</column>
+<column name="weighted_value_engine0_2_address0">out, 3, ap_memory, weighted_value_engine0_2, array</column>
+<column name="weighted_value_engine0_2_ce0">out, 1, ap_memory, weighted_value_engine0_2, array</column>
+<column name="weighted_value_engine0_2_d0">out, 32, ap_memory, weighted_value_engine0_2, array</column>
+<column name="weighted_value_engine0_2_q0">in, 32, ap_memory, weighted_value_engine0_2, array</column>
+<column name="weighted_value_engine0_2_we0">out, 1, ap_memory, weighted_value_engine0_2, array</column>
+<column name="weighted_value_engine0_2_address1">out, 3, ap_memory, weighted_value_engine0_2, array</column>
+<column name="weighted_value_engine0_2_ce1">out, 1, ap_memory, weighted_value_engine0_2, array</column>
+<column name="weighted_value_engine0_2_d1">out, 32, ap_memory, weighted_value_engine0_2, array</column>
+<column name="weighted_value_engine0_2_q1">in, 32, ap_memory, weighted_value_engine0_2, array</column>
+<column name="weighted_value_engine0_2_we1">out, 1, ap_memory, weighted_value_engine0_2, array</column>
+<column name="weighted_value_engine0_3_address0">out, 3, ap_memory, weighted_value_engine0_3, array</column>
+<column name="weighted_value_engine0_3_ce0">out, 1, ap_memory, weighted_value_engine0_3, array</column>
+<column name="weighted_value_engine0_3_d0">out, 32, ap_memory, weighted_value_engine0_3, array</column>
+<column name="weighted_value_engine0_3_q0">in, 32, ap_memory, weighted_value_engine0_3, array</column>
+<column name="weighted_value_engine0_3_we0">out, 1, ap_memory, weighted_value_engine0_3, array</column>
+<column name="weighted_value_engine0_3_address1">out, 3, ap_memory, weighted_value_engine0_3, array</column>
+<column name="weighted_value_engine0_3_ce1">out, 1, ap_memory, weighted_value_engine0_3, array</column>
+<column name="weighted_value_engine0_3_d1">out, 32, ap_memory, weighted_value_engine0_3, array</column>
+<column name="weighted_value_engine0_3_q1">in, 32, ap_memory, weighted_value_engine0_3, array</column>
+<column name="weighted_value_engine0_3_we1">out, 1, ap_memory, weighted_value_engine0_3, array</column>
+<column name="weighted_value_engine1_0_address0">out, 3, ap_memory, weighted_value_engine1_0, array</column>
+<column name="weighted_value_engine1_0_ce0">out, 1, ap_memory, weighted_value_engine1_0, array</column>
+<column name="weighted_value_engine1_0_d0">out, 32, ap_memory, weighted_value_engine1_0, array</column>
+<column name="weighted_value_engine1_0_q0">in, 32, ap_memory, weighted_value_engine1_0, array</column>
+<column name="weighted_value_engine1_0_we0">out, 1, ap_memory, weighted_value_engine1_0, array</column>
+<column name="weighted_value_engine1_0_address1">out, 3, ap_memory, weighted_value_engine1_0, array</column>
+<column name="weighted_value_engine1_0_ce1">out, 1, ap_memory, weighted_value_engine1_0, array</column>
+<column name="weighted_value_engine1_0_d1">out, 32, ap_memory, weighted_value_engine1_0, array</column>
+<column name="weighted_value_engine1_0_q1">in, 32, ap_memory, weighted_value_engine1_0, array</column>
+<column name="weighted_value_engine1_0_we1">out, 1, ap_memory, weighted_value_engine1_0, array</column>
+<column name="weighted_value_engine1_1_address0">out, 3, ap_memory, weighted_value_engine1_1, array</column>
+<column name="weighted_value_engine1_1_ce0">out, 1, ap_memory, weighted_value_engine1_1, array</column>
+<column name="weighted_value_engine1_1_d0">out, 32, ap_memory, weighted_value_engine1_1, array</column>
+<column name="weighted_value_engine1_1_q0">in, 32, ap_memory, weighted_value_engine1_1, array</column>
+<column name="weighted_value_engine1_1_we0">out, 1, ap_memory, weighted_value_engine1_1, array</column>
+<column name="weighted_value_engine1_1_address1">out, 3, ap_memory, weighted_value_engine1_1, array</column>
+<column name="weighted_value_engine1_1_ce1">out, 1, ap_memory, weighted_value_engine1_1, array</column>
+<column name="weighted_value_engine1_1_d1">out, 32, ap_memory, weighted_value_engine1_1, array</column>
+<column name="weighted_value_engine1_1_q1">in, 32, ap_memory, weighted_value_engine1_1, array</column>
+<column name="weighted_value_engine1_1_we1">out, 1, ap_memory, weighted_value_engine1_1, array</column>
+<column name="weighted_value_engine1_2_address0">out, 3, ap_memory, weighted_value_engine1_2, array</column>
+<column name="weighted_value_engine1_2_ce0">out, 1, ap_memory, weighted_value_engine1_2, array</column>
+<column name="weighted_value_engine1_2_d0">out, 32, ap_memory, weighted_value_engine1_2, array</column>
+<column name="weighted_value_engine1_2_q0">in, 32, ap_memory, weighted_value_engine1_2, array</column>
+<column name="weighted_value_engine1_2_we0">out, 1, ap_memory, weighted_value_engine1_2, array</column>
+<column name="weighted_value_engine1_2_address1">out, 3, ap_memory, weighted_value_engine1_2, array</column>
+<column name="weighted_value_engine1_2_ce1">out, 1, ap_memory, weighted_value_engine1_2, array</column>
+<column name="weighted_value_engine1_2_d1">out, 32, ap_memory, weighted_value_engine1_2, array</column>
+<column name="weighted_value_engine1_2_q1">in, 32, ap_memory, weighted_value_engine1_2, array</column>
+<column name="weighted_value_engine1_2_we1">out, 1, ap_memory, weighted_value_engine1_2, array</column>
+<column name="weighted_value_engine1_3_address0">out, 3, ap_memory, weighted_value_engine1_3, array</column>
+<column name="weighted_value_engine1_3_ce0">out, 1, ap_memory, weighted_value_engine1_3, array</column>
+<column name="weighted_value_engine1_3_d0">out, 32, ap_memory, weighted_value_engine1_3, array</column>
+<column name="weighted_value_engine1_3_q0">in, 32, ap_memory, weighted_value_engine1_3, array</column>
+<column name="weighted_value_engine1_3_we0">out, 1, ap_memory, weighted_value_engine1_3, array</column>
+<column name="weighted_value_engine1_3_address1">out, 3, ap_memory, weighted_value_engine1_3, array</column>
+<column name="weighted_value_engine1_3_ce1">out, 1, ap_memory, weighted_value_engine1_3, array</column>
+<column name="weighted_value_engine1_3_d1">out, 32, ap_memory, weighted_value_engine1_3, array</column>
+<column name="weighted_value_engine1_3_q1">in, 32, ap_memory, weighted_value_engine1_3, array</column>
+<column name="weighted_value_engine1_3_we1">out, 1, ap_memory, weighted_value_engine1_3, array</column>
+<column name="weighted_value_engine2_0_address0">out, 3, ap_memory, weighted_value_engine2_0, array</column>
+<column name="weighted_value_engine2_0_ce0">out, 1, ap_memory, weighted_value_engine2_0, array</column>
+<column name="weighted_value_engine2_0_d0">out, 32, ap_memory, weighted_value_engine2_0, array</column>
+<column name="weighted_value_engine2_0_q0">in, 32, ap_memory, weighted_value_engine2_0, array</column>
+<column name="weighted_value_engine2_0_we0">out, 1, ap_memory, weighted_value_engine2_0, array</column>
+<column name="weighted_value_engine2_0_address1">out, 3, ap_memory, weighted_value_engine2_0, array</column>
+<column name="weighted_value_engine2_0_ce1">out, 1, ap_memory, weighted_value_engine2_0, array</column>
+<column name="weighted_value_engine2_0_d1">out, 32, ap_memory, weighted_value_engine2_0, array</column>
+<column name="weighted_value_engine2_0_q1">in, 32, ap_memory, weighted_value_engine2_0, array</column>
+<column name="weighted_value_engine2_0_we1">out, 1, ap_memory, weighted_value_engine2_0, array</column>
+<column name="weighted_value_engine2_1_address0">out, 3, ap_memory, weighted_value_engine2_1, array</column>
+<column name="weighted_value_engine2_1_ce0">out, 1, ap_memory, weighted_value_engine2_1, array</column>
+<column name="weighted_value_engine2_1_d0">out, 32, ap_memory, weighted_value_engine2_1, array</column>
+<column name="weighted_value_engine2_1_q0">in, 32, ap_memory, weighted_value_engine2_1, array</column>
+<column name="weighted_value_engine2_1_we0">out, 1, ap_memory, weighted_value_engine2_1, array</column>
+<column name="weighted_value_engine2_1_address1">out, 3, ap_memory, weighted_value_engine2_1, array</column>
+<column name="weighted_value_engine2_1_ce1">out, 1, ap_memory, weighted_value_engine2_1, array</column>
+<column name="weighted_value_engine2_1_d1">out, 32, ap_memory, weighted_value_engine2_1, array</column>
+<column name="weighted_value_engine2_1_q1">in, 32, ap_memory, weighted_value_engine2_1, array</column>
+<column name="weighted_value_engine2_1_we1">out, 1, ap_memory, weighted_value_engine2_1, array</column>
+<column name="weighted_value_engine2_2_address0">out, 3, ap_memory, weighted_value_engine2_2, array</column>
+<column name="weighted_value_engine2_2_ce0">out, 1, ap_memory, weighted_value_engine2_2, array</column>
+<column name="weighted_value_engine2_2_d0">out, 32, ap_memory, weighted_value_engine2_2, array</column>
+<column name="weighted_value_engine2_2_q0">in, 32, ap_memory, weighted_value_engine2_2, array</column>
+<column name="weighted_value_engine2_2_we0">out, 1, ap_memory, weighted_value_engine2_2, array</column>
+<column name="weighted_value_engine2_2_address1">out, 3, ap_memory, weighted_value_engine2_2, array</column>
+<column name="weighted_value_engine2_2_ce1">out, 1, ap_memory, weighted_value_engine2_2, array</column>
+<column name="weighted_value_engine2_2_d1">out, 32, ap_memory, weighted_value_engine2_2, array</column>
+<column name="weighted_value_engine2_2_q1">in, 32, ap_memory, weighted_value_engine2_2, array</column>
+<column name="weighted_value_engine2_2_we1">out, 1, ap_memory, weighted_value_engine2_2, array</column>
+<column name="weighted_value_engine2_3_address0">out, 3, ap_memory, weighted_value_engine2_3, array</column>
+<column name="weighted_value_engine2_3_ce0">out, 1, ap_memory, weighted_value_engine2_3, array</column>
+<column name="weighted_value_engine2_3_d0">out, 32, ap_memory, weighted_value_engine2_3, array</column>
+<column name="weighted_value_engine2_3_q0">in, 32, ap_memory, weighted_value_engine2_3, array</column>
+<column name="weighted_value_engine2_3_we0">out, 1, ap_memory, weighted_value_engine2_3, array</column>
+<column name="weighted_value_engine2_3_address1">out, 3, ap_memory, weighted_value_engine2_3, array</column>
+<column name="weighted_value_engine2_3_ce1">out, 1, ap_memory, weighted_value_engine2_3, array</column>
+<column name="weighted_value_engine2_3_d1">out, 32, ap_memory, weighted_value_engine2_3, array</column>
+<column name="weighted_value_engine2_3_q1">in, 32, ap_memory, weighted_value_engine2_3, array</column>
+<column name="weighted_value_engine2_3_we1">out, 1, ap_memory, weighted_value_engine2_3, array</column>
+<column name="weighted_value_engine3_0_address0">out, 3, ap_memory, weighted_value_engine3_0, array</column>
+<column name="weighted_value_engine3_0_ce0">out, 1, ap_memory, weighted_value_engine3_0, array</column>
+<column name="weighted_value_engine3_0_d0">out, 32, ap_memory, weighted_value_engine3_0, array</column>
+<column name="weighted_value_engine3_0_q0">in, 32, ap_memory, weighted_value_engine3_0, array</column>
+<column name="weighted_value_engine3_0_we0">out, 1, ap_memory, weighted_value_engine3_0, array</column>
+<column name="weighted_value_engine3_0_address1">out, 3, ap_memory, weighted_value_engine3_0, array</column>
+<column name="weighted_value_engine3_0_ce1">out, 1, ap_memory, weighted_value_engine3_0, array</column>
+<column name="weighted_value_engine3_0_d1">out, 32, ap_memory, weighted_value_engine3_0, array</column>
+<column name="weighted_value_engine3_0_q1">in, 32, ap_memory, weighted_value_engine3_0, array</column>
+<column name="weighted_value_engine3_0_we1">out, 1, ap_memory, weighted_value_engine3_0, array</column>
+<column name="weighted_value_engine3_1_address0">out, 3, ap_memory, weighted_value_engine3_1, array</column>
+<column name="weighted_value_engine3_1_ce0">out, 1, ap_memory, weighted_value_engine3_1, array</column>
+<column name="weighted_value_engine3_1_d0">out, 32, ap_memory, weighted_value_engine3_1, array</column>
+<column name="weighted_value_engine3_1_q0">in, 32, ap_memory, weighted_value_engine3_1, array</column>
+<column name="weighted_value_engine3_1_we0">out, 1, ap_memory, weighted_value_engine3_1, array</column>
+<column name="weighted_value_engine3_1_address1">out, 3, ap_memory, weighted_value_engine3_1, array</column>
+<column name="weighted_value_engine3_1_ce1">out, 1, ap_memory, weighted_value_engine3_1, array</column>
+<column name="weighted_value_engine3_1_d1">out, 32, ap_memory, weighted_value_engine3_1, array</column>
+<column name="weighted_value_engine3_1_q1">in, 32, ap_memory, weighted_value_engine3_1, array</column>
+<column name="weighted_value_engine3_1_we1">out, 1, ap_memory, weighted_value_engine3_1, array</column>
+<column name="weighted_value_engine3_2_address0">out, 3, ap_memory, weighted_value_engine3_2, array</column>
+<column name="weighted_value_engine3_2_ce0">out, 1, ap_memory, weighted_value_engine3_2, array</column>
+<column name="weighted_value_engine3_2_d0">out, 32, ap_memory, weighted_value_engine3_2, array</column>
+<column name="weighted_value_engine3_2_q0">in, 32, ap_memory, weighted_value_engine3_2, array</column>
+<column name="weighted_value_engine3_2_we0">out, 1, ap_memory, weighted_value_engine3_2, array</column>
+<column name="weighted_value_engine3_2_address1">out, 3, ap_memory, weighted_value_engine3_2, array</column>
+<column name="weighted_value_engine3_2_ce1">out, 1, ap_memory, weighted_value_engine3_2, array</column>
+<column name="weighted_value_engine3_2_d1">out, 32, ap_memory, weighted_value_engine3_2, array</column>
+<column name="weighted_value_engine3_2_q1">in, 32, ap_memory, weighted_value_engine3_2, array</column>
+<column name="weighted_value_engine3_2_we1">out, 1, ap_memory, weighted_value_engine3_2, array</column>
+<column name="weighted_value_engine3_3_address0">out, 3, ap_memory, weighted_value_engine3_3, array</column>
+<column name="weighted_value_engine3_3_ce0">out, 1, ap_memory, weighted_value_engine3_3, array</column>
+<column name="weighted_value_engine3_3_d0">out, 32, ap_memory, weighted_value_engine3_3, array</column>
+<column name="weighted_value_engine3_3_q0">in, 32, ap_memory, weighted_value_engine3_3, array</column>
+<column name="weighted_value_engine3_3_we0">out, 1, ap_memory, weighted_value_engine3_3, array</column>
+<column name="weighted_value_engine3_3_address1">out, 3, ap_memory, weighted_value_engine3_3, array</column>
+<column name="weighted_value_engine3_3_ce1">out, 1, ap_memory, weighted_value_engine3_3, array</column>
+<column name="weighted_value_engine3_3_d1">out, 32, ap_memory, weighted_value_engine3_3, array</column>
+<column name="weighted_value_engine3_3_q1">in, 32, ap_memory, weighted_value_engine3_3, array</column>
+<column name="weighted_value_engine3_3_we1">out, 1, ap_memory, weighted_value_engine3_3, array</column>
+<column name="ap_clk">in, 1, ap_ctrl_hs, swiftkv_accumulate_values_split, return value</column>
+<column name="ap_rst">in, 1, ap_ctrl_hs, swiftkv_accumulate_values_split, return value</column>
+<column name="ap_start">in, 1, ap_ctrl_hs, swiftkv_accumulate_values_split, return value</column>
+<column name="ap_done">out, 1, ap_ctrl_hs, swiftkv_accumulate_values_split, return value</column>
+<column name="ap_ready">out, 1, ap_ctrl_hs, swiftkv_accumulate_values_split, return value</column>
+<column name="ap_idle">out, 1, ap_ctrl_hs, swiftkv_accumulate_values_split, return value</column>
+<column name="ap_continue">in, 1, ap_ctrl_hs, swiftkv_accumulate_values_split, return value</column>
+</table>
+</item>
+</section>
+</profile>

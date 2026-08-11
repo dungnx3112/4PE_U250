@@ -1,0 +1,168 @@
+
+
+================================================================
+== Vitis HLS Report for 'int4_pack_dequantized_outputs'
+================================================================
+* Date:           Tue Aug 11 09:18:55 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.433 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+-----------+------+------+---------+
+    |  Latency (cycles) |  Latency (absolute)  |   Interval  | Pipeline|
+    |   min   |   max   |    min   |    max    |  min |  max |   Type  |
+    +---------+---------+----------+-----------+------+------+---------+
+    |     1031|     8071|  3.436 us|  26.901 us|  1031|  8071|       no|
+    +---------+---------+----------+-----------+------+------+---------+
+
+    + Detail: 
+        * Instance: 
+        +------------------------------------------------------------------------------+--------------------------------------------------------------------+---------+---------+----------+-----------+------+------+---------+
+        |                                                                              |                                                                    |  Latency (cycles) |  Latency (absolute)  |   Interval  | Pipeline|
+        |                                   Instance                                   |                               Module                               |   min   |   max   |    min   |    max    |  min |  max |   Type  |
+        +------------------------------------------------------------------------------+--------------------------------------------------------------------+---------+---------+----------+-----------+------+------+---------+
+        |grp_int4_pack_dequantized_outputs_Pipeline_pack_dequantized_value_loop_fu_72  |int4_pack_dequantized_outputs_Pipeline_pack_dequantized_value_loop  |     1029|     8069|  3.430 us|  26.894 us|  1029|  8069|       no|
+        +------------------------------------------------------------------------------+--------------------------------------------------------------------+---------+---------+----------+-----------+------+------+---------+
+
+        * Loop: 
+        N/A
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+------+
+|         Name        | BRAM_18K|  DSP  |    FF   |   LUT   | URAM |
++---------------------+---------+-------+---------+---------+------+
+|DSP                  |        -|      -|        -|        -|     -|
+|Expression           |        -|      -|        0|        2|     -|
+|FIFO                 |        -|      -|        -|        -|     -|
+|Instance             |        -|      -|     1233|     1236|     -|
+|Memory               |        -|      -|        -|        -|     -|
+|Multiplexer          |        -|      -|        -|       65|     -|
+|Register             |        -|      -|       17|        -|     -|
++---------------------+---------+-------+---------+---------+------+
+|Total                |        0|      0|     1250|     1303|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available SLR        |     1344|   3072|   864000|   432000|   320|
++---------------------+---------+-------+---------+---------+------+
+|Utilization SLR (%)  |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available            |     5376|  12288|  3456000|  1728000|  1280|
++---------------------+---------+-------+---------+---------+------+
+|Utilization (%)      |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+
++ Detail: 
+    * Instance: 
+    +------------------------------------------------------------------------------+--------------------------------------------------------------------+---------+----+------+------+-----+
+    |                                   Instance                                   |                               Module                               | BRAM_18K| DSP|  FF  |  LUT | URAM|
+    +------------------------------------------------------------------------------+--------------------------------------------------------------------+---------+----+------+------+-----+
+    |grp_int4_pack_dequantized_outputs_Pipeline_pack_dequantized_value_loop_fu_72  |int4_pack_dequantized_outputs_Pipeline_pack_dequantized_value_loop  |        0|   0|  1233|  1236|    0|
+    +------------------------------------------------------------------------------+--------------------------------------------------------------------+---------+----+------+------+-----+
+    |Total                                                                         |                                                                    |        0|   0|  1233|  1236|    0|
+    +------------------------------------------------------------------------------+--------------------------------------------------------------------+---------+----+------+------+-----+
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +-----------------+----------+----+---+----+------------+------------+
+    |  Variable Name  | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +-----------------+----------+----+---+----+------------+------------+
+    |ap_block_state1  |        or|   0|  0|   2|           1|           1|
+    +-----------------+----------+----+---+----+------------+------------+
+    |Total            |          |   0|  0|   2|           1|           1|
+    +-----------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +-------------------------+----+-----------+-----+-----------+
+    |           Name          | LUT| Input Size| Bits| Total Bits|
+    +-------------------------+----+-----------+-----+-----------+
+    |ap_NS_fsm                |  20|          4|    1|          4|
+    |ap_done                  |   9|          2|    1|          2|
+    |final_block_stream_read  |   9|          2|    1|          2|
+    |local_tiles_loc_blk_n    |   9|          2|    1|          2|
+    |local_tiles_loc_c_blk_n  |   9|          2|    1|          2|
+    |output_stream_write      |   9|          2|    1|          2|
+    +-------------------------+----+-----------+-----+-----------+
+    |Total                    |  65|         14|    6|         14|
+    +-------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +-------------------------------------------------------------------------------------------+---+----+-----+-----------+
+    |                                            Name                                           | FF| LUT| Bits| Const Bits|
+    +-------------------------------------------------------------------------------------------+---+----+-----+-----------+
+    |ap_CS_fsm                                                                                  |  3|   0|    3|          0|
+    |ap_done_reg                                                                                |  1|   0|    1|          0|
+    |grp_int4_pack_dequantized_outputs_Pipeline_pack_dequantized_value_loop_fu_72_ap_start_reg  |  1|   0|    1|          0|
+    |local_tiles_reg_95                                                                         |  6|   0|    6|          0|
+    |shl_ln_reg_100                                                                             |  6|   0|   13|          7|
+    +-------------------------------------------------------------------------------------------+---+----+-----+-----------+
+    |Total                                                                                      | 17|   0|   24|          7|
+    +-------------------------------------------------------------------------------------------+---+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++-----------------------------------+-----+-----+------------+-------------------------------+--------------+
+|             RTL Ports             | Dir | Bits|  Protocol  |         Source Object         |    C Type    |
++-----------------------------------+-----+-----+------------+-------------------------------+--------------+
+|ap_clk                             |   in|    1|  ap_ctrl_hs|  int4_pack_dequantized_outputs|  return value|
+|ap_rst                             |   in|    1|  ap_ctrl_hs|  int4_pack_dequantized_outputs|  return value|
+|ap_start                           |   in|    1|  ap_ctrl_hs|  int4_pack_dequantized_outputs|  return value|
+|ap_done                            |  out|    1|  ap_ctrl_hs|  int4_pack_dequantized_outputs|  return value|
+|ap_continue                        |   in|    1|  ap_ctrl_hs|  int4_pack_dequantized_outputs|  return value|
+|ap_idle                            |  out|    1|  ap_ctrl_hs|  int4_pack_dequantized_outputs|  return value|
+|ap_ready                           |  out|    1|  ap_ctrl_hs|  int4_pack_dequantized_outputs|  return value|
+|final_block_stream_dout            |   in|  128|     ap_fifo|             final_block_stream|       pointer|
+|final_block_stream_num_data_valid  |   in|    6|     ap_fifo|             final_block_stream|       pointer|
+|final_block_stream_fifo_cap        |   in|    6|     ap_fifo|             final_block_stream|       pointer|
+|final_block_stream_empty_n         |   in|    1|     ap_fifo|             final_block_stream|       pointer|
+|final_block_stream_read            |  out|    1|     ap_fifo|             final_block_stream|       pointer|
+|output_stream_din                  |  out|  512|     ap_fifo|                  output_stream|       pointer|
+|output_stream_num_data_valid       |   in|    5|     ap_fifo|                  output_stream|       pointer|
+|output_stream_fifo_cap             |   in|    5|     ap_fifo|                  output_stream|       pointer|
+|output_stream_full_n               |   in|    1|     ap_fifo|                  output_stream|       pointer|
+|output_stream_write                |  out|    1|     ap_fifo|                  output_stream|       pointer|
+|local_tiles_loc_dout               |   in|    6|     ap_fifo|                local_tiles_loc|       pointer|
+|local_tiles_loc_num_data_valid     |   in|    3|     ap_fifo|                local_tiles_loc|       pointer|
+|local_tiles_loc_fifo_cap           |   in|    3|     ap_fifo|                local_tiles_loc|       pointer|
+|local_tiles_loc_empty_n            |   in|    1|     ap_fifo|                local_tiles_loc|       pointer|
+|local_tiles_loc_read               |  out|    1|     ap_fifo|                local_tiles_loc|       pointer|
+|p_read                             |   in|    1|     ap_none|                         p_read|        scalar|
+|local_tiles_loc_c_din              |  out|    6|     ap_fifo|              local_tiles_loc_c|       pointer|
+|local_tiles_loc_c_num_data_valid   |   in|    3|     ap_fifo|              local_tiles_loc_c|       pointer|
+|local_tiles_loc_c_fifo_cap         |   in|    3|     ap_fifo|              local_tiles_loc_c|       pointer|
+|local_tiles_loc_c_full_n           |   in|    1|     ap_fifo|              local_tiles_loc_c|       pointer|
+|local_tiles_loc_c_write            |  out|    1|     ap_fifo|              local_tiles_loc_c|       pointer|
++-----------------------------------+-----+-----+------------+-------------------------------+--------------+
+

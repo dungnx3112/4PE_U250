@@ -1,0 +1,2896 @@
+{
+    "1": {
+        "name": "int4_rms_normalize_quantize_four_pes_stream",
+        "file": "int4_decoder_blocks.cpp",
+        "fileloc": "386",
+        "instructions": "48",
+        "total_instructions": "982",
+        "calls": "59 80 124 19 166",
+        "basicblocks": "1"
+    },
+    "2": {
+        "name": "swiftkv_read_compressed_kv_cache_Pipeline_read_compressed_kv_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "681",
+        "instructions": "22",
+        "total_instructions": "22",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "3": {
+        "name": "int4_swiglu_quantize_stream_4pe",
+        "file": "int4_decoder_blocks.cpp",
+        "fileloc": "1147",
+        "instructions": "14",
+        "total_instructions": "1069",
+        "calls": "33",
+        "basicblocks": "1"
+    },
+    "4": {
+        "name": "swiftkv_prepare_update_engine_phases<3>",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1164",
+        "instructions": "18",
+        "total_instructions": "91",
+        "calls": "132",
+        "basicblocks": "1"
+    },
+    "5": {
+        "name": "int4_write_outputs",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "919",
+        "instructions": "143",
+        "total_instructions": "294",
+        "calls": "81 117",
+        "basicblocks": "7",
+        "loads": {
+            "L": "18"
+        },
+        "stores": {
+            "L": "3"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "6": {
+        "name": "int4_pack_dequantized_outputs.6_Pipeline_pack_dequantized_value_loop",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "914",
+        "instructions": "101",
+        "total_instructions": "101",
+        "calls": "",
+        "basicblocks": "8",
+        "loads": {
+            "L": "4"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "7": {
+        "name": "int4_route_linear_projection<4>",
+        "file": "int4_decoder_controller.cpp",
+        "fileloc": "125",
+        "instructions": "38",
+        "total_instructions": "38",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "5"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "8": {
+        "name": "int4_cache_and_replay_activation_Pipeline_replay_local_activation_tile_loop_repl.3",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "890",
+        "instructions": "36",
+        "total_instructions": "36",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "4"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "9": {
+        "name": "int4_dequantize_final_blocks_Pipeline_dequant_local_tile_loop_dequant_flat_block",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "903",
+        "instructions": "222",
+        "total_instructions": "222",
+        "calls": "",
+        "basicblocks": "9",
+        "loads": {
+            "G": "1",
+            "L": "12"
+        },
+        "stores": {
+            "L": "20"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "10": {
+        "name": "int4_cache_and_replay_activation<3>_Pipeline_cache_local_activation_loop",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "890",
+        "instructions": "28",
+        "total_instructions": "28",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "11": {
+        "name": "int4_cache_and_replay_activation<0>_Pipeline_cache_local_activation_loop",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "890",
+        "instructions": "28",
+        "total_instructions": "28",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "12": {
+        "name": "swiftkv_run_bank_Pipeline_pe_load_v_word_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1879",
+        "instructions": "24",
+        "total_instructions": "24",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "2"
+        },
+        "stores": {
+            "L": "3"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "13": {
+        "name": "entry_proc54",
+        "file": "int4_linear_controller.cpp",
+        "fileloc": "0",
+        "instructions": "4",
+        "total_instructions": "4",
+        "calls": "",
+        "basicblocks": "1"
+    },
+    "14": {
+        "name": "int4_cache_and_replay_activation<0>",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "890",
+        "instructions": "28",
+        "total_instructions": "92",
+        "calls": "11 8",
+        "basicblocks": "1"
+    },
+    "15": {
+        "name": "swiftkv_run_bank_Pipeline_pe_load_q_word_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1859",
+        "instructions": "24",
+        "total_instructions": "24",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "2"
+        },
+        "stores": {
+            "L": "3"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "16": {
+        "name": "int4_write_outputs.8",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "919",
+        "instructions": "143",
+        "total_instructions": "294",
+        "calls": "136 152",
+        "basicblocks": "7",
+        "loads": {
+            "L": "18"
+        },
+        "stores": {
+            "L": "3"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "17": {
+        "name": "swiftkv_run_four_pes",
+        "file": "swiftkv_attention.cpp",
+        "fileloc": "2135",
+        "instructions": "115",
+        "total_instructions": "18259",
+        "calls": "79 89 24 23 58 130 78",
+        "basicblocks": "1"
+    },
+    "18": {
+        "name": "int4_broadcast_activation_Pipeline_broadcast_activation_seed_loop",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "250",
+        "instructions": "98",
+        "total_instructions": "98",
+        "calls": "",
+        "basicblocks": "17",
+        "loads": {
+            "L": "6"
+        },
+        "stores": {
+            "L": "8"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "19": {
+        "name": "int4_rms_normalize_quantize_pe",
+        "file": "int4_decoder_blocks.cpp",
+        "fileloc": "100",
+        "instructions": "43",
+        "total_instructions": "216",
+        "calls": "25 69",
+        "basicblocks": "4",
+        "loads": {
+            "L": "3"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "20": {
+        "name": "int4_route_linear_projection<5>",
+        "file": "int4_decoder_controller.cpp",
+        "fileloc": "125",
+        "instructions": "38",
+        "total_instructions": "38",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "5"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "21": {
+        "name": "int4_run_pe_dataflow<2>_Block_entry2_proc22",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "830",
+        "instructions": "16",
+        "total_instructions": "16",
+        "calls": "",
+        "basicblocks": "1"
+    },
+    "22": {
+        "name": "swiftkv_run_bank",
+        "file": "swiftkv_attention.cpp",
+        "fileloc": "1798",
+        "instructions": "121",
+        "total_instructions": "4476",
+        "calls": "180 15 193 12 160 30 62 85",
+        "basicblocks": "4",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "23": {
+        "name": "swiftkv_run_pe<1>",
+        "file": "swiftkv_attention.cpp",
+        "fileloc": "1969",
+        "instructions": "20",
+        "total_instructions": "4496",
+        "calls": "22",
+        "basicblocks": "1"
+    },
+    "24": {
+        "name": "swiftkv_run_pe<0>",
+        "file": "swiftkv_attention.cpp",
+        "fileloc": "1969",
+        "instructions": "20",
+        "total_instructions": "4496",
+        "calls": "22",
+        "basicblocks": "1"
+    },
+    "25": {
+        "name": "int4_rms_normalize_quantize_pe.15_Pipeline_normalize_word_loop_normalize_lane_lo",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "119",
+        "instructions": "98",
+        "total_instructions": "98",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "G": "1",
+            "L": "6"
+        },
+        "stores": {
+            "L": "9"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "26": {
+        "name": "int4_route_linear_projection<1>",
+        "file": "int4_decoder_controller.cpp",
+        "fileloc": "125",
+        "instructions": "38",
+        "total_instructions": "38",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "5"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "27": {
+        "name": "int4_write_outputs.7",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "919",
+        "instructions": "143",
+        "total_instructions": "294",
+        "calls": "101 141",
+        "basicblocks": "7",
+        "loads": {
+            "L": "18"
+        },
+        "stores": {
+            "L": "3"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "28": {
+        "name": "int4_run_pe_dataflow<0>",
+        "file": "int4_linear_controller.cpp",
+        "fileloc": "816",
+        "instructions": "71",
+        "total_instructions": "2026",
+        "calls": "88 64 100 14 169 109 148 72",
+        "basicblocks": "1"
+    },
+    "29": {
+        "name": "swiftkv_route_compressed_kv_cache_Pipeline_stream_current_compressed_kv_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "707",
+        "instructions": "105",
+        "total_instructions": "105",
+        "calls": "",
+        "basicblocks": "13",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "30": {
+        "name": "swiftkv_quantize_kv_record",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "388",
+        "instructions": "381",
+        "total_instructions": "1041",
+        "calls": "36 142",
+        "basicblocks": "9",
+        "loads": {
+            "L": "81"
+        },
+        "stores": {
+            "L": "12"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "31": {
+        "name": "int4_rms_sumsq_pe.10_Pipeline_merge_sumsq_lane_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "75",
+        "instructions": "38",
+        "total_instructions": "38",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "3"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "32": {
+        "name": "swiftkv_prepare_update_engine_phases_Pipeline_prepare_update_engine_phase_loop.1",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1164",
+        "instructions": "73",
+        "total_instructions": "73",
+        "calls": "",
+        "basicblocks": "8",
+        "loads": {
+            "L": "8"
+        },
+        "stores": {
+            "L": "12"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "33": {
+        "name": "int4_swiglu_quantize_four_pes_stream",
+        "file": "int4_decoder_blocks.cpp",
+        "fileloc": "1043",
+        "instructions": "51",
+        "total_instructions": "1055",
+        "calls": "168 115 68 173 66",
+        "basicblocks": "1"
+    },
+    "34": {
+        "name": "int4_pack_dequantized_outputs_Pipeline_pack_dequantized_value_loop",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "914",
+        "instructions": "101",
+        "total_instructions": "101",
+        "calls": "",
+        "basicblocks": "8",
+        "loads": {
+            "L": "4"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "35": {
+        "name": "int4_dispatch_linear_registered_Block_entry1_proc24",
+        "file": "source\/int4_decoder_controller.cpp",
+        "fileloc": "374",
+        "instructions": "5",
+        "total_instructions": "5",
+        "calls": "",
+        "basicblocks": "1"
+    },
+    "36": {
+        "name": "swiftkv_quantize_kv_record_Pipeline_find_kv_group_max_block_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "403",
+        "instructions": "142",
+        "total_instructions": "142",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "5"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "37": {
+        "name": "int4_route_linear_projection<6>",
+        "file": "int4_decoder_controller.cpp",
+        "fileloc": "125",
+        "instructions": "38",
+        "total_instructions": "38",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "5"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "38": {
+        "name": "int4_stream_integer_blocks_Pipeline_integer_local_tile_loop_integer_col_tile_loo",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "897",
+        "instructions": "1135",
+        "total_instructions": "1135",
+        "calls": "",
+        "basicblocks": "6",
+        "loads": {
+            "L": "5"
+        },
+        "stores": {
+            "L": "9"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "39": {
+        "name": "int4_rms_sumsq_pe_Pipeline_merge_sumsq_lane_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "75",
+        "instructions": "38",
+        "total_instructions": "38",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "3"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "40": {
+        "name": "swiftkv_reciprocal_normalization",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "240",
+        "instructions": "42",
+        "total_instructions": "42",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "4"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "41": {
+        "name": "swiftkv_route_compressed_kv_cache",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "707",
+        "instructions": "48",
+        "total_instructions": "264",
+        "calls": "121 29",
+        "basicblocks": "1"
+    },
+    "42": {
+        "name": "swiftkv_update_value_engine<1>",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1242",
+        "instructions": "15",
+        "total_instructions": "253",
+        "calls": "48 140",
+        "basicblocks": "1"
+    },
+    "43": {
+        "name": "int4_dequantize_final_blocks.19",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "903",
+        "instructions": "24",
+        "total_instructions": "246",
+        "calls": "176",
+        "basicblocks": "1"
+    },
+    "44": {
+        "name": "swiftkv_update_values_and_quantize_Pipeline_attention_quantize_reverse_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1540",
+        "instructions": "121",
+        "total_instructions": "121",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "4"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "45": {
+        "name": "swiftkv_update_value_engine<2>",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1242",
+        "instructions": "15",
+        "total_instructions": "253",
+        "calls": "175 153",
+        "basicblocks": "1"
+    },
+    "46": {
+        "name": "int4_pack_dequantized_outputs.4_Pipeline_pack_dequantized_value_loop",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "914",
+        "instructions": "101",
+        "total_instructions": "101",
+        "calls": "",
+        "basicblocks": "8",
+        "loads": {
+            "L": "4"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "47": {
+        "name": "swiftkv_prepare_update_engine_phases<0>",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1164",
+        "instructions": "18",
+        "total_instructions": "91",
+        "calls": "76",
+        "basicblocks": "1"
+    },
+    "48": {
+        "name": "swiftkv_update_value_engine_Pipeline_initialize_weighted_value_engine_phase_loop.2",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1249",
+        "instructions": "26",
+        "total_instructions": "26",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "49": {
+        "name": "int4_rms_normalize_quantize_pe.14_Pipeline_quantize_reverse_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "171",
+        "instructions": "75",
+        "total_instructions": "75",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "4"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "50": {
+        "name": "int4_load_residual_4ddr",
+        "file": "int4_decoder_controller.cpp",
+        "fileloc": "457",
+        "instructions": "30",
+        "total_instructions": "76",
+        "calls": "187",
+        "basicblocks": "1"
+    },
+    "51": {
+        "name": "int4_run_pe_dataflow<1>_Block_entry2_proc21",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "830",
+        "instructions": "16",
+        "total_instructions": "16",
+        "calls": "",
+        "basicblocks": "1"
+    },
+    "52": {
+        "name": "swiftkv_prepare_update_engine_phases<1>",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1164",
+        "instructions": "18",
+        "total_instructions": "91",
+        "calls": "65",
+        "basicblocks": "1"
+    },
+    "53": {
+        "name": "int4_dequantize_final_blocks.17_Pipeline_dequant_local_tile_loop_dequant_flat_bl",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "903",
+        "instructions": "222",
+        "total_instructions": "222",
+        "calls": "",
+        "basicblocks": "9",
+        "loads": {
+            "G": "1",
+            "L": "12"
+        },
+        "stores": {
+            "L": "20"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "54": {
+        "name": "int4_pack_dequantized_outputs.2_Pipeline_pack_dequantized_value_loop",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "914",
+        "instructions": "101",
+        "total_instructions": "101",
+        "calls": "",
+        "basicblocks": "8",
+        "loads": {
+            "L": "4"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "55": {
+        "name": "swiftkv_prepare_update_engine_phases<2>",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1164",
+        "instructions": "18",
+        "total_instructions": "91",
+        "calls": "32",
+        "basicblocks": "1"
+    },
+    "56": {
+        "name": "int4_route_linear_projection<0>",
+        "file": "int4_decoder_controller.cpp",
+        "fileloc": "125",
+        "instructions": "38",
+        "total_instructions": "38",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "5"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "57": {
+        "name": "int4_rms_normalize_quantize_pe_Pipeline_normalize_word_loop_normalize_lane_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "119",
+        "instructions": "98",
+        "total_instructions": "98",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "G": "1",
+            "L": "6"
+        },
+        "stores": {
+            "L": "9"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "58": {
+        "name": "swiftkv_run_pe<2>",
+        "file": "swiftkv_attention.cpp",
+        "fileloc": "1969",
+        "instructions": "20",
+        "total_instructions": "4496",
+        "calls": "22",
+        "basicblocks": "1"
+    },
+    "59": {
+        "name": "int4_rms_normalize_quantize_pe",
+        "file": "int4_decoder_blocks.cpp",
+        "fileloc": "100",
+        "instructions": "43",
+        "total_instructions": "216",
+        "calls": "57 123",
+        "basicblocks": "4",
+        "loads": {
+            "L": "3"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "60": {
+        "name": "int4_stream_pe_inputs.20",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "873",
+        "instructions": "33",
+        "total_instructions": "33",
+        "calls": "",
+        "basicblocks": "6",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "61": {
+        "name": "int4_dequantize_final_blocks.21_Pipeline_dequant_local_tile_loop_dequant_flat_bl",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "903",
+        "instructions": "222",
+        "total_instructions": "222",
+        "calls": "",
+        "basicblocks": "9",
+        "loads": {
+            "G": "1",
+            "L": "12"
+        },
+        "stores": {
+            "L": "20"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "62": {
+        "name": "swiftkv_run_bank_Pipeline_pe_write_kv_word_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1952",
+        "instructions": "24",
+        "total_instructions": "24",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "63": {
+        "name": "int4_pack_dequantized_outputs.6",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "914",
+        "instructions": "13",
+        "total_instructions": "114",
+        "calls": "6",
+        "basicblocks": "1"
+    },
+    "64": {
+        "name": "int4_run_pe_dataflow<0>_Block_entry2_proc20",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "830",
+        "instructions": "16",
+        "total_instructions": "16",
+        "calls": "",
+        "basicblocks": "1"
+    },
+    "65": {
+        "name": "swiftkv_prepare_update_engine_phases_Pipeline_prepare_update_engine_phase_loop.2",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1164",
+        "instructions": "73",
+        "total_instructions": "73",
+        "calls": "",
+        "basicblocks": "8",
+        "loads": {
+            "L": "8"
+        },
+        "stores": {
+            "L": "12"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "66": {
+        "name": "int4_swiglu_gather_streams",
+        "file": "int4_decoder_blocks.cpp",
+        "fileloc": "930",
+        "instructions": "53",
+        "total_instructions": "104",
+        "calls": "134",
+        "basicblocks": "6",
+        "loads": {
+            "L": "3"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "67": {
+        "name": "swiftkv_read_compressed_kv_cache",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "675",
+        "instructions": "23",
+        "total_instructions": "45",
+        "calls": "2",
+        "basicblocks": "1"
+    },
+    "68": {
+        "name": "int4_swiglu_quantize_pe2",
+        "file": "int4_decoder_blocks.cpp",
+        "fileloc": "826",
+        "instructions": "42",
+        "total_instructions": "225",
+        "calls": "159 112",
+        "basicblocks": "4",
+        "loads": {
+            "L": "3"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "69": {
+        "name": "int4_rms_normalize_quantize_pe.15_Pipeline_quantize_reverse_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "171",
+        "instructions": "75",
+        "total_instructions": "75",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "4"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "70": {
+        "name": "swiftkv_update_value_engine<0>",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1242",
+        "instructions": "15",
+        "total_instructions": "253",
+        "calls": "71 172",
+        "basicblocks": "1"
+    },
+    "71": {
+        "name": "swiftkv_update_value_engine_Pipeline_initialize_weighted_value_engine_phase_loop.3",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1249",
+        "instructions": "26",
+        "total_instructions": "26",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "72": {
+        "name": "int4_write_outputs.9",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "919",
+        "instructions": "143",
+        "total_instructions": "294",
+        "calls": "139 119",
+        "basicblocks": "7",
+        "loads": {
+            "L": "18"
+        },
+        "stores": {
+            "L": "3"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "73": {
+        "name": "int4_rms_sumsq_pe.12_Pipeline_merge_sumsq_lane_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "75",
+        "instructions": "38",
+        "total_instructions": "38",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "3"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "74": {
+        "name": "int4_dequantize_final_blocks.21",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "903",
+        "instructions": "24",
+        "total_instructions": "246",
+        "calls": "61",
+        "basicblocks": "1"
+    },
+    "75": {
+        "name": "swiftkv_process_compressed_kv",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "835",
+        "instructions": "33",
+        "total_instructions": "346",
+        "calls": "83",
+        "basicblocks": "1"
+    },
+    "76": {
+        "name": "swiftkv_prepare_update_engine_phases_Pipeline_prepare_update_engine_phase_loop.3",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1164",
+        "instructions": "73",
+        "total_instructions": "73",
+        "calls": "",
+        "basicblocks": "8",
+        "loads": {
+            "L": "8"
+        },
+        "stores": {
+            "L": "12"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "77": {
+        "name": "int4_route_linear_projection<7>",
+        "file": "int4_decoder_controller.cpp",
+        "fileloc": "125",
+        "instructions": "34",
+        "total_instructions": "80",
+        "calls": "138",
+        "basicblocks": "1"
+    },
+    "78": {
+        "name": "swiftkv_gather_attention_streams",
+        "file": "swiftkv_attention.cpp",
+        "fileloc": "2080",
+        "instructions": "100",
+        "total_instructions": "100",
+        "calls": "",
+        "basicblocks": "13",
+        "loads": {
+            "L": "6"
+        },
+        "stores": {
+            "L": "14"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "79": {
+        "name": "swiftkv_broadcast_pe_commands",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1782",
+        "instructions": "16",
+        "total_instructions": "16",
+        "calls": "",
+        "basicblocks": "1"
+    },
+    "80": {
+        "name": "int4_rms_normalize_quantize_pe",
+        "file": "int4_decoder_blocks.cpp",
+        "fileloc": "100",
+        "instructions": "43",
+        "total_instructions": "216",
+        "calls": "184 195",
+        "basicblocks": "4",
+        "loads": {
+            "L": "3"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "81": {
+        "name": "int4_write_outputs_Pipeline_write_output_direct_loop",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "919",
+        "instructions": "21",
+        "total_instructions": "21",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "3"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "82": {
+        "name": "int4_rms_sumsq_pe.11_Pipeline_merge_sumsq_lane_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "75",
+        "instructions": "38",
+        "total_instructions": "38",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "3"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "83": {
+        "name": "swiftkv_process_compressed_kv_Pipeline_compressed_dot_phase_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "835",
+        "instructions": "313",
+        "total_instructions": "313",
+        "calls": "",
+        "basicblocks": "11",
+        "loads": {
+            "L": "31"
+        },
+        "stores": {
+            "L": "18"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "84": {
+        "name": "int4_dispatch_linear_registered",
+        "file": "source\/int4_decoder_controller.cpp",
+        "fileloc": "376",
+        "instructions": "96",
+        "total_instructions": "12211",
+        "calls": "186 35 150",
+        "basicblocks": "1"
+    },
+    "85": {
+        "name": "swiftkv_attention_head",
+        "file": "swiftkv_attention.cpp",
+        "fileloc": "1566",
+        "instructions": "125",
+        "total_instructions": "2994",
+        "calls": "107 67 41 75 161 86",
+        "basicblocks": "1"
+    },
+    "86": {
+        "name": "swiftkv_update_values_and_quantize",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1428",
+        "instructions": "144",
+        "total_instructions": "1920",
+        "calls": "163 151 44",
+        "basicblocks": "4",
+        "loads": {
+            "L": "3"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "87": {
+        "name": "swiftkv_update_value_engine_Pipeline_initialize_weighted_value_engine_phase_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1249",
+        "instructions": "26",
+        "total_instructions": "26",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "88": {
+        "name": "entry_proc56",
+        "file": "int4_linear_controller.cpp",
+        "fileloc": "0",
+        "instructions": "4",
+        "total_instructions": "4",
+        "calls": "",
+        "basicblocks": "1"
+    },
+    "89": {
+        "name": "swiftkv_broadcast_rope",
+        "file": "swiftkv_attention.cpp",
+        "fileloc": "1730",
+        "instructions": "44",
+        "total_instructions": "44",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "3"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "90": {
+        "name": "int4_run_pe_dataflow<1>",
+        "file": "int4_linear_controller.cpp",
+        "fileloc": "816",
+        "instructions": "71",
+        "total_instructions": "2026",
+        "calls": "131 51 108 146 144 104 63 16",
+        "basicblocks": "1"
+    },
+    "91": {
+        "name": "int4_rms_sumsq_pe",
+        "file": "int4_decoder_blocks.cpp",
+        "fileloc": "40",
+        "instructions": "41",
+        "total_instructions": "244",
+        "calls": "145 39",
+        "basicblocks": "1",
+        "loads": {
+            "L": "17"
+        }
+    },
+    "92": {
+        "name": "swiftkv_update_value_engine<3>_Pipeline_update_value_engine_phase_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1242",
+        "instructions": "212",
+        "total_instructions": "212",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "5"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "93": {
+        "name": "swiftkv_preload_rope_lut",
+        "file": "swiftkv_attention.cpp",
+        "fileloc": "1662",
+        "instructions": "9",
+        "total_instructions": "34",
+        "calls": "177",
+        "basicblocks": "1"
+    },
+    "94": {
+        "name": "int4_rms_sumsq_pe.12_Pipeline_sumsq_word_loop_sumsq_lane_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "46",
+        "instructions": "165",
+        "total_instructions": "165",
+        "calls": "",
+        "basicblocks": "21",
+        "loads": {
+            "L": "36"
+        },
+        "stores": {
+            "L": "38"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "95": {
+        "name": "int4_broadcast_linear_commands",
+        "file": "int4_linear_controller.cpp",
+        "fileloc": "791",
+        "instructions": "24",
+        "total_instructions": "24",
+        "calls": "",
+        "basicblocks": "1"
+    },
+    "96": {
+        "name": "swiftkv_coefficient_producer_Pipeline_coefficient_token_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1090",
+        "instructions": "215",
+        "total_instructions": "215",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "G": "4",
+            "L": "4"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "97": {
+        "name": "int4_run_four_pes",
+        "file": "int4_linear_controller.cpp",
+        "fileloc": "928",
+        "instructions": "90",
+        "total_instructions": "8364",
+        "calls": "95 147 28 90 137 120",
+        "basicblocks": "1"
+    },
+    "98": {
+        "name": "int4_swiglu_quantize_pe1_Pipeline_swiglu_quantize_reverse_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "822",
+        "instructions": "75",
+        "total_instructions": "75",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "4"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "99": {
+        "name": "int4_rms_sumsq_pe.10_Pipeline_sumsq_word_loop_sumsq_lane_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "46",
+        "instructions": "165",
+        "total_instructions": "165",
+        "calls": "",
+        "basicblocks": "21",
+        "loads": {
+            "L": "36"
+        },
+        "stores": {
+            "L": "38"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "100": {
+        "name": "int4_stream_pe_inputs",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "873",
+        "instructions": "33",
+        "total_instructions": "33",
+        "calls": "",
+        "basicblocks": "6",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "101": {
+        "name": "int4_write_outputs.7_Pipeline_write_output_direct_loop",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "919",
+        "instructions": "21",
+        "total_instructions": "21",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "3"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "102": {
+        "name": "int4_stream_pe_inputs.18",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "873",
+        "instructions": "33",
+        "total_instructions": "33",
+        "calls": "",
+        "basicblocks": "6",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "103": {
+        "name": "int4_pack_dequantized_outputs.4",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "914",
+        "instructions": "13",
+        "total_instructions": "114",
+        "calls": "46",
+        "basicblocks": "1"
+    },
+    "104": {
+        "name": "int4_dequantize_final_blocks.17",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "903",
+        "instructions": "24",
+        "total_instructions": "246",
+        "calls": "53",
+        "basicblocks": "1"
+    },
+    "105": {
+        "name": "int4_swiglu_quantize_pe3_Pipeline_swiglu_quantize_reverse_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "844",
+        "instructions": "75",
+        "total_instructions": "75",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "4"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "106": {
+        "name": "int4_swiglu_quantize_pe1_Pipeline_swiglu_word_loop_swiglu_lane_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "822",
+        "instructions": "108",
+        "total_instructions": "108",
+        "calls": "",
+        "basicblocks": "6",
+        "loads": {
+            "L": "9"
+        },
+        "stores": {
+            "L": "11"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "107": {
+        "name": "entry_proc57",
+        "file": "swiftkv_attention.cpp",
+        "fileloc": "0",
+        "instructions": "16",
+        "total_instructions": "16",
+        "calls": "",
+        "basicblocks": "1"
+    },
+    "108": {
+        "name": "int4_stream_pe_inputs.16",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "873",
+        "instructions": "33",
+        "total_instructions": "33",
+        "calls": "",
+        "basicblocks": "6",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "109": {
+        "name": "int4_dequantize_final_blocks",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "903",
+        "instructions": "24",
+        "total_instructions": "246",
+        "calls": "9",
+        "basicblocks": "1"
+    },
+    "110": {
+        "name": "int4_stream_integer_blocks.5_Pipeline_integer_local_tile_loop_integer_col_tile_l",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "897",
+        "instructions": "1135",
+        "total_instructions": "1135",
+        "calls": "",
+        "basicblocks": "6",
+        "loads": {
+            "L": "5"
+        },
+        "stores": {
+            "L": "9"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "111": {
+        "name": "swiftkv_broadcast_update_controls",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1138",
+        "instructions": "26",
+        "total_instructions": "59",
+        "calls": "116",
+        "basicblocks": "1"
+    },
+    "112": {
+        "name": "int4_swiglu_quantize_pe2_Pipeline_swiglu_quantize_reverse_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "833",
+        "instructions": "75",
+        "total_instructions": "75",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "4"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "113": {
+        "name": "int4_route_linear_projection<2>",
+        "file": "int4_decoder_controller.cpp",
+        "fileloc": "125",
+        "instructions": "38",
+        "total_instructions": "38",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "5"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "114": {
+        "name": "int4_swiglu_quantize_pe0_Pipeline_swiglu_word_loop_swiglu_lane_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "811",
+        "instructions": "108",
+        "total_instructions": "108",
+        "calls": "",
+        "basicblocks": "6",
+        "loads": {
+            "L": "9"
+        },
+        "stores": {
+            "L": "11"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "115": {
+        "name": "int4_swiglu_quantize_pe1",
+        "file": "int4_decoder_blocks.cpp",
+        "fileloc": "815",
+        "instructions": "42",
+        "total_instructions": "225",
+        "calls": "106 98",
+        "basicblocks": "4",
+        "loads": {
+            "L": "3"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "116": {
+        "name": "swiftkv_broadcast_update_controls_Pipeline_broadcast_update_control_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1138",
+        "instructions": "33",
+        "total_instructions": "33",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "117": {
+        "name": "int4_write_outputs_Pipeline_fused_residual_add_loop",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "919",
+        "instructions": "130",
+        "total_instructions": "130",
+        "calls": "",
+        "basicblocks": "21",
+        "loads": {
+            "L": "17"
+        },
+        "stores": {
+            "L": "18"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "118": {
+        "name": "int4_rms_normalize_quantize_pe.14_Pipeline_normalize_word_loop_normalize_lane_lo",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "119",
+        "instructions": "98",
+        "total_instructions": "98",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "G": "1",
+            "L": "6"
+        },
+        "stores": {
+            "L": "9"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "119": {
+        "name": "int4_write_outputs.9_Pipeline_fused_residual_add_loop",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "919",
+        "instructions": "130",
+        "total_instructions": "130",
+        "calls": "",
+        "basicblocks": "21",
+        "loads": {
+            "L": "17"
+        },
+        "stores": {
+            "L": "18"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "120": {
+        "name": "int4_run_pe_dataflow<3>",
+        "file": "int4_linear_controller.cpp",
+        "fileloc": "816",
+        "instructions": "71",
+        "total_instructions": "2026",
+        "calls": "158 128 60 143 185 74 192 5",
+        "basicblocks": "1"
+    },
+    "121": {
+        "name": "swiftkv_route_compressed_kv_cache_Pipeline_route_cached_compressed_kv_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "707",
+        "instructions": "111",
+        "total_instructions": "111",
+        "calls": "",
+        "basicblocks": "13",
+        "loads": {
+            "L": "2"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "122": {
+        "name": "int4_swiglu_quantize_pe3_Pipeline_swiglu_word_loop_swiglu_lane_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "844",
+        "instructions": "108",
+        "total_instructions": "108",
+        "calls": "",
+        "basicblocks": "6",
+        "loads": {
+            "L": "9"
+        },
+        "stores": {
+            "L": "11"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "123": {
+        "name": "int4_rms_normalize_quantize_pe_Pipeline_quantize_reverse_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "171",
+        "instructions": "75",
+        "total_instructions": "75",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "4"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "124": {
+        "name": "int4_rms_normalize_quantize_pe",
+        "file": "int4_decoder_blocks.cpp",
+        "fileloc": "100",
+        "instructions": "43",
+        "total_instructions": "216",
+        "calls": "118 49",
+        "basicblocks": "4",
+        "loads": {
+            "L": "3"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "125": {
+        "name": "int4_rms_sumsq_four_pes",
+        "file": "int4_decoder_blocks.cpp",
+        "fileloc": "302",
+        "instructions": "23",
+        "total_instructions": "1019",
+        "calls": "91 155 190 179 165",
+        "basicblocks": "1"
+    },
+    "126": {
+        "name": "swiftkv_update_value_engine<3>",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1242",
+        "instructions": "15",
+        "total_instructions": "253",
+        "calls": "87 92",
+        "basicblocks": "1"
+    },
+    "127": {
+        "name": "int4_rmsnorm_quantize_stream_4pe",
+        "file": "int4_decoder_blocks.cpp",
+        "fileloc": "440",
+        "instructions": "18",
+        "total_instructions": "2019",
+        "calls": "125 1",
+        "basicblocks": "1",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "1"
+        }
+    },
+    "128": {
+        "name": "int4_run_pe_dataflow<3>_Block_entry2_proc23",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "830",
+        "instructions": "16",
+        "total_instructions": "16",
+        "calls": "",
+        "basicblocks": "1"
+    },
+    "129": {
+        "name": "int4_swiglu_quantize_pe0_Pipeline_swiglu_quantize_reverse_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "811",
+        "instructions": "75",
+        "total_instructions": "75",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "4"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "130": {
+        "name": "swiftkv_run_pe<3>",
+        "file": "swiftkv_attention.cpp",
+        "fileloc": "1969",
+        "instructions": "20",
+        "total_instructions": "4496",
+        "calls": "22",
+        "basicblocks": "1"
+    },
+    "131": {
+        "name": "entry_proc55",
+        "file": "int4_linear_controller.cpp",
+        "fileloc": "0",
+        "instructions": "4",
+        "total_instructions": "4",
+        "calls": "",
+        "basicblocks": "1"
+    },
+    "132": {
+        "name": "swiftkv_prepare_update_engine_phases_Pipeline_prepare_update_engine_phase_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1164",
+        "instructions": "73",
+        "total_instructions": "73",
+        "calls": "",
+        "basicblocks": "8",
+        "loads": {
+            "L": "8"
+        },
+        "stores": {
+            "L": "12"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "133": {
+        "name": "int4_run_preprocess_and_linear_Block_entry13_proc",
+        "file": "source\/int4_decoder_controller.cpp",
+        "fileloc": "113",
+        "instructions": "3",
+        "total_instructions": "3",
+        "calls": "",
+        "basicblocks": "1"
+    },
+    "134": {
+        "name": "int4_swiglu_gather_streams_Pipeline_swiglu_stream_group_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "931",
+        "instructions": "51",
+        "total_instructions": "51",
+        "calls": "",
+        "basicblocks": "9",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "135": {
+        "name": "int4_linear_4pe_from_stream",
+        "file": "source\/int4_decoder_controller.cpp",
+        "fileloc": "106",
+        "instructions": "88",
+        "total_instructions": "8452",
+        "calls": "97",
+        "basicblocks": "19",
+        "loads": {
+            "G": "2"
+        }
+    },
+    "136": {
+        "name": "int4_write_outputs.8_Pipeline_write_output_direct_loop",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "919",
+        "instructions": "21",
+        "total_instructions": "21",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "3"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "137": {
+        "name": "int4_run_pe_dataflow<2>",
+        "file": "int4_linear_controller.cpp",
+        "fileloc": "816",
+        "instructions": "71",
+        "total_instructions": "2026",
+        "calls": "13 21 102 171 181 43 103 27",
+        "basicblocks": "1"
+    },
+    "138": {
+        "name": "int4_route_linear_projection<7>_Pipeline_route_linear_projection_loop",
+        "file": "source\/int4_decoder_controller.cpp",
+        "fileloc": "157",
+        "instructions": "46",
+        "total_instructions": "46",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "5"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "139": {
+        "name": "int4_write_outputs.9_Pipeline_write_output_direct_loop",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "919",
+        "instructions": "21",
+        "total_instructions": "21",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "3"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "0": {
+        "name": "int4_decoder_token_controller",
+        "file": "int4_decoder_controller.cpp",
+        "fileloc": "509",
+        "instructions": "216",
+        "total_instructions": "31031",
+        "calls": "93 182 154 50 84 17 178",
+        "basicblocks": "14",
+        "loads": {
+            "L": "11"
+        },
+        "stores": {
+            "G": "2",
+            "L": "13"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "140": {
+        "name": "swiftkv_update_value_engine<1>_Pipeline_update_value_engine_phase_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1242",
+        "instructions": "212",
+        "total_instructions": "212",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "5"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "141": {
+        "name": "int4_write_outputs.7_Pipeline_fused_residual_add_loop",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "919",
+        "instructions": "130",
+        "total_instructions": "130",
+        "calls": "",
+        "basicblocks": "21",
+        "loads": {
+            "L": "17"
+        },
+        "stores": {
+            "L": "18"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "142": {
+        "name": "swiftkv_quantize_kv_record_Pipeline_quantize_kv_group_block_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "407",
+        "instructions": "518",
+        "total_instructions": "518",
+        "calls": "",
+        "basicblocks": "76",
+        "loads": {
+            "L": "65"
+        },
+        "stores": {
+            "L": "66"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "143": {
+        "name": "int4_cache_and_replay_activation<3>",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "890",
+        "instructions": "28",
+        "total_instructions": "92",
+        "calls": "10 157",
+        "basicblocks": "1"
+    },
+    "144": {
+        "name": "int4_stream_integer_blocks.5",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "897",
+        "instructions": "21",
+        "total_instructions": "1156",
+        "calls": "110",
+        "basicblocks": "1"
+    },
+    "145": {
+        "name": "int4_rms_sumsq_pe_Pipeline_sumsq_word_loop_sumsq_lane_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "46",
+        "instructions": "165",
+        "total_instructions": "165",
+        "calls": "",
+        "basicblocks": "21",
+        "loads": {
+            "L": "36"
+        },
+        "stores": {
+            "L": "38"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "146": {
+        "name": "int4_cache_and_replay_activation<1>",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "890",
+        "instructions": "28",
+        "total_instructions": "92",
+        "calls": "191 194",
+        "basicblocks": "1"
+    },
+    "147": {
+        "name": "int4_broadcast_activation",
+        "file": "int4_linear_controller.cpp",
+        "fileloc": "248",
+        "instructions": "48",
+        "total_instructions": "146",
+        "calls": "18",
+        "basicblocks": "3",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "1"
+        }
+    },
+    "148": {
+        "name": "int4_pack_dequantized_outputs",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "914",
+        "instructions": "13",
+        "total_instructions": "114",
+        "calls": "34",
+        "basicblocks": "1"
+    },
+    "149": {
+        "name": "int4_stream_integer_blocks.3_Pipeline_integer_local_tile_loop_integer_col_tile_l",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "897",
+        "instructions": "1135",
+        "total_instructions": "1135",
+        "calls": "",
+        "basicblocks": "6",
+        "loads": {
+            "L": "5"
+        },
+        "stores": {
+            "L": "9"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "150": {
+        "name": "int4_execute_dispatch_linear",
+        "file": "source\/int4_decoder_controller.cpp",
+        "fileloc": "221",
+        "instructions": "107",
+        "total_instructions": "12073",
+        "calls": "174 170 56 26 113 7 20 77 37",
+        "basicblocks": "11",
+        "loads": {
+            "G": "2",
+            "L": "5"
+        },
+        "stores": {
+            "G": "2"
+        }
+    },
+    "151": {
+        "name": "swiftkv_update_values_and_quantize_Pipeline_attention_normalize_lane_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1491",
+        "instructions": "116",
+        "total_instructions": "116",
+        "calls": "",
+        "basicblocks": "9",
+        "loads": {
+            "L": "19"
+        },
+        "stores": {
+            "L": "5"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "152": {
+        "name": "int4_write_outputs.8_Pipeline_fused_residual_add_loop",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "919",
+        "instructions": "130",
+        "total_instructions": "130",
+        "calls": "",
+        "basicblocks": "21",
+        "loads": {
+            "L": "17"
+        },
+        "stores": {
+            "L": "18"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "153": {
+        "name": "swiftkv_update_value_engine<2>_Pipeline_update_value_engine_phase_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1242",
+        "instructions": "212",
+        "total_instructions": "212",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "5"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "154": {
+        "name": "swiftkv_load_rope_position",
+        "file": "swiftkv_attention.cpp",
+        "fileloc": "1691",
+        "instructions": "57",
+        "total_instructions": "57",
+        "calls": "",
+        "basicblocks": "6",
+        "loads": {
+            "G": "1",
+            "L": "4"
+        },
+        "stores": {
+            "L": "9"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "155": {
+        "name": "int4_rms_sumsq_pe",
+        "file": "int4_decoder_blocks.cpp",
+        "fileloc": "40",
+        "instructions": "41",
+        "total_instructions": "244",
+        "calls": "99 31",
+        "basicblocks": "1",
+        "loads": {
+            "L": "17"
+        }
+    },
+    "156": {
+        "name": "int4_stream_integer_blocks.1_Pipeline_integer_local_tile_loop_integer_col_tile_l",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "897",
+        "instructions": "1135",
+        "total_instructions": "1135",
+        "calls": "",
+        "basicblocks": "6",
+        "loads": {
+            "L": "5"
+        },
+        "stores": {
+            "L": "9"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "157": {
+        "name": "int4_cache_and_replay_activation_Pipeline_replay_local_activation_tile_loop_repl",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "890",
+        "instructions": "36",
+        "total_instructions": "36",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "4"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "158": {
+        "name": "entry_proc",
+        "file": "int4_linear_controller.cpp",
+        "fileloc": "0",
+        "instructions": "4",
+        "total_instructions": "4",
+        "calls": "",
+        "basicblocks": "1"
+    },
+    "159": {
+        "name": "int4_swiglu_quantize_pe2_Pipeline_swiglu_word_loop_swiglu_lane_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "833",
+        "instructions": "108",
+        "total_instructions": "108",
+        "calls": "",
+        "basicblocks": "6",
+        "loads": {
+            "L": "9"
+        },
+        "stores": {
+            "L": "11"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "160": {
+        "name": "swiftkv_run_bank_Pipeline_pe_rope_word_loop_pe_rope_pair_phase_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1889",
+        "instructions": "198",
+        "total_instructions": "198",
+        "calls": "",
+        "basicblocks": "20",
+        "loads": {
+            "L": "13"
+        },
+        "stores": {
+            "L": "32"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "161": {
+        "name": "swiftkv_coefficient_producer",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1083",
+        "instructions": "21",
+        "total_instructions": "278",
+        "calls": "96 40",
+        "basicblocks": "1",
+        "loads": {
+            "L": "1"
+        }
+    },
+    "162": {
+        "name": "int4_rms_sumsq_pe.11_Pipeline_sumsq_word_loop_sumsq_lane_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "46",
+        "instructions": "165",
+        "total_instructions": "165",
+        "calls": "",
+        "basicblocks": "21",
+        "loads": {
+            "L": "36"
+        },
+        "stores": {
+            "L": "38"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "163": {
+        "name": "swiftkv_accumulate_values_split",
+        "file": "swiftkv_attention.cpp",
+        "fileloc": "1332",
+        "instructions": "104",
+        "total_instructions": "1539",
+        "calls": "111 47 52 55 4 70 42 45 126",
+        "basicblocks": "1"
+    },
+    "164": {
+        "name": "int4_preload_model_prefix_4ddr_Pipeline_preload_model_prefix_word_loop",
+        "file": "source\/int4_decoder_controller.cpp",
+        "fileloc": "433",
+        "instructions": "64",
+        "total_instructions": "64",
+        "calls": "",
+        "basicblocks": "7",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "G": "8",
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "165": {
+        "name": "int4_rms_merge_and_rsqrt",
+        "file": "int4_decoder_blocks.cpp",
+        "fileloc": "84",
+        "instructions": "20",
+        "total_instructions": "20",
+        "calls": "",
+        "basicblocks": "1"
+    },
+    "166": {
+        "name": "int4_rms_gather_streams",
+        "file": "int4_decoder_blocks.cpp",
+        "fileloc": "254",
+        "instructions": "70",
+        "total_instructions": "70",
+        "calls": "",
+        "basicblocks": "9",
+        "loads": {
+            "L": "4"
+        },
+        "stores": {
+            "L": "8"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "167": {
+        "name": "int4_cache_and_replay_activation<2>_Pipeline_cache_local_activation_loop",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "890",
+        "instructions": "28",
+        "total_instructions": "28",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "168": {
+        "name": "int4_swiglu_quantize_pe0",
+        "file": "int4_decoder_blocks.cpp",
+        "fileloc": "804",
+        "instructions": "42",
+        "total_instructions": "225",
+        "calls": "114 129",
+        "basicblocks": "4",
+        "loads": {
+            "L": "3"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "169": {
+        "name": "int4_stream_integer_blocks",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "897",
+        "instructions": "21",
+        "total_instructions": "1156",
+        "calls": "38",
+        "basicblocks": "1"
+    },
+    "170": {
+        "name": "int4_run_preprocess_and_linear",
+        "file": "source\/int4_decoder_controller.cpp",
+        "fileloc": "86",
+        "instructions": "49",
+        "total_instructions": "11620",
+        "calls": "189 133 135",
+        "basicblocks": "1"
+    },
+    "171": {
+        "name": "int4_cache_and_replay_activation<2>",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "890",
+        "instructions": "28",
+        "total_instructions": "92",
+        "calls": "167 188",
+        "basicblocks": "1"
+    },
+    "172": {
+        "name": "swiftkv_update_value_engine<0>_Pipeline_update_value_engine_phase_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1242",
+        "instructions": "212",
+        "total_instructions": "212",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "5"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "173": {
+        "name": "int4_swiglu_quantize_pe3",
+        "file": "int4_decoder_blocks.cpp",
+        "fileloc": "837",
+        "instructions": "42",
+        "total_instructions": "225",
+        "calls": "122 105",
+        "basicblocks": "4",
+        "loads": {
+            "L": "3"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "174": {
+        "name": "int4_execute_dispatch_linear_Pipeline_seed_linear_stage_with_residual_loop",
+        "file": "source\/int4_decoder_controller.cpp",
+        "fileloc": "235",
+        "instructions": "38",
+        "total_instructions": "38",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "5"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "175": {
+        "name": "swiftkv_update_value_engine_Pipeline_initialize_weighted_value_engine_phase_loop.1",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1249",
+        "instructions": "26",
+        "total_instructions": "26",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "176": {
+        "name": "int4_dequantize_final_blocks.19_Pipeline_dequant_local_tile_loop_dequant_flat_bl",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "903",
+        "instructions": "222",
+        "total_instructions": "222",
+        "calls": "",
+        "basicblocks": "9",
+        "loads": {
+            "G": "1",
+            "L": "12"
+        },
+        "stores": {
+            "L": "20"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "177": {
+        "name": "swiftkv_preload_rope_lut_Pipeline_preload_rope_lut_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1673",
+        "instructions": "25",
+        "total_instructions": "25",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "G": "1",
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "178": {
+        "name": "int4_store_residual_4ddr",
+        "file": "int4_decoder_controller.cpp",
+        "fileloc": "481",
+        "instructions": "34",
+        "total_instructions": "80",
+        "calls": "183",
+        "basicblocks": "1"
+    },
+    "179": {
+        "name": "int4_rms_sumsq_pe",
+        "file": "int4_decoder_blocks.cpp",
+        "fileloc": "40",
+        "instructions": "41",
+        "total_instructions": "244",
+        "calls": "94 73",
+        "basicblocks": "1",
+        "loads": {
+            "L": "17"
+        }
+    },
+    "180": {
+        "name": "swiftkv_run_bank_Pipeline_pe_cache_rope_pair_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1818",
+        "instructions": "26",
+        "total_instructions": "26",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "181": {
+        "name": "int4_stream_integer_blocks.3",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "897",
+        "instructions": "21",
+        "total_instructions": "1156",
+        "calls": "149",
+        "basicblocks": "1"
+    },
+    "182": {
+        "name": "int4_preload_model_prefix_4ddr",
+        "file": "int4_decoder_controller.cpp",
+        "fileloc": "405",
+        "instructions": "34",
+        "total_instructions": "98",
+        "calls": "164",
+        "basicblocks": "1"
+    },
+    "183": {
+        "name": "int4_store_residual_4ddr_Pipeline_store_residual_word_loop",
+        "file": "source\/int4_decoder_controller.cpp",
+        "fileloc": "498",
+        "instructions": "46",
+        "total_instructions": "46",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "5"
+        },
+        "stores": {
+            "L": "2"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "184": {
+        "name": "int4_rms_normalize_quantize_pe.13_Pipeline_normalize_word_loop_normalize_lane_lo",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "119",
+        "instructions": "98",
+        "total_instructions": "98",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "G": "1",
+            "L": "6"
+        },
+        "stores": {
+            "L": "9"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "185": {
+        "name": "int4_stream_integer_blocks.1",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "897",
+        "instructions": "21",
+        "total_instructions": "1156",
+        "calls": "156",
+        "basicblocks": "1"
+    },
+    "186": {
+        "name": "entry_proc58",
+        "file": "source\/int4_decoder_controller.cpp",
+        "fileloc": "0",
+        "instructions": "37",
+        "total_instructions": "37",
+        "calls": "",
+        "basicblocks": "1"
+    },
+    "187": {
+        "name": "int4_load_residual_4ddr_Pipeline_load_residual_word_loop",
+        "file": "source\/int4_decoder_controller.cpp",
+        "fileloc": "470",
+        "instructions": "46",
+        "total_instructions": "46",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "6"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "188": {
+        "name": "int4_cache_and_replay_activation_Pipeline_replay_local_activation_tile_loop_repl.1",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "890",
+        "instructions": "36",
+        "total_instructions": "36",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "4"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "189": {
+        "name": "int4_preprocess_activation_stream",
+        "file": "int4_decoder_controller.cpp",
+        "fileloc": "10",
+        "instructions": "28",
+        "total_instructions": "3116",
+        "calls": "127 3",
+        "basicblocks": "5"
+    },
+    "190": {
+        "name": "int4_rms_sumsq_pe",
+        "file": "int4_decoder_blocks.cpp",
+        "fileloc": "40",
+        "instructions": "41",
+        "total_instructions": "244",
+        "calls": "162 82",
+        "basicblocks": "1",
+        "loads": {
+            "L": "17"
+        }
+    },
+    "191": {
+        "name": "int4_cache_and_replay_activation<1>_Pipeline_cache_local_activation_loop",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "890",
+        "instructions": "28",
+        "total_instructions": "28",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "1"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "192": {
+        "name": "int4_pack_dequantized_outputs.2",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "914",
+        "instructions": "13",
+        "total_instructions": "114",
+        "calls": "54",
+        "basicblocks": "1"
+    },
+    "193": {
+        "name": "swiftkv_run_bank_Pipeline_pe_load_k_word_loop",
+        "file": "source\/swiftkv_attention.cpp",
+        "fileloc": "1869",
+        "instructions": "24",
+        "total_instructions": "24",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "2"
+        },
+        "stores": {
+            "L": "3"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "194": {
+        "name": "int4_cache_and_replay_activation_Pipeline_replay_local_activation_tile_loop_repl.2",
+        "file": "source\/int4_linear_controller.cpp",
+        "fileloc": "890",
+        "instructions": "36",
+        "total_instructions": "36",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "4"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    },
+    "195": {
+        "name": "int4_rms_normalize_quantize_pe.13_Pipeline_quantize_reverse_loop",
+        "file": "source\/int4_decoder_blocks.cpp",
+        "fileloc": "171",
+        "instructions": "75",
+        "total_instructions": "75",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "4"
+        },
+        "stores": {
+            "L": "4"
+        },
+        "loops": {
+            "L": "1"
+        }
+    }
+}

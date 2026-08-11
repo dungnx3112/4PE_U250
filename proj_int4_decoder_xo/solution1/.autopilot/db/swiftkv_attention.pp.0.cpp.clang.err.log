@@ -1,0 +1,859 @@
+source/swiftkv_attention.cpp:12:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_bits_to_float_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE
+        ^
+source/swiftkv_attention.cpp:19:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_float_to_bits_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE
+        ^
+source/swiftkv_attention.cpp:26:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_bits_to_fxp_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE
+        ^
+source/swiftkv_attention.cpp:33:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_fxp_to_bits_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE
+        ^
+source/swiftkv_attention.cpp:44:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_q17_mul_add_rope_raw_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE
+        ^
+source/swiftkv_attention.cpp:47:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_op_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_q17_mul_add_rope_raw_XLX_SEP_ PragmaOptions=variable=product_0 op=mul impl=dsp latency=3_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_OP variable=product_0 op=mul impl=dsp latency=3
+        ^
+source/swiftkv_attention.cpp:48:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_op_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_q17_mul_add_rope_raw_XLX_SEP_ PragmaOptions=variable=product_1 op=mul impl=dsp latency=3_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_OP variable=product_1 op=mul impl=dsp latency=3
+        ^
+source/swiftkv_attention.cpp:164:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_exp_negative_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE
+        ^
+source/swiftkv_attention.cpp:236:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_reciprocal_normalization_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:268:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_dot16_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE
+        ^
+source/swiftkv_attention.cpp:273:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_dot16_XLX_SEP_ PragmaOptions=variable=product complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=product complete
+        ^
+source/swiftkv_attention.cpp:274:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_dot16_XLX_SEP_ PragmaOptions=variable=level_8 complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=level_8 complete
+        ^
+source/swiftkv_attention.cpp:275:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_dot16_XLX_SEP_ PragmaOptions=variable=level_4 complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=level_4 complete
+        ^
+source/swiftkv_attention.cpp:276:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_dot16_XLX_SEP_ PragmaOptions=variable=level_2 complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=level_2 complete
+        ^
+source/swiftkv_attention.cpp:277:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_op_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_dot16_XLX_SEP_ PragmaOptions=variable=product op=mul impl=dsp latency=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_OP variable=product op=mul impl=dsp latency=4
+        ^
+source/swiftkv_attention.cpp:281:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_dot16_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:290:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_dot16_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:297:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_dot16_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:303:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_dot16_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:313:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_raw_magnitude_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE
+        ^
+source/swiftkv_attention.cpp:323:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_kv_power2_shift_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE
+        ^
+source/swiftkv_attention.cpp:357:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_quantize_kv_raw_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE
+        ^
+source/swiftkv_attention.cpp:380:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_dequantize_kv_raw_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE
+        ^
+source/swiftkv_attention.cpp:392:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_quantize_kv_record_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:396:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_quantize_kv_record_XLX_SEP_ PragmaOptions=variable=packed_k_group_all complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=packed_k_group_all complete
+        ^
+source/swiftkv_attention.cpp:397:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_quantize_kv_record_XLX_SEP_ PragmaOptions=variable=packed_v_group_all complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=packed_v_group_all complete
+        ^
+source/swiftkv_attention.cpp:409:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_quantize_kv_record_XLX_SEP_ PragmaOptions=variable=raw_k complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=raw_k complete
+        ^
+source/swiftkv_attention.cpp:410:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_quantize_kv_record_XLX_SEP_ PragmaOptions=variable=raw_v complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=raw_v complete
+        ^
+source/swiftkv_attention.cpp:411:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_quantize_kv_record_XLX_SEP_ PragmaOptions=variable=quantized_k_group complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=quantized_k_group complete
+        ^
+source/swiftkv_attention.cpp:412:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_quantize_kv_record_XLX_SEP_ PragmaOptions=variable=quantized_v_group complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=quantized_v_group complete
+        ^
+source/swiftkv_attention.cpp:422:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_quantize_kv_record_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:446:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_quantize_kv_record_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:449:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_quantize_kv_record_XLX_SEP_ PragmaOptions=variable=magnitude_k complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=magnitude_k complete
+        ^
+source/swiftkv_attention.cpp:450:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_quantize_kv_record_XLX_SEP_ PragmaOptions=variable=magnitude_v complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=magnitude_v complete
+        ^
+source/swiftkv_attention.cpp:453:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_quantize_kv_record_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:507:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_quantize_kv_record_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:510:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_quantize_kv_record_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:523:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_quantize_kv_record_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:552:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_split_update_word_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE
+        ^
+source/swiftkv_attention.cpp:559:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_split_update_word_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:564:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_split_update_word_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:609:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_write_split_update_word_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE
+        ^
+source/swiftkv_attention.cpp:638:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_route_compressed_kv_word_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE
+        ^
+source/swiftkv_attention.cpp:674:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_read_compressed_kv_cache_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:682:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_read_compressed_kv_cache_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:683:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=loop_tripcount_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_read_compressed_kv_cache_XLX_SEP_ PragmaOptions=min=0 max=20475_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS LOOP_TRIPCOUNT min=0 max=20475
+        ^
+source/swiftkv_attention.cpp:706:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_route_compressed_kv_cache_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:713:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_route_compressed_kv_cache_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:714:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=loop_tripcount_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_route_compressed_kv_cache_XLX_SEP_ PragmaOptions=min=0 max=20475_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS LOOP_TRIPCOUNT min=0 max=20475
+        ^
+source/swiftkv_attention.cpp:731:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_route_compressed_kv_cache_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:747:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_expand_kv_chunk_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE
+        ^
+source/swiftkv_attention.cpp:751:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_expand_kv_chunk_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:773:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_dot16_int8_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE
+        ^
+source/swiftkv_attention.cpp:778:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_dot16_int8_XLX_SEP_ PragmaOptions=variable=product complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=product complete
+        ^
+source/swiftkv_attention.cpp:779:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_dot16_int8_XLX_SEP_ PragmaOptions=variable=level_8 complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=level_8 complete
+        ^
+source/swiftkv_attention.cpp:780:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_dot16_int8_XLX_SEP_ PragmaOptions=variable=level_4 complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=level_4 complete
+        ^
+source/swiftkv_attention.cpp:781:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_dot16_int8_XLX_SEP_ PragmaOptions=variable=level_2 complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=level_2 complete
+        ^
+source/swiftkv_attention.cpp:782:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_op_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_dot16_int8_XLX_SEP_ PragmaOptions=variable=product op=mul impl=dsp latency=3_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_OP variable=product op=mul impl=dsp latency=3
+        ^
+source/swiftkv_attention.cpp:786:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_dot16_int8_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:795:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_dot16_int8_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:802:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_dot16_int8_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:809:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_dot16_int8_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:842:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_process_compressed_kv_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:848:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_process_compressed_kv_XLX_SEP_ PragmaOptions=variable=key_chunk complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=key_chunk complete
+        ^
+source/swiftkv_attention.cpp:849:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_process_compressed_kv_XLX_SEP_ PragmaOptions=variable=key_shift complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=key_shift complete
+        ^
+source/swiftkv_attention.cpp:857:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_process_compressed_kv_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:858:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=loop_tripcount_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_process_compressed_kv_XLX_SEP_ PragmaOptions=min=8 max=32768_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS LOOP_TRIPCOUNT min=8 max=32768
+        ^
+source/swiftkv_attention.cpp:869:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_process_compressed_kv_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:881:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_process_compressed_kv_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:892:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_process_compressed_kv_XLX_SEP_ PragmaOptions=variable=query_lanes complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=query_lanes complete
+        ^
+source/swiftkv_attention.cpp:895:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_process_compressed_kv_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:916:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_op_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_process_compressed_kv_XLX_SEP_ PragmaOptions=variable=score op=mul impl=dsp latency=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_OP variable=score op=mul impl=dsp latency=4
+        ^
+source/swiftkv_attention.cpp:928:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_expand_compressed_kv_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:932:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=loop_tripcount_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_expand_compressed_kv_XLX_SEP_ PragmaOptions=min=1 max=SWIFTKV_MAX_SEQ_LEN_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS LOOP_TRIPCOUNT min=1 max=SWIFTKV_MAX_SEQ_LEN
+        ^
+source/swiftkv_attention.cpp:939:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_expand_compressed_kv_XLX_SEP_ PragmaOptions=variable=packed_k complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=packed_k complete
+        ^
+source/swiftkv_attention.cpp:940:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_expand_compressed_kv_XLX_SEP_ PragmaOptions=variable=packed_v complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=packed_v complete
+        ^
+source/swiftkv_attention.cpp:945:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_expand_compressed_kv_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:952:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_expand_compressed_kv_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:960:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_expand_compressed_kv_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:981:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_expand_compressed_kv_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:1010:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_demux_kv_and_dot_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:1023:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_demux_kv_and_dot_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:1024:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=loop_tripcount_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_demux_kv_and_dot_XLX_SEP_ PragmaOptions=min=16 max=65536_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS LOOP_TRIPCOUNT min=16 max=65536
+        ^
+source/swiftkv_attention.cpp:1031:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_demux_kv_and_dot_XLX_SEP_ PragmaOptions=variable=q_word complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=q_word complete
+        ^
+source/swiftkv_attention.cpp:1034:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_demux_kv_and_dot_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:1051:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_reduce_dot_partials_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:1063:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_reduce_dot_partials_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:1064:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=loop_tripcount_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_reduce_dot_partials_XLX_SEP_ PragmaOptions=min=8 max=32768_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS LOOP_TRIPCOUNT min=8 max=32768
+        ^
+source/swiftkv_attention.cpp:1075:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_op_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_reduce_dot_partials_XLX_SEP_ PragmaOptions=variable=score op=mul impl=dsp latency=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_OP variable=score op=mul impl=dsp latency=4
+        ^
+source/swiftkv_attention.cpp:1088:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_coefficient_producer_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:1095:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=loop_tripcount_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_coefficient_producer_XLX_SEP_ PragmaOptions=min=1 max=SWIFTKV_MAX_SEQ_LEN_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS LOOP_TRIPCOUNT min=1 max=SWIFTKV_MAX_SEQ_LEN
+        ^
+source/swiftkv_attention.cpp:1116:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_op_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_coefficient_producer_XLX_SEP_ PragmaOptions=variable=scaled_normalization op=mul impl=dsp latency=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_OP variable=scaled_normalization op=mul impl=dsp latency=4
+        ^
+source/swiftkv_attention.cpp:1146:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_broadcast_update_controls_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:1150:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=loop_tripcount_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_broadcast_update_controls_XLX_SEP_ PragmaOptions=min=1 max=SWIFTKV_MAX_SEQ_LEN_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS LOOP_TRIPCOUNT min=1 max=SWIFTKV_MAX_SEQ_LEN
+        ^
+source/swiftkv_attention.cpp:1151:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_broadcast_update_controls_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:1170:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_prepare_update_engine_phases_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:1178:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_prepare_update_engine_phases_XLX_SEP_ PragmaOptions=variable=value_shift complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=value_shift complete
+        ^
+source/swiftkv_attention.cpp:1184:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_prepare_update_engine_phases_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:1202:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_prepare_update_engine_phases_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:1246:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_update_value_engine_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:1250:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_update_value_engine_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:1255:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_update_value_engine_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:1268:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_update_value_engine_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:1269:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=dependence_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_update_value_engine_XLX_SEP_ PragmaOptions=variable=weighted_value inter false_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS DEPENDENCE variable=weighted_value inter false
+        ^
+source/swiftkv_attention.cpp:1293:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=unroll_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_update_value_engine_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS UNROLL
+        ^
+source/swiftkv_attention.cpp:1317:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_op_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_update_value_engine_XLX_SEP_ PragmaOptions=variable=scaled_operand op=mul impl=dsp latency=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_OP variable=scaled_operand op=mul impl=dsp latency=4
+        ^
+source/swiftkv_attention.cpp:1349:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_accumulate_values_split_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:1350:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=dataflow_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_accumulate_values_split_XLX_SEP_ PragmaOptions=disable_start_propagation_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS DATAFLOW disable_start_propagation
+        ^
+source/swiftkv_attention.cpp:1360:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_accumulate_values_split_XLX_SEP_ PragmaOptions=variable=engine0_control_stream depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=engine0_control_stream depth=4
+        ^
+source/swiftkv_attention.cpp:1361:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_accumulate_values_split_XLX_SEP_ PragmaOptions=variable=engine1_control_stream depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=engine1_control_stream depth=4
+        ^
+source/swiftkv_attention.cpp:1362:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_accumulate_values_split_XLX_SEP_ PragmaOptions=variable=engine2_control_stream depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=engine2_control_stream depth=4
+        ^
+source/swiftkv_attention.cpp:1363:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_accumulate_values_split_XLX_SEP_ PragmaOptions=variable=engine3_control_stream depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=engine3_control_stream depth=4
+        ^
+source/swiftkv_attention.cpp:1364:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_accumulate_values_split_XLX_SEP_ PragmaOptions=variable=engine0_phase_stream depth=8_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=engine0_phase_stream depth=8
+        ^
+source/swiftkv_attention.cpp:1365:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_accumulate_values_split_XLX_SEP_ PragmaOptions=variable=engine1_phase_stream depth=8_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=engine1_phase_stream depth=8
+        ^
+source/swiftkv_attention.cpp:1366:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_accumulate_values_split_XLX_SEP_ PragmaOptions=variable=engine2_phase_stream depth=8_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=engine2_phase_stream depth=8
+        ^
+source/swiftkv_attention.cpp:1367:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_accumulate_values_split_XLX_SEP_ PragmaOptions=variable=engine3_phase_stream depth=8_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=engine3_phase_stream depth=8
+        ^
+source/swiftkv_attention.cpp:1368:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_accumulate_values_split_XLX_SEP_ PragmaOptions=variable=engine0_control_stream type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=engine0_control_stream type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:1369:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_accumulate_values_split_XLX_SEP_ PragmaOptions=variable=engine1_control_stream type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=engine1_control_stream type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:1370:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_accumulate_values_split_XLX_SEP_ PragmaOptions=variable=engine2_control_stream type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=engine2_control_stream type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:1371:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_accumulate_values_split_XLX_SEP_ PragmaOptions=variable=engine3_control_stream type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=engine3_control_stream type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:1372:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_accumulate_values_split_XLX_SEP_ PragmaOptions=variable=engine0_phase_stream type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=engine0_phase_stream type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:1373:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_accumulate_values_split_XLX_SEP_ PragmaOptions=variable=engine1_phase_stream type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=engine1_phase_stream type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:1374:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_accumulate_values_split_XLX_SEP_ PragmaOptions=variable=engine2_phase_stream type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=engine2_phase_stream type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:1375:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_accumulate_values_split_XLX_SEP_ PragmaOptions=variable=engine3_phase_stream type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=engine3_phase_stream type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:1443:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_update_values_and_quantize_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:1456:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_update_values_and_quantize_XLX_SEP_ PragmaOptions=variable=weighted_value_engine0 cyclic factor=SWIFTKV_UPDATE_ENGINE_LANES_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=weighted_value_engine0 cyclic factor=SWIFTKV_UPDATE_ENGINE_LANES
+        ^
+source/swiftkv_attention.cpp:1457:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_update_values_and_quantize_XLX_SEP_ PragmaOptions=variable=weighted_value_engine1 cyclic factor=SWIFTKV_UPDATE_ENGINE_LANES_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=weighted_value_engine1 cyclic factor=SWIFTKV_UPDATE_ENGINE_LANES
+        ^
+source/swiftkv_attention.cpp:1458:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_update_values_and_quantize_XLX_SEP_ PragmaOptions=variable=weighted_value_engine2 cyclic factor=SWIFTKV_UPDATE_ENGINE_LANES_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=weighted_value_engine2 cyclic factor=SWIFTKV_UPDATE_ENGINE_LANES
+        ^
+source/swiftkv_attention.cpp:1459:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_update_values_and_quantize_XLX_SEP_ PragmaOptions=variable=weighted_value_engine3 cyclic factor=SWIFTKV_UPDATE_ENGINE_LANES_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=weighted_value_engine3 cyclic factor=SWIFTKV_UPDATE_ENGINE_LANES
+        ^
+source/swiftkv_attention.cpp:1460:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_update_values_and_quantize_XLX_SEP_ PragmaOptions=variable=weighted_value_engine0 type=ram_2p impl=bram latency=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=weighted_value_engine0 type=ram_2p impl=bram latency=1
+        ^
+source/swiftkv_attention.cpp:1461:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_update_values_and_quantize_XLX_SEP_ PragmaOptions=variable=weighted_value_engine1 type=ram_2p impl=bram latency=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=weighted_value_engine1 type=ram_2p impl=bram latency=1
+        ^
+source/swiftkv_attention.cpp:1462:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_update_values_and_quantize_XLX_SEP_ PragmaOptions=variable=weighted_value_engine2 type=ram_2p impl=bram latency=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=weighted_value_engine2 type=ram_2p impl=bram latency=1
+        ^
+source/swiftkv_attention.cpp:1463:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_update_values_and_quantize_XLX_SEP_ PragmaOptions=variable=weighted_value_engine3 type=ram_2p impl=bram latency=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=weighted_value_engine3 type=ram_2p impl=bram latency=1
+        ^
+source/swiftkv_attention.cpp:1485:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_update_values_and_quantize_XLX_SEP_ PragmaOptions=variable=attention_group type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=attention_group type=ram_1p impl=bram
+        ^
+source/swiftkv_attention.cpp:1495:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_update_values_and_quantize_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:1519:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_op_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_update_values_and_quantize_XLX_SEP_ PragmaOptions=variable=normalized_value op=mul impl=dsp latency=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_OP variable=normalized_value op=mul impl=dsp latency=4
+        ^
+source/swiftkv_attention.cpp:1545:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_update_values_and_quantize_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:1576:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:1577:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=dataflow_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=disable_start_propagation_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS DATAFLOW disable_start_propagation
+        ^
+source/swiftkv_attention.cpp:1595:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=score_stream depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=score_stream depth=4
+        ^
+source/swiftkv_attention.cpp:1599:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=cached_kv_word_stream depth=64_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=cached_kv_word_stream depth=64
+        ^
+source/swiftkv_attention.cpp:1600:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=key_metadata_stream depth=SWIFTKV_KV_TILE_TOKENS_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=key_metadata_stream depth=SWIFTKV_KV_TILE_TOKENS
+        ^
+source/swiftkv_attention.cpp:1601:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=value_metadata_stream depth=SWIFTKV_KV_TILE_TOKENS_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=value_metadata_stream depth=SWIFTKV_KV_TILE_TOKENS
+        ^
+source/swiftkv_attention.cpp:1602:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=key0_stream depth=SWIFTKV_KV_TILE_TOKENS_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=key0_stream depth=SWIFTKV_KV_TILE_TOKENS
+        ^
+source/swiftkv_attention.cpp:1603:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=key1_stream depth=SWIFTKV_KV_TILE_TOKENS_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=key1_stream depth=SWIFTKV_KV_TILE_TOKENS
+        ^
+source/swiftkv_attention.cpp:1604:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=value0_engine0_stream depth=SWIFTKV_KV_TILE_TOKENS_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=value0_engine0_stream depth=SWIFTKV_KV_TILE_TOKENS
+        ^
+source/swiftkv_attention.cpp:1605:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=value0_engine1_stream depth=SWIFTKV_KV_TILE_TOKENS_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=value0_engine1_stream depth=SWIFTKV_KV_TILE_TOKENS
+        ^
+source/swiftkv_attention.cpp:1606:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=value0_engine2_stream depth=SWIFTKV_KV_TILE_TOKENS_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=value0_engine2_stream depth=SWIFTKV_KV_TILE_TOKENS
+        ^
+source/swiftkv_attention.cpp:1607:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=value0_engine3_stream depth=SWIFTKV_KV_TILE_TOKENS_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=value0_engine3_stream depth=SWIFTKV_KV_TILE_TOKENS
+        ^
+source/swiftkv_attention.cpp:1608:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=value1_engine0_stream depth=SWIFTKV_KV_TILE_TOKENS_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=value1_engine0_stream depth=SWIFTKV_KV_TILE_TOKENS
+        ^
+source/swiftkv_attention.cpp:1609:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=value1_engine1_stream depth=SWIFTKV_KV_TILE_TOKENS_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=value1_engine1_stream depth=SWIFTKV_KV_TILE_TOKENS
+        ^
+source/swiftkv_attention.cpp:1610:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=value1_engine2_stream depth=SWIFTKV_KV_TILE_TOKENS_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=value1_engine2_stream depth=SWIFTKV_KV_TILE_TOKENS
+        ^
+source/swiftkv_attention.cpp:1611:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=value1_engine3_stream depth=SWIFTKV_KV_TILE_TOKENS_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=value1_engine3_stream depth=SWIFTKV_KV_TILE_TOKENS
+        ^
+source/swiftkv_attention.cpp:1612:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=control_stream depth=16_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=control_stream depth=16
+        ^
+source/swiftkv_attention.cpp:1613:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=inverse_normalization_stream depth=2_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=inverse_normalization_stream depth=2
+        ^
+source/swiftkv_attention.cpp:1614:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=score_stream type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=score_stream type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:1615:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=cached_kv_word_stream type=fifo impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=cached_kv_word_stream type=fifo impl=bram
+        ^
+source/swiftkv_attention.cpp:1616:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=key_metadata_stream type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=key_metadata_stream type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:1617:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=value_metadata_stream type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=value_metadata_stream type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:1621:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=key0_stream type=fifo impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=key0_stream type=fifo impl=uram
+        ^
+source/swiftkv_attention.cpp:1622:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=key1_stream type=fifo impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=key1_stream type=fifo impl=uram
+        ^
+source/swiftkv_attention.cpp:1623:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=value0_engine0_stream type=fifo impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=value0_engine0_stream type=fifo impl=uram
+        ^
+source/swiftkv_attention.cpp:1624:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=value0_engine1_stream type=fifo impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=value0_engine1_stream type=fifo impl=uram
+        ^
+source/swiftkv_attention.cpp:1625:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=value0_engine2_stream type=fifo impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=value0_engine2_stream type=fifo impl=uram
+        ^
+source/swiftkv_attention.cpp:1626:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=value0_engine3_stream type=fifo impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=value0_engine3_stream type=fifo impl=uram
+        ^
+source/swiftkv_attention.cpp:1627:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=value1_engine0_stream type=fifo impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=value1_engine0_stream type=fifo impl=uram
+        ^
+source/swiftkv_attention.cpp:1628:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=value1_engine1_stream type=fifo impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=value1_engine1_stream type=fifo impl=uram
+        ^
+source/swiftkv_attention.cpp:1629:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=value1_engine2_stream type=fifo impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=value1_engine2_stream type=fifo impl=uram
+        ^
+source/swiftkv_attention.cpp:1630:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=value1_engine3_stream type=fifo impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=value1_engine3_stream type=fifo impl=uram
+        ^
+source/swiftkv_attention.cpp:1631:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=control_stream type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=control_stream type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:1632:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_attention_head_XLX_SEP_ PragmaOptions=variable=inverse_normalization_stream type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=inverse_normalization_stream type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:1666:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_preload_rope_lut_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:1676:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_preload_rope_lut_XLX_SEP_ PragmaOptions=II=2_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=2
+        ^
+source/swiftkv_attention.cpp:1698:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_load_rope_position_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:1717:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_load_rope_position_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:1742:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_broadcast_rope_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:1749:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_broadcast_rope_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:1774:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_pack_pe_command_XLX_SEP_ PragmaOptions=_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE
+        ^
+source/swiftkv_attention.cpp:1789:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_broadcast_pe_commands_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:1810:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_bank_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:1814:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_bank_XLX_SEP_ PragmaOptions=variable=local_cosine type=ram_1p impl=lutram latency=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=local_cosine type=ram_1p impl=lutram latency=1
+        ^
+source/swiftkv_attention.cpp:1815:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_bank_XLX_SEP_ PragmaOptions=variable=local_sine type=ram_1p impl=lutram latency=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=local_sine type=ram_1p impl=lutram latency=1
+        ^
+source/swiftkv_attention.cpp:1819:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_bank_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:1835:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_bank_XLX_SEP_ PragmaOptions=variable=query cyclic factor=16_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=query cyclic factor=16
+        ^
+source/swiftkv_attention.cpp:1836:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_bank_XLX_SEP_ PragmaOptions=variable=query type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=query type=ram_1p impl=bram
+        ^
+source/swiftkv_attention.cpp:1837:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_bank_XLX_SEP_ PragmaOptions=variable=q_words type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=q_words type=ram_1p impl=bram
+        ^
+source/swiftkv_attention.cpp:1838:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_bank_XLX_SEP_ PragmaOptions=variable=k_words type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=k_words type=ram_1p impl=bram
+        ^
+source/swiftkv_attention.cpp:1839:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_bank_XLX_SEP_ PragmaOptions=variable=v_words type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=v_words type=ram_1p impl=bram
+        ^
+source/swiftkv_attention.cpp:1840:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_bank_XLX_SEP_ PragmaOptions=variable=rotated_k_words type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=rotated_k_words type=ram_1p impl=bram
+        ^
+source/swiftkv_attention.cpp:1841:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=array_partition_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_bank_XLX_SEP_ PragmaOptions=variable=compressed_kv_record complete_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS ARRAY_PARTITION variable=compressed_kv_record complete
+        ^
+source/swiftkv_attention.cpp:1862:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_bank_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:1872:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_bank_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:1882:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_bank_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:1904:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_bank_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:1955:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_bank_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:1980:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_pe_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:2010:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_collect_pe_output_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:2018:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_collect_pe_output_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:2036:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_gather_attention_buffers_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:2049:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_gather_attention_buffers_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:2092:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_gather_attention_streams_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:2105:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_gather_attention_streams_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/swiftkv_attention.cpp:2169:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/swiftkv_attention.cpp:2173:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=dataflow_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=disable_start_propagation_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS DATAFLOW disable_start_propagation
+        ^
+source/swiftkv_attention.cpp:2186:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=cos_pe0 depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=cos_pe0 depth=4
+        ^
+source/swiftkv_attention.cpp:2187:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=cos_pe1 depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=cos_pe1 depth=4
+        ^
+source/swiftkv_attention.cpp:2188:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=cos_pe2 depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=cos_pe2 depth=4
+        ^
+source/swiftkv_attention.cpp:2189:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=cos_pe3 depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=cos_pe3 depth=4
+        ^
+source/swiftkv_attention.cpp:2190:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=sin_pe0 depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=sin_pe0 depth=4
+        ^
+source/swiftkv_attention.cpp:2191:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=sin_pe1 depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=sin_pe1 depth=4
+        ^
+source/swiftkv_attention.cpp:2192:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=sin_pe2 depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=sin_pe2 depth=4
+        ^
+source/swiftkv_attention.cpp:2193:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=sin_pe3 depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=sin_pe3 depth=4
+        ^
+source/swiftkv_attention.cpp:2196:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=quantized_pe0 depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=quantized_pe0 depth=4
+        ^
+source/swiftkv_attention.cpp:2197:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=quantized_pe1 depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=quantized_pe1 depth=4
+        ^
+source/swiftkv_attention.cpp:2198:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=quantized_pe2 depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=quantized_pe2 depth=4
+        ^
+source/swiftkv_attention.cpp:2199:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=quantized_pe3 depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=quantized_pe3 depth=4
+        ^
+source/swiftkv_attention.cpp:2200:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=scale_pe0 depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=scale_pe0 depth=4
+        ^
+source/swiftkv_attention.cpp:2201:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=scale_pe1 depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=scale_pe1 depth=4
+        ^
+source/swiftkv_attention.cpp:2202:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=scale_pe2 depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=scale_pe2 depth=4
+        ^
+source/swiftkv_attention.cpp:2203:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=scale_pe3 depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=scale_pe3 depth=4
+        ^
+source/swiftkv_attention.cpp:2204:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=swiftkv_command_pe0 depth=2_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=swiftkv_command_pe0 depth=2
+        ^
+source/swiftkv_attention.cpp:2205:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=swiftkv_command_pe1 depth=2_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=swiftkv_command_pe1 depth=2
+        ^
+source/swiftkv_attention.cpp:2206:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=swiftkv_command_pe2 depth=2_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=swiftkv_command_pe2 depth=2
+        ^
+source/swiftkv_attention.cpp:2207:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=swiftkv_command_pe3 depth=2_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=swiftkv_command_pe3 depth=2
+        ^
+source/swiftkv_attention.cpp:2208:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=cos_pe0 type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=cos_pe0 type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:2209:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=cos_pe1 type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=cos_pe1 type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:2210:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=cos_pe2 type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=cos_pe2 type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:2211:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=cos_pe3 type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=cos_pe3 type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:2212:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=sin_pe0 type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=sin_pe0 type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:2213:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=sin_pe1 type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=sin_pe1 type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:2214:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=sin_pe2 type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=sin_pe2 type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:2215:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=sin_pe3 type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=sin_pe3 type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:2216:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=quantized_pe0 type=fifo impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=quantized_pe0 type=fifo impl=bram
+        ^
+source/swiftkv_attention.cpp:2217:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=quantized_pe1 type=fifo impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=quantized_pe1 type=fifo impl=bram
+        ^
+source/swiftkv_attention.cpp:2218:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=quantized_pe2 type=fifo impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=quantized_pe2 type=fifo impl=bram
+        ^
+source/swiftkv_attention.cpp:2219:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=quantized_pe3 type=fifo impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=quantized_pe3 type=fifo impl=bram
+        ^
+source/swiftkv_attention.cpp:2220:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=scale_pe0 type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=scale_pe0 type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:2221:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=scale_pe1 type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=scale_pe1 type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:2222:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=scale_pe2 type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=scale_pe2 type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:2223:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=scale_pe3 type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=scale_pe3 type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:2224:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=swiftkv_command_pe0 type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=swiftkv_command_pe0 type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:2225:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=swiftkv_command_pe1 type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=swiftkv_command_pe1 type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:2226:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=swiftkv_command_pe2 type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=swiftkv_command_pe2 type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:2227:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=swiftkv_run_four_pes_XLX_SEP_ PragmaOptions=variable=swiftkv_command_pe3 type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=swiftkv_command_pe3 type=fifo impl=srl
+        ^
+source/swiftkv_attention.cpp:2303:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=m_axi port=q_pe0 bundle=gmem0 offset=slave depth=64_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=q_pe0 bundle=gmem0 offset=slave depth=64
+        ^
+source/swiftkv_attention.cpp:2304:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=m_axi port=k_pe0 bundle=gmem0 offset=slave depth=64_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=k_pe0 bundle=gmem0 offset=slave depth=64
+        ^
+source/swiftkv_attention.cpp:2305:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=m_axi port=v_pe0 bundle=gmem0 offset=slave depth=64_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=v_pe0 bundle=gmem0 offset=slave depth=64
+        ^
+source/swiftkv_attention.cpp:2306:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=m_axi port=kv_cache_pe0 bundle=gmem0 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=8 num_write_outstanding=2_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=kv_cache_pe0 bundle=gmem0 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=8 num_write_outstanding=2
+        ^
+source/swiftkv_attention.cpp:2310:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=m_axi port=activation_q bundle=gmem0 offset=slave depth=INT4_GROUPS_PER_VECTOR_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=activation_q bundle=gmem0 offset=slave depth=INT4_GROUPS_PER_VECTOR
+        ^
+source/swiftkv_attention.cpp:2312:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=m_axi port=activation_scale bundle=gmem0 offset=slave depth=INT4_VECTOR_SCALE_WORDS_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=activation_scale bundle=gmem0 offset=slave depth=INT4_VECTOR_SCALE_WORDS
+        ^
+source/swiftkv_attention.cpp:2315:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=m_axi port=q_pe1 bundle=gmem1 offset=slave depth=64_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=q_pe1 bundle=gmem1 offset=slave depth=64
+        ^
+source/swiftkv_attention.cpp:2316:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=m_axi port=k_pe1 bundle=gmem1 offset=slave depth=64_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=k_pe1 bundle=gmem1 offset=slave depth=64
+        ^
+source/swiftkv_attention.cpp:2317:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=m_axi port=v_pe1 bundle=gmem1 offset=slave depth=64_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=v_pe1 bundle=gmem1 offset=slave depth=64
+        ^
+source/swiftkv_attention.cpp:2318:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=m_axi port=kv_cache_pe1 bundle=gmem1 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=8 num_write_outstanding=2_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=kv_cache_pe1 bundle=gmem1 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=8 num_write_outstanding=2
+        ^
+source/swiftkv_attention.cpp:2322:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=m_axi port=q_pe2 bundle=gmem2 offset=slave depth=64_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=q_pe2 bundle=gmem2 offset=slave depth=64
+        ^
+source/swiftkv_attention.cpp:2323:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=m_axi port=k_pe2 bundle=gmem2 offset=slave depth=64_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=k_pe2 bundle=gmem2 offset=slave depth=64
+        ^
+source/swiftkv_attention.cpp:2324:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=m_axi port=v_pe2 bundle=gmem2 offset=slave depth=64_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=v_pe2 bundle=gmem2 offset=slave depth=64
+        ^
+source/swiftkv_attention.cpp:2325:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=m_axi port=kv_cache_pe2 bundle=gmem2 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=8 num_write_outstanding=2_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=kv_cache_pe2 bundle=gmem2 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=8 num_write_outstanding=2
+        ^
+source/swiftkv_attention.cpp:2329:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=m_axi port=q_pe3 bundle=gmem3 offset=slave depth=64_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=q_pe3 bundle=gmem3 offset=slave depth=64
+        ^
+source/swiftkv_attention.cpp:2330:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=m_axi port=k_pe3 bundle=gmem3 offset=slave depth=64_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=k_pe3 bundle=gmem3 offset=slave depth=64
+        ^
+source/swiftkv_attention.cpp:2331:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=m_axi port=v_pe3 bundle=gmem3 offset=slave depth=64_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=v_pe3 bundle=gmem3 offset=slave depth=64
+        ^
+source/swiftkv_attention.cpp:2332:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=m_axi port=kv_cache_pe3 bundle=gmem3 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=8 num_write_outstanding=2_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=kv_cache_pe3 bundle=gmem3 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=8 num_write_outstanding=2
+        ^
+source/swiftkv_attention.cpp:2337:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=bram port=current_cos depth=SWIFTKV_ROPE_PAIRS_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE bram port=current_cos depth=SWIFTKV_ROPE_PAIRS
+        ^
+source/swiftkv_attention.cpp:2338:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=bram port=current_sin depth=SWIFTKV_ROPE_PAIRS_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE bram port=current_sin depth=SWIFTKV_ROPE_PAIRS
+        ^
+source/swiftkv_attention.cpp:2340:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=q_pe0 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=q_pe0 bundle=control
+        ^
+source/swiftkv_attention.cpp:2341:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=q_pe1 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=q_pe1 bundle=control
+        ^
+source/swiftkv_attention.cpp:2342:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=q_pe2 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=q_pe2 bundle=control
+        ^
+source/swiftkv_attention.cpp:2343:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=q_pe3 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=q_pe3 bundle=control
+        ^
+source/swiftkv_attention.cpp:2344:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=k_pe0 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=k_pe0 bundle=control
+        ^
+source/swiftkv_attention.cpp:2345:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=k_pe1 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=k_pe1 bundle=control
+        ^
+source/swiftkv_attention.cpp:2346:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=k_pe2 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=k_pe2 bundle=control
+        ^
+source/swiftkv_attention.cpp:2347:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=k_pe3 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=k_pe3 bundle=control
+        ^
+source/swiftkv_attention.cpp:2348:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=v_pe0 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=v_pe0 bundle=control
+        ^
+source/swiftkv_attention.cpp:2349:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=v_pe1 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=v_pe1 bundle=control
+        ^
+source/swiftkv_attention.cpp:2350:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=v_pe2 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=v_pe2 bundle=control
+        ^
+source/swiftkv_attention.cpp:2351:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=v_pe3 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=v_pe3 bundle=control
+        ^
+source/swiftkv_attention.cpp:2352:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=kv_cache_pe0 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=kv_cache_pe0 bundle=control
+        ^
+source/swiftkv_attention.cpp:2353:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=kv_cache_pe1 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=kv_cache_pe1 bundle=control
+        ^
+source/swiftkv_attention.cpp:2354:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=kv_cache_pe2 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=kv_cache_pe2 bundle=control
+        ^
+source/swiftkv_attention.cpp:2355:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=kv_cache_pe3 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=kv_cache_pe3 bundle=control
+        ^
+source/swiftkv_attention.cpp:2356:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=current_cos bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=current_cos bundle=control
+        ^
+source/swiftkv_attention.cpp:2357:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=current_sin bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=current_sin bundle=control
+        ^
+source/swiftkv_attention.cpp:2358:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=activation_q bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=activation_q bundle=control
+        ^
+source/swiftkv_attention.cpp:2359:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=activation_scale bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=activation_scale bundle=control
+        ^
+source/swiftkv_attention.cpp:2360:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=controller bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=controller bundle=control
+        ^
+source/swiftkv_attention.cpp:2361:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_swiftkv_attention_4pe_XLX_SEP_ PragmaOptions=s_axilite port=return bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=return bundle=control
+        ^
+286 warnings generated.

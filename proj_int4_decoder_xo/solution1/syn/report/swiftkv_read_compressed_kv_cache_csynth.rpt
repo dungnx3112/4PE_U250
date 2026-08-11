@@ -1,0 +1,220 @@
+
+
+================================================================
+== Vitis HLS Report for 'swiftkv_read_compressed_kv_cache'
+================================================================
+* Date:           Tue Aug 11 09:18:08 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.433 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+-----------+-----+-------+---------+
+    |  Latency (cycles) |  Latency (absolute)  |   Interval  | Pipeline|
+    |   min   |   max   |    min   |    max    | min |  max  |   Type  |
+    +---------+---------+----------+-----------+-----+-------+---------+
+    |       75|    20551|  0.250 us|  68.496 us|   75|  20551|       no|
+    +---------+---------+----------+-----------+-----+-------+---------+
+
+    + Detail: 
+        * Instance: 
+        +------------------------------------------------------------------------------+-------------------------------------------------------------------+---------+---------+----------+-----------+-----+-------+---------+
+        |                                                                              |                                                                   |  Latency (cycles) |  Latency (absolute)  |   Interval  | Pipeline|
+        |                                   Instance                                   |                               Module                              |   min   |   max   |    min   |    max    | min |  max  |   Type  |
+        +------------------------------------------------------------------------------+-------------------------------------------------------------------+---------+---------+----------+-----------+-----+-------+---------+
+        |grp_swiftkv_read_compressed_kv_cache_Pipeline_read_compressed_kv_loop_fu_114  |swiftkv_read_compressed_kv_cache_Pipeline_read_compressed_kv_loop  |        2|    20478|  6.666 ns|  68.253 us|    2|  20478|       no|
+        +------------------------------------------------------------------------------+-------------------------------------------------------------------+---------+---------+----------+-----------+-----+-------+---------+
+
+        * Loop: 
+        N/A
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+------+
+|         Name        | BRAM_18K|  DSP  |    FF   |   LUT   | URAM |
++---------------------+---------+-------+---------+---------+------+
+|DSP                  |        -|      -|        -|        -|     -|
+|Expression           |        -|      -|        0|       95|     -|
+|FIFO                 |        -|      -|        -|        -|     -|
+|Instance             |        -|      -|      532|      102|     -|
+|Memory               |        -|      -|        -|        -|     -|
+|Multiplexer          |        -|      -|        -|      512|     -|
+|Register             |        -|      -|      149|        -|     -|
++---------------------+---------+-------+---------+---------+------+
+|Total                |        0|      0|      681|      709|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available SLR        |     1344|   3072|   864000|   432000|   320|
++---------------------+---------+-------+---------+---------+------+
+|Utilization SLR (%)  |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available            |     5376|  12288|  3456000|  1728000|  1280|
++---------------------+---------+-------+---------+---------+------+
+|Utilization (%)      |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+
++ Detail: 
+    * Instance: 
+    +------------------------------------------------------------------------------+-------------------------------------------------------------------+---------+----+-----+-----+-----+
+    |                                   Instance                                   |                               Module                              | BRAM_18K| DSP|  FF | LUT | URAM|
+    +------------------------------------------------------------------------------+-------------------------------------------------------------------+---------+----+-----+-----+-----+
+    |grp_swiftkv_read_compressed_kv_cache_Pipeline_read_compressed_kv_loop_fu_114  |swiftkv_read_compressed_kv_cache_Pipeline_read_compressed_kv_loop  |        0|   0|  532|  102|    0|
+    +------------------------------------------------------------------------------+-------------------------------------------------------------------+---------+----+-----+-----+-----+
+    |Total                                                                         |                                                                   |        0|   0|  532|  102|    0|
+    +------------------------------------------------------------------------------+-------------------------------------------------------------------+---------+----+-----+-----+-----+
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +------------------------+----------+----+---+----+------------+------------+
+    |      Variable Name     | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +------------------------+----------+----+---+----+------------+------------+
+    |add_ln681_fu_158_p2     |         +|   0|  0|  71|          64|          64|
+    |cached_words_fu_140_p2  |         +|   0|  0|  22|          15|          15|
+    |ap_block_state1         |        or|   0|  0|   2|           1|           1|
+    +------------------------+----------+----+---+----+------------+------------+
+    |Total                   |          |   0|  0|  95|          80|          80|
+    +------------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +-----------------------------+-----+-----------+-----+-----------+
+    |             Name            | LUT | Input Size| Bits| Total Bits|
+    +-----------------------------+-----+-----------+-----+-----------+
+    |ap_NS_fsm                    |  344|         75|    1|         75|
+    |ap_done                      |    9|          2|    1|          2|
+    |cached_kv_word_stream_write  |    9|          2|    1|          2|
+    |gmem0_blk_n_AR               |    9|          2|    1|          2|
+    |m_axi_gmem0_ARADDR           |   14|          3|   64|        192|
+    |m_axi_gmem0_ARBURST          |    9|          2|    2|          4|
+    |m_axi_gmem0_ARCACHE          |    9|          2|    4|          8|
+    |m_axi_gmem0_ARID             |    9|          2|    1|          2|
+    |m_axi_gmem0_ARLEN            |   14|          3|   32|         96|
+    |m_axi_gmem0_ARLOCK           |    9|          2|    2|          4|
+    |m_axi_gmem0_ARPROT           |    9|          2|    3|          6|
+    |m_axi_gmem0_ARQOS            |    9|          2|    4|          8|
+    |m_axi_gmem0_ARREGION         |    9|          2|    4|          8|
+    |m_axi_gmem0_ARSIZE           |    9|          2|    3|          6|
+    |m_axi_gmem0_ARUSER           |    9|          2|    1|          2|
+    |m_axi_gmem0_ARVALID          |   14|          3|    1|          3|
+    |m_axi_gmem0_RREADY           |    9|          2|    1|          2|
+    |position_val_c14_blk_n       |    9|          2|    1|          2|
+    +-----------------------------+-----+-----------+-----+-----------+
+    |Total                        |  512|        112|  127|        424|
+    +-----------------------------+-----+-----------+-----+-----------+
+
+    * Register: 
+    +-------------------------------------------------------------------------------------------+----+----+-----+-----------+
+    |                                            Name                                           | FF | LUT| Bits| Const Bits|
+    +-------------------------------------------------------------------------------------------+----+----+-----+-----------+
+    |ap_CS_fsm                                                                                  |  74|   0|   74|          0|
+    |ap_done_reg                                                                                |   1|   0|    1|          0|
+    |cached_words_reg_188                                                                       |  15|   0|   15|          0|
+    |grp_swiftkv_read_compressed_kv_cache_Pipeline_read_compressed_kv_loop_fu_114_ap_start_reg  |   1|   0|    1|          0|
+    |trunc_ln_reg_194                                                                           |  58|   0|   58|          0|
+    +-------------------------------------------------------------------------------------------+----+----+-----+-----------+
+    |Total                                                                                      | 149|   0|  149|          0|
+    +-------------------------------------------------------------------------------------------+----+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++--------------------------------------+-----+-----+------------+----------------------------------+--------------+
+|               RTL Ports              | Dir | Bits|  Protocol  |           Source Object          |    C Type    |
++--------------------------------------+-----+-----+------------+----------------------------------+--------------+
+|ap_clk                                |   in|    1|  ap_ctrl_hs|  swiftkv_read_compressed_kv_cache|  return value|
+|ap_rst                                |   in|    1|  ap_ctrl_hs|  swiftkv_read_compressed_kv_cache|  return value|
+|ap_start                              |   in|    1|  ap_ctrl_hs|  swiftkv_read_compressed_kv_cache|  return value|
+|ap_done                               |  out|    1|  ap_ctrl_hs|  swiftkv_read_compressed_kv_cache|  return value|
+|ap_continue                           |   in|    1|  ap_ctrl_hs|  swiftkv_read_compressed_kv_cache|  return value|
+|ap_idle                               |  out|    1|  ap_ctrl_hs|  swiftkv_read_compressed_kv_cache|  return value|
+|ap_ready                              |  out|    1|  ap_ctrl_hs|  swiftkv_read_compressed_kv_cache|  return value|
+|m_axi_gmem0_AWVALID                   |  out|    1|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_AWREADY                   |   in|    1|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_AWADDR                    |  out|   64|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_AWID                      |  out|    1|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_AWLEN                     |  out|   32|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_AWSIZE                    |  out|    3|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_AWBURST                   |  out|    2|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_AWLOCK                    |  out|    2|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_AWCACHE                   |  out|    4|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_AWPROT                    |  out|    3|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_AWQOS                     |  out|    4|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_AWREGION                  |  out|    4|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_AWUSER                    |  out|    1|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_WVALID                    |  out|    1|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_WREADY                    |   in|    1|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_WDATA                     |  out|  512|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_WSTRB                     |  out|   64|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_WLAST                     |  out|    1|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_WID                       |  out|    1|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_WUSER                     |  out|    1|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_ARVALID                   |  out|    1|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_ARREADY                   |   in|    1|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_ARADDR                    |  out|   64|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_ARID                      |  out|    1|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_ARLEN                     |  out|   32|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_ARSIZE                    |  out|    3|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_ARBURST                   |  out|    2|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_ARLOCK                    |  out|    2|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_ARCACHE                   |  out|    4|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_ARPROT                    |  out|    3|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_ARQOS                     |  out|    4|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_ARREGION                  |  out|    4|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_ARUSER                    |  out|    1|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_RVALID                    |   in|    1|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_RREADY                    |  out|    1|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_RDATA                     |   in|  512|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_RLAST                     |   in|    1|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_RID                       |   in|    1|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_RFIFONUM                  |   in|   12|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_RUSER                     |   in|    1|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_RRESP                     |   in|    2|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_BVALID                    |   in|    1|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_BREADY                    |  out|    1|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_BRESP                     |   in|    2|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_BID                       |   in|    1|       m_axi|                             gmem3|       pointer|
+|m_axi_gmem0_BUSER                     |   in|    1|       m_axi|                             gmem3|       pointer|
+|kv_cache                              |   in|   64|     ap_none|                          kv_cache|        scalar|
+|head_base                             |   in|   24|     ap_none|                         head_base|        scalar|
+|position                              |   in|   12|     ap_none|                          position|        scalar|
+|cached_kv_word_stream_din             |  out|  512|     ap_fifo|             cached_kv_word_stream|       pointer|
+|cached_kv_word_stream_num_data_valid  |   in|    7|     ap_fifo|             cached_kv_word_stream|       pointer|
+|cached_kv_word_stream_fifo_cap        |   in|    7|     ap_fifo|             cached_kv_word_stream|       pointer|
+|cached_kv_word_stream_full_n          |   in|    1|     ap_fifo|             cached_kv_word_stream|       pointer|
+|cached_kv_word_stream_write           |  out|    1|     ap_fifo|             cached_kv_word_stream|       pointer|
+|position_val_c14_din                  |  out|   12|     ap_fifo|                  position_val_c14|       pointer|
+|position_val_c14_num_data_valid       |   in|    3|     ap_fifo|                  position_val_c14|       pointer|
+|position_val_c14_fifo_cap             |   in|    3|     ap_fifo|                  position_val_c14|       pointer|
+|position_val_c14_full_n               |   in|    1|     ap_fifo|                  position_val_c14|       pointer|
+|position_val_c14_write                |  out|    1|     ap_fifo|                  position_val_c14|       pointer|
++--------------------------------------+-----+-----+------------+----------------------------------+--------------+
+

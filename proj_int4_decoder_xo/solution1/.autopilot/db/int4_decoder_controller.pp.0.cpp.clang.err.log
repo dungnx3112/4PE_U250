@@ -1,0 +1,301 @@
+source/int4_decoder_controller.cpp:31:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_preprocess_activation_stream_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/int4_decoder_controller.cpp:80:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_run_preprocess_and_linear_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/int4_decoder_controller.cpp:84:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=dataflow_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_run_preprocess_and_linear_XLX_SEP_ PragmaOptions=disable_start_propagation_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS DATAFLOW disable_start_propagation
+        ^
+source/int4_decoder_controller.cpp:88:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_run_preprocess_and_linear_XLX_SEP_ PragmaOptions=variable=quantized_stream depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=quantized_stream depth=4
+        ^
+source/int4_decoder_controller.cpp:89:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_run_preprocess_and_linear_XLX_SEP_ PragmaOptions=variable=scale_stream depth=4_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=scale_stream depth=4
+        ^
+source/int4_decoder_controller.cpp:95:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_run_preprocess_and_linear_XLX_SEP_ PragmaOptions=variable=quantized_stream type=fifo impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=quantized_stream type=fifo impl=bram
+        ^
+source/int4_decoder_controller.cpp:96:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_run_preprocess_and_linear_XLX_SEP_ PragmaOptions=variable=scale_stream type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=scale_stream type=fifo impl=srl
+        ^
+source/int4_decoder_controller.cpp:135:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_route_linear_projection_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/int4_decoder_controller.cpp:158:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_route_linear_projection_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/int4_decoder_controller.cpp:220:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_execute_dispatch_linear_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/int4_decoder_controller.cpp:236:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_execute_dispatch_linear_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/int4_decoder_controller.cpp:371:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_dispatch_linear_registered_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/int4_decoder_controller.cpp:372:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=dataflow_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_dispatch_linear_registered_XLX_SEP_ PragmaOptions=disable_start_propagation_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS DATAFLOW disable_start_propagation
+        ^
+source/int4_decoder_controller.cpp:375:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=stream_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_dispatch_linear_registered_XLX_SEP_ PragmaOptions=variable=command_stream depth=2_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS STREAM variable=command_stream depth=2
+        ^
+source/int4_decoder_controller.cpp:376:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_dispatch_linear_registered_XLX_SEP_ PragmaOptions=variable=command_stream type=fifo impl=srl_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=command_stream type=fifo impl=srl
+        ^
+source/int4_decoder_controller.cpp:427:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_preload_model_prefix_4ddr_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/int4_decoder_controller.cpp:436:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_preload_model_prefix_4ddr_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/int4_decoder_controller.cpp:467:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_load_residual_4ddr_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/int4_decoder_controller.cpp:473:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_load_residual_4ddr_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+source/int4_decoder_controller.cpp:495:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=inline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_store_residual_4ddr_XLX_SEP_ PragmaOptions=off_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INLINE off
+        ^
+source/int4_decoder_controller.cpp:501:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=pipeline_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_store_residual_4ddr_XLX_SEP_ PragmaOptions=II=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS PIPELINE II=1
+        ^
+C:/KLTN/u250/build_xo.tcl:22:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=top_XLX_SEP_ PragmaContext=directive_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=name=int4_decoder_token_controller_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLSDIRECTIVE TOP name=int4_decoder_token_controller
+        ^
+source/int4_decoder_controller.cpp:529:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=m_axi port=model_bank0 bundle=gmem0 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=8 num_write_outstanding=2_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=model_bank0 bundle=gmem0 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=8 num_write_outstanding=2
+        ^
+source/int4_decoder_controller.cpp:533:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=m_axi port=rope_lut_ddr bundle=gmem0 offset=slave depth=SWIFTKV_ROPE_DDR_WORDS latency=64 max_read_burst_length=256 num_read_outstanding=8_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=rope_lut_ddr bundle=gmem0 offset=slave depth=SWIFTKV_ROPE_DDR_WORDS latency=64 max_read_burst_length=256 num_read_outstanding=8
+        ^
+source/int4_decoder_controller.cpp:536:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=m_axi port=residual_pe0 bundle=gmem0 offset=slave depth=INT4_VECTOR_WORDS_PER_PE_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=residual_pe0 bundle=gmem0 offset=slave depth=INT4_VECTOR_WORDS_PER_PE
+        ^
+source/int4_decoder_controller.cpp:538:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=m_axi port=logits_pe0 bundle=gmem0 offset=slave depth=INT4_MAX_LOCAL_OUTPUT_WORDS_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=logits_pe0 bundle=gmem0 offset=slave depth=INT4_MAX_LOCAL_OUTPUT_WORDS
+        ^
+source/int4_decoder_controller.cpp:540:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=m_axi port=kv_cache_pe0 bundle=gmem0 offset=slave depth=SWIFTKV_KV_AXI_DEPTH_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=kv_cache_pe0 bundle=gmem0 offset=slave depth=SWIFTKV_KV_AXI_DEPTH
+        ^
+source/int4_decoder_controller.cpp:543:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=m_axi port=model_bank1 bundle=gmem1 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=8 num_write_outstanding=2_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=model_bank1 bundle=gmem1 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=8 num_write_outstanding=2
+        ^
+source/int4_decoder_controller.cpp:547:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=m_axi port=residual_pe1 bundle=gmem1 offset=slave depth=INT4_VECTOR_WORDS_PER_PE_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=residual_pe1 bundle=gmem1 offset=slave depth=INT4_VECTOR_WORDS_PER_PE
+        ^
+source/int4_decoder_controller.cpp:549:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=m_axi port=logits_pe1 bundle=gmem1 offset=slave depth=INT4_MAX_LOCAL_OUTPUT_WORDS_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=logits_pe1 bundle=gmem1 offset=slave depth=INT4_MAX_LOCAL_OUTPUT_WORDS
+        ^
+source/int4_decoder_controller.cpp:551:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=m_axi port=kv_cache_pe1 bundle=gmem1 offset=slave depth=SWIFTKV_KV_AXI_DEPTH_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=kv_cache_pe1 bundle=gmem1 offset=slave depth=SWIFTKV_KV_AXI_DEPTH
+        ^
+source/int4_decoder_controller.cpp:554:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=m_axi port=model_bank2 bundle=gmem2 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=8 num_write_outstanding=2_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=model_bank2 bundle=gmem2 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=8 num_write_outstanding=2
+        ^
+source/int4_decoder_controller.cpp:558:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=m_axi port=residual_pe2 bundle=gmem2 offset=slave depth=INT4_VECTOR_WORDS_PER_PE_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=residual_pe2 bundle=gmem2 offset=slave depth=INT4_VECTOR_WORDS_PER_PE
+        ^
+source/int4_decoder_controller.cpp:560:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=m_axi port=logits_pe2 bundle=gmem2 offset=slave depth=INT4_MAX_LOCAL_OUTPUT_WORDS_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=logits_pe2 bundle=gmem2 offset=slave depth=INT4_MAX_LOCAL_OUTPUT_WORDS
+        ^
+source/int4_decoder_controller.cpp:562:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=m_axi port=kv_cache_pe2 bundle=gmem2 offset=slave depth=SWIFTKV_KV_AXI_DEPTH_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=kv_cache_pe2 bundle=gmem2 offset=slave depth=SWIFTKV_KV_AXI_DEPTH
+        ^
+source/int4_decoder_controller.cpp:565:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=m_axi port=model_bank3 bundle=gmem3 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=8 num_write_outstanding=2_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=model_bank3 bundle=gmem3 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=8 num_write_outstanding=2
+        ^
+source/int4_decoder_controller.cpp:569:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=m_axi port=residual_pe3 bundle=gmem3 offset=slave depth=INT4_VECTOR_WORDS_PER_PE_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=residual_pe3 bundle=gmem3 offset=slave depth=INT4_VECTOR_WORDS_PER_PE
+        ^
+source/int4_decoder_controller.cpp:571:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=m_axi port=logits_pe3 bundle=gmem3 offset=slave depth=INT4_MAX_LOCAL_OUTPUT_WORDS_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=logits_pe3 bundle=gmem3 offset=slave depth=INT4_MAX_LOCAL_OUTPUT_WORDS
+        ^
+source/int4_decoder_controller.cpp:573:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=m_axi port=kv_cache_pe3 bundle=gmem3 offset=slave depth=SWIFTKV_KV_AXI_DEPTH_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE m_axi port=kv_cache_pe3 bundle=gmem3 offset=slave depth=SWIFTKV_KV_AXI_DEPTH
+        ^
+source/int4_decoder_controller.cpp:576:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=s_axilite port=model_bank0 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=model_bank0 bundle=control
+        ^
+source/int4_decoder_controller.cpp:577:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=s_axilite port=model_bank1 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=model_bank1 bundle=control
+        ^
+source/int4_decoder_controller.cpp:578:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=s_axilite port=model_bank2 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=model_bank2 bundle=control
+        ^
+source/int4_decoder_controller.cpp:579:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=s_axilite port=model_bank3 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=model_bank3 bundle=control
+        ^
+source/int4_decoder_controller.cpp:580:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=s_axilite port=rope_lut_ddr bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=rope_lut_ddr bundle=control
+        ^
+source/int4_decoder_controller.cpp:581:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=s_axilite port=residual_pe0 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=residual_pe0 bundle=control
+        ^
+source/int4_decoder_controller.cpp:582:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=s_axilite port=residual_pe1 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=residual_pe1 bundle=control
+        ^
+source/int4_decoder_controller.cpp:583:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=s_axilite port=residual_pe2 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=residual_pe2 bundle=control
+        ^
+source/int4_decoder_controller.cpp:584:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=s_axilite port=residual_pe3 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=residual_pe3 bundle=control
+        ^
+source/int4_decoder_controller.cpp:585:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=s_axilite port=logits_pe0 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=logits_pe0 bundle=control
+        ^
+source/int4_decoder_controller.cpp:586:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=s_axilite port=logits_pe1 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=logits_pe1 bundle=control
+        ^
+source/int4_decoder_controller.cpp:587:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=s_axilite port=logits_pe2 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=logits_pe2 bundle=control
+        ^
+source/int4_decoder_controller.cpp:588:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=s_axilite port=logits_pe3 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=logits_pe3 bundle=control
+        ^
+source/int4_decoder_controller.cpp:589:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=s_axilite port=kv_cache_pe0 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=kv_cache_pe0 bundle=control
+        ^
+source/int4_decoder_controller.cpp:590:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=s_axilite port=kv_cache_pe1 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=kv_cache_pe1 bundle=control
+        ^
+source/int4_decoder_controller.cpp:591:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=s_axilite port=kv_cache_pe2 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=kv_cache_pe2 bundle=control
+        ^
+source/int4_decoder_controller.cpp:592:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=s_axilite port=kv_cache_pe3 bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=kv_cache_pe3 bundle=control
+        ^
+source/int4_decoder_controller.cpp:593:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=s_axilite port=position bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=position bundle=control
+        ^
+source/int4_decoder_controller.cpp:594:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=interface_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=s_axilite port=return bundle=control_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS INTERFACE s_axilite port=return bundle=control
+        ^
+source/int4_decoder_controller.cpp:634:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=q_pe0 type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=q_pe0 type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:635:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=q_pe1 type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=q_pe1 type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:636:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=q_pe2 type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=q_pe2 type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:637:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=q_pe3 type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=q_pe3 type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:638:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=k_pe0 type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=k_pe0 type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:639:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=k_pe1 type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=k_pe1 type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:640:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=k_pe2 type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=k_pe2 type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:641:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=k_pe3 type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=k_pe3 type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:642:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=v_pe0 type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=v_pe0 type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:643:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=v_pe1 type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=v_pe1 type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:644:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=v_pe2 type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=v_pe2 type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:645:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=v_pe3 type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=v_pe3 type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:646:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=gate_pe0 type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=gate_pe0 type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:647:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=gate_pe1 type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=gate_pe1 type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:648:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=gate_pe2 type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=gate_pe2 type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:649:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=gate_pe3 type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=gate_pe3 type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:650:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=up_pe0 type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=up_pe0 type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:651:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=up_pe1 type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=up_pe1 type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:652:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=up_pe2 type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=up_pe2 type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:653:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=up_pe3 type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=up_pe3 type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:654:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=residual_buffer0 type=ram_2p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=residual_buffer0 type=ram_2p impl=bram
+        ^
+source/int4_decoder_controller.cpp:655:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=residual_buffer1 type=ram_2p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=residual_buffer1 type=ram_2p impl=bram
+        ^
+source/int4_decoder_controller.cpp:656:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=residual_buffer2 type=ram_2p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=residual_buffer2 type=ram_2p impl=bram
+        ^
+source/int4_decoder_controller.cpp:657:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=residual_buffer3 type=ram_2p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=residual_buffer3 type=ram_2p impl=bram
+        ^
+source/int4_decoder_controller.cpp:658:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=linear_stage0 type=ram_2p impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=linear_stage0 type=ram_2p impl=uram
+        ^
+source/int4_decoder_controller.cpp:659:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=linear_stage1 type=ram_2p impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=linear_stage1 type=ram_2p impl=uram
+        ^
+source/int4_decoder_controller.cpp:660:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=linear_stage2 type=ram_2p impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=linear_stage2 type=ram_2p impl=uram
+        ^
+source/int4_decoder_controller.cpp:661:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=linear_stage3 type=ram_2p impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=linear_stage3 type=ram_2p impl=uram
+        ^
+source/int4_decoder_controller.cpp:683:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=model_scale_cache0 type=ram_1p impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=model_scale_cache0 type=ram_1p impl=uram
+        ^
+source/int4_decoder_controller.cpp:684:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=model_scale_cache1 type=ram_1p impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=model_scale_cache1 type=ram_1p impl=uram
+        ^
+source/int4_decoder_controller.cpp:685:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=model_scale_cache2 type=ram_1p impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=model_scale_cache2 type=ram_1p impl=uram
+        ^
+source/int4_decoder_controller.cpp:686:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=model_scale_cache3 type=ram_1p impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=model_scale_cache3 type=ram_1p impl=uram
+        ^
+source/int4_decoder_controller.cpp:687:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=model_norm_cache0 type=ram_1p impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=model_norm_cache0 type=ram_1p impl=uram
+        ^
+source/int4_decoder_controller.cpp:688:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=model_norm_cache1 type=ram_1p impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=model_norm_cache1 type=ram_1p impl=uram
+        ^
+source/int4_decoder_controller.cpp:689:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=model_norm_cache2 type=ram_1p impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=model_norm_cache2 type=ram_1p impl=uram
+        ^
+source/int4_decoder_controller.cpp:690:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=model_norm_cache3 type=ram_1p impl=uram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=model_norm_cache3 type=ram_1p impl=uram
+        ^
+source/int4_decoder_controller.cpp:698:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=activation_q type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=activation_q type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:699:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=activation_scale type=ram_1p impl=bram_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=activation_scale type=ram_1p impl=bram
+        ^
+source/int4_decoder_controller.cpp:712:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=rope_lut type=ram_1p impl=uram latency=2_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=rope_lut type=ram_1p impl=uram latency=2
+        ^
+source/int4_decoder_controller.cpp:713:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=current_cos type=ram_1p impl=bram latency=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=current_cos type=ram_1p impl=bram latency=1
+        ^
+source/int4_decoder_controller.cpp:714:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=bind_storage_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=variable=current_sin type=ram_1p impl=bram latency=1_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS BIND_STORAGE variable=current_sin type=ram_1p impl=bram latency=1
+        ^
+source/int4_decoder_controller.cpp:765:9: warning: HLS pragma dump _XLX_SEP_ PragmaIsValid=1_XLX_SEP_ PragmaType=loop_tripcount_XLX_SEP_ PragmaContext=_XLX_SEP_ PragmaFunction=int4_decoder_token_controller_XLX_SEP_ PragmaOptions=min=257 max=257_XLX_SEP_ [-Wdump-hls-pragmas]
+#pragma HLS LOOP_TRIPCOUNT min=257 max=257
+        ^
+100 warnings generated.

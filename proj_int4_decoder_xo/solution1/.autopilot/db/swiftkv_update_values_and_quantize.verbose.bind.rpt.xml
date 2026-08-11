@@ -1,0 +1,49 @@
+<profile>
+
+<section name = "Vitis HLS Report for 'swiftkv_update_values_and_quantize'" level="0">
+<item name = "Date">Tue Aug 11 09:17:00 2026
+</item>
+<item name = "Version">2023.2 (Build 4023990 on Oct 11 2023)</item>
+<item name = "Project">proj_int4_decoder_xo</item>
+<item name = "Solution">solution1 (Vitis Kernel Flow Target)</item>
+<item name = "Product family">virtexuplus</item>
+<item name = "Target device">xcu250-figd2104-2L-e</item>
+</section>
+
+<section name = "Performance Estimates" level="0">
+<item name = "Timing">
+<section name = "" level="1">
+<item name = "Summary"><table name="" hasTotal="0">
+<keys size="4">Clock, Target, Estimated, Uncertainty</keys>
+<column name="ap_clk">3.33 ns, 2.433 ns, 0.90 ns</column>
+</table>
+</item>
+</section>
+</item>
+<item name = "Latency">
+<section name = "" level="1">
+<item name = "Summary"><table name="" hasTotal="0">
+<keys size="8">, min, max, min, max, min, max, Type</keys>
+<column name="">510, 33270, 1.700 us, 0.111 ms, 510, 33270, no</column>
+</table>
+</item>
+<item name = "Detail">
+<section name = "" level="1">
+<item name = "Instance"><table name="" hasTotal="0">
+<keys size="9">Instance, Module, min, max, min, max, min, max, Type</keys>
+<column name="grp_swiftkv_accumulate_values_split_fu_262">swiftkv_accumulate_values_split, 32, 32792, 0.107 us, 0.109 ms, 31, 32791, dataflow</column>
+<column name="grp_swiftkv_update_values_and_quantize_Pipeline_attention_normalize_lane_loop_fu_320">swiftkv_update_values_and_quantize_Pipeline_attention_normalize_lane_loop, 41, 41, 0.137 us, 0.137 us, 41, 41, no</column>
+<column name="grp_swiftkv_update_values_and_quantize_Pipeline_attention_quantize_reverse_loop_fu_344">swiftkv_update_values_and_quantize_Pipeline_attention_quantize_reverse_loop, 56, 56, 0.187 us, 0.187 us, 56, 56, no</column>
+</table>
+</item>
+<item name = "Loop"><table name="" hasTotal="0">
+<keys size="8">Loop Name, min, max, Latency, achieved, target, Count, Pipelined</keys>
+<column name="- attention_quant_group_loop">476, 476, 119, -, -, 4, no</column>
+</table>
+</item>
+</section>
+</item>
+</section>
+</item>
+</section>
+</profile>

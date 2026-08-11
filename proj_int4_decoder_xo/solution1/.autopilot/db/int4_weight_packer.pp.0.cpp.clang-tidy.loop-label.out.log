@@ -1,0 +1,155 @@
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:1457:7: warning: Added loop label VITIS_LOOP_1207_1:   [xilinx-label-all-loops]
+      for (i = 0; i < __N - 1; ++i) {
+      ^~~
+      VITIS_LOOP_1207_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:1457:7: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:2431:5: warning: Added loop label VITIS_LOOP_676_1:   [xilinx-label-all-loops]
+    for (unsigned i = low; i != high; ++i) {
+    ^~~
+    VITIS_LOOP_676_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:2431:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:2445:5: warning: Added loop label VITIS_LOOP_690_1:   [xilinx-label-all-loops]
+    for (unsigned i = low; i != high; ++i) {
+    ^~~
+    VITIS_LOOP_690_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:2445:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:2459:5: warning: Added loop label VITIS_LOOP_704_1:   [xilinx-label-all-loops]
+    for (unsigned i = low; i != high; ++i) {
+    ^~~
+    VITIS_LOOP_704_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:2459:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:4088:7: warning: Added loop label VITIS_LOOP_1247_1:   [xilinx-label-all-loops]
+      for (i = 0; i < __N - 1; ++i) {
+      ^~~
+      VITIS_LOOP_1247_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:4088:7: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:6270:5: warning: Added loop label VITIS_LOOP_65_1:   [xilinx-label-all-loops]
+    for (int mode = INT4_LINEAR_Q;
+    ^~~
+    VITIS_LOOP_65_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:6270:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:6280:5: warning: Added loop label VITIS_LOOP_75_1:   [xilinx-label-all-loops]
+    for (int mode = INT4_LINEAR_Q;
+    ^~~
+    VITIS_LOOP_75_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:6280:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:6293:5: warning: Added loop label VITIS_LOOP_88_1:   [xilinx-label-all-loops]
+    for (int prior = INT4_LINEAR_Q; prior < mode; ++prior) {
+    ^~~
+    VITIS_LOOP_88_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:6293:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:6304:5: warning: Added loop label VITIS_LOOP_99_1:   [xilinx-label-all-loops]
+    for (int prior = INT4_LINEAR_Q; prior < mode; ++prior) {
+    ^~~
+    VITIS_LOOP_99_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:6304:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24176:5: warning: Added loop label VITIS_LOOP_151_1:   [xilinx-label-all-loops]
+    for (int pe = 0; pe < INT4_PE_COUNT; ++pe) {
+    ^~~
+    VITIS_LOOP_151_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24176:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24186:9: warning: Added loop label VITIS_LOOP_161_2:   [xilinx-label-all-loops]
+        for (int word = 0; word < scale_words; ++word) {
+        ^~~
+        VITIS_LOOP_161_2: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24186:9: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24191:5: warning: Added loop label VITIS_LOOP_166_3:   [xilinx-label-all-loops]
+    for (int global_tile = 0;
+    ^~~
+    VITIS_LOOP_166_3: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24191:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24211:9: warning: Added loop label VITIS_LOOP_186_4:   [xilinx-label-all-loops]
+        for (int col_tile = 0;
+        ^~~
+        VITIS_LOOP_186_4: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24211:9: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24230:17: warning: Added loop label VITIS_LOOP_205_5:   [xilinx-label-all-loops]
+                for (int row = 0; row < INT4_TILE_ROWS; ++row) {
+                ^~~
+                VITIS_LOOP_205_5: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24230:17: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24233:21: warning: Added loop label VITIS_LOOP_208_6:   [xilinx-label-all-loops]
+                    for (int col_in_tile = 0;
+                    ^~~
+                    VITIS_LOOP_208_6: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24233:21: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24263:13: warning: Added loop label VITIS_LOOP_238_7:   [xilinx-label-all-loops]
+            for (int group = 0;
+            ^~~
+            VITIS_LOOP_238_7: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24263:13: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24266:17: warning: Added loop label VITIS_LOOP_241_8:   [xilinx-label-all-loops]
+                for (int row_block = 0;
+                ^~~
+                VITIS_LOOP_241_8: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24266:17: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24270:21: warning: Added loop label VITIS_LOOP_245_9:   [xilinx-label-all-loops]
+                    for (int lane = 0;
+                    ^~~
+                    VITIS_LOOP_245_9: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24270:21: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24276:25: warning: Added loop label VITIS_LOOP_251_10:   [xilinx-label-all-loops]
+                        for (int row_in_block = 0;
+                        ^~~
+                        VITIS_LOOP_251_10: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24276:25: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24335:5: warning: Added loop label VITIS_LOOP_310_1:   [xilinx-label-all-loops]
+    for (int global_tile = 0;
+    ^~~
+    VITIS_LOOP_310_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24335:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24346:9: warning: Added loop label VITIS_LOOP_321_2:   [xilinx-label-all-loops]
+        for (int word = 0;
+        ^~~
+        VITIS_LOOP_321_2: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24346:9: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24350:13: warning: Added loop label VITIS_LOOP_325_3:   [xilinx-label-all-loops]
+            for (int lane = 0;
+            ^~~
+            VITIS_LOOP_325_3: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24350:13: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24379:5: warning: Added loop label VITIS_LOOP_354_1:   [xilinx-label-all-loops]
+    for (int global_tile = 0;
+    ^~~
+    VITIS_LOOP_354_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24379:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24384:9: warning: Added loop label VITIS_LOOP_359_2:   [xilinx-label-all-loops]
+        for (int word = 0;
+        ^~~
+        VITIS_LOOP_359_2: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24384:9: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24388:13: warning: Added loop label VITIS_LOOP_363_3:   [xilinx-label-all-loops]
+            for (int lane = 0;
+            ^~~
+            VITIS_LOOP_363_3: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24388:13: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24416:5: warning: Added loop label VITIS_LOOP_391_1:   [xilinx-label-all-loops]
+    for (int global_tile = 0;
+    ^~~
+    VITIS_LOOP_391_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24416:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24421:9: warning: Added loop label VITIS_LOOP_396_2:   [xilinx-label-all-loops]
+        for (int word = 0;
+        ^~~
+        VITIS_LOOP_396_2: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24421:9: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24427:13: warning: Added loop label VITIS_LOOP_402_3:   [xilinx-label-all-loops]
+            for (int lane = 0;
+            ^~~
+            VITIS_LOOP_402_3: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24427:13: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24444:5: warning: Added loop label VITIS_LOOP_419_1:   [xilinx-label-all-loops]
+    for (int position = 0;
+    ^~~
+    VITIS_LOOP_419_1: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24444:5: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24447:9: warning: Added loop label VITIS_LOOP_422_2:   [xilinx-label-all-loops]
+        for (int group = 0;
+        ^~~
+        VITIS_LOOP_422_2: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24447:9: note: FIX-IT applied suggested code changes
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24451:13: warning: Added loop label VITIS_LOOP_426_3:   [xilinx-label-all-loops]
+            for (int lane = 0;
+            ^~~
+            VITIS_LOOP_426_3: 
+C:\KLTN\u250\proj_int4_decoder_xo\solution1\.autopilot\db\int4_weight_packer.pp.0.cpp:24451:13: note: FIX-IT applied suggested code changes

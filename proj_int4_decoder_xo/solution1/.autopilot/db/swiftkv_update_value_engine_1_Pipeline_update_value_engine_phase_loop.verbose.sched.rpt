@@ -1,0 +1,424 @@
+
+
+================================================================
+== Vitis HLS Report for 'swiftkv_update_value_engine_1_Pipeline_update_value_engine_phase_loop'
+================================================================
+* Date:           Tue Aug 11 09:16:57 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.396 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+-----------+----------+-----+-------+---------+
+    |  Latency (cycles) |  Latency (absolute)  |   Interval  | Pipeline|
+    |   min   |   max   |    min    |    max   | min |  max  |   Type  |
+    +---------+---------+-----------+----------+-----+-------+---------+
+    |       17|    32777|  56.661 ns|  0.109 ms|   17|  32777|       no|
+    +---------+---------+-----------+----------+-----+-------+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +----------------------------------+---------+---------+----------+-----------+-----------+-----------+----------+
+        |                                  |  Latency (cycles) | Iteration|  Initiation Interval  |    Trip   |          |
+        |             Loop Name            |   min   |   max   |  Latency |  achieved |   target  |   Count   | Pipelined|
+        +----------------------------------+---------+---------+----------+-----------+-----------+-----------+----------+
+        |- update_value_engine_phase_loop  |       15|    32775|         9|          1|          1|  8 ~ 32768|       yes|
+        +----------------------------------+---------+---------+----------+-----------+-----------+-----------+----------+
+
+============================================================
++ Verbose Summary: Synthesis Manager
+============================================================
+InlineROM: 1
+ExposeGlobal: 0
+============================================================
++ Verbose Summary: CDFG Model
+============================================================
+IsTopModel: 0
+ResetActiveHigh: 1
+IsCombinational: 0
+IsDatapathOnly: 0
+HasWiredReturn: 1
+HasMFsm: 2
+HasVarLatency: 1
+IsPipeline: 0
+IsRtlPipelined: 0
+IsInstanceOverlapped: 0
+IsDontTouch: 0
+HasImplIP: 0
+IsGatedGlobalClock: 0
+
++ Individual pipeline summary: 
+  * Pipeline-0: initiation interval (II) = 1, depth = 9
+
+
+============================================================
++ Verbose Summary: Schedule
+============================================================
+* Number of FSM states : 9
+* Pipeline : 1
+  Pipeline-0 : II = 1, D = 9, States = { 1 2 3 4 5 6 7 8 9 }
+* Dataflow Pipeline: 0
+
+* FSM state transitions: 
+1 --> 2 
+2 --> 3 
+3 --> 4 
+4 --> 5 
+5 --> 6 
+6 --> 7 
+7 --> 8 
+8 --> 9 
+9 --> 
+
+* FSM state operations: 
+
+State 1 <SV = 0> <Delay = 1.58>
+ST_1 : Operation 12 [1/1] (0.00ns)   --->   "%update_phase = alloca i32 1" [source/swiftkv_attention.cpp:1265]   --->   Operation 12 'alloca' 'update_phase' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 13 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %weighted_value_0, i64 666, i64 22, i64 1"   --->   Operation 13 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 14 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %weighted_value_1, i64 666, i64 22, i64 1"   --->   Operation 14 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 15 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %weighted_value_2, i64 666, i64 22, i64 1"   --->   Operation 15 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 16 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %weighted_value_3, i64 666, i64 22, i64 1"   --->   Operation 16 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 17 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i57 %engine1_phase_stream, i64 666, i64 10, i64 18446744073709551615"   --->   Operation 17 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 18 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i57 %engine1_phase_stream, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 18 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 19 [1/1] (0.00ns)   --->   "%update_phase_count_read = read i16 @_ssdm_op_Read.ap_auto.i16, i16 %update_phase_count" [source/swiftkv_attention.cpp:1242]   --->   Operation 19 'read' 'update_phase_count_read' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 20 [1/1] (0.38ns)   --->   "%store_ln1265 = store i16 0, i16 %update_phase" [source/swiftkv_attention.cpp:1265]   --->   Operation 20 'store' 'store_ln1265' <Predicate = true> <Delay = 0.38>
+ST_1 : Operation 21 [1/1] (0.00ns)   --->   "%br_ln0 = br void %for.body13"   --->   Operation 21 'br' 'br_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 22 [1/1] (0.00ns)   --->   "%update_phase_5 = load i16 %update_phase" [source/swiftkv_attention.cpp:1266]   --->   Operation 22 'load' 'update_phase_5' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 23 [1/1] (0.78ns)   --->   "%icmp_ln1266 = icmp_eq  i16 %update_phase_5, i16 %update_phase_count_read" [source/swiftkv_attention.cpp:1266]   --->   Operation 23 'icmp' 'icmp_ln1266' <Predicate = true> <Delay = 0.78> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.78> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_1 : Operation 24 [1/1] (0.78ns)   --->   "%update_phase_6 = add i16 %update_phase_5, i16 1" [source/swiftkv_attention.cpp:1267]   --->   Operation 24 'add' 'update_phase_6' <Predicate = true> <Delay = 0.78> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.78> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_1 : Operation 25 [1/1] (0.00ns)   --->   "%br_ln1265 = br i1 %icmp_ln1266, void %fpga_resource_hint.if.then.545, void %for.end61.exitStub" [source/swiftkv_attention.cpp:1265]   --->   Operation 25 'br' 'br_ln1265' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 26 [1/1] (0.00ns)   --->   "%phase = trunc i16 %update_phase_5" [source/swiftkv_attention.cpp:1266]   --->   Operation 26 'trunc' 'phase' <Predicate = (!icmp_ln1266)> <Delay = 0.00>
+ST_1 : Operation 27 [1/1] (0.00ns)   --->   "%phase_3_cast = zext i3 %phase" [source/swiftkv_attention.cpp:1266]   --->   Operation 27 'zext' 'phase_3_cast' <Predicate = (!icmp_ln1266)> <Delay = 0.00>
+ST_1 : Operation 28 [1/1] (0.00ns)   --->   "%weighted_value_0_addr = getelementptr i32 %weighted_value_0, i64 0, i64 %phase_3_cast" [source/swiftkv_attention.cpp:1306]   --->   Operation 28 'getelementptr' 'weighted_value_0_addr' <Predicate = (!icmp_ln1266)> <Delay = 0.00>
+ST_1 : Operation 29 [2/2] (1.19ns)   --->   "%previous = load i3 %weighted_value_0_addr" [source/swiftkv_attention.cpp:1306]   --->   Operation 29 'load' 'previous' <Predicate = (!icmp_ln1266)> <Delay = 1.19> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 32> <Depth = 8> <RAM>
+ST_1 : Operation 30 [1/1] (0.00ns)   --->   "%weighted_value_1_addr = getelementptr i32 %weighted_value_1, i64 0, i64 %phase_3_cast" [source/swiftkv_attention.cpp:1306]   --->   Operation 30 'getelementptr' 'weighted_value_1_addr' <Predicate = (!icmp_ln1266)> <Delay = 0.00>
+ST_1 : Operation 31 [2/2] (1.19ns)   --->   "%previous_7 = load i3 %weighted_value_1_addr" [source/swiftkv_attention.cpp:1306]   --->   Operation 31 'load' 'previous_7' <Predicate = (!icmp_ln1266)> <Delay = 1.19> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 32> <Depth = 8> <RAM>
+ST_1 : Operation 32 [1/1] (0.00ns)   --->   "%weighted_value_2_addr = getelementptr i32 %weighted_value_2, i64 0, i64 %phase_3_cast" [source/swiftkv_attention.cpp:1306]   --->   Operation 32 'getelementptr' 'weighted_value_2_addr' <Predicate = (!icmp_ln1266)> <Delay = 0.00>
+ST_1 : Operation 33 [2/2] (1.19ns)   --->   "%previous_8 = load i3 %weighted_value_2_addr" [source/swiftkv_attention.cpp:1306]   --->   Operation 33 'load' 'previous_8' <Predicate = (!icmp_ln1266)> <Delay = 1.19> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 32> <Depth = 8> <RAM>
+ST_1 : Operation 34 [1/1] (0.00ns)   --->   "%weighted_value_3_addr = getelementptr i32 %weighted_value_3, i64 0, i64 %phase_3_cast" [source/swiftkv_attention.cpp:1306]   --->   Operation 34 'getelementptr' 'weighted_value_3_addr' <Predicate = (!icmp_ln1266)> <Delay = 0.00>
+ST_1 : Operation 35 [2/2] (1.19ns)   --->   "%previous_9 = load i3 %weighted_value_3_addr" [source/swiftkv_attention.cpp:1306]   --->   Operation 35 'load' 'previous_9' <Predicate = (!icmp_ln1266)> <Delay = 1.19> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 32> <Depth = 8> <RAM>
+ST_1 : Operation 36 [1/1] (0.38ns)   --->   "%store_ln1265 = store i16 %update_phase_6, i16 %update_phase" [source/swiftkv_attention.cpp:1265]   --->   Operation 36 'store' 'store_ln1265' <Predicate = (!icmp_ln1266)> <Delay = 0.38>
+
+State 2 <SV = 1> <Delay = 1.92>
+ST_2 : Operation 37 [1/1] (1.21ns)   --->   "%packet = read i57 @_ssdm_op_Read.ap_fifo.volatile.i57P0A, i57 %engine1_phase_stream" [source/swiftkv_attention.cpp:1271]   --->   Operation 37 'read' 'packet' <Predicate = true> <Delay = 1.21> <CoreInst = "FIFO_SRL">   --->   Core 81 'FIFO_SRL' <Latency = 0> <II = 1> <Delay = 1.40> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 57> <Depth = 8> <FIFO>
+ST_2 : Operation 38 [1/1] (0.00ns)   --->   "%value_shift = partselect i5 @_ssdm_op_PartSelect.i5.i57.i32.i32, i57 %packet, i32 32, i32 36" [source/swiftkv_attention.cpp:1276]   --->   Operation 38 'partselect' 'value_shift' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 39 [1/1] (0.00ns)   --->   "%coefficient = partselect i18 @_ssdm_op_PartSelect.i18.i57.i32.i32, i57 %packet, i32 37, i32 54" [source/swiftkv_attention.cpp:1281]   --->   Operation 39 'partselect' 'coefficient' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 40 [1/1] (0.00ns)   --->   "%rescale_history = bitselect i1 @_ssdm_op_BitSelect.i1.i57.i32, i57 %packet, i32 55" [source/swiftkv_attention.cpp:1285]   --->   Operation 40 'bitselect' 'rescale_history' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 41 [1/1] (0.00ns)   --->   "%token_nonzero = bitselect i1 @_ssdm_op_BitSelect.i1.i57.i32, i57 %packet, i32 56" [source/swiftkv_attention.cpp:1287]   --->   Operation 41 'bitselect' 'token_nonzero' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 42 [1/1] (0.00ns)   --->   "%conv_i193 = zext i5 %value_shift" [source/swiftkv_attention.cpp:1276]   --->   Operation 42 'zext' 'conv_i193' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 43 [1/1] (0.00ns)   --->   "%quantized_value = trunc i57 %packet" [source/swiftkv_attention.cpp:1297]   --->   Operation 43 'trunc' 'quantized_value' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 44 [1/1] (0.00ns)   --->   "%sext_ln384 = sext i8 %quantized_value" [source/swiftkv_attention.cpp:384->source/swiftkv_attention.cpp:1303]   --->   Operation 44 'sext' 'sext_ln384' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 45 [1/1] (0.70ns)   --->   "%value = shl i32 %sext_ln384, i32 %conv_i193" [source/swiftkv_attention.cpp:384->source/swiftkv_attention.cpp:1303]   --->   Operation 45 'shl' 'value' <Predicate = true> <Delay = 0.70> <CoreInst = "Shifter">   --->   Core 75 'Shifter' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'shl' 'lshr' 'ashr'> <InPorts = 2> <OutPorts = 1>
+ST_2 : Operation 46 [1/2] (1.19ns)   --->   "%previous = load i3 %weighted_value_0_addr" [source/swiftkv_attention.cpp:1306]   --->   Operation 46 'load' 'previous' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 32> <Depth = 8> <RAM>
+ST_2 : Operation 47 [1/1] (0.00ns)   --->   "%quantized_value_7 = partselect i8 @_ssdm_op_PartSelect.i8.i57.i32.i32, i57 %packet, i32 8, i32 15" [source/swiftkv_attention.cpp:1297]   --->   Operation 47 'partselect' 'quantized_value_7' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 48 [1/1] (0.00ns)   --->   "%sext_ln384_7 = sext i8 %quantized_value_7" [source/swiftkv_attention.cpp:384->source/swiftkv_attention.cpp:1303]   --->   Operation 48 'sext' 'sext_ln384_7' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 49 [1/1] (0.70ns)   --->   "%value_7 = shl i32 %sext_ln384_7, i32 %conv_i193" [source/swiftkv_attention.cpp:384->source/swiftkv_attention.cpp:1303]   --->   Operation 49 'shl' 'value_7' <Predicate = true> <Delay = 0.70> <CoreInst = "Shifter">   --->   Core 75 'Shifter' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'shl' 'lshr' 'ashr'> <InPorts = 2> <OutPorts = 1>
+ST_2 : Operation 50 [1/2] (1.19ns)   --->   "%previous_7 = load i3 %weighted_value_1_addr" [source/swiftkv_attention.cpp:1306]   --->   Operation 50 'load' 'previous_7' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 32> <Depth = 8> <RAM>
+ST_2 : Operation 51 [1/1] (0.00ns)   --->   "%quantized_value_8 = partselect i8 @_ssdm_op_PartSelect.i8.i57.i32.i32, i57 %packet, i32 16, i32 23" [source/swiftkv_attention.cpp:1297]   --->   Operation 51 'partselect' 'quantized_value_8' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 52 [1/1] (0.00ns)   --->   "%sext_ln384_8 = sext i8 %quantized_value_8" [source/swiftkv_attention.cpp:384->source/swiftkv_attention.cpp:1303]   --->   Operation 52 'sext' 'sext_ln384_8' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 53 [1/1] (0.70ns)   --->   "%value_8 = shl i32 %sext_ln384_8, i32 %conv_i193" [source/swiftkv_attention.cpp:384->source/swiftkv_attention.cpp:1303]   --->   Operation 53 'shl' 'value_8' <Predicate = true> <Delay = 0.70> <CoreInst = "Shifter">   --->   Core 75 'Shifter' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'shl' 'lshr' 'ashr'> <InPorts = 2> <OutPorts = 1>
+ST_2 : Operation 54 [1/2] (1.19ns)   --->   "%previous_8 = load i3 %weighted_value_2_addr" [source/swiftkv_attention.cpp:1306]   --->   Operation 54 'load' 'previous_8' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 32> <Depth = 8> <RAM>
+ST_2 : Operation 55 [1/1] (0.00ns)   --->   "%quantized_value_9 = partselect i8 @_ssdm_op_PartSelect.i8.i57.i32.i32, i57 %packet, i32 24, i32 31" [source/swiftkv_attention.cpp:1297]   --->   Operation 55 'partselect' 'quantized_value_9' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 56 [1/1] (0.00ns)   --->   "%sext_ln384_9 = sext i8 %quantized_value_9" [source/swiftkv_attention.cpp:384->source/swiftkv_attention.cpp:1303]   --->   Operation 56 'sext' 'sext_ln384_9' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 57 [1/1] (0.70ns)   --->   "%value_9 = shl i32 %sext_ln384_9, i32 %conv_i193" [source/swiftkv_attention.cpp:384->source/swiftkv_attention.cpp:1303]   --->   Operation 57 'shl' 'value_9' <Predicate = true> <Delay = 0.70> <CoreInst = "Shifter">   --->   Core 75 'Shifter' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'shl' 'lshr' 'ashr'> <InPorts = 2> <OutPorts = 1>
+ST_2 : Operation 58 [1/2] (1.19ns)   --->   "%previous_9 = load i3 %weighted_value_3_addr" [source/swiftkv_attention.cpp:1306]   --->   Operation 58 'load' 'previous_9' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 32> <Depth = 8> <RAM>
+
+State 3 <SV = 2> <Delay = 1.83>
+ST_3 : Operation 59 [1/1] (0.00ns)   --->   "%conv7_i = zext i18 %coefficient" [source/swiftkv_attention.cpp:1281]   --->   Operation 59 'zext' 'conv7_i' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 60 [1/1] (0.22ns)   --->   "%multiply_operand_15 = select i1 %rescale_history, i32 %previous, i32 %value" [source/swiftkv_attention.cpp:1311]   --->   Operation 60 'select' 'multiply_operand_15' <Predicate = (token_nonzero)> <Delay = 0.22> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_3 : Operation 61 [1/1] (0.00ns)   --->   "%sext_ln1316 = sext i32 %multiply_operand_15" [source/swiftkv_attention.cpp:1316]   --->   Operation 61 'sext' 'sext_ln1316' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_3 : Operation 62 [5/5] (1.61ns)   --->   "%mul_ln1316 = mul i50 %sext_ln1316, i50 %conv7_i" [source/swiftkv_attention.cpp:1316]   --->   Operation 62 'mul' 'mul_ln1316' <Predicate = (token_nonzero)> <Delay = 1.61> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 2.27> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_3 : Operation 63 [1/1] (0.22ns)   --->   "%multiply_operand_17 = select i1 %rescale_history, i32 %previous_7, i32 %value_7" [source/swiftkv_attention.cpp:1311]   --->   Operation 63 'select' 'multiply_operand_17' <Predicate = (token_nonzero)> <Delay = 0.22> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_3 : Operation 64 [1/1] (0.00ns)   --->   "%sext_ln1316_7 = sext i32 %multiply_operand_17" [source/swiftkv_attention.cpp:1316]   --->   Operation 64 'sext' 'sext_ln1316_7' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_3 : Operation 65 [5/5] (1.61ns)   --->   "%mul_ln1316_7 = mul i50 %sext_ln1316_7, i50 %conv7_i" [source/swiftkv_attention.cpp:1316]   --->   Operation 65 'mul' 'mul_ln1316_7' <Predicate = (token_nonzero)> <Delay = 1.61> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 2.27> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_3 : Operation 66 [1/1] (0.22ns)   --->   "%multiply_operand_19 = select i1 %rescale_history, i32 %previous_8, i32 %value_8" [source/swiftkv_attention.cpp:1311]   --->   Operation 66 'select' 'multiply_operand_19' <Predicate = (token_nonzero)> <Delay = 0.22> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_3 : Operation 67 [1/1] (0.00ns)   --->   "%sext_ln1316_8 = sext i32 %multiply_operand_19" [source/swiftkv_attention.cpp:1316]   --->   Operation 67 'sext' 'sext_ln1316_8' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_3 : Operation 68 [5/5] (1.61ns)   --->   "%mul_ln1316_8 = mul i50 %sext_ln1316_8, i50 %conv7_i" [source/swiftkv_attention.cpp:1316]   --->   Operation 68 'mul' 'mul_ln1316_8' <Predicate = (token_nonzero)> <Delay = 1.61> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 2.27> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_3 : Operation 69 [1/1] (0.22ns)   --->   "%multiply_operand_21 = select i1 %rescale_history, i32 %previous_9, i32 %value_9" [source/swiftkv_attention.cpp:1311]   --->   Operation 69 'select' 'multiply_operand_21' <Predicate = true> <Delay = 0.22> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_3 : Operation 70 [1/1] (0.00ns)   --->   "%sext_ln1316_9 = sext i32 %multiply_operand_21" [source/swiftkv_attention.cpp:1316]   --->   Operation 70 'sext' 'sext_ln1316_9' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 71 [5/5] (1.61ns)   --->   "%mul_ln1316_9 = mul i50 %sext_ln1316_9, i50 %conv7_i" [source/swiftkv_attention.cpp:1316]   --->   Operation 71 'mul' 'mul_ln1316_9' <Predicate = true> <Delay = 1.61> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 2.27> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+
+State 4 <SV = 3> <Delay = 1.61>
+ST_4 : Operation 72 [4/5] (1.61ns)   --->   "%mul_ln1316 = mul i50 %sext_ln1316, i50 %conv7_i" [source/swiftkv_attention.cpp:1316]   --->   Operation 72 'mul' 'mul_ln1316' <Predicate = (token_nonzero)> <Delay = 1.61> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 2.27> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_4 : Operation 73 [4/5] (1.61ns)   --->   "%mul_ln1316_7 = mul i50 %sext_ln1316_7, i50 %conv7_i" [source/swiftkv_attention.cpp:1316]   --->   Operation 73 'mul' 'mul_ln1316_7' <Predicate = (token_nonzero)> <Delay = 1.61> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 2.27> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_4 : Operation 74 [4/5] (1.61ns)   --->   "%mul_ln1316_8 = mul i50 %sext_ln1316_8, i50 %conv7_i" [source/swiftkv_attention.cpp:1316]   --->   Operation 74 'mul' 'mul_ln1316_8' <Predicate = (token_nonzero)> <Delay = 1.61> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 2.27> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_4 : Operation 75 [4/5] (1.61ns)   --->   "%mul_ln1316_9 = mul i50 %sext_ln1316_9, i50 %conv7_i" [source/swiftkv_attention.cpp:1316]   --->   Operation 75 'mul' 'mul_ln1316_9' <Predicate = true> <Delay = 1.61> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 2.27> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+
+State 5 <SV = 4> <Delay = 1.61>
+ST_5 : Operation 76 [3/5] (1.61ns)   --->   "%mul_ln1316 = mul i50 %sext_ln1316, i50 %conv7_i" [source/swiftkv_attention.cpp:1316]   --->   Operation 76 'mul' 'mul_ln1316' <Predicate = (token_nonzero)> <Delay = 1.61> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 2.27> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_5 : Operation 77 [3/5] (1.61ns)   --->   "%mul_ln1316_7 = mul i50 %sext_ln1316_7, i50 %conv7_i" [source/swiftkv_attention.cpp:1316]   --->   Operation 77 'mul' 'mul_ln1316_7' <Predicate = (token_nonzero)> <Delay = 1.61> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 2.27> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_5 : Operation 78 [3/5] (1.61ns)   --->   "%mul_ln1316_8 = mul i50 %sext_ln1316_8, i50 %conv7_i" [source/swiftkv_attention.cpp:1316]   --->   Operation 78 'mul' 'mul_ln1316_8' <Predicate = (token_nonzero)> <Delay = 1.61> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 2.27> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_5 : Operation 79 [3/5] (1.61ns)   --->   "%mul_ln1316_9 = mul i50 %sext_ln1316_9, i50 %conv7_i" [source/swiftkv_attention.cpp:1316]   --->   Operation 79 'mul' 'mul_ln1316_9' <Predicate = true> <Delay = 1.61> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 2.27> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+
+State 6 <SV = 5> <Delay = 1.61>
+ST_6 : Operation 80 [2/5] (1.61ns)   --->   "%mul_ln1316 = mul i50 %sext_ln1316, i50 %conv7_i" [source/swiftkv_attention.cpp:1316]   --->   Operation 80 'mul' 'mul_ln1316' <Predicate = (token_nonzero)> <Delay = 1.61> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 2.27> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_6 : Operation 81 [2/5] (1.61ns)   --->   "%mul_ln1316_7 = mul i50 %sext_ln1316_7, i50 %conv7_i" [source/swiftkv_attention.cpp:1316]   --->   Operation 81 'mul' 'mul_ln1316_7' <Predicate = (token_nonzero)> <Delay = 1.61> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 2.27> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_6 : Operation 82 [2/5] (1.61ns)   --->   "%mul_ln1316_8 = mul i50 %sext_ln1316_8, i50 %conv7_i" [source/swiftkv_attention.cpp:1316]   --->   Operation 82 'mul' 'mul_ln1316_8' <Predicate = (token_nonzero)> <Delay = 1.61> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 2.27> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_6 : Operation 83 [2/5] (1.61ns)   --->   "%mul_ln1316_9 = mul i50 %sext_ln1316_9, i50 %conv7_i" [source/swiftkv_attention.cpp:1316]   --->   Operation 83 'mul' 'mul_ln1316_9' <Predicate = true> <Delay = 1.61> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 2.27> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+
+State 7 <SV = 6> <Delay = 2.39>
+ST_7 : Operation 84 [1/5] (1.61ns)   --->   "%mul_ln1316 = mul i50 %sext_ln1316, i50 %conv7_i" [source/swiftkv_attention.cpp:1316]   --->   Operation 84 'mul' 'mul_ln1316' <Predicate = (token_nonzero)> <Delay = 1.61> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 2.27> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_7 : Operation 85 [1/1] (0.00ns)   --->   "%specfucore_ln1317 = specfucore void @_ssdm_op_SpecFUCore, i50 %mul_ln1316, i64 12, i64 3, i64 4" [source/swiftkv_attention.cpp:1317]   --->   Operation 85 'specfucore' 'specfucore_ln1317' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 86 [1/1] (0.00ns)   --->   "%trunc_ln1315 = trunc i50 %mul_ln1316" [source/swiftkv_attention.cpp:1315]   --->   Operation 86 'trunc' 'trunc_ln1315' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_7 : Operation 87 [1/1] (0.78ns)   --->   "%icmp_ln1315 = icmp_ne  i16 %trunc_ln1315, i16 0" [source/swiftkv_attention.cpp:1315]   --->   Operation 87 'icmp' 'icmp_ln1315' <Predicate = (token_nonzero)> <Delay = 0.78> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.78> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_7 : Operation 88 [1/5] (1.61ns)   --->   "%mul_ln1316_7 = mul i50 %sext_ln1316_7, i50 %conv7_i" [source/swiftkv_attention.cpp:1316]   --->   Operation 88 'mul' 'mul_ln1316_7' <Predicate = (token_nonzero)> <Delay = 1.61> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 2.27> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_7 : Operation 89 [1/1] (0.00ns)   --->   "%specfucore_ln1317 = specfucore void @_ssdm_op_SpecFUCore, i50 %mul_ln1316_7, i64 12, i64 3, i64 4" [source/swiftkv_attention.cpp:1317]   --->   Operation 89 'specfucore' 'specfucore_ln1317' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 90 [1/1] (0.00ns)   --->   "%trunc_ln1315_7 = trunc i50 %mul_ln1316_7" [source/swiftkv_attention.cpp:1315]   --->   Operation 90 'trunc' 'trunc_ln1315_7' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_7 : Operation 91 [1/1] (0.78ns)   --->   "%icmp_ln1315_7 = icmp_ne  i16 %trunc_ln1315_7, i16 0" [source/swiftkv_attention.cpp:1315]   --->   Operation 91 'icmp' 'icmp_ln1315_7' <Predicate = (token_nonzero)> <Delay = 0.78> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.78> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_7 : Operation 92 [1/5] (1.61ns)   --->   "%mul_ln1316_8 = mul i50 %sext_ln1316_8, i50 %conv7_i" [source/swiftkv_attention.cpp:1316]   --->   Operation 92 'mul' 'mul_ln1316_8' <Predicate = (token_nonzero)> <Delay = 1.61> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 2.27> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_7 : Operation 93 [1/1] (0.00ns)   --->   "%specfucore_ln1317 = specfucore void @_ssdm_op_SpecFUCore, i50 %mul_ln1316_8, i64 12, i64 3, i64 4" [source/swiftkv_attention.cpp:1317]   --->   Operation 93 'specfucore' 'specfucore_ln1317' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 94 [1/1] (0.00ns)   --->   "%trunc_ln1315_8 = trunc i50 %mul_ln1316_8" [source/swiftkv_attention.cpp:1315]   --->   Operation 94 'trunc' 'trunc_ln1315_8' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_7 : Operation 95 [1/1] (0.78ns)   --->   "%icmp_ln1315_8 = icmp_ne  i16 %trunc_ln1315_8, i16 0" [source/swiftkv_attention.cpp:1315]   --->   Operation 95 'icmp' 'icmp_ln1315_8' <Predicate = (token_nonzero)> <Delay = 0.78> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.78> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_7 : Operation 96 [1/5] (1.61ns)   --->   "%mul_ln1316_9 = mul i50 %sext_ln1316_9, i50 %conv7_i" [source/swiftkv_attention.cpp:1316]   --->   Operation 96 'mul' 'mul_ln1316_9' <Predicate = true> <Delay = 1.61> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 2.27> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_7 : Operation 97 [1/1] (0.00ns)   --->   "%specfucore_ln1317 = specfucore void @_ssdm_op_SpecFUCore, i50 %mul_ln1316_9, i64 12, i64 3, i64 4" [source/swiftkv_attention.cpp:1317]   --->   Operation 97 'specfucore' 'specfucore_ln1317' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 98 [1/1] (0.00ns)   --->   "%trunc_ln1315_9 = trunc i50 %mul_ln1316_9" [source/swiftkv_attention.cpp:1315]   --->   Operation 98 'trunc' 'trunc_ln1315_9' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 99 [1/1] (0.78ns)   --->   "%icmp_ln1315_9 = icmp_ne  i16 %trunc_ln1315_9, i16 0" [source/swiftkv_attention.cpp:1315]   --->   Operation 99 'icmp' 'icmp_ln1315_9' <Predicate = true> <Delay = 0.78> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.78> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+
+State 8 <SV = 7> <Delay = 2.21>
+ST_8 : Operation 100 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_14)   --->   "%scaled_operand = partselect i32 @_ssdm_op_PartSelect.i32.i50.i32.i32, i50 %mul_ln1316, i32 17, i32 48" [source/swiftkv_attention.cpp:1315]   --->   Operation 100 'partselect' 'scaled_operand' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 101 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_14)   --->   "%tmp = bitselect i1 @_ssdm_op_BitSelect.i1.i50.i32, i50 %mul_ln1316, i32 17" [source/swiftkv_attention.cpp:1314]   --->   Operation 101 'bitselect' 'tmp' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 102 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_14)   --->   "%tmp_72 = bitselect i1 @_ssdm_op_BitSelect.i1.i50.i32, i50 %mul_ln1316, i32 16" [source/swiftkv_attention.cpp:1315]   --->   Operation 102 'bitselect' 'tmp_72' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 103 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_14)   --->   "%or_ln1315 = or i1 %tmp, i1 %icmp_ln1315" [source/swiftkv_attention.cpp:1315]   --->   Operation 103 'or' 'or_ln1315' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 104 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_14)   --->   "%and_ln1315 = and i1 %or_ln1315, i1 %tmp_72" [source/swiftkv_attention.cpp:1315]   --->   Operation 104 'and' 'and_ln1315' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 105 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_14)   --->   "%zext_ln1315 = zext i1 %and_ln1315" [source/swiftkv_attention.cpp:1315]   --->   Operation 105 'zext' 'zext_ln1315' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 106 [1/1] (0.88ns) (out node of the LUT)   --->   "%scaled_operand_14 = add i32 %scaled_operand, i32 %zext_ln1315" [source/swiftkv_attention.cpp:1315]   --->   Operation 106 'add' 'scaled_operand_14' <Predicate = (token_nonzero)> <Delay = 0.88> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.88> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 107 [1/1] (0.00ns)   --->   "%sext_ln1324 = sext i32 %scaled_operand_14" [source/swiftkv_attention.cpp:1324]   --->   Operation 107 'sext' 'sext_ln1324' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 108 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_16)   --->   "%scaled_operand_15 = partselect i32 @_ssdm_op_PartSelect.i32.i50.i32.i32, i50 %mul_ln1316_7, i32 17, i32 48" [source/swiftkv_attention.cpp:1315]   --->   Operation 108 'partselect' 'scaled_operand_15' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 109 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_16)   --->   "%tmp_73 = bitselect i1 @_ssdm_op_BitSelect.i1.i50.i32, i50 %mul_ln1316_7, i32 17" [source/swiftkv_attention.cpp:1315]   --->   Operation 109 'bitselect' 'tmp_73' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 110 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_16)   --->   "%tmp_74 = bitselect i1 @_ssdm_op_BitSelect.i1.i50.i32, i50 %mul_ln1316_7, i32 16" [source/swiftkv_attention.cpp:1315]   --->   Operation 110 'bitselect' 'tmp_74' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 111 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_16)   --->   "%or_ln1315_7 = or i1 %tmp_73, i1 %icmp_ln1315_7" [source/swiftkv_attention.cpp:1315]   --->   Operation 111 'or' 'or_ln1315_7' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 112 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_16)   --->   "%and_ln1315_7 = and i1 %or_ln1315_7, i1 %tmp_74" [source/swiftkv_attention.cpp:1315]   --->   Operation 112 'and' 'and_ln1315_7' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 113 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_16)   --->   "%zext_ln1315_7 = zext i1 %and_ln1315_7" [source/swiftkv_attention.cpp:1315]   --->   Operation 113 'zext' 'zext_ln1315_7' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 114 [1/1] (0.88ns) (out node of the LUT)   --->   "%scaled_operand_16 = add i32 %scaled_operand_15, i32 %zext_ln1315_7" [source/swiftkv_attention.cpp:1315]   --->   Operation 114 'add' 'scaled_operand_16' <Predicate = (token_nonzero)> <Delay = 0.88> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.88> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 115 [1/1] (0.00ns)   --->   "%sext_ln1324_15 = sext i32 %scaled_operand_16" [source/swiftkv_attention.cpp:1324]   --->   Operation 115 'sext' 'sext_ln1324_15' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 116 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_17)   --->   "%scaled_operand_2 = partselect i32 @_ssdm_op_PartSelect.i32.i50.i32.i32, i50 %mul_ln1316_8, i32 17, i32 48" [source/swiftkv_attention.cpp:1315]   --->   Operation 116 'partselect' 'scaled_operand_2' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 117 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_17)   --->   "%tmp_75 = bitselect i1 @_ssdm_op_BitSelect.i1.i50.i32, i50 %mul_ln1316_8, i32 17" [source/swiftkv_attention.cpp:1315]   --->   Operation 117 'bitselect' 'tmp_75' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 118 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_17)   --->   "%tmp_76 = bitselect i1 @_ssdm_op_BitSelect.i1.i50.i32, i50 %mul_ln1316_8, i32 16" [source/swiftkv_attention.cpp:1315]   --->   Operation 118 'bitselect' 'tmp_76' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 119 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_17)   --->   "%or_ln1315_8 = or i1 %tmp_75, i1 %icmp_ln1315_8" [source/swiftkv_attention.cpp:1315]   --->   Operation 119 'or' 'or_ln1315_8' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 120 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_17)   --->   "%and_ln1315_8 = and i1 %or_ln1315_8, i1 %tmp_76" [source/swiftkv_attention.cpp:1315]   --->   Operation 120 'and' 'and_ln1315_8' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 121 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_17)   --->   "%zext_ln1315_8 = zext i1 %and_ln1315_8" [source/swiftkv_attention.cpp:1315]   --->   Operation 121 'zext' 'zext_ln1315_8' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 122 [1/1] (0.88ns) (out node of the LUT)   --->   "%scaled_operand_17 = add i32 %scaled_operand_2, i32 %zext_ln1315_8" [source/swiftkv_attention.cpp:1315]   --->   Operation 122 'add' 'scaled_operand_17' <Predicate = (token_nonzero)> <Delay = 0.88> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.88> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 123 [1/1] (0.00ns)   --->   "%sext_ln1324_16 = sext i32 %scaled_operand_17" [source/swiftkv_attention.cpp:1324]   --->   Operation 123 'sext' 'sext_ln1324_16' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 124 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_18)   --->   "%scaled_operand_3 = partselect i32 @_ssdm_op_PartSelect.i32.i50.i32.i32, i50 %mul_ln1316_9, i32 17, i32 48" [source/swiftkv_attention.cpp:1315]   --->   Operation 124 'partselect' 'scaled_operand_3' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 125 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_18)   --->   "%tmp_77 = bitselect i1 @_ssdm_op_BitSelect.i1.i50.i32, i50 %mul_ln1316_9, i32 17" [source/swiftkv_attention.cpp:1315]   --->   Operation 125 'bitselect' 'tmp_77' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 126 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_18)   --->   "%tmp_78 = bitselect i1 @_ssdm_op_BitSelect.i1.i50.i32, i50 %mul_ln1316_9, i32 16" [source/swiftkv_attention.cpp:1315]   --->   Operation 126 'bitselect' 'tmp_78' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 127 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_18)   --->   "%or_ln1315_9 = or i1 %tmp_77, i1 %icmp_ln1315_9" [source/swiftkv_attention.cpp:1315]   --->   Operation 127 'or' 'or_ln1315_9' <Predicate = true> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 128 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_18)   --->   "%and_ln1315_9 = and i1 %or_ln1315_9, i1 %tmp_78" [source/swiftkv_attention.cpp:1315]   --->   Operation 128 'and' 'and_ln1315_9' <Predicate = true> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 129 [1/1] (0.00ns) (grouped into LUT with out node scaled_operand_18)   --->   "%zext_ln1315_9 = zext i1 %and_ln1315_9" [source/swiftkv_attention.cpp:1315]   --->   Operation 129 'zext' 'zext_ln1315_9' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 130 [1/1] (0.88ns) (out node of the LUT)   --->   "%scaled_operand_18 = add i32 %scaled_operand_3, i32 %zext_ln1315_9" [source/swiftkv_attention.cpp:1315]   --->   Operation 130 'add' 'scaled_operand_18' <Predicate = true> <Delay = 0.88> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.88> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 131 [1/1] (0.00ns)   --->   "%sext_ln1324_17 = sext i32 %scaled_operand_18" [source/swiftkv_attention.cpp:1324]   --->   Operation 131 'sext' 'sext_ln1324_17' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 132 [1/1] (0.00ns)   --->   "%sext_ln1321 = sext i32 %value" [source/swiftkv_attention.cpp:1321]   --->   Operation 132 'sext' 'sext_ln1321' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 133 [1/1] (0.88ns)   --->   "%add_ln1321 = add i33 %sext_ln1324, i33 %sext_ln1321" [source/swiftkv_attention.cpp:1321]   --->   Operation 133 'add' 'add_ln1321' <Predicate = (token_nonzero)> <Delay = 0.88> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.88> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 134 [1/1] (0.00ns)   --->   "%tmp_79 = bitselect i1 @_ssdm_op_BitSelect.i1.i33.i32, i33 %add_ln1321, i32 32" [source/swiftkv_attention.cpp:1320]   --->   Operation 134 'bitselect' 'tmp_79' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 135 [1/1] (0.00ns) (grouped into LUT with out node select_ln1320_13)   --->   "%trunc_ln1320 = trunc i33 %add_ln1321" [source/swiftkv_attention.cpp:1320]   --->   Operation 135 'trunc' 'trunc_ln1320' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 136 [1/1] (0.00ns)   --->   "%tmp_80 = bitselect i1 @_ssdm_op_BitSelect.i1.i33.i32, i33 %add_ln1321, i32 31" [source/swiftkv_attention.cpp:1320]   --->   Operation 136 'bitselect' 'tmp_80' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 137 [1/1] (0.00ns) (grouped into LUT with out node select_ln1320_13)   --->   "%xor_ln1320 = xor i1 %tmp_79, i1 1" [source/swiftkv_attention.cpp:1320]   --->   Operation 137 'xor' 'xor_ln1320' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 138 [1/1] (0.00ns) (grouped into LUT with out node select_ln1320_13)   --->   "%and_ln1320 = and i1 %tmp_80, i1 %xor_ln1320" [source/swiftkv_attention.cpp:1320]   --->   Operation 138 'and' 'and_ln1320' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 139 [1/1] (0.00ns) (grouped into LUT with out node select_ln1320_13)   --->   "%xor_ln1320_15 = xor i1 %tmp_79, i1 %tmp_80" [source/swiftkv_attention.cpp:1320]   --->   Operation 139 'xor' 'xor_ln1320_15' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 140 [1/1] (0.00ns) (grouped into LUT with out node select_ln1320_13)   --->   "%select_ln1320 = select i1 %and_ln1320, i32 2147483647, i32 2147483648" [source/swiftkv_attention.cpp:1320]   --->   Operation 140 'select' 'select_ln1320' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 141 [1/1] (0.22ns) (out node of the LUT)   --->   "%select_ln1320_13 = select i1 %xor_ln1320_15, i32 %select_ln1320, i32 %trunc_ln1320" [source/swiftkv_attention.cpp:1320]   --->   Operation 141 'select' 'select_ln1320_13' <Predicate = (token_nonzero)> <Delay = 0.22> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 142 [1/1] (0.00ns)   --->   "%sext_ln1321_7 = sext i32 %value_7" [source/swiftkv_attention.cpp:1321]   --->   Operation 142 'sext' 'sext_ln1321_7' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 143 [1/1] (0.88ns)   --->   "%add_ln1321_7 = add i33 %sext_ln1324_15, i33 %sext_ln1321_7" [source/swiftkv_attention.cpp:1321]   --->   Operation 143 'add' 'add_ln1321_7' <Predicate = (token_nonzero)> <Delay = 0.88> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.88> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 144 [1/1] (0.00ns)   --->   "%tmp_81 = bitselect i1 @_ssdm_op_BitSelect.i1.i33.i32, i33 %add_ln1321_7, i32 32" [source/swiftkv_attention.cpp:1320]   --->   Operation 144 'bitselect' 'tmp_81' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 145 [1/1] (0.00ns) (grouped into LUT with out node select_ln1320_15)   --->   "%trunc_ln1320_7 = trunc i33 %add_ln1321_7" [source/swiftkv_attention.cpp:1320]   --->   Operation 145 'trunc' 'trunc_ln1320_7' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 146 [1/1] (0.00ns)   --->   "%tmp_82 = bitselect i1 @_ssdm_op_BitSelect.i1.i33.i32, i33 %add_ln1321_7, i32 31" [source/swiftkv_attention.cpp:1320]   --->   Operation 146 'bitselect' 'tmp_82' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 147 [1/1] (0.00ns) (grouped into LUT with out node select_ln1320_15)   --->   "%xor_ln1320_16 = xor i1 %tmp_81, i1 1" [source/swiftkv_attention.cpp:1320]   --->   Operation 147 'xor' 'xor_ln1320_16' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 148 [1/1] (0.00ns) (grouped into LUT with out node select_ln1320_15)   --->   "%and_ln1320_7 = and i1 %tmp_82, i1 %xor_ln1320_16" [source/swiftkv_attention.cpp:1320]   --->   Operation 148 'and' 'and_ln1320_7' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 149 [1/1] (0.00ns) (grouped into LUT with out node select_ln1320_15)   --->   "%xor_ln1320_17 = xor i1 %tmp_81, i1 %tmp_82" [source/swiftkv_attention.cpp:1320]   --->   Operation 149 'xor' 'xor_ln1320_17' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 150 [1/1] (0.00ns) (grouped into LUT with out node select_ln1320_15)   --->   "%select_ln1320_14 = select i1 %and_ln1320_7, i32 2147483647, i32 2147483648" [source/swiftkv_attention.cpp:1320]   --->   Operation 150 'select' 'select_ln1320_14' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 151 [1/1] (0.22ns) (out node of the LUT)   --->   "%select_ln1320_15 = select i1 %xor_ln1320_17, i32 %select_ln1320_14, i32 %trunc_ln1320_7" [source/swiftkv_attention.cpp:1320]   --->   Operation 151 'select' 'select_ln1320_15' <Predicate = (token_nonzero)> <Delay = 0.22> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 152 [1/1] (0.00ns)   --->   "%sext_ln1321_8 = sext i32 %value_8" [source/swiftkv_attention.cpp:1321]   --->   Operation 152 'sext' 'sext_ln1321_8' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 153 [1/1] (0.88ns)   --->   "%add_ln1321_8 = add i33 %sext_ln1324_16, i33 %sext_ln1321_8" [source/swiftkv_attention.cpp:1321]   --->   Operation 153 'add' 'add_ln1321_8' <Predicate = (token_nonzero)> <Delay = 0.88> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.88> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 154 [1/1] (0.00ns)   --->   "%tmp_83 = bitselect i1 @_ssdm_op_BitSelect.i1.i33.i32, i33 %add_ln1321_8, i32 32" [source/swiftkv_attention.cpp:1320]   --->   Operation 154 'bitselect' 'tmp_83' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 155 [1/1] (0.00ns) (grouped into LUT with out node select_ln1320_17)   --->   "%trunc_ln1320_8 = trunc i33 %add_ln1321_8" [source/swiftkv_attention.cpp:1320]   --->   Operation 155 'trunc' 'trunc_ln1320_8' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 156 [1/1] (0.00ns)   --->   "%tmp_84 = bitselect i1 @_ssdm_op_BitSelect.i1.i33.i32, i33 %add_ln1321_8, i32 31" [source/swiftkv_attention.cpp:1320]   --->   Operation 156 'bitselect' 'tmp_84' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 157 [1/1] (0.00ns) (grouped into LUT with out node select_ln1320_17)   --->   "%xor_ln1320_18 = xor i1 %tmp_83, i1 1" [source/swiftkv_attention.cpp:1320]   --->   Operation 157 'xor' 'xor_ln1320_18' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 158 [1/1] (0.00ns) (grouped into LUT with out node select_ln1320_17)   --->   "%and_ln1320_8 = and i1 %tmp_84, i1 %xor_ln1320_18" [source/swiftkv_attention.cpp:1320]   --->   Operation 158 'and' 'and_ln1320_8' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 159 [1/1] (0.00ns) (grouped into LUT with out node select_ln1320_17)   --->   "%xor_ln1320_19 = xor i1 %tmp_83, i1 %tmp_84" [source/swiftkv_attention.cpp:1320]   --->   Operation 159 'xor' 'xor_ln1320_19' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 160 [1/1] (0.00ns) (grouped into LUT with out node select_ln1320_17)   --->   "%select_ln1320_16 = select i1 %and_ln1320_8, i32 2147483647, i32 2147483648" [source/swiftkv_attention.cpp:1320]   --->   Operation 160 'select' 'select_ln1320_16' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 161 [1/1] (0.22ns) (out node of the LUT)   --->   "%select_ln1320_17 = select i1 %xor_ln1320_19, i32 %select_ln1320_16, i32 %trunc_ln1320_8" [source/swiftkv_attention.cpp:1320]   --->   Operation 161 'select' 'select_ln1320_17' <Predicate = (token_nonzero)> <Delay = 0.22> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 162 [1/1] (0.00ns)   --->   "%sext_ln1321_9 = sext i32 %value_9" [source/swiftkv_attention.cpp:1321]   --->   Operation 162 'sext' 'sext_ln1321_9' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 163 [1/1] (0.88ns)   --->   "%add_ln1321_9 = add i33 %sext_ln1324_17, i33 %sext_ln1321_9" [source/swiftkv_attention.cpp:1321]   --->   Operation 163 'add' 'add_ln1321_9' <Predicate = true> <Delay = 0.88> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.88> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 164 [1/1] (0.00ns)   --->   "%tmp_85 = bitselect i1 @_ssdm_op_BitSelect.i1.i33.i32, i33 %add_ln1321_9, i32 32" [source/swiftkv_attention.cpp:1320]   --->   Operation 164 'bitselect' 'tmp_85' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 165 [1/1] (0.00ns)   --->   "%tmp_86 = bitselect i1 @_ssdm_op_BitSelect.i1.i33.i32, i33 %add_ln1321_9, i32 31" [source/swiftkv_attention.cpp:1320]   --->   Operation 165 'bitselect' 'tmp_86' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 166 [1/1] (0.00ns) (grouped into LUT with out node select_ln1320_18)   --->   "%xor_ln1320_20 = xor i1 %tmp_85, i1 1" [source/swiftkv_attention.cpp:1320]   --->   Operation 166 'xor' 'xor_ln1320_20' <Predicate = true> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 167 [1/1] (0.00ns) (grouped into LUT with out node select_ln1320_18)   --->   "%and_ln1320_9 = and i1 %tmp_86, i1 %xor_ln1320_20" [source/swiftkv_attention.cpp:1320]   --->   Operation 167 'and' 'and_ln1320_9' <Predicate = true> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 168 [1/1] (0.12ns)   --->   "%xor_ln1320_21 = xor i1 %tmp_85, i1 %tmp_86" [source/swiftkv_attention.cpp:1320]   --->   Operation 168 'xor' 'xor_ln1320_21' <Predicate = true> <Delay = 0.12> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 169 [1/1] (0.00ns)   --->   "%sext_ln1324_18 = sext i32 %previous" [source/swiftkv_attention.cpp:1324]   --->   Operation 169 'sext' 'sext_ln1324_18' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 170 [1/1] (0.88ns)   --->   "%add_ln1324 = add i33 %sext_ln1324, i33 %sext_ln1324_18" [source/swiftkv_attention.cpp:1324]   --->   Operation 170 'add' 'add_ln1324' <Predicate = (token_nonzero)> <Delay = 0.88> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.88> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 171 [1/1] (0.00ns)   --->   "%tmp_87 = bitselect i1 @_ssdm_op_BitSelect.i1.i33.i32, i33 %add_ln1324, i32 32" [source/swiftkv_attention.cpp:1323]   --->   Operation 171 'bitselect' 'tmp_87' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 172 [1/1] (0.00ns) (grouped into LUT with out node select_ln1323_13)   --->   "%trunc_ln1323 = trunc i33 %add_ln1324" [source/swiftkv_attention.cpp:1323]   --->   Operation 172 'trunc' 'trunc_ln1323' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 173 [1/1] (0.00ns)   --->   "%tmp_88 = bitselect i1 @_ssdm_op_BitSelect.i1.i33.i32, i33 %add_ln1324, i32 31" [source/swiftkv_attention.cpp:1323]   --->   Operation 173 'bitselect' 'tmp_88' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 174 [1/1] (0.00ns) (grouped into LUT with out node select_ln1323_13)   --->   "%xor_ln1323 = xor i1 %tmp_87, i1 1" [source/swiftkv_attention.cpp:1323]   --->   Operation 174 'xor' 'xor_ln1323' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 175 [1/1] (0.00ns) (grouped into LUT with out node select_ln1323_13)   --->   "%and_ln1323 = and i1 %tmp_88, i1 %xor_ln1323" [source/swiftkv_attention.cpp:1323]   --->   Operation 175 'and' 'and_ln1323' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 176 [1/1] (0.00ns) (grouped into LUT with out node select_ln1323_13)   --->   "%xor_ln1323_15 = xor i1 %tmp_87, i1 %tmp_88" [source/swiftkv_attention.cpp:1323]   --->   Operation 176 'xor' 'xor_ln1323_15' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 177 [1/1] (0.00ns) (grouped into LUT with out node select_ln1323_13)   --->   "%select_ln1323 = select i1 %and_ln1323, i32 2147483647, i32 2147483648" [source/swiftkv_attention.cpp:1323]   --->   Operation 177 'select' 'select_ln1323' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 178 [1/1] (0.22ns) (out node of the LUT)   --->   "%select_ln1323_13 = select i1 %xor_ln1323_15, i32 %select_ln1323, i32 %trunc_ln1323" [source/swiftkv_attention.cpp:1323]   --->   Operation 178 'select' 'select_ln1323_13' <Predicate = (token_nonzero)> <Delay = 0.22> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 179 [1/1] (0.00ns)   --->   "%sext_ln1324_19 = sext i32 %previous_7" [source/swiftkv_attention.cpp:1324]   --->   Operation 179 'sext' 'sext_ln1324_19' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 180 [1/1] (0.88ns)   --->   "%add_ln1324_7 = add i33 %sext_ln1324_15, i33 %sext_ln1324_19" [source/swiftkv_attention.cpp:1324]   --->   Operation 180 'add' 'add_ln1324_7' <Predicate = (token_nonzero)> <Delay = 0.88> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.88> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 181 [1/1] (0.00ns)   --->   "%tmp_89 = bitselect i1 @_ssdm_op_BitSelect.i1.i33.i32, i33 %add_ln1324_7, i32 32" [source/swiftkv_attention.cpp:1323]   --->   Operation 181 'bitselect' 'tmp_89' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 182 [1/1] (0.00ns) (grouped into LUT with out node select_ln1323_15)   --->   "%trunc_ln1323_7 = trunc i33 %add_ln1324_7" [source/swiftkv_attention.cpp:1323]   --->   Operation 182 'trunc' 'trunc_ln1323_7' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 183 [1/1] (0.00ns)   --->   "%tmp_90 = bitselect i1 @_ssdm_op_BitSelect.i1.i33.i32, i33 %add_ln1324_7, i32 31" [source/swiftkv_attention.cpp:1323]   --->   Operation 183 'bitselect' 'tmp_90' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 184 [1/1] (0.00ns) (grouped into LUT with out node select_ln1323_15)   --->   "%xor_ln1323_16 = xor i1 %tmp_89, i1 1" [source/swiftkv_attention.cpp:1323]   --->   Operation 184 'xor' 'xor_ln1323_16' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 185 [1/1] (0.00ns) (grouped into LUT with out node select_ln1323_15)   --->   "%and_ln1323_7 = and i1 %tmp_90, i1 %xor_ln1323_16" [source/swiftkv_attention.cpp:1323]   --->   Operation 185 'and' 'and_ln1323_7' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 186 [1/1] (0.00ns) (grouped into LUT with out node select_ln1323_15)   --->   "%xor_ln1323_17 = xor i1 %tmp_89, i1 %tmp_90" [source/swiftkv_attention.cpp:1323]   --->   Operation 186 'xor' 'xor_ln1323_17' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 187 [1/1] (0.00ns) (grouped into LUT with out node select_ln1323_15)   --->   "%select_ln1323_14 = select i1 %and_ln1323_7, i32 2147483647, i32 2147483648" [source/swiftkv_attention.cpp:1323]   --->   Operation 187 'select' 'select_ln1323_14' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 188 [1/1] (0.22ns) (out node of the LUT)   --->   "%select_ln1323_15 = select i1 %xor_ln1323_17, i32 %select_ln1323_14, i32 %trunc_ln1323_7" [source/swiftkv_attention.cpp:1323]   --->   Operation 188 'select' 'select_ln1323_15' <Predicate = (token_nonzero)> <Delay = 0.22> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 189 [1/1] (0.00ns)   --->   "%sext_ln1324_20 = sext i32 %previous_8" [source/swiftkv_attention.cpp:1324]   --->   Operation 189 'sext' 'sext_ln1324_20' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 190 [1/1] (0.88ns)   --->   "%add_ln1324_8 = add i33 %sext_ln1324_16, i33 %sext_ln1324_20" [source/swiftkv_attention.cpp:1324]   --->   Operation 190 'add' 'add_ln1324_8' <Predicate = (token_nonzero)> <Delay = 0.88> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.88> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 191 [1/1] (0.00ns)   --->   "%tmp_91 = bitselect i1 @_ssdm_op_BitSelect.i1.i33.i32, i33 %add_ln1324_8, i32 32" [source/swiftkv_attention.cpp:1323]   --->   Operation 191 'bitselect' 'tmp_91' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 192 [1/1] (0.00ns) (grouped into LUT with out node select_ln1323_17)   --->   "%trunc_ln1323_8 = trunc i33 %add_ln1324_8" [source/swiftkv_attention.cpp:1323]   --->   Operation 192 'trunc' 'trunc_ln1323_8' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 193 [1/1] (0.00ns)   --->   "%tmp_92 = bitselect i1 @_ssdm_op_BitSelect.i1.i33.i32, i33 %add_ln1324_8, i32 31" [source/swiftkv_attention.cpp:1323]   --->   Operation 193 'bitselect' 'tmp_92' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 194 [1/1] (0.00ns) (grouped into LUT with out node select_ln1323_17)   --->   "%xor_ln1323_18 = xor i1 %tmp_91, i1 1" [source/swiftkv_attention.cpp:1323]   --->   Operation 194 'xor' 'xor_ln1323_18' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 195 [1/1] (0.00ns) (grouped into LUT with out node select_ln1323_17)   --->   "%and_ln1323_8 = and i1 %tmp_92, i1 %xor_ln1323_18" [source/swiftkv_attention.cpp:1323]   --->   Operation 195 'and' 'and_ln1323_8' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 196 [1/1] (0.00ns) (grouped into LUT with out node select_ln1323_17)   --->   "%xor_ln1323_19 = xor i1 %tmp_91, i1 %tmp_92" [source/swiftkv_attention.cpp:1323]   --->   Operation 196 'xor' 'xor_ln1323_19' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 197 [1/1] (0.00ns) (grouped into LUT with out node select_ln1323_17)   --->   "%select_ln1323_16 = select i1 %and_ln1323_8, i32 2147483647, i32 2147483648" [source/swiftkv_attention.cpp:1323]   --->   Operation 197 'select' 'select_ln1323_16' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 198 [1/1] (0.22ns) (out node of the LUT)   --->   "%select_ln1323_17 = select i1 %xor_ln1323_19, i32 %select_ln1323_16, i32 %trunc_ln1323_8" [source/swiftkv_attention.cpp:1323]   --->   Operation 198 'select' 'select_ln1323_17' <Predicate = (token_nonzero)> <Delay = 0.22> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 199 [1/1] (0.00ns)   --->   "%sext_ln1324_21 = sext i32 %previous_9" [source/swiftkv_attention.cpp:1324]   --->   Operation 199 'sext' 'sext_ln1324_21' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 200 [1/1] (0.88ns)   --->   "%add_ln1324_9 = add i33 %sext_ln1324_17, i33 %sext_ln1324_21" [source/swiftkv_attention.cpp:1324]   --->   Operation 200 'add' 'add_ln1324_9' <Predicate = true> <Delay = 0.88> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.88> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 201 [1/1] (0.00ns)   --->   "%tmp_93 = bitselect i1 @_ssdm_op_BitSelect.i1.i33.i32, i33 %add_ln1324_9, i32 32" [source/swiftkv_attention.cpp:1323]   --->   Operation 201 'bitselect' 'tmp_93' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 202 [1/1] (0.00ns) (grouped into LUT with out node select_ln1320_19)   --->   "%trunc_ln1323_9 = trunc i33 %add_ln1324_9" [source/swiftkv_attention.cpp:1323]   --->   Operation 202 'trunc' 'trunc_ln1323_9' <Predicate = (token_nonzero)> <Delay = 0.00>
+ST_8 : Operation 203 [1/1] (0.00ns)   --->   "%tmp_94 = bitselect i1 @_ssdm_op_BitSelect.i1.i33.i32, i33 %add_ln1324_9, i32 31" [source/swiftkv_attention.cpp:1323]   --->   Operation 203 'bitselect' 'tmp_94' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 204 [1/1] (0.00ns) (grouped into LUT with out node and_ln1323_11)   --->   "%xor_ln1323_21 = xor i1 %tmp_93, i1 %tmp_94" [source/swiftkv_attention.cpp:1323]   --->   Operation 204 'xor' 'xor_ln1323_21' <Predicate = true> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 205 [1/1] (0.22ns) (out node of the LUT)   --->   "%select_ln1320_18 = select i1 %and_ln1320_9, i32 2147483647, i32 2147483648" [source/swiftkv_attention.cpp:1320]   --->   Operation 205 'select' 'select_ln1320_18' <Predicate = true> <Delay = 0.22> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 206 [1/1] (0.12ns)   --->   "%and_ln1285 = and i1 %token_nonzero, i1 %rescale_history" [source/swiftkv_attention.cpp:1285]   --->   Operation 206 'and' 'and_ln1285' <Predicate = true> <Delay = 0.12> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 207 [1/1] (0.00ns) (grouped into LUT with out node select_ln1287)   --->   "%select_ln1285 = select i1 %and_ln1285, i32 %select_ln1320_17, i32 %select_ln1323_17" [source/swiftkv_attention.cpp:1285]   --->   Operation 207 'select' 'select_ln1285' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 208 [1/1] (0.22ns) (out node of the LUT)   --->   "%select_ln1287 = select i1 %token_nonzero, i32 %select_ln1285, i32 %value_8" [source/swiftkv_attention.cpp:1287]   --->   Operation 208 'select' 'select_ln1287' <Predicate = true> <Delay = 0.22> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 209 [1/1] (0.00ns) (grouped into LUT with out node select_ln1287_7)   --->   "%select_ln1285_5 = select i1 %and_ln1285, i32 %select_ln1320_13, i32 %select_ln1323_13" [source/swiftkv_attention.cpp:1285]   --->   Operation 209 'select' 'select_ln1285_5' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 210 [1/1] (0.22ns) (out node of the LUT)   --->   "%select_ln1287_7 = select i1 %token_nonzero, i32 %select_ln1285_5, i32 %value" [source/swiftkv_attention.cpp:1287]   --->   Operation 210 'select' 'select_ln1287_7' <Predicate = true> <Delay = 0.22> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 211 [1/1] (0.00ns) (grouped into LUT with out node select_ln1287_8)   --->   "%select_ln1285_6 = select i1 %and_ln1285, i32 %select_ln1320_15, i32 %select_ln1323_15" [source/swiftkv_attention.cpp:1285]   --->   Operation 211 'select' 'select_ln1285_6' <Predicate = (token_nonzero)> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 212 [1/1] (0.22ns) (out node of the LUT)   --->   "%select_ln1287_8 = select i1 %token_nonzero, i32 %select_ln1285_6, i32 %value_7" [source/swiftkv_attention.cpp:1287]   --->   Operation 212 'select' 'select_ln1287_8' <Predicate = true> <Delay = 0.22> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 213 [1/1] (0.00ns) (grouped into LUT with out node select_ln1320_19)   --->   "%select_ln1287_9 = select i1 %token_nonzero, i32 %trunc_ln1323_9, i32 %value_9" [source/swiftkv_attention.cpp:1287]   --->   Operation 213 'select' 'select_ln1287_9' <Predicate = true> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 214 [1/1] (0.00ns) (grouped into LUT with out node select_ln1320_19)   --->   "%and_ln1320_10 = and i1 %and_ln1285, i1 %xor_ln1320_21" [source/swiftkv_attention.cpp:1320]   --->   Operation 214 'and' 'and_ln1320_10' <Predicate = true> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 215 [1/1] (0.22ns) (out node of the LUT)   --->   "%select_ln1320_19 = select i1 %and_ln1320_10, i32 %select_ln1320_18, i32 %select_ln1287_9" [source/swiftkv_attention.cpp:1320]   --->   Operation 215 'select' 'select_ln1320_19' <Predicate = true> <Delay = 0.22> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 216 [1/1] (0.00ns) (grouped into LUT with out node and_ln1323_11)   --->   "%xor_ln1285 = xor i1 %rescale_history, i1 1" [source/swiftkv_attention.cpp:1285]   --->   Operation 216 'xor' 'xor_ln1285' <Predicate = true> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 217 [1/1] (0.00ns) (grouped into LUT with out node and_ln1323_11)   --->   "%and_ln1323_10 = and i1 %xor_ln1323_21, i1 %xor_ln1285" [source/swiftkv_attention.cpp:1323]   --->   Operation 217 'and' 'and_ln1323_10' <Predicate = true> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 218 [1/1] (0.12ns) (out node of the LUT)   --->   "%and_ln1323_11 = and i1 %and_ln1323_10, i1 %token_nonzero" [source/swiftkv_attention.cpp:1323]   --->   Operation 218 'and' 'and_ln1323_11' <Predicate = true> <Delay = 0.12> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 243 [1/1] (0.00ns)   --->   "%ret_ln0 = ret"   --->   Operation 243 'ret' 'ret_ln0' <Predicate = (icmp_ln1266)> <Delay = 0.00>
+
+State 9 <SV = 8> <Delay = 1.65>
+ST_9 : Operation 219 [1/1] (0.00ns)   --->   "%specpipeline_ln1268 = specpipeline void @_ssdm_op_SpecPipeline, i32 1, i32 0, i32 0, i32 0, void @empty_418" [source/swiftkv_attention.cpp:1268]   --->   Operation 219 'specpipeline' 'specpipeline_ln1268' <Predicate = true> <Delay = 0.00>
+ST_9 : Operation 220 [1/1] (0.00ns)   --->   "%speclooptripcount_ln1265 = speclooptripcount void @_ssdm_op_SpecLoopTripCount, i64 8, i64 32768, i64 16388" [source/swiftkv_attention.cpp:1265]   --->   Operation 220 'speclooptripcount' 'speclooptripcount_ln1265' <Predicate = true> <Delay = 0.00>
+ST_9 : Operation 221 [1/1] (0.00ns)   --->   "%specloopname_ln1265 = specloopname void @_ssdm_op_SpecLoopName, void @empty_460" [source/swiftkv_attention.cpp:1265]   --->   Operation 221 'specloopname' 'specloopname_ln1265' <Predicate = true> <Delay = 0.00>
+ST_9 : Operation 222 [1/1] (0.00ns)   --->   "%rbegin9 = specregionbegin i32 @_ssdm_op_SpecRegionBegin, void @empty_407" [source/swiftkv_attention.cpp:1314]   --->   Operation 222 'specregionbegin' 'rbegin9' <Predicate = true> <Delay = 0.00>
+ST_9 : Operation 223 [1/1] (0.00ns)   --->   "%rend10 = specregionend i32 @_ssdm_op_SpecRegionEnd, void @empty_407, i32 %rbegin9" [source/swiftkv_attention.cpp:1314]   --->   Operation 223 'specregionend' 'rend10' <Predicate = true> <Delay = 0.00>
+ST_9 : Operation 224 [1/1] (0.00ns)   --->   "%rbegin7 = specregionbegin i32 @_ssdm_op_SpecRegionBegin, void @empty_406" [source/swiftkv_attention.cpp:1314]   --->   Operation 224 'specregionbegin' 'rbegin7' <Predicate = true> <Delay = 0.00>
+ST_9 : Operation 225 [1/1] (0.00ns)   --->   "%rend8 = specregionend i32 @_ssdm_op_SpecRegionEnd, void @empty_406, i32 %rbegin7" [source/swiftkv_attention.cpp:1314]   --->   Operation 225 'specregionend' 'rend8' <Predicate = true> <Delay = 0.00>
+ST_9 : Operation 226 [1/1] (0.00ns)   --->   "%rbegin5 = specregionbegin i32 @_ssdm_op_SpecRegionBegin, void @empty_405" [source/swiftkv_attention.cpp:1314]   --->   Operation 226 'specregionbegin' 'rbegin5' <Predicate = true> <Delay = 0.00>
+ST_9 : Operation 227 [1/1] (0.00ns)   --->   "%rend6 = specregionend i32 @_ssdm_op_SpecRegionEnd, void @empty_405, i32 %rbegin5" [source/swiftkv_attention.cpp:1314]   --->   Operation 227 'specregionend' 'rend6' <Predicate = true> <Delay = 0.00>
+ST_9 : Operation 228 [1/1] (0.00ns)   --->   "%rbegin = specregionbegin i32 @_ssdm_op_SpecRegionBegin, void @empty_404" [source/swiftkv_attention.cpp:1314]   --->   Operation 228 'specregionbegin' 'rbegin' <Predicate = true> <Delay = 0.00>
+ST_9 : Operation 229 [1/1] (0.00ns)   --->   "%rend = specregionend i32 @_ssdm_op_SpecRegionEnd, void @empty_404, i32 %rbegin" [source/swiftkv_attention.cpp:1314]   --->   Operation 229 'specregionend' 'rend' <Predicate = true> <Delay = 0.00>
+ST_9 : Operation 230 [1/1] (0.00ns) (grouped into LUT with out node next_value)   --->   "%trunc_ln1320_9 = trunc i33 %add_ln1321_9" [source/swiftkv_attention.cpp:1320]   --->   Operation 230 'trunc' 'trunc_ln1320_9' <Predicate = true> <Delay = 0.00>
+ST_9 : Operation 231 [1/1] (0.00ns) (grouped into LUT with out node select_ln1323_18)   --->   "%xor_ln1323_20 = xor i1 %tmp_93, i1 1" [source/swiftkv_attention.cpp:1323]   --->   Operation 231 'xor' 'xor_ln1323_20' <Predicate = (and_ln1323_11)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_9 : Operation 232 [1/1] (0.00ns) (grouped into LUT with out node select_ln1323_18)   --->   "%and_ln1323_9 = and i1 %tmp_94, i1 %xor_ln1323_20" [source/swiftkv_attention.cpp:1323]   --->   Operation 232 'and' 'and_ln1323_9' <Predicate = (and_ln1323_11)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_9 : Operation 233 [1/1] (0.22ns) (out node of the LUT)   --->   "%select_ln1323_18 = select i1 %and_ln1323_9, i32 2147483647, i32 2147483648" [source/swiftkv_attention.cpp:1323]   --->   Operation 233 'select' 'select_ln1323_18' <Predicate = (and_ln1323_11)> <Delay = 0.22> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_9 : Operation 234 [1/1] (0.00ns) (grouped into LUT with out node next_value)   --->   "%select_ln1323_19 = select i1 %and_ln1323_11, i32 %select_ln1323_18, i32 %select_ln1320_19" [source/swiftkv_attention.cpp:1323]   --->   Operation 234 'select' 'select_ln1323_19' <Predicate = true> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_9 : Operation 235 [1/1] (0.00ns) (grouped into LUT with out node next_value)   --->   "%xor_ln1320_22 = xor i1 %xor_ln1320_21, i1 1" [source/swiftkv_attention.cpp:1320]   --->   Operation 235 'xor' 'xor_ln1320_22' <Predicate = true> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_9 : Operation 236 [1/1] (0.00ns) (grouped into LUT with out node next_value)   --->   "%and_ln1320_11 = and i1 %and_ln1285, i1 %xor_ln1320_22" [source/swiftkv_attention.cpp:1320]   --->   Operation 236 'and' 'and_ln1320_11' <Predicate = true> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_9 : Operation 237 [1/1] (0.22ns) (out node of the LUT)   --->   "%next_value = select i1 %and_ln1320_11, i32 %trunc_ln1320_9, i32 %select_ln1323_19" [source/swiftkv_attention.cpp:1320]   --->   Operation 237 'select' 'next_value' <Predicate = true> <Delay = 0.22> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_9 : Operation 238 [1/1] (1.19ns)   --->   "%store_ln1327 = store i32 %select_ln1287_7, i3 %weighted_value_0_addr" [source/swiftkv_attention.cpp:1327]   --->   Operation 238 'store' 'store_ln1327' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 32> <Depth = 8> <RAM>
+ST_9 : Operation 239 [1/1] (1.19ns)   --->   "%store_ln1327 = store i32 %select_ln1287_8, i3 %weighted_value_1_addr" [source/swiftkv_attention.cpp:1327]   --->   Operation 239 'store' 'store_ln1327' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 32> <Depth = 8> <RAM>
+ST_9 : Operation 240 [1/1] (1.19ns)   --->   "%store_ln1327 = store i32 %select_ln1287, i3 %weighted_value_2_addr" [source/swiftkv_attention.cpp:1327]   --->   Operation 240 'store' 'store_ln1327' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 32> <Depth = 8> <RAM>
+ST_9 : Operation 241 [1/1] (1.19ns)   --->   "%store_ln1327 = store i32 %next_value, i3 %weighted_value_3_addr" [source/swiftkv_attention.cpp:1327]   --->   Operation 241 'store' 'store_ln1327' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 32> <Depth = 8> <RAM>
+ST_9 : Operation 242 [1/1] (0.00ns)   --->   "%br_ln1265 = br void %for.body13" [source/swiftkv_attention.cpp:1265]   --->   Operation 242 'br' 'br_ln1265' <Predicate = true> <Delay = 0.00>
+
+
+============================================================
++ Verbose Summary: Timing violations
+============================================================
+Target clock period: 3.333ns, clock uncertainty: 0.900ns.
+
+ <State 1>: 1.583ns
+The critical path consists of the following:
+	'store' operation 0 bit ('store_ln1265', source/swiftkv_attention.cpp:1265) of constant 0 on local variable 'update_phase', source/swiftkv_attention.cpp:1265 [15]  (0.387 ns)
+	'load' operation 16 bit ('update_phase', source/swiftkv_attention.cpp:1266) on local variable 'update_phase', source/swiftkv_attention.cpp:1265 [18]  (0.000 ns)
+	'getelementptr' operation 3 bit ('weighted_value_0_addr', source/swiftkv_attention.cpp:1306) [38]  (0.000 ns)
+	'load' operation 32 bit ('previous', source/swiftkv_attention.cpp:1306) on array 'weighted_value_0' [39]  (1.196 ns)
+
+ <State 2>: 1.923ns
+The critical path consists of the following:
+	fifo read operation ('packet', source/swiftkv_attention.cpp:1271) on port 'engine1_phase_stream' (source/swiftkv_attention.cpp:1271) [27]  (1.217 ns)
+	'shl' operation 32 bit ('value', source/swiftkv_attention.cpp:384->source/swiftkv_attention.cpp:1303) [37]  (0.706 ns)
+
+ <State 3>: 1.838ns
+The critical path consists of the following:
+	'select' operation 32 bit ('multiply_operand', source/swiftkv_attention.cpp:1311) [55]  (0.227 ns)
+	'mul' operation 50 bit ('mul_ln1316', source/swiftkv_attention.cpp:1316) [58]  (1.611 ns)
+
+ <State 4>: 1.611ns
+The critical path consists of the following:
+	'mul' operation 50 bit ('mul_ln1316', source/swiftkv_attention.cpp:1316) [58]  (1.611 ns)
+
+ <State 5>: 1.611ns
+The critical path consists of the following:
+	'mul' operation 50 bit ('mul_ln1316', source/swiftkv_attention.cpp:1316) [58]  (1.611 ns)
+
+ <State 6>: 1.611ns
+The critical path consists of the following:
+	'mul' operation 50 bit ('mul_ln1316', source/swiftkv_attention.cpp:1316) [58]  (1.611 ns)
+
+ <State 7>: 2.396ns
+The critical path consists of the following:
+	'mul' operation 50 bit ('mul_ln1316', source/swiftkv_attention.cpp:1316) [58]  (1.611 ns)
+	'icmp' operation 1 bit ('icmp_ln1315', source/swiftkv_attention.cpp:1315) [64]  (0.785 ns)
+
+ <State 8>: 2.214ns
+The critical path consists of the following:
+	'add' operation 32 bit ('scaled_operand', source/swiftkv_attention.cpp:1315) [100]  (0.880 ns)
+	'add' operation 33 bit ('add_ln1321_8', source/swiftkv_attention.cpp:1321) [140]  (0.880 ns)
+	'select' operation 32 bit ('select_ln1320_17', source/swiftkv_attention.cpp:1320) [148]  (0.227 ns)
+	'select' operation 32 bit ('select_ln1285', source/swiftkv_attention.cpp:1285) [198]  (0.000 ns)
+	'select' operation 32 bit ('select_ln1287', source/swiftkv_attention.cpp:1287) [199]  (0.227 ns)
+
+ <State 9>: 1.650ns
+The critical path consists of the following:
+	'xor' operation 1 bit ('xor_ln1323_20', source/swiftkv_attention.cpp:1323) [192]  (0.000 ns)
+	'and' operation 1 bit ('and_ln1323_9', source/swiftkv_attention.cpp:1323) [193]  (0.000 ns)
+	'select' operation 32 bit ('select_ln1323_18', source/swiftkv_attention.cpp:1323) [196]  (0.227 ns)
+	'select' operation 32 bit ('select_ln1323_19', source/swiftkv_attention.cpp:1323) [210]  (0.000 ns)
+	'select' operation 32 bit ('next_value', source/swiftkv_attention.cpp:1320) [213]  (0.227 ns)
+	'store' operation 0 bit ('store_ln1327', source/swiftkv_attention.cpp:1327) of variable 'next_value', source/swiftkv_attention.cpp:1320 on array 'weighted_value_3' [217]  (1.196 ns)
+
+
+============================================================
++ Verbose Summary: Binding
+============================================================
+N/A
+* FSMD analyzer results:
+  - Output states:
+ - Input state : 
+  - Chain level:
+	State 1
+	State 2
+	State 3
+	State 4
+	State 5
+	State 6
+	State 7
+	State 8
+	State 9
+
+
+============================================================
++ Verbose Summary: Datapath Resource usage 
+============================================================
+N/A

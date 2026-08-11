@@ -1,0 +1,33 @@
+<root versionMajor = "1" versionMinor = "5">
+  <kernel name="int4_decoder_token_controller" language="c" vlnv="xilinx.com:hls:int4_decoder_token_controller:1.0" attributes="" hash="" preferredWorkGroupSizeMultiple="0" workGroupSize="1" debug="false" compileOptions="" profileType="" hwControlProtocol="ap_ctrl_chain">
+    <ports>
+      <port name="M_AXI_GMEM0" portType="addressable" mode="master" base="0x0" range="0xFFFFFFFF" dataWidth="512"/>
+      <port name="M_AXI_GMEM1" portType="addressable" mode="master" base="0x0" range="0xFFFFFFFF" dataWidth="512"/>
+      <port name="M_AXI_GMEM2" portType="addressable" mode="master" base="0x0" range="0xFFFFFFFF" dataWidth="512"/>
+      <port name="M_AXI_GMEM3" portType="addressable" mode="master" base="0x0" range="0xFFFFFFFF" dataWidth="512"/>
+      <port name="S_AXI_CONTROL" portType="addressable" mode="slave" base="0x0" range="0xE4" dataWidth="32"/>
+    </ports>
+    <args>
+      <arg id="0" name="position" addressQualifier="0" port="S_AXI_CONTROL" hostOffset="0x0" hostSize="0x2" offset="0x10" size="0x4" type="unsigned int"/>
+      <arg id="1" name="model_bank0" addressQualifier="1" port="M_AXI_GMEM0" hostOffset="0x0" hostSize="0x8" offset="0x18" size="0x8" type="void*"/>
+      <arg id="2" name="model_bank1" addressQualifier="1" port="M_AXI_GMEM1" hostOffset="0x0" hostSize="0x8" offset="0x24" size="0x8" type="void*"/>
+      <arg id="3" name="model_bank2" addressQualifier="1" port="M_AXI_GMEM2" hostOffset="0x0" hostSize="0x8" offset="0x30" size="0x8" type="void*"/>
+      <arg id="4" name="model_bank3" addressQualifier="1" port="M_AXI_GMEM3" hostOffset="0x0" hostSize="0x8" offset="0x3C" size="0x8" type="void*"/>
+      <arg id="5" name="rope_lut_ddr" addressQualifier="1" port="M_AXI_GMEM0" hostOffset="0x0" hostSize="0x8" offset="0x48" size="0x8" type="void*"/>
+      <arg id="6" name="residual_pe0" addressQualifier="1" port="M_AXI_GMEM0" hostOffset="0x0" hostSize="0x8" offset="0x54" size="0x8" type="void*"/>
+      <arg id="7" name="residual_pe1" addressQualifier="1" port="M_AXI_GMEM1" hostOffset="0x0" hostSize="0x8" offset="0x60" size="0x8" type="void*"/>
+      <arg id="8" name="residual_pe2" addressQualifier="1" port="M_AXI_GMEM2" hostOffset="0x0" hostSize="0x8" offset="0x6C" size="0x8" type="void*"/>
+      <arg id="9" name="residual_pe3" addressQualifier="1" port="M_AXI_GMEM3" hostOffset="0x0" hostSize="0x8" offset="0x78" size="0x8" type="void*"/>
+      <arg id="10" name="logits_pe0" addressQualifier="1" port="M_AXI_GMEM0" hostOffset="0x0" hostSize="0x8" offset="0x84" size="0x8" type="void*"/>
+      <arg id="11" name="logits_pe1" addressQualifier="1" port="M_AXI_GMEM1" hostOffset="0x0" hostSize="0x8" offset="0x90" size="0x8" type="void*"/>
+      <arg id="12" name="logits_pe2" addressQualifier="1" port="M_AXI_GMEM2" hostOffset="0x0" hostSize="0x8" offset="0x9C" size="0x8" type="void*"/>
+      <arg id="13" name="logits_pe3" addressQualifier="1" port="M_AXI_GMEM3" hostOffset="0x0" hostSize="0x8" offset="0xA8" size="0x8" type="void*"/>
+      <arg id="14" name="kv_cache_pe0" addressQualifier="1" port="M_AXI_GMEM0" hostOffset="0x0" hostSize="0x8" offset="0xB4" size="0x8" type="void*"/>
+      <arg id="15" name="kv_cache_pe1" addressQualifier="1" port="M_AXI_GMEM1" hostOffset="0x0" hostSize="0x8" offset="0xC0" size="0x8" type="void*"/>
+      <arg id="16" name="kv_cache_pe2" addressQualifier="1" port="M_AXI_GMEM2" hostOffset="0x0" hostSize="0x8" offset="0xCC" size="0x8" type="void*"/>
+      <arg id="17" name="kv_cache_pe3" addressQualifier="1" port="M_AXI_GMEM3" hostOffset="0x0" hostSize="0x8" offset="0xD8" size="0x8" type="void*"/>
+    </args>
+    <compileWorkGroupSize x="1" y="1" z="1"/>
+    <maxWorkGroupSize x="1" y="1" z="1"/>
+  </kernel>
+</root>

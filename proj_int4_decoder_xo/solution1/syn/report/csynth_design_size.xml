@@ -1,0 +1,572 @@
+<design_size title="Design Size Report">
+    <item name="Total Instructions per Compilation Phase">
+        <table>
+            <keys size="4">Phase, Step, Instructions, Description</keys>
+            <column name="Compile/Link">, 272593 *, After all functions are compiled and linked into a single design</column>
+            <column name="">, , </column>
+            <column name="Unroll/Inline">, , After user unroll and inline pragmas are applied</column>
+            <column name="">(1) unroll,  66492, user unroll pragmas are applied</column>
+            <column name="">(2) simplification,  38501, simplification of applied user unroll pragmas</column>
+            <column name="">(3) inline,  32466, user inline pragmas are applied</column>
+            <column name="">(4) simplification,  30645, simplification of applied user inline pragmas</column>
+            <column name="">, , </column>
+            <column name="Array/Struct">, , After user array partition and struct aggregate/disaggregate pragmas are applied</column>
+            <column name="">(1) array partition,  39796, user array partition pragmas are applied</column>
+            <column name="">(2) simplification,  28954, simplification of applied user array partition &amp; struct aggregate/disaggregate pragmas</column>
+            <column name="">(3) aggregate/disaggregate ,  28962, user struct aggregate/disaggregate pragmas are applied</column>
+            <column name="">(4) array reshape,  28930, apply array reshape pragmas</column>
+            <column name="">(5) access patterns,  29485, array access pattern optmizations</column>
+            <column name="">, , </column>
+            <column name="Performance">, , After transformations are applied to meet performance pragma targets</column>
+            <column name="">(1) loop simplification,  28845, loop and instruction simplification</column>
+            <column name="">(2) parallelization,  28778, loops are unrolled or pipelined to meet performance targets</column>
+            <column name="">(3) array partition,  28794, arrays are partitioned to meet performance targets</column>
+            <column name="">(4) simplification,  28794, simplification of design after performance transformations</column>
+            <column name="">, , </column>
+            <column name="HW Transforms">, , After hardware transfomations</column>
+            <column name="">(1) lowering,  29131, initial conversion to HW specific instructions</column>
+            <column name="">(2) optimizations,  30323, high level synthesis optimizations</column>
+        </table>
+    </item>
+    <item name="Instructions per Function for each Compilation Phase">
+        <hiertable>
+            <header size="7" col0="Function" col1="Location" col2="Compile/Link" col3="Unroll/Inline" col4="Array/Struct" col5="Performance" col6="HW Transforms"/>
+            <rows>
+                <row id="0" col0="int4_decoder_token_controller" col1="int4_decoder_controller.cpp:509" col2="272593" col2_note="*" col3="30645" col4="29485" col5="28794" col6="30323">
+                    <row id="115" col0="swiftkv_preload_rope_lut" col1="swiftkv_attention.cpp:1662" col2="220" col3="19" col4="20" col5="20" col6="23"/>
+                    <row id="19" col0="int4_preload_model_prefix_4ddr" col1="int4_decoder_controller.cpp:405" col2="51" col3="35" col4="51" col5="43" col6="48"/>
+                    <row id="64" col0="swiftkv_load_rope_position" col1="swiftkv_attention.cpp:1691" col2="346" col3="29" col4="29" col5="28" col6="36"/>
+                    <row id="17" col0="int4_load_residual_4ddr" col1="int4_decoder_controller.cpp:457" col2="34" col3="22" col4="30" col5="30" col6="35"/>
+                    <row id="37" col0="int4_model_weight_base" col1="int4_model_layout.hpp:196" col2="8" col2_disp="     8 (4 calls)" col3="" col4="" col5="" col6=""/>
+                    <row id="8" col0="Int4Controller" col1="int4_linear_controller.hpp:138" col2="267" col3="" col4="" col5="" col6=""/>
+                    <row id="11" col0="int4_norm_offset" col1="int4_model_layout.hpp:202" col2="11" col3="" col4="" col5="" col6=""/>
+                    <row id="16" col0="int4_dispatch_linear_registered" col1="int4_decoder_controller.cpp:317" col2="58328" col3="13047" col4="12125" col5="11857" col6="12588">
+                        <row id="103" col0="int4_execute_dispatch_linear" col1="int4_decoder_controller.cpp:166" col2="58283" col3="13033" col4="12117" col5="11849" col6="12575">
+                            <row id="101" col0="int4_run_preprocess_and_linear" col1="int4_decoder_controller.cpp:46" col2="57928" col3="12813" col4="11896" col5="11629" col6="12308">
+                                <row id="87" col0="int4_preprocess_activation_stream" col1="int4_decoder_controller.cpp:10" col2="23597" col3="2397" col4="1855" col5="1698" col6="2020">
+                                    <row id="73" col0="int4_rmsnorm_quantize_stream_4pe" col1="int4_decoder_blocks.cpp:440" col2="12182" col3="1442" col4="1210" col5="1066" col6="1272">
+                                        <row id="85" col0="int4_rms_sumsq_four_pes" col1="int4_decoder_blocks.cpp:302" col2="818" col3="524" col4="598" col5="466" col6="549">
+                                            <row id="65" col0="int4_rms_sumsq_pe" col1="int4_decoder_blocks.cpp:40" col2="700" col2_disp="   700 (4 calls)" col3="476" col3_disp="  476 (4 calls)" col4="568" col4_disp="  568 (4 calls)" col5="436" col5_disp="  436 (4 calls)" col6="496" col6_disp="  496 (4 calls)">
+                                                <row id="86" col0="int4_block_unpack_fp32_lanes" col1="int4_decoder_blocks.cpp:26" col2="288" col2_disp="   288 (4 calls)" col3="" col4="" col5="" col6=""/>
+                                                <row id="56" col0="int4_block_bits_to_float" col1="int4_decoder_blocks.cpp:12" col2="72" col2_disp="    72 (4 calls)" col3="" col4="" col5="" col6=""/>
+                                            </row>
+                                            <row id="53" col0="int4_rms_merge_and_rsqrt" col1="int4_decoder_blocks.cpp:84" col2="62" col3="12" col4="12" col5="12" col6="25">
+                                                <row id="2" col0="rsqrtf" col1="rsqrtfloat.cpp:20" col2="2" col3="" col4="" col5="" col6=""/>
+                                            </row>
+                                        </row>
+                                        <row id="81" col0="int4_rms_normalize_quantize_four_pes_stream" col1="int4_decoder_blocks.cpp:386" col2="11351" col3="909" col4="603" col5="591" col6="716">
+                                            <row id="88" col0="int4_rms_normalize_quantize_pe" col1="int4_decoder_blocks.cpp:100" col2="11072" col2_disp="11,072 (4 calls)" col3="828" col3_disp="  828 (4 calls)" col4="536" col4_disp="  536 (4 calls)" col5="524" col5_disp="  524 (4 calls)" col6="604" col6_disp="  604 (4 calls)">
+                                                <row id="86" col0="int4_block_unpack_fp32_lanes" col1="int4_decoder_blocks.cpp:26" col2="576" col2_disp="   576 (8 calls)" col3="" col4="" col5="" col6=""/>
+                                                <row id="56" col0="int4_block_bits_to_float" col1="int4_decoder_blocks.cpp:12" col2="216" col2_disp="   216 (12 calls)" col3="" col4="" col5="" col6=""/>
+                                                <row id="92" col0="int4_block_float_to_bits" col1="int4_decoder_blocks.cpp:19" col2="104" col2_disp="   104 (4 calls)" col3="" col4="" col5="" col6=""/>
+                                            </row>
+                                            <row id="28" col0="int4_rms_gather_streams" col1="int4_decoder_blocks.cpp:254" col2="191" col3="33" col4="33" col5="33" col6="64"/>
+                                        </row>
+                                    </row>
+                                    <row id="24" col0="int4_swiglu_quantize_stream_4pe" col1="int4_decoder_blocks.cpp:1147" col2="11405" col3="948" col4="638" col5="625" col6="740">
+                                        <row id="47" col0="int4_swiglu_quantize_four_pes_stream" col1="int4_decoder_blocks.cpp:1043" col2="11400" col3="946" col4="636" col5="623" col6="737">
+                                            <row id="93" col0="int4_swiglu_quantize_pe0" col1="int4_decoder_blocks.cpp:804" col2="2778" col3="214" col4="140" col5="137" col6="154">
+                                                <row id="27" col0="int4_swiglu_quantize_pe&lt;88&gt;" col1="int4_decoder_blocks.cpp:706" col2="2776" col3="" col4="" col5="" col6="">
+                                                    <row id="86" col0="int4_block_unpack_fp32_lanes" col1="int4_decoder_blocks.cpp:26" col2="144" col2_disp="   144 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                                    <row id="56" col0="int4_block_bits_to_float" col1="int4_decoder_blocks.cpp:12" col2="54" col2_disp="    54 (3 calls)" col3="" col4="" col5="" col6=""/>
+                                                    <row id="58" col0="expf" col1="expfloat.cpp:20" col2="4" col3="" col4="" col5="" col6="">
+                                                        <row id="61" col0="exp" col1="hls_exp_float.cpp:15" col2="2" col3="" col4="" col5="" col6=""/>
+                                                    </row>
+                                                    <row id="92" col0="int4_block_float_to_bits" col1="int4_decoder_blocks.cpp:19" col2="26" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                            </row>
+                                            <row id="62" col0="int4_swiglu_quantize_pe1" col1="int4_decoder_blocks.cpp:815" col2="2778" col3="214" col4="140" col5="137" col6="154">
+                                                <row id="27" col0="int4_swiglu_quantize_pe&lt;88&gt;" col1="int4_decoder_blocks.cpp:706" col2="2776" col3="" col4="" col5="" col6="">
+                                                    <row id="86" col0="int4_block_unpack_fp32_lanes" col1="int4_decoder_blocks.cpp:26" col2="144" col2_disp="   144 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                                    <row id="56" col0="int4_block_bits_to_float" col1="int4_decoder_blocks.cpp:12" col2="54" col2_disp="    54 (3 calls)" col3="" col4="" col5="" col6=""/>
+                                                    <row id="58" col0="expf" col1="expfloat.cpp:20" col2="4" col3="" col4="" col5="" col6="">
+                                                        <row id="61" col0="exp" col1="hls_exp_float.cpp:15" col2="2" col3="" col4="" col5="" col6=""/>
+                                                    </row>
+                                                    <row id="92" col0="int4_block_float_to_bits" col1="int4_decoder_blocks.cpp:19" col2="26" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                            </row>
+                                            <row id="57" col0="int4_swiglu_quantize_pe2" col1="int4_decoder_blocks.cpp:826" col2="2778" col3="214" col4="140" col5="137" col6="154">
+                                                <row id="55" col0="int4_swiglu_quantize_pe&lt;84&gt;" col1="int4_decoder_blocks.cpp:706" col2="2776" col3="" col4="" col5="" col6="">
+                                                    <row id="86" col0="int4_block_unpack_fp32_lanes" col1="int4_decoder_blocks.cpp:26" col2="144" col2_disp="   144 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                                    <row id="56" col0="int4_block_bits_to_float" col1="int4_decoder_blocks.cpp:12" col2="54" col2_disp="    54 (3 calls)" col3="" col4="" col5="" col6=""/>
+                                                    <row id="58" col0="expf" col1="expfloat.cpp:20" col2="4" col3="" col4="" col5="" col6="">
+                                                        <row id="61" col0="exp" col1="hls_exp_float.cpp:15" col2="2" col3="" col4="" col5="" col6=""/>
+                                                    </row>
+                                                    <row id="92" col0="int4_block_float_to_bits" col1="int4_decoder_blocks.cpp:19" col2="26" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                            </row>
+                                            <row id="67" col0="int4_swiglu_quantize_pe3" col1="int4_decoder_blocks.cpp:837" col2="2778" col3="214" col4="140" col5="137" col6="154">
+                                                <row id="55" col0="int4_swiglu_quantize_pe&lt;84&gt;" col1="int4_decoder_blocks.cpp:706" col2="2776" col3="" col4="" col5="" col6="">
+                                                    <row id="86" col0="int4_block_unpack_fp32_lanes" col1="int4_decoder_blocks.cpp:26" col2="144" col2_disp="   144 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                                    <row id="56" col0="int4_block_bits_to_float" col1="int4_decoder_blocks.cpp:12" col2="54" col2_disp="    54 (3 calls)" col3="" col4="" col5="" col6=""/>
+                                                    <row id="58" col0="expf" col1="expfloat.cpp:20" col2="4" col3="" col4="" col5="" col6="">
+                                                        <row id="61" col0="exp" col1="hls_exp_float.cpp:15" col2="2" col3="" col4="" col5="" col6=""/>
+                                                    </row>
+                                                    <row id="92" col0="int4_block_float_to_bits" col1="int4_decoder_blocks.cpp:19" col2="26" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                            </row>
+                                            <row id="95" col0="int4_swiglu_gather_streams" col1="int4_decoder_blocks.cpp:930" col2="196" col3="38" col4="38" col5="37" col6="69"/>
+                                        </row>
+                                    </row>
+                                </row>
+                                <row id="60" col0="int4_linear_4pe_from_stream" col1="int4_linear_controller.cpp:1431" col2="34301" col3="10396" col4="10029" col5="9919" col6="10271">
+                                    <row id="43" col0="int4_linear_shape_from_controller" col1="int4_linear_controller.cpp:123" col2="59" col3="" col4="" col5="" col6=""/>
+                                    <row id="83" col0="int4_local_tile_count" col1="int4_linear_controller.cpp:169" col2="40" col2_disp="    40 (4 calls)" col3="" col4="" col5="" col6=""/>
+                                    <row id="107" col0="int4_run_four_pes" col1="int4_linear_controller.cpp:928" col2="33015" col3="10289" col4="9922" col5="9812" col6="10163">
+                                        <row id="69" col0="int4_broadcast_linear_commands" col1="int4_linear_controller.cpp:791" col2="985" col3="14" col4="14" col5="14" col6="23">
+                                            <row id="38" col0="int4_pack_linear_pe_command" col1="int4_linear_controller.cpp:776" col2="940" col2_disp="   940 (4 calls)" col3="" col4="" col5="" col6=""/>
+                                        </row>
+                                        <row id="1" col0="int4_broadcast_activation" col1="int4_linear_controller.cpp:248" col2="935" col3="84" col4="85" col5="83" col6="103">
+                                            <row id="109" col0="int4_float_to_bits" col1="int4_linear_controller.cpp:21" col2="26" col3="" col4="" col5="" col6=""/>
+                                            <row id="111" col0="int4_bits_to_float" col1="int4_linear_controller.cpp:14" col2="18" col3="" col4="" col5="" col6=""/>
+                                        </row>
+                                        <row id="70" col0="int4_run_pe_dataflow&lt;0&gt;" col1="int4_linear_controller.cpp:816" col2="7736" col3="2525" col4="2442" col5="2415" col6="2491">
+                                            <row id="106" col0="int4_stream_pe_inputs" col1="int4_linear_controller.cpp:392" col2="18" col3="15" col4="19" col5="17" col6="25"/>
+                                            <row id="3" col0="int4_cache_and_replay_activation&lt;0&gt;" col1="int4_linear_controller.cpp:355" col2="87" col3="45" col4="45" col5="42" col6="56"/>
+                                            <row id="114" col0="int4_stream_integer_blocks" col1="int4_linear_controller.cpp:447" col2="1928" col3="1720" col4="1715" col5="1713" col6="1729">
+                                                <row id="89" col0="int4_pack_two_weights" col1="int4_linear_controller.cpp:178" col2="273" col3="" col4="" col5="" col6=""/>
+                                                <row id="25" col0="int4_unpack_pair_sum" col1="int4_linear_controller.cpp:195" col2="752" col2_disp="   752 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                            </row>
+                                            <row id="113" col0="int4_dequantize_final_blocks" col1="int4_linear_controller.cpp:536" col2="2234" col3="321" col4="325" col5="324" col6="332">
+                                                <row id="51" col0="int4_half_bits_to_float" col1="int4_linear_controller.cpp:28" col2="1424" col3="" col4="" col5="" col6="">
+                                                    <row id="111" col0="int4_bits_to_float" col1="int4_linear_controller.cpp:14" col2="18" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                                <row id="109" col0="int4_float_to_bits" col1="int4_linear_controller.cpp:21" col2="26" col3="" col4="" col5="" col6=""/>
+                                            </row>
+                                            <row id="41" col0="int4_pack_dequantized_outputs" col1="int4_linear_controller.cpp:653" col2="2654" col3="103" col4="103" col5="102" col6="108">
+                                                <row id="111" col0="int4_bits_to_float" col1="int4_linear_controller.cpp:14" col2="18" col3="" col4="" col5="" col6=""/>
+                                                <row id="54" col0="int4_float_to_fxp_bits" col1="int4_linear_controller.cpp:72" col2="2047" col3="" col4="" col5="" col6="">
+                                                    <row id="109" col0="int4_float_to_bits" col1="int4_linear_controller.cpp:21" col2="26" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                            </row>
+                                            <row id="104" col0="int4_write_outputs" col1="int4_linear_controller.cpp:689" col2="386" col3="235" col4="185" col5="167" col6="180">
+                                                <row id="111" col0="int4_bits_to_float" col1="int4_linear_controller.cpp:14" col2="36" col2_disp="    36 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                                <row id="109" col0="int4_float_to_bits" col1="int4_linear_controller.cpp:21" col2="26" col3="" col4="" col5="" col6=""/>
+                                            </row>
+                                        </row>
+                                        <row id="110" col0="int4_run_pe_dataflow&lt;1&gt;" col1="int4_linear_controller.cpp:816" col2="7736" col3="2525" col4="2442" col5="2415" col6="2491">
+                                            <row id="106" col0="int4_stream_pe_inputs" col1="int4_linear_controller.cpp:392" col2="18" col3="15" col4="19" col5="17" col6="25"/>
+                                            <row id="117" col0="int4_cache_and_replay_activation&lt;1&gt;" col1="int4_linear_controller.cpp:355" col2="87" col3="45" col4="45" col5="42" col6="56"/>
+                                            <row id="114" col0="int4_stream_integer_blocks" col1="int4_linear_controller.cpp:447" col2="1928" col3="1720" col4="1715" col5="1713" col6="1729">
+                                                <row id="89" col0="int4_pack_two_weights" col1="int4_linear_controller.cpp:178" col2="273" col3="" col4="" col5="" col6=""/>
+                                                <row id="25" col0="int4_unpack_pair_sum" col1="int4_linear_controller.cpp:195" col2="752" col2_disp="   752 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                            </row>
+                                            <row id="113" col0="int4_dequantize_final_blocks" col1="int4_linear_controller.cpp:536" col2="2234" col3="321" col4="325" col5="324" col6="332">
+                                                <row id="51" col0="int4_half_bits_to_float" col1="int4_linear_controller.cpp:28" col2="1424" col3="" col4="" col5="" col6="">
+                                                    <row id="111" col0="int4_bits_to_float" col1="int4_linear_controller.cpp:14" col2="18" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                                <row id="109" col0="int4_float_to_bits" col1="int4_linear_controller.cpp:21" col2="26" col3="" col4="" col5="" col6=""/>
+                                            </row>
+                                            <row id="41" col0="int4_pack_dequantized_outputs" col1="int4_linear_controller.cpp:653" col2="2654" col3="103" col4="103" col5="102" col6="108">
+                                                <row id="111" col0="int4_bits_to_float" col1="int4_linear_controller.cpp:14" col2="18" col3="" col4="" col5="" col6=""/>
+                                                <row id="54" col0="int4_float_to_fxp_bits" col1="int4_linear_controller.cpp:72" col2="2047" col3="" col4="" col5="" col6="">
+                                                    <row id="109" col0="int4_float_to_bits" col1="int4_linear_controller.cpp:21" col2="26" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                            </row>
+                                            <row id="104" col0="int4_write_outputs" col1="int4_linear_controller.cpp:689" col2="386" col3="235" col4="185" col5="167" col6="180">
+                                                <row id="111" col0="int4_bits_to_float" col1="int4_linear_controller.cpp:14" col2="36" col2_disp="    36 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                                <row id="109" col0="int4_float_to_bits" col1="int4_linear_controller.cpp:21" col2="26" col3="" col4="" col5="" col6=""/>
+                                            </row>
+                                        </row>
+                                        <row id="112" col0="int4_run_pe_dataflow&lt;2&gt;" col1="int4_linear_controller.cpp:816" col2="7736" col3="2525" col4="2442" col5="2415" col6="2491">
+                                            <row id="106" col0="int4_stream_pe_inputs" col1="int4_linear_controller.cpp:392" col2="18" col3="15" col4="19" col5="17" col6="25"/>
+                                            <row id="39" col0="int4_cache_and_replay_activation&lt;2&gt;" col1="int4_linear_controller.cpp:355" col2="87" col3="45" col4="45" col5="42" col6="56"/>
+                                            <row id="114" col0="int4_stream_integer_blocks" col1="int4_linear_controller.cpp:447" col2="1928" col3="1720" col4="1715" col5="1713" col6="1729">
+                                                <row id="89" col0="int4_pack_two_weights" col1="int4_linear_controller.cpp:178" col2="273" col3="" col4="" col5="" col6=""/>
+                                                <row id="25" col0="int4_unpack_pair_sum" col1="int4_linear_controller.cpp:195" col2="752" col2_disp="   752 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                            </row>
+                                            <row id="113" col0="int4_dequantize_final_blocks" col1="int4_linear_controller.cpp:536" col2="2234" col3="321" col4="325" col5="324" col6="332">
+                                                <row id="51" col0="int4_half_bits_to_float" col1="int4_linear_controller.cpp:28" col2="1424" col3="" col4="" col5="" col6="">
+                                                    <row id="111" col0="int4_bits_to_float" col1="int4_linear_controller.cpp:14" col2="18" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                                <row id="109" col0="int4_float_to_bits" col1="int4_linear_controller.cpp:21" col2="26" col3="" col4="" col5="" col6=""/>
+                                            </row>
+                                            <row id="41" col0="int4_pack_dequantized_outputs" col1="int4_linear_controller.cpp:653" col2="2654" col3="103" col4="103" col5="102" col6="108">
+                                                <row id="111" col0="int4_bits_to_float" col1="int4_linear_controller.cpp:14" col2="18" col3="" col4="" col5="" col6=""/>
+                                                <row id="54" col0="int4_float_to_fxp_bits" col1="int4_linear_controller.cpp:72" col2="2047" col3="" col4="" col5="" col6="">
+                                                    <row id="109" col0="int4_float_to_bits" col1="int4_linear_controller.cpp:21" col2="26" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                            </row>
+                                            <row id="104" col0="int4_write_outputs" col1="int4_linear_controller.cpp:689" col2="386" col3="235" col4="185" col5="167" col6="180">
+                                                <row id="111" col0="int4_bits_to_float" col1="int4_linear_controller.cpp:14" col2="36" col2_disp="    36 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                                <row id="109" col0="int4_float_to_bits" col1="int4_linear_controller.cpp:21" col2="26" col3="" col4="" col5="" col6=""/>
+                                            </row>
+                                        </row>
+                                        <row id="102" col0="int4_run_pe_dataflow&lt;3&gt;" col1="int4_linear_controller.cpp:816" col2="7736" col3="2525" col4="2442" col5="2415" col6="2491">
+                                            <row id="106" col0="int4_stream_pe_inputs" col1="int4_linear_controller.cpp:392" col2="18" col3="15" col4="19" col5="17" col6="25"/>
+                                            <row id="100" col0="int4_cache_and_replay_activation&lt;3&gt;" col1="int4_linear_controller.cpp:355" col2="87" col3="45" col4="45" col5="42" col6="56"/>
+                                            <row id="114" col0="int4_stream_integer_blocks" col1="int4_linear_controller.cpp:447" col2="1928" col3="1720" col4="1715" col5="1713" col6="1729">
+                                                <row id="89" col0="int4_pack_two_weights" col1="int4_linear_controller.cpp:178" col2="273" col3="" col4="" col5="" col6=""/>
+                                                <row id="25" col0="int4_unpack_pair_sum" col1="int4_linear_controller.cpp:195" col2="752" col2_disp="   752 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                            </row>
+                                            <row id="113" col0="int4_dequantize_final_blocks" col1="int4_linear_controller.cpp:536" col2="2234" col3="321" col4="325" col5="324" col6="332">
+                                                <row id="51" col0="int4_half_bits_to_float" col1="int4_linear_controller.cpp:28" col2="1424" col3="" col4="" col5="" col6="">
+                                                    <row id="111" col0="int4_bits_to_float" col1="int4_linear_controller.cpp:14" col2="18" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                                <row id="109" col0="int4_float_to_bits" col1="int4_linear_controller.cpp:21" col2="26" col3="" col4="" col5="" col6=""/>
+                                            </row>
+                                            <row id="41" col0="int4_pack_dequantized_outputs" col1="int4_linear_controller.cpp:653" col2="2654" col3="103" col4="103" col5="102" col6="108">
+                                                <row id="111" col0="int4_bits_to_float" col1="int4_linear_controller.cpp:14" col2="18" col3="" col4="" col5="" col6=""/>
+                                                <row id="54" col0="int4_float_to_fxp_bits" col1="int4_linear_controller.cpp:72" col2="2047" col3="" col4="" col5="" col6="">
+                                                    <row id="109" col0="int4_float_to_bits" col1="int4_linear_controller.cpp:21" col2="26" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                            </row>
+                                            <row id="104" col0="int4_write_outputs" col1="int4_linear_controller.cpp:689" col2="386" col3="235" col4="185" col5="167" col6="180">
+                                                <row id="111" col0="int4_bits_to_float" col1="int4_linear_controller.cpp:14" col2="36" col2_disp="    36 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                                <row id="109" col0="int4_float_to_bits" col1="int4_linear_controller.cpp:21" col2="26" col3="" col4="" col5="" col6=""/>
+                                            </row>
+                                        </row>
+                                    </row>
+                                    <row id="13" col0="int4_advance_model_offsets_after_linear" col1="int4_linear_controller.cpp:1096" col2="294" col3="" col4="" col5="" col6=""/>
+                                    <row id="32" col0="int4_advance_controller_after_linear" col1="int4_linear_controller.cpp:1043" col2="646" col3="" col4="" col5="" col6=""/>
+                                </row>
+                            </row>
+                            <row id="98" col0="int4_route_linear_projection&lt;0&gt;" col1="int4_decoder_controller.cpp:125" col2="34" col3="22" col4="22" col5="22" col6="27"/>
+                            <row id="96" col0="int4_route_linear_projection&lt;1&gt;" col1="int4_decoder_controller.cpp:125" col2="34" col3="22" col4="22" col5="22" col6="27"/>
+                            <row id="91" col0="int4_route_linear_projection&lt;2&gt;" col1="int4_decoder_controller.cpp:125" col2="34" col3="22" col4="22" col5="22" col6="27"/>
+                            <row id="68" col0="int4_route_linear_projection&lt;4&gt;" col1="int4_decoder_controller.cpp:125" col2="34" col3="22" col4="22" col5="22" col6="27"/>
+                            <row id="72" col0="int4_route_linear_projection&lt;5&gt;" col1="int4_decoder_controller.cpp:125" col2="34" col3="22" col4="22" col5="22" col6="27"/>
+                            <row id="80" col0="int4_route_linear_projection&lt;7&gt;" col1="int4_decoder_controller.cpp:125" col2="34" col3="22" col4="30" col5="30" col6="39"/>
+                            <row id="30" col0="int4_route_linear_projection&lt;6&gt;" col1="int4_decoder_controller.cpp:125" col2="34" col3="22" col4="22" col5="22" col6="27"/>
+                        </row>
+                    </row>
+                    <row id="5" col0="int4_swiftkv_attention_4pe" col1="swiftkv_attention.cpp:2280" col2="212334" col3="" col4="" col5="" col6="">
+                        <row id="6" col0="swiftkv_run_four_pes" col1="swiftkv_attention.cpp:2135" col2="212195" col3="" col4="" col5="" col6="">
+                            <row id="21" col0="swiftkv_broadcast_pe_commands" col1="swiftkv_attention.cpp:1781" col2="164" col3="" col4="" col5="" col6="">
+                                <row id="59" col0="swiftkv_pack_pe_command" col1="swiftkv_attention.cpp:1770" col2="131" col3="" col4="" col5="" col6=""/>
+                            </row>
+                            <row id="23" col0="swiftkv_broadcast_rope" col1="swiftkv_attention.cpp:1730" col2="68" col3="" col4="" col5="" col6=""/>
+                            <row id="34" col0="swiftkv_run_pe&lt;0&gt;" col1="swiftkv_attention.cpp:1969" col2="52811" col3="" col4="" col5="" col6="">
+                                <row id="14" col0="swiftkv_run_bank" col1="swiftkv_attention.cpp:1798" col2="52683" col3="" col4="" col5="" col6="">
+                                    <row id="12" col0="swiftkv_q17_mul_add_rope_raw" col1="swiftkv_attention.cpp:37" col2="2438" col2_disp=" 2,438 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                    <row id="84" col0="swiftkv_fxp_to_bits" col1="swiftkv_attention.cpp:32" col2="98" col2_disp="    98 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                    <row id="45" col0="swiftkv_quantize_kv_record" col1="swiftkv_attention.cpp:387" col2="6918" col3="" col4="" col5="" col6="">
+                                        <row id="63" col0="swiftkv_raw_magnitude" col1="swiftkv_attention.cpp:310" col2="496" col2_disp="   496 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                        <row id="66" col0="swiftkv_kv_power2_shift" col1="swiftkv_attention.cpp:320" col2="3088" col2_disp=" 3,088 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                        <row id="94" col0="swiftkv_quantize_kv_raw" col1="swiftkv_attention.cpp:353" col2="1770" col2_disp=" 1,770 (2 calls)" col3="" col4="" col5="" col6="">
+                                            <row id="63" col0="swiftkv_raw_magnitude" col1="swiftkv_attention.cpp:310" col2="496" col2_disp="   496 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                        </row>
+                                    </row>
+                                    <row id="44" col0="swiftkv_attention_head" col1="swiftkv_attention.cpp:1566" col2="41777" col3="" col4="" col5="" col6="">
+                                        <row id="90" col0="swiftkv_read_compressed_kv_cache" col1="swiftkv_attention.cpp:668" col2="27" col3="" col4="" col5="" col6=""/>
+                                        <row id="42" col0="swiftkv_route_compressed_kv_cache" col1="swiftkv_attention.cpp:688" col2="2017" col3="" col4="" col5="" col6="">
+                                            <row id="97" col0="swiftkv_route_compressed_kv_word" col1="swiftkv_attention.cpp:622" col2="1966" col2_disp=" 1,966 (2 calls)" col3="" col4="" col5="" col6="">
+                                                <row id="108" col0="swiftkv_write_split_update_word" col1="swiftkv_attention.cpp:602" col2="1768" col2_disp=" 1,768 (4 calls)" col3="" col4="" col5="" col6="">
+                                                    <row id="82" col0="swiftkv_split_update_word" col1="swiftkv_attention.cpp:545" col2="1300" col2_disp=" 1,300 (4 calls)" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                            </row>
+                                        </row>
+                                        <row id="49" col0="swiftkv_process_compressed_kv" col1="swiftkv_attention.cpp:834" col2="3959" col3="" col4="" col5="" col6="">
+                                            <row id="7" col0="swiftkv_dot16_int8" col1="swiftkv_attention.cpp:768" col2="1801" col3="" col4="" col5="" col6=""/>
+                                        </row>
+                                        <row id="40" col0="swiftkv_coefficient_producer" col1="swiftkv_attention.cpp:1082" col2="14444" col3="" col4="" col5="" col6="">
+                                            <row id="78" col0="swiftkv_exp_negative" col1="swiftkv_attention.cpp:161" col2="9828" col2_disp=" 9,828 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                            <row id="71" col0="swiftkv_reciprocal_normalization" col1="swiftkv_attention.cpp:233" col2="952" col3="" col4="" col5="" col6=""/>
+                                        </row>
+                                        <row id="48" col0="swiftkv_update_values_and_quantize" col1="swiftkv_attention.cpp:1427" col2="21123" col3="" col4="" col5="" col6="">
+                                            <row id="79" col0="swiftkv_accumulate_values_split" col1="swiftkv_attention.cpp:1332" col2="16484" col3="" col4="" col5="" col6="">
+                                                <row id="26" col0="swiftkv_broadcast_update_controls" col1="swiftkv_attention.cpp:1137" col2="197" col3="" col4="" col5="" col6=""/>
+                                                <row id="116" col0="swiftkv_prepare_update_engine_phases&lt;0&gt;" col1="swiftkv_attention.cpp:1163" col2="1672" col3="" col4="" col5="" col6=""/>
+                                                <row id="36" col0="swiftkv_prepare_update_engine_phases&lt;1&gt;" col1="swiftkv_attention.cpp:1163" col2="1672" col3="" col4="" col5="" col6=""/>
+                                                <row id="15" col0="swiftkv_prepare_update_engine_phases&lt;2&gt;" col1="swiftkv_attention.cpp:1163" col2="1672" col3="" col4="" col5="" col6=""/>
+                                                <row id="31" col0="swiftkv_prepare_update_engine_phases&lt;3&gt;" col1="swiftkv_attention.cpp:1163" col2="1672" col3="" col4="" col5="" col6=""/>
+                                                <row id="4" col0="swiftkv_update_value_engine&lt;0&gt;" col1="swiftkv_attention.cpp:1241" col2="2364" col3="" col4="" col5="" col6="">
+                                                    <row id="20" col0="swiftkv_dequantize_kv_raw" col1="swiftkv_attention.cpp:376" col2="94" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                                <row id="35" col0="swiftkv_update_value_engine&lt;1&gt;" col1="swiftkv_attention.cpp:1241" col2="2364" col3="" col4="" col5="" col6="">
+                                                    <row id="20" col0="swiftkv_dequantize_kv_raw" col1="swiftkv_attention.cpp:376" col2="94" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                                <row id="10" col0="swiftkv_update_value_engine&lt;2&gt;" col1="swiftkv_attention.cpp:1241" col2="2364" col3="" col4="" col5="" col6="">
+                                                    <row id="20" col0="swiftkv_dequantize_kv_raw" col1="swiftkv_attention.cpp:376" col2="94" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                                <row id="18" col0="swiftkv_update_value_engine&lt;3&gt;" col1="swiftkv_attention.cpp:1241" col2="2364" col3="" col4="" col5="" col6="">
+                                                    <row id="20" col0="swiftkv_dequantize_kv_raw" col1="swiftkv_attention.cpp:376" col2="94" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                            </row>
+                                        </row>
+                                    </row>
+                                </row>
+                            </row>
+                            <row id="22" col0="swiftkv_run_pe&lt;1&gt;" col1="swiftkv_attention.cpp:1969" col2="52811" col3="" col4="" col5="" col6="">
+                                <row id="14" col0="swiftkv_run_bank" col1="swiftkv_attention.cpp:1798" col2="52683" col3="" col4="" col5="" col6="">
+                                    <row id="12" col0="swiftkv_q17_mul_add_rope_raw" col1="swiftkv_attention.cpp:37" col2="2438" col2_disp=" 2,438 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                    <row id="84" col0="swiftkv_fxp_to_bits" col1="swiftkv_attention.cpp:32" col2="98" col2_disp="    98 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                    <row id="45" col0="swiftkv_quantize_kv_record" col1="swiftkv_attention.cpp:387" col2="6918" col3="" col4="" col5="" col6="">
+                                        <row id="63" col0="swiftkv_raw_magnitude" col1="swiftkv_attention.cpp:310" col2="496" col2_disp="   496 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                        <row id="66" col0="swiftkv_kv_power2_shift" col1="swiftkv_attention.cpp:320" col2="3088" col2_disp=" 3,088 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                        <row id="94" col0="swiftkv_quantize_kv_raw" col1="swiftkv_attention.cpp:353" col2="1770" col2_disp=" 1,770 (2 calls)" col3="" col4="" col5="" col6="">
+                                            <row id="63" col0="swiftkv_raw_magnitude" col1="swiftkv_attention.cpp:310" col2="496" col2_disp="   496 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                        </row>
+                                    </row>
+                                    <row id="44" col0="swiftkv_attention_head" col1="swiftkv_attention.cpp:1566" col2="41777" col3="" col4="" col5="" col6="">
+                                        <row id="90" col0="swiftkv_read_compressed_kv_cache" col1="swiftkv_attention.cpp:668" col2="27" col3="" col4="" col5="" col6=""/>
+                                        <row id="42" col0="swiftkv_route_compressed_kv_cache" col1="swiftkv_attention.cpp:688" col2="2017" col3="" col4="" col5="" col6="">
+                                            <row id="97" col0="swiftkv_route_compressed_kv_word" col1="swiftkv_attention.cpp:622" col2="1966" col2_disp=" 1,966 (2 calls)" col3="" col4="" col5="" col6="">
+                                                <row id="108" col0="swiftkv_write_split_update_word" col1="swiftkv_attention.cpp:602" col2="1768" col2_disp=" 1,768 (4 calls)" col3="" col4="" col5="" col6="">
+                                                    <row id="82" col0="swiftkv_split_update_word" col1="swiftkv_attention.cpp:545" col2="1300" col2_disp=" 1,300 (4 calls)" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                            </row>
+                                        </row>
+                                        <row id="49" col0="swiftkv_process_compressed_kv" col1="swiftkv_attention.cpp:834" col2="3959" col3="" col4="" col5="" col6="">
+                                            <row id="7" col0="swiftkv_dot16_int8" col1="swiftkv_attention.cpp:768" col2="1801" col3="" col4="" col5="" col6=""/>
+                                        </row>
+                                        <row id="40" col0="swiftkv_coefficient_producer" col1="swiftkv_attention.cpp:1082" col2="14444" col3="" col4="" col5="" col6="">
+                                            <row id="78" col0="swiftkv_exp_negative" col1="swiftkv_attention.cpp:161" col2="9828" col2_disp=" 9,828 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                            <row id="71" col0="swiftkv_reciprocal_normalization" col1="swiftkv_attention.cpp:233" col2="952" col3="" col4="" col5="" col6=""/>
+                                        </row>
+                                        <row id="48" col0="swiftkv_update_values_and_quantize" col1="swiftkv_attention.cpp:1427" col2="21123" col3="" col4="" col5="" col6="">
+                                            <row id="79" col0="swiftkv_accumulate_values_split" col1="swiftkv_attention.cpp:1332" col2="16484" col3="" col4="" col5="" col6="">
+                                                <row id="26" col0="swiftkv_broadcast_update_controls" col1="swiftkv_attention.cpp:1137" col2="197" col3="" col4="" col5="" col6=""/>
+                                                <row id="116" col0="swiftkv_prepare_update_engine_phases&lt;0&gt;" col1="swiftkv_attention.cpp:1163" col2="1672" col3="" col4="" col5="" col6=""/>
+                                                <row id="36" col0="swiftkv_prepare_update_engine_phases&lt;1&gt;" col1="swiftkv_attention.cpp:1163" col2="1672" col3="" col4="" col5="" col6=""/>
+                                                <row id="15" col0="swiftkv_prepare_update_engine_phases&lt;2&gt;" col1="swiftkv_attention.cpp:1163" col2="1672" col3="" col4="" col5="" col6=""/>
+                                                <row id="31" col0="swiftkv_prepare_update_engine_phases&lt;3&gt;" col1="swiftkv_attention.cpp:1163" col2="1672" col3="" col4="" col5="" col6=""/>
+                                                <row id="4" col0="swiftkv_update_value_engine&lt;0&gt;" col1="swiftkv_attention.cpp:1241" col2="2364" col3="" col4="" col5="" col6="">
+                                                    <row id="20" col0="swiftkv_dequantize_kv_raw" col1="swiftkv_attention.cpp:376" col2="94" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                                <row id="35" col0="swiftkv_update_value_engine&lt;1&gt;" col1="swiftkv_attention.cpp:1241" col2="2364" col3="" col4="" col5="" col6="">
+                                                    <row id="20" col0="swiftkv_dequantize_kv_raw" col1="swiftkv_attention.cpp:376" col2="94" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                                <row id="10" col0="swiftkv_update_value_engine&lt;2&gt;" col1="swiftkv_attention.cpp:1241" col2="2364" col3="" col4="" col5="" col6="">
+                                                    <row id="20" col0="swiftkv_dequantize_kv_raw" col1="swiftkv_attention.cpp:376" col2="94" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                                <row id="18" col0="swiftkv_update_value_engine&lt;3&gt;" col1="swiftkv_attention.cpp:1241" col2="2364" col3="" col4="" col5="" col6="">
+                                                    <row id="20" col0="swiftkv_dequantize_kv_raw" col1="swiftkv_attention.cpp:376" col2="94" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                            </row>
+                                        </row>
+                                    </row>
+                                </row>
+                            </row>
+                            <row id="33" col0="swiftkv_run_pe&lt;2&gt;" col1="swiftkv_attention.cpp:1969" col2="52811" col3="" col4="" col5="" col6="">
+                                <row id="14" col0="swiftkv_run_bank" col1="swiftkv_attention.cpp:1798" col2="52683" col3="" col4="" col5="" col6="">
+                                    <row id="12" col0="swiftkv_q17_mul_add_rope_raw" col1="swiftkv_attention.cpp:37" col2="2438" col2_disp=" 2,438 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                    <row id="84" col0="swiftkv_fxp_to_bits" col1="swiftkv_attention.cpp:32" col2="98" col2_disp="    98 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                    <row id="45" col0="swiftkv_quantize_kv_record" col1="swiftkv_attention.cpp:387" col2="6918" col3="" col4="" col5="" col6="">
+                                        <row id="63" col0="swiftkv_raw_magnitude" col1="swiftkv_attention.cpp:310" col2="496" col2_disp="   496 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                        <row id="66" col0="swiftkv_kv_power2_shift" col1="swiftkv_attention.cpp:320" col2="3088" col2_disp=" 3,088 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                        <row id="94" col0="swiftkv_quantize_kv_raw" col1="swiftkv_attention.cpp:353" col2="1770" col2_disp=" 1,770 (2 calls)" col3="" col4="" col5="" col6="">
+                                            <row id="63" col0="swiftkv_raw_magnitude" col1="swiftkv_attention.cpp:310" col2="496" col2_disp="   496 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                        </row>
+                                    </row>
+                                    <row id="44" col0="swiftkv_attention_head" col1="swiftkv_attention.cpp:1566" col2="41777" col3="" col4="" col5="" col6="">
+                                        <row id="90" col0="swiftkv_read_compressed_kv_cache" col1="swiftkv_attention.cpp:668" col2="27" col3="" col4="" col5="" col6=""/>
+                                        <row id="42" col0="swiftkv_route_compressed_kv_cache" col1="swiftkv_attention.cpp:688" col2="2017" col3="" col4="" col5="" col6="">
+                                            <row id="97" col0="swiftkv_route_compressed_kv_word" col1="swiftkv_attention.cpp:622" col2="1966" col2_disp=" 1,966 (2 calls)" col3="" col4="" col5="" col6="">
+                                                <row id="108" col0="swiftkv_write_split_update_word" col1="swiftkv_attention.cpp:602" col2="1768" col2_disp=" 1,768 (4 calls)" col3="" col4="" col5="" col6="">
+                                                    <row id="82" col0="swiftkv_split_update_word" col1="swiftkv_attention.cpp:545" col2="1300" col2_disp=" 1,300 (4 calls)" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                            </row>
+                                        </row>
+                                        <row id="49" col0="swiftkv_process_compressed_kv" col1="swiftkv_attention.cpp:834" col2="3959" col3="" col4="" col5="" col6="">
+                                            <row id="7" col0="swiftkv_dot16_int8" col1="swiftkv_attention.cpp:768" col2="1801" col3="" col4="" col5="" col6=""/>
+                                        </row>
+                                        <row id="40" col0="swiftkv_coefficient_producer" col1="swiftkv_attention.cpp:1082" col2="14444" col3="" col4="" col5="" col6="">
+                                            <row id="78" col0="swiftkv_exp_negative" col1="swiftkv_attention.cpp:161" col2="9828" col2_disp=" 9,828 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                            <row id="71" col0="swiftkv_reciprocal_normalization" col1="swiftkv_attention.cpp:233" col2="952" col3="" col4="" col5="" col6=""/>
+                                        </row>
+                                        <row id="48" col0="swiftkv_update_values_and_quantize" col1="swiftkv_attention.cpp:1427" col2="21123" col3="" col4="" col5="" col6="">
+                                            <row id="79" col0="swiftkv_accumulate_values_split" col1="swiftkv_attention.cpp:1332" col2="16484" col3="" col4="" col5="" col6="">
+                                                <row id="26" col0="swiftkv_broadcast_update_controls" col1="swiftkv_attention.cpp:1137" col2="197" col3="" col4="" col5="" col6=""/>
+                                                <row id="116" col0="swiftkv_prepare_update_engine_phases&lt;0&gt;" col1="swiftkv_attention.cpp:1163" col2="1672" col3="" col4="" col5="" col6=""/>
+                                                <row id="36" col0="swiftkv_prepare_update_engine_phases&lt;1&gt;" col1="swiftkv_attention.cpp:1163" col2="1672" col3="" col4="" col5="" col6=""/>
+                                                <row id="15" col0="swiftkv_prepare_update_engine_phases&lt;2&gt;" col1="swiftkv_attention.cpp:1163" col2="1672" col3="" col4="" col5="" col6=""/>
+                                                <row id="31" col0="swiftkv_prepare_update_engine_phases&lt;3&gt;" col1="swiftkv_attention.cpp:1163" col2="1672" col3="" col4="" col5="" col6=""/>
+                                                <row id="4" col0="swiftkv_update_value_engine&lt;0&gt;" col1="swiftkv_attention.cpp:1241" col2="2364" col3="" col4="" col5="" col6="">
+                                                    <row id="20" col0="swiftkv_dequantize_kv_raw" col1="swiftkv_attention.cpp:376" col2="94" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                                <row id="35" col0="swiftkv_update_value_engine&lt;1&gt;" col1="swiftkv_attention.cpp:1241" col2="2364" col3="" col4="" col5="" col6="">
+                                                    <row id="20" col0="swiftkv_dequantize_kv_raw" col1="swiftkv_attention.cpp:376" col2="94" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                                <row id="10" col0="swiftkv_update_value_engine&lt;2&gt;" col1="swiftkv_attention.cpp:1241" col2="2364" col3="" col4="" col5="" col6="">
+                                                    <row id="20" col0="swiftkv_dequantize_kv_raw" col1="swiftkv_attention.cpp:376" col2="94" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                                <row id="18" col0="swiftkv_update_value_engine&lt;3&gt;" col1="swiftkv_attention.cpp:1241" col2="2364" col3="" col4="" col5="" col6="">
+                                                    <row id="20" col0="swiftkv_dequantize_kv_raw" col1="swiftkv_attention.cpp:376" col2="94" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                            </row>
+                                        </row>
+                                    </row>
+                                </row>
+                            </row>
+                            <row id="29" col0="swiftkv_run_pe&lt;3&gt;" col1="swiftkv_attention.cpp:1969" col2="52811" col3="" col4="" col5="" col6="">
+                                <row id="14" col0="swiftkv_run_bank" col1="swiftkv_attention.cpp:1798" col2="52683" col3="" col4="" col5="" col6="">
+                                    <row id="12" col0="swiftkv_q17_mul_add_rope_raw" col1="swiftkv_attention.cpp:37" col2="2438" col2_disp=" 2,438 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                    <row id="84" col0="swiftkv_fxp_to_bits" col1="swiftkv_attention.cpp:32" col2="98" col2_disp="    98 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                    <row id="45" col0="swiftkv_quantize_kv_record" col1="swiftkv_attention.cpp:387" col2="6918" col3="" col4="" col5="" col6="">
+                                        <row id="63" col0="swiftkv_raw_magnitude" col1="swiftkv_attention.cpp:310" col2="496" col2_disp="   496 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                        <row id="66" col0="swiftkv_kv_power2_shift" col1="swiftkv_attention.cpp:320" col2="3088" col2_disp=" 3,088 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                        <row id="94" col0="swiftkv_quantize_kv_raw" col1="swiftkv_attention.cpp:353" col2="1770" col2_disp=" 1,770 (2 calls)" col3="" col4="" col5="" col6="">
+                                            <row id="63" col0="swiftkv_raw_magnitude" col1="swiftkv_attention.cpp:310" col2="496" col2_disp="   496 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                        </row>
+                                    </row>
+                                    <row id="44" col0="swiftkv_attention_head" col1="swiftkv_attention.cpp:1566" col2="41777" col3="" col4="" col5="" col6="">
+                                        <row id="90" col0="swiftkv_read_compressed_kv_cache" col1="swiftkv_attention.cpp:668" col2="27" col3="" col4="" col5="" col6=""/>
+                                        <row id="42" col0="swiftkv_route_compressed_kv_cache" col1="swiftkv_attention.cpp:688" col2="2017" col3="" col4="" col5="" col6="">
+                                            <row id="97" col0="swiftkv_route_compressed_kv_word" col1="swiftkv_attention.cpp:622" col2="1966" col2_disp=" 1,966 (2 calls)" col3="" col4="" col5="" col6="">
+                                                <row id="108" col0="swiftkv_write_split_update_word" col1="swiftkv_attention.cpp:602" col2="1768" col2_disp=" 1,768 (4 calls)" col3="" col4="" col5="" col6="">
+                                                    <row id="82" col0="swiftkv_split_update_word" col1="swiftkv_attention.cpp:545" col2="1300" col2_disp=" 1,300 (4 calls)" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                            </row>
+                                        </row>
+                                        <row id="49" col0="swiftkv_process_compressed_kv" col1="swiftkv_attention.cpp:834" col2="3959" col3="" col4="" col5="" col6="">
+                                            <row id="7" col0="swiftkv_dot16_int8" col1="swiftkv_attention.cpp:768" col2="1801" col3="" col4="" col5="" col6=""/>
+                                        </row>
+                                        <row id="40" col0="swiftkv_coefficient_producer" col1="swiftkv_attention.cpp:1082" col2="14444" col3="" col4="" col5="" col6="">
+                                            <row id="78" col0="swiftkv_exp_negative" col1="swiftkv_attention.cpp:161" col2="9828" col2_disp=" 9,828 (2 calls)" col3="" col4="" col5="" col6=""/>
+                                            <row id="71" col0="swiftkv_reciprocal_normalization" col1="swiftkv_attention.cpp:233" col2="952" col3="" col4="" col5="" col6=""/>
+                                        </row>
+                                        <row id="48" col0="swiftkv_update_values_and_quantize" col1="swiftkv_attention.cpp:1427" col2="21123" col3="" col4="" col5="" col6="">
+                                            <row id="79" col0="swiftkv_accumulate_values_split" col1="swiftkv_attention.cpp:1332" col2="16484" col3="" col4="" col5="" col6="">
+                                                <row id="26" col0="swiftkv_broadcast_update_controls" col1="swiftkv_attention.cpp:1137" col2="197" col3="" col4="" col5="" col6=""/>
+                                                <row id="116" col0="swiftkv_prepare_update_engine_phases&lt;0&gt;" col1="swiftkv_attention.cpp:1163" col2="1672" col3="" col4="" col5="" col6=""/>
+                                                <row id="36" col0="swiftkv_prepare_update_engine_phases&lt;1&gt;" col1="swiftkv_attention.cpp:1163" col2="1672" col3="" col4="" col5="" col6=""/>
+                                                <row id="15" col0="swiftkv_prepare_update_engine_phases&lt;2&gt;" col1="swiftkv_attention.cpp:1163" col2="1672" col3="" col4="" col5="" col6=""/>
+                                                <row id="31" col0="swiftkv_prepare_update_engine_phases&lt;3&gt;" col1="swiftkv_attention.cpp:1163" col2="1672" col3="" col4="" col5="" col6=""/>
+                                                <row id="4" col0="swiftkv_update_value_engine&lt;0&gt;" col1="swiftkv_attention.cpp:1241" col2="2364" col3="" col4="" col5="" col6="">
+                                                    <row id="20" col0="swiftkv_dequantize_kv_raw" col1="swiftkv_attention.cpp:376" col2="94" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                                <row id="35" col0="swiftkv_update_value_engine&lt;1&gt;" col1="swiftkv_attention.cpp:1241" col2="2364" col3="" col4="" col5="" col6="">
+                                                    <row id="20" col0="swiftkv_dequantize_kv_raw" col1="swiftkv_attention.cpp:376" col2="94" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                                <row id="10" col0="swiftkv_update_value_engine&lt;2&gt;" col1="swiftkv_attention.cpp:1241" col2="2364" col3="" col4="" col5="" col6="">
+                                                    <row id="20" col0="swiftkv_dequantize_kv_raw" col1="swiftkv_attention.cpp:376" col2="94" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                                <row id="18" col0="swiftkv_update_value_engine&lt;3&gt;" col1="swiftkv_attention.cpp:1241" col2="2364" col3="" col4="" col5="" col6="">
+                                                    <row id="20" col0="swiftkv_dequantize_kv_raw" col1="swiftkv_attention.cpp:376" col2="94" col3="" col4="" col5="" col6=""/>
+                                                </row>
+                                            </row>
+                                        </row>
+                                    </row>
+                                </row>
+                            </row>
+                            <row id="105" col0="swiftkv_gather_attention_streams" col1="swiftkv_attention.cpp:2080" col2="487" col3="" col4="" col5="" col6="">
+                                <row id="9" col0="swiftkv_float_to_bits" col1="swiftkv_attention.cpp:18" col2="26" col3="" col4="" col5="" col6=""/>
+                            </row>
+                        </row>
+                    </row>
+                    <row id="99" col0="int4_store_residual_4ddr" col1="int4_decoder_controller.cpp:481" col2="34" col3="22" col4="30" col5="30" col6="39"/>
+                    <row id="6" col0="swiftkv_run_four_pes" col1="swiftkv_attention.cpp:2135" col2="" col3="17181" col4="16947" col5="16539" col6="17345">
+                        <row id="21" col0="swiftkv_broadcast_pe_commands" col1="swiftkv_attention.cpp:1781" col2="" col3="8" col4="8" col5="8" col6="17"/>
+                        <row id="23" col0="swiftkv_broadcast_rope" col1="swiftkv_attention.cpp:1730" col2="" col3="18" col4="18" col5="18" col6="39"/>
+                        <row id="34" col0="swiftkv_run_pe&lt;0&gt;" col1="swiftkv_attention.cpp:1969" col2="" col3="4245" col4="4195" col5="4094" col6="4275">
+                            <row id="14" col0="swiftkv_run_bank" col1="swiftkv_attention.cpp:1798" col2="" col3="4236" col4="4186" col5="4089" col6="4267">
+                                <row id="45" col0="swiftkv_quantize_kv_record" col1="swiftkv_attention.cpp:387" col2="" col3="878" col4="766" col5="691" col6="703"/>
+                                <row id="44" col0="swiftkv_attention_head" col1="swiftkv_attention.cpp:1566" col2="" col3="3127" col4="2941" col5="2924" col6="3127">
+                                    <row id="90" col0="swiftkv_read_compressed_kv_cache" col1="swiftkv_attention.cpp:668" col2="" col3="19" col4="20" col5="20" col6="28"/>
+                                    <row id="42" col0="swiftkv_route_compressed_kv_cache" col1="swiftkv_attention.cpp:688" col2="" col3="147" col4="152" col5="146" col6="203"/>
+                                    <row id="49" col0="swiftkv_process_compressed_kv" col1="swiftkv_attention.cpp:834" col2="" col3="529" col4="423" col5="423" col6="436"/>
+                                    <row id="40" col0="swiftkv_coefficient_producer" col1="swiftkv_attention.cpp:1082" col2="" col3="324" col4="326" col5="321" col6="334">
+                                        <row id="71" col0="swiftkv_reciprocal_normalization" col1="swiftkv_attention.cpp:233" col2="" col3="34" col4="35" col5="33" col6="38"/>
+                                    </row>
+                                    <row id="48" col0="swiftkv_update_values_and_quantize" col1="swiftkv_attention.cpp:1427" col2="" col3="1985" col4="1939" col5="1934" col6="2028">
+                                        <row id="79" col0="swiftkv_accumulate_values_split" col1="swiftkv_attention.cpp:1332" col2="" col3="1708" col4="1586" col5="1585" col6="1660">
+                                            <row id="26" col0="swiftkv_broadcast_update_controls" col1="swiftkv_attention.cpp:1137" col2="" col3="17" col4="17" col5="17" col6="34"/>
+                                            <row id="116" col0="swiftkv_prepare_update_engine_phases&lt;0&gt;" col1="swiftkv_attention.cpp:1163" col2="" col3="58" col4="55" col5="55" col6="68"/>
+                                            <row id="36" col0="swiftkv_prepare_update_engine_phases&lt;1&gt;" col1="swiftkv_attention.cpp:1163" col2="" col3="58" col4="55" col5="55" col6="68"/>
+                                            <row id="15" col0="swiftkv_prepare_update_engine_phases&lt;2&gt;" col1="swiftkv_attention.cpp:1163" col2="" col3="58" col4="55" col5="55" col6="68"/>
+                                            <row id="31" col0="swiftkv_prepare_update_engine_phases&lt;3&gt;" col1="swiftkv_attention.cpp:1163" col2="" col3="58" col4="55" col5="55" col6="68"/>
+                                            <row id="4" col0="swiftkv_update_value_engine&lt;0&gt;" col1="swiftkv_attention.cpp:1241" col2="" col3="341" col4="322" col5="322" col6="321"/>
+                                            <row id="35" col0="swiftkv_update_value_engine&lt;1&gt;" col1="swiftkv_attention.cpp:1241" col2="" col3="341" col4="322" col5="322" col6="321"/>
+                                            <row id="10" col0="swiftkv_update_value_engine&lt;2&gt;" col1="swiftkv_attention.cpp:1241" col2="" col3="341" col4="322" col5="322" col6="321"/>
+                                            <row id="18" col0="swiftkv_update_value_engine&lt;3&gt;" col1="swiftkv_attention.cpp:1241" col2="" col3="341" col4="322" col5="322" col6="321"/>
+                                        </row>
+                                    </row>
+                                </row>
+                            </row>
+                        </row>
+                        <row id="22" col0="swiftkv_run_pe&lt;1&gt;" col1="swiftkv_attention.cpp:1969" col2="" col3="4245" col4="4195" col5="4094" col6="4275">
+                            <row id="14" col0="swiftkv_run_bank" col1="swiftkv_attention.cpp:1798" col2="" col3="4236" col4="4186" col5="4089" col6="4267">
+                                <row id="45" col0="swiftkv_quantize_kv_record" col1="swiftkv_attention.cpp:387" col2="" col3="878" col4="766" col5="691" col6="703"/>
+                                <row id="44" col0="swiftkv_attention_head" col1="swiftkv_attention.cpp:1566" col2="" col3="3127" col4="2941" col5="2924" col6="3127">
+                                    <row id="90" col0="swiftkv_read_compressed_kv_cache" col1="swiftkv_attention.cpp:668" col2="" col3="19" col4="20" col5="20" col6="28"/>
+                                    <row id="42" col0="swiftkv_route_compressed_kv_cache" col1="swiftkv_attention.cpp:688" col2="" col3="147" col4="152" col5="146" col6="203"/>
+                                    <row id="49" col0="swiftkv_process_compressed_kv" col1="swiftkv_attention.cpp:834" col2="" col3="529" col4="423" col5="423" col6="436"/>
+                                    <row id="40" col0="swiftkv_coefficient_producer" col1="swiftkv_attention.cpp:1082" col2="" col3="324" col4="326" col5="321" col6="334">
+                                        <row id="71" col0="swiftkv_reciprocal_normalization" col1="swiftkv_attention.cpp:233" col2="" col3="34" col4="35" col5="33" col6="38"/>
+                                    </row>
+                                    <row id="48" col0="swiftkv_update_values_and_quantize" col1="swiftkv_attention.cpp:1427" col2="" col3="1985" col4="1939" col5="1934" col6="2028">
+                                        <row id="79" col0="swiftkv_accumulate_values_split" col1="swiftkv_attention.cpp:1332" col2="" col3="1708" col4="1586" col5="1585" col6="1660">
+                                            <row id="26" col0="swiftkv_broadcast_update_controls" col1="swiftkv_attention.cpp:1137" col2="" col3="17" col4="17" col5="17" col6="34"/>
+                                            <row id="116" col0="swiftkv_prepare_update_engine_phases&lt;0&gt;" col1="swiftkv_attention.cpp:1163" col2="" col3="58" col4="55" col5="55" col6="68"/>
+                                            <row id="36" col0="swiftkv_prepare_update_engine_phases&lt;1&gt;" col1="swiftkv_attention.cpp:1163" col2="" col3="58" col4="55" col5="55" col6="68"/>
+                                            <row id="15" col0="swiftkv_prepare_update_engine_phases&lt;2&gt;" col1="swiftkv_attention.cpp:1163" col2="" col3="58" col4="55" col5="55" col6="68"/>
+                                            <row id="31" col0="swiftkv_prepare_update_engine_phases&lt;3&gt;" col1="swiftkv_attention.cpp:1163" col2="" col3="58" col4="55" col5="55" col6="68"/>
+                                            <row id="4" col0="swiftkv_update_value_engine&lt;0&gt;" col1="swiftkv_attention.cpp:1241" col2="" col3="341" col4="322" col5="322" col6="321"/>
+                                            <row id="35" col0="swiftkv_update_value_engine&lt;1&gt;" col1="swiftkv_attention.cpp:1241" col2="" col3="341" col4="322" col5="322" col6="321"/>
+                                            <row id="10" col0="swiftkv_update_value_engine&lt;2&gt;" col1="swiftkv_attention.cpp:1241" col2="" col3="341" col4="322" col5="322" col6="321"/>
+                                            <row id="18" col0="swiftkv_update_value_engine&lt;3&gt;" col1="swiftkv_attention.cpp:1241" col2="" col3="341" col4="322" col5="322" col6="321"/>
+                                        </row>
+                                    </row>
+                                </row>
+                            </row>
+                        </row>
+                        <row id="33" col0="swiftkv_run_pe&lt;2&gt;" col1="swiftkv_attention.cpp:1969" col2="" col3="4245" col4="4195" col5="4094" col6="4275">
+                            <row id="14" col0="swiftkv_run_bank" col1="swiftkv_attention.cpp:1798" col2="" col3="4236" col4="4186" col5="4089" col6="4267">
+                                <row id="45" col0="swiftkv_quantize_kv_record" col1="swiftkv_attention.cpp:387" col2="" col3="878" col4="766" col5="691" col6="703"/>
+                                <row id="44" col0="swiftkv_attention_head" col1="swiftkv_attention.cpp:1566" col2="" col3="3127" col4="2941" col5="2924" col6="3127">
+                                    <row id="90" col0="swiftkv_read_compressed_kv_cache" col1="swiftkv_attention.cpp:668" col2="" col3="19" col4="20" col5="20" col6="28"/>
+                                    <row id="42" col0="swiftkv_route_compressed_kv_cache" col1="swiftkv_attention.cpp:688" col2="" col3="147" col4="152" col5="146" col6="203"/>
+                                    <row id="49" col0="swiftkv_process_compressed_kv" col1="swiftkv_attention.cpp:834" col2="" col3="529" col4="423" col5="423" col6="436"/>
+                                    <row id="40" col0="swiftkv_coefficient_producer" col1="swiftkv_attention.cpp:1082" col2="" col3="324" col4="326" col5="321" col6="334">
+                                        <row id="71" col0="swiftkv_reciprocal_normalization" col1="swiftkv_attention.cpp:233" col2="" col3="34" col4="35" col5="33" col6="38"/>
+                                    </row>
+                                    <row id="48" col0="swiftkv_update_values_and_quantize" col1="swiftkv_attention.cpp:1427" col2="" col3="1985" col4="1939" col5="1934" col6="2028">
+                                        <row id="79" col0="swiftkv_accumulate_values_split" col1="swiftkv_attention.cpp:1332" col2="" col3="1708" col4="1586" col5="1585" col6="1660">
+                                            <row id="26" col0="swiftkv_broadcast_update_controls" col1="swiftkv_attention.cpp:1137" col2="" col3="17" col4="17" col5="17" col6="34"/>
+                                            <row id="116" col0="swiftkv_prepare_update_engine_phases&lt;0&gt;" col1="swiftkv_attention.cpp:1163" col2="" col3="58" col4="55" col5="55" col6="68"/>
+                                            <row id="36" col0="swiftkv_prepare_update_engine_phases&lt;1&gt;" col1="swiftkv_attention.cpp:1163" col2="" col3="58" col4="55" col5="55" col6="68"/>
+                                            <row id="15" col0="swiftkv_prepare_update_engine_phases&lt;2&gt;" col1="swiftkv_attention.cpp:1163" col2="" col3="58" col4="55" col5="55" col6="68"/>
+                                            <row id="31" col0="swiftkv_prepare_update_engine_phases&lt;3&gt;" col1="swiftkv_attention.cpp:1163" col2="" col3="58" col4="55" col5="55" col6="68"/>
+                                            <row id="4" col0="swiftkv_update_value_engine&lt;0&gt;" col1="swiftkv_attention.cpp:1241" col2="" col3="341" col4="322" col5="322" col6="321"/>
+                                            <row id="35" col0="swiftkv_update_value_engine&lt;1&gt;" col1="swiftkv_attention.cpp:1241" col2="" col3="341" col4="322" col5="322" col6="321"/>
+                                            <row id="10" col0="swiftkv_update_value_engine&lt;2&gt;" col1="swiftkv_attention.cpp:1241" col2="" col3="341" col4="322" col5="322" col6="321"/>
+                                            <row id="18" col0="swiftkv_update_value_engine&lt;3&gt;" col1="swiftkv_attention.cpp:1241" col2="" col3="341" col4="322" col5="322" col6="321"/>
+                                        </row>
+                                    </row>
+                                </row>
+                            </row>
+                        </row>
+                        <row id="29" col0="swiftkv_run_pe&lt;3&gt;" col1="swiftkv_attention.cpp:1969" col2="" col3="4245" col4="4195" col5="4094" col6="4275">
+                            <row id="14" col0="swiftkv_run_bank" col1="swiftkv_attention.cpp:1798" col2="" col3="4236" col4="4186" col5="4089" col6="4267">
+                                <row id="45" col0="swiftkv_quantize_kv_record" col1="swiftkv_attention.cpp:387" col2="" col3="878" col4="766" col5="691" col6="703"/>
+                                <row id="44" col0="swiftkv_attention_head" col1="swiftkv_attention.cpp:1566" col2="" col3="3127" col4="2941" col5="2924" col6="3127">
+                                    <row id="90" col0="swiftkv_read_compressed_kv_cache" col1="swiftkv_attention.cpp:668" col2="" col3="19" col4="20" col5="20" col6="28"/>
+                                    <row id="42" col0="swiftkv_route_compressed_kv_cache" col1="swiftkv_attention.cpp:688" col2="" col3="147" col4="152" col5="146" col6="203"/>
+                                    <row id="49" col0="swiftkv_process_compressed_kv" col1="swiftkv_attention.cpp:834" col2="" col3="529" col4="423" col5="423" col6="436"/>
+                                    <row id="40" col0="swiftkv_coefficient_producer" col1="swiftkv_attention.cpp:1082" col2="" col3="324" col4="326" col5="321" col6="334">
+                                        <row id="71" col0="swiftkv_reciprocal_normalization" col1="swiftkv_attention.cpp:233" col2="" col3="34" col4="35" col5="33" col6="38"/>
+                                    </row>
+                                    <row id="48" col0="swiftkv_update_values_and_quantize" col1="swiftkv_attention.cpp:1427" col2="" col3="1985" col4="1939" col5="1934" col6="2028">
+                                        <row id="79" col0="swiftkv_accumulate_values_split" col1="swiftkv_attention.cpp:1332" col2="" col3="1708" col4="1586" col5="1585" col6="1660">
+                                            <row id="26" col0="swiftkv_broadcast_update_controls" col1="swiftkv_attention.cpp:1137" col2="" col3="17" col4="17" col5="17" col6="34"/>
+                                            <row id="116" col0="swiftkv_prepare_update_engine_phases&lt;0&gt;" col1="swiftkv_attention.cpp:1163" col2="" col3="58" col4="55" col5="55" col6="68"/>
+                                            <row id="36" col0="swiftkv_prepare_update_engine_phases&lt;1&gt;" col1="swiftkv_attention.cpp:1163" col2="" col3="58" col4="55" col5="55" col6="68"/>
+                                            <row id="15" col0="swiftkv_prepare_update_engine_phases&lt;2&gt;" col1="swiftkv_attention.cpp:1163" col2="" col3="58" col4="55" col5="55" col6="68"/>
+                                            <row id="31" col0="swiftkv_prepare_update_engine_phases&lt;3&gt;" col1="swiftkv_attention.cpp:1163" col2="" col3="58" col4="55" col5="55" col6="68"/>
+                                            <row id="4" col0="swiftkv_update_value_engine&lt;0&gt;" col1="swiftkv_attention.cpp:1241" col2="" col3="341" col4="322" col5="322" col6="321"/>
+                                            <row id="35" col0="swiftkv_update_value_engine&lt;1&gt;" col1="swiftkv_attention.cpp:1241" col2="" col3="341" col4="322" col5="322" col6="321"/>
+                                            <row id="10" col0="swiftkv_update_value_engine&lt;2&gt;" col1="swiftkv_attention.cpp:1241" col2="" col3="341" col4="322" col5="322" col6="321"/>
+                                            <row id="18" col0="swiftkv_update_value_engine&lt;3&gt;" col1="swiftkv_attention.cpp:1241" col2="" col3="341" col4="322" col5="322" col6="321"/>
+                                        </row>
+                                    </row>
+                                </row>
+                            </row>
+                        </row>
+                        <row id="105" col0="swiftkv_gather_attention_streams" col1="swiftkv_attention.cpp:2080" col2="" col3="45" col4="47" col5="45" col6="71"/>
+                    </row>
+                </row>
+            </rows>
+            <notes>
+                <note name="*" desc="Exceeded design size warning message threshold"/>
+            </notes>
+        </hiertable>
+    </item>
+    <item name="Design Size Message Settings">
+        <table>
+            <keys size="3">Message Setting, Value, Description</keys>
+            <column name="config_compile -design_size_maximum_warning">100000, Show a warning when total design instructions exceeds this value</column>
+        </table>
+    </item>
+</design_size>
+

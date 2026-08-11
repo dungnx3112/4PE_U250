@@ -1,0 +1,605 @@
+
+
+================================================================
+== Vitis HLS Report for 'swiftkv_process_compressed_kv_Pipeline_compressed_dot_phase_loop'
+================================================================
+* Date:           Tue Aug 11 09:16:54 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.374 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+-----------+----------+-----+-------+---------+
+    |  Latency (cycles) |  Latency (absolute)  |   Interval  | Pipeline|
+    |   min   |   max   |    min    |    max   | min |  max  |   Type  |
+    +---------+---------+-----------+----------+-----+-------+---------+
+    |       24|    32784|  79.992 ns|  0.109 ms|   24|  32784|       no|
+    +---------+---------+-----------+----------+-----+-------+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +-----------------------------+---------+---------+----------+-----------+-----------+-----------+----------+
+        |                             |  Latency (cycles) | Iteration|  Initiation Interval  |    Trip   |          |
+        |          Loop Name          |   min   |   max   |  Latency |  achieved |   target  |   Count   | Pipelined|
+        +-----------------------------+---------+---------+----------+-----------+-----------+-----------+----------+
+        |- compressed_dot_phase_loop  |       22|    32782|        16|          1|          1|  8 ~ 32768|       yes|
+        +-----------------------------+---------+---------+----------+-----------+-----------+-----------+----------+
+
+============================================================
++ Verbose Summary: Synthesis Manager
+============================================================
+InlineROM: 1
+ExposeGlobal: 0
+============================================================
++ Verbose Summary: CDFG Model
+============================================================
+IsTopModel: 0
+ResetActiveHigh: 1
+IsCombinational: 0
+IsDatapathOnly: 0
+HasWiredReturn: 1
+HasMFsm: 2
+HasVarLatency: 1
+IsPipeline: 0
+IsRtlPipelined: 0
+IsInstanceOverlapped: 0
+IsDontTouch: 0
+HasImplIP: 0
+IsGatedGlobalClock: 0
+
++ Individual pipeline summary: 
+  * Pipeline-0: initiation interval (II) = 1, depth = 16
+
+
+============================================================
++ Verbose Summary: Schedule
+============================================================
+* Number of FSM states : 16
+* Pipeline : 1
+  Pipeline-0 : II = 1, D = 16, States = { 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 }
+* Dataflow Pipeline: 0
+
+* FSM state transitions: 
+1 --> 2 
+2 --> 3 
+3 --> 4 
+4 --> 5 
+5 --> 6 
+6 --> 7 
+7 --> 8 
+8 --> 9 
+9 --> 10 
+10 --> 11 
+11 --> 12 
+12 --> 13 
+13 --> 14 
+14 --> 15 
+15 --> 16 
+16 --> 
+
+* FSM state operations: 
+
+State 1 <SV = 0> <Delay = 1.55>
+ST_1 : Operation 19 [1/1] (0.00ns)   --->   "%dot_phase = alloca i32 1" [source/swiftkv_attention.cpp:854]   --->   Operation 19 'alloca' 'dot_phase' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 20 [1/1] (0.00ns)   --->   "%group_first_half = alloca i32 1" [source/swiftkv_attention.cpp:850]   --->   Operation 20 'alloca' 'group_first_half' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 21 [1/1] (0.00ns)   --->   "%token_dot = alloca i32 1" [source/swiftkv_attention.cpp:851]   --->   Operation 21 'alloca' 'token_dot' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 22 [1/1] (0.00ns)   --->   "%key_chunk = alloca i32 1" [source/swiftkv_attention.cpp:846]   --->   Operation 22 'alloca' 'key_chunk' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 23 [1/1] (0.00ns)   --->   "%key_chunk_1 = alloca i32 1" [source/swiftkv_attention.cpp:846]   --->   Operation 23 'alloca' 'key_chunk_1' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 24 [1/1] (0.00ns)   --->   "%key_chunk_2 = alloca i32 1" [source/swiftkv_attention.cpp:846]   --->   Operation 24 'alloca' 'key_chunk_2' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 25 [1/1] (0.00ns)   --->   "%key_chunk_3 = alloca i32 1" [source/swiftkv_attention.cpp:846]   --->   Operation 25 'alloca' 'key_chunk_3' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 26 [1/1] (0.00ns)   --->   "%key_chunk_4 = alloca i32 1" [source/swiftkv_attention.cpp:846]   --->   Operation 26 'alloca' 'key_chunk_4' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 27 [1/1] (0.00ns)   --->   "%key_chunk_5 = alloca i32 1" [source/swiftkv_attention.cpp:846]   --->   Operation 27 'alloca' 'key_chunk_5' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 28 [1/1] (0.00ns)   --->   "%key_chunk_6 = alloca i32 1" [source/swiftkv_attention.cpp:846]   --->   Operation 28 'alloca' 'key_chunk_6' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 29 [1/1] (0.00ns)   --->   "%key_chunk_7 = alloca i32 1" [source/swiftkv_attention.cpp:846]   --->   Operation 29 'alloca' 'key_chunk_7' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 30 [1/1] (0.00ns)   --->   "%key_shift = alloca i32 1" [source/swiftkv_attention.cpp:847]   --->   Operation 30 'alloca' 'key_shift' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 31 [1/1] (0.00ns)   --->   "%key_shift_1 = alloca i32 1" [source/swiftkv_attention.cpp:847]   --->   Operation 31 'alloca' 'key_shift_1' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 32 [1/1] (0.00ns)   --->   "%key_shift_2 = alloca i32 1" [source/swiftkv_attention.cpp:847]   --->   Operation 32 'alloca' 'key_shift_2' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 33 [1/1] (0.00ns)   --->   "%key_shift_3 = alloca i32 1" [source/swiftkv_attention.cpp:847]   --->   Operation 33 'alloca' 'key_shift_3' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 34 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %query_0, i64 666, i64 18, i64 18446744073709551615"   --->   Operation 34 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 35 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %query_1, i64 666, i64 18, i64 18446744073709551615"   --->   Operation 35 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 36 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %query_2, i64 666, i64 18, i64 18446744073709551615"   --->   Operation 36 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 37 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %query_3, i64 666, i64 18, i64 18446744073709551615"   --->   Operation 37 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 38 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %query_4, i64 666, i64 18, i64 18446744073709551615"   --->   Operation 38 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 39 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %query_5, i64 666, i64 18, i64 18446744073709551615"   --->   Operation 39 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 40 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %query_6, i64 666, i64 18, i64 18446744073709551615"   --->   Operation 40 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 41 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %query_7, i64 666, i64 18, i64 18446744073709551615"   --->   Operation 41 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 42 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %query_8, i64 666, i64 18, i64 18446744073709551615"   --->   Operation 42 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 43 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %query_9, i64 666, i64 18, i64 18446744073709551615"   --->   Operation 43 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 44 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %query_10, i64 666, i64 18, i64 18446744073709551615"   --->   Operation 44 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 45 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %query_11, i64 666, i64 18, i64 18446744073709551615"   --->   Operation 45 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 46 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %query_12, i64 666, i64 18, i64 18446744073709551615"   --->   Operation 46 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 47 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %query_13, i64 666, i64 18, i64 18446744073709551615"   --->   Operation 47 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 48 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %query_14, i64 666, i64 18, i64 18446744073709551615"   --->   Operation 48 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 49 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %query_15, i64 666, i64 18, i64 18446744073709551615"   --->   Operation 49 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 50 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %score_stream, i64 666, i64 10, i64 18446744073709551615"   --->   Operation 50 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 51 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i40 %key_metadata_stream, i64 666, i64 10, i64 18446744073709551615"   --->   Operation 51 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 52 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %key0_stream, i64 666, i64 11, i64 18446744073709551615"   --->   Operation 52 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 53 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %key1_stream, i64 666, i64 11, i64 18446744073709551615"   --->   Operation 53 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 54 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i32 %score_stream, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 54 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 55 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i40 %key_metadata_stream, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 55 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 56 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i512 %key0_stream, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 56 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 57 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i512 %key1_stream, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 57 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 58 [1/1] (0.00ns)   --->   "%total_phases_read = read i16 @_ssdm_op_Read.ap_auto.i16, i16 %total_phases" [source/swiftkv_attention.cpp:835]   --->   Operation 58 'read' 'total_phases_read' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 59 [1/1] (0.38ns)   --->   "%store_ln851 = store i44 0, i44 %token_dot" [source/swiftkv_attention.cpp:851]   --->   Operation 59 'store' 'store_ln851' <Predicate = true> <Delay = 0.38>
+ST_1 : Operation 60 [1/1] (0.38ns)   --->   "%store_ln850 = store i44 0, i44 %group_first_half" [source/swiftkv_attention.cpp:850]   --->   Operation 60 'store' 'store_ln850' <Predicate = true> <Delay = 0.38>
+ST_1 : Operation 61 [1/1] (0.38ns)   --->   "%store_ln854 = store i16 0, i16 %dot_phase" [source/swiftkv_attention.cpp:854]   --->   Operation 61 'store' 'store_ln854' <Predicate = true> <Delay = 0.38>
+ST_1 : Operation 62 [1/1] (0.00ns)   --->   "%br_ln0 = br void %for.body"   --->   Operation 62 'br' 'br_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 63 [1/1] (0.00ns)   --->   "%dot_phase_1 = load i16 %dot_phase" [source/swiftkv_attention.cpp:855]   --->   Operation 63 'load' 'dot_phase_1' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 64 [1/1] (0.78ns)   --->   "%icmp_ln855 = icmp_eq  i16 %dot_phase_1, i16 %total_phases_read" [source/swiftkv_attention.cpp:855]   --->   Operation 64 'icmp' 'icmp_ln855' <Predicate = true> <Delay = 0.78> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.78> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_1 : Operation 65 [1/1] (0.78ns)   --->   "%dot_phase_2 = add i16 %dot_phase_1, i16 1" [source/swiftkv_attention.cpp:856]   --->   Operation 65 'add' 'dot_phase_2' <Predicate = true> <Delay = 0.78> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.78> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_1 : Operation 66 [1/1] (0.00ns)   --->   "%br_ln854 = br i1 %icmp_ln855, void %for.body.split, void %for.end66.exitStub" [source/swiftkv_attention.cpp:854]   --->   Operation 66 'br' 'br_ln854' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 67 [1/1] (0.00ns)   --->   "%half = trunc i16 %dot_phase_1" [source/swiftkv_attention.cpp:855]   --->   Operation 67 'trunc' 'half' <Predicate = (!icmp_ln855)> <Delay = 0.00>
+ST_1 : Operation 68 [1/1] (0.00ns)   --->   "%phase = trunc i16 %dot_phase_1" [source/swiftkv_attention.cpp:855]   --->   Operation 68 'trunc' 'phase' <Predicate = (!icmp_ln855)> <Delay = 0.00>
+ST_1 : Operation 69 [1/1] (0.00ns)   --->   "%specpipeline_ln857 = specpipeline void @_ssdm_op_SpecPipeline, i32 1, i32 0, i32 0, i32 0, void @empty_418" [source/swiftkv_attention.cpp:857]   --->   Operation 69 'specpipeline' 'specpipeline_ln857' <Predicate = (!icmp_ln855)> <Delay = 0.00>
+ST_1 : Operation 70 [1/1] (0.00ns)   --->   "%speclooptripcount_ln858 = speclooptripcount void @_ssdm_op_SpecLoopTripCount, i64 8, i64 32768, i64 16388" [source/swiftkv_attention.cpp:858]   --->   Operation 70 'speclooptripcount' 'speclooptripcount_ln858' <Predicate = (!icmp_ln855)> <Delay = 0.00>
+ST_1 : Operation 71 [1/1] (0.00ns)   --->   "%specloopname_ln854 = specloopname void @_ssdm_op_SpecLoopName, void @empty_467" [source/swiftkv_attention.cpp:854]   --->   Operation 71 'specloopname' 'specloopname_ln854' <Predicate = (!icmp_ln855)> <Delay = 0.00>
+ST_1 : Operation 72 [1/1] (0.57ns)   --->   "%icmp_ln860 = icmp_eq  i3 %phase, i3 0" [source/swiftkv_attention.cpp:860]   --->   Operation 72 'icmp' 'icmp_ln860' <Predicate = (!icmp_ln855)> <Delay = 0.57> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.57> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_1 : Operation 73 [1/1] (0.00ns)   --->   "%br_ln860 = br i1 %icmp_ln860, void %load_compressed_dot_query_loop_ifconv, void %split_compressed_key_loop" [source/swiftkv_attention.cpp:860]   --->   Operation 73 'br' 'br_ln860' <Predicate = (!icmp_ln855)> <Delay = 0.00>
+ST_1 : Operation 74 [1/1] (0.00ns)   --->   "%trunc_ln = partselect i2 @_ssdm_op_PartSelect.i2.i16.i32.i32, i16 %dot_phase_1, i32 1, i32 2" [source/swiftkv_attention.cpp:889]   --->   Operation 74 'partselect' 'trunc_ln' <Predicate = (!icmp_ln855)> <Delay = 0.00>
+ST_1 : Operation 75 [1/1] (0.00ns)   --->   "%br_ln903 = br i1 %half, void %load_compressed_dot_query_loop_ifconv.for.inc64_crit_edge, void %_ZN13ap_fixed_baseILi45ELi21ELb1EL9ap_q_mode5EL9ap_o_mode3ELi0EEC2Ei.exit.i85" [source/swiftkv_attention.cpp:903]   --->   Operation 75 'br' 'br_ln903' <Predicate = (!icmp_ln855)> <Delay = 0.00>
+ST_1 : Operation 76 [1/1] (0.38ns)   --->   "%store_ln854 = store i16 %dot_phase_2, i16 %dot_phase" [source/swiftkv_attention.cpp:854]   --->   Operation 76 'store' 'store_ln854' <Predicate = (!icmp_ln855)> <Delay = 0.38>
+ST_1 : Operation 77 [1/1] (0.00ns)   --->   "%br_ln854 = br void %for.body" [source/swiftkv_attention.cpp:854]   --->   Operation 77 'br' 'br_ln854' <Predicate = (!icmp_ln855)> <Delay = 0.00>
+
+State 2 <SV = 1> <Delay = 1.21>
+ST_2 : Operation 78 [1/1] (1.21ns)   --->   "%metadata = read i40 @_ssdm_op_Read.ap_fifo.volatile.i40P0A, i40 %key_metadata_stream" [source/swiftkv_attention.cpp:862]   --->   Operation 78 'read' 'metadata' <Predicate = (icmp_ln860)> <Delay = 1.21> <CoreInst = "FIFO_SRL">   --->   Core 81 'FIFO_SRL' <Latency = 0> <II = 1> <Delay = 1.47> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 40> <Depth = 32> <FIFO>
+ST_2 : Operation 79 [1/1] (1.21ns)   --->   "%packed_k0 = read i512 @_ssdm_op_Read.ap_fifo.volatile.i512P0A, i512 %key0_stream" [source/swiftkv_attention.cpp:864]   --->   Operation 79 'read' 'packed_k0' <Predicate = (icmp_ln860)> <Delay = 1.21> <CoreInst = "FIFO_URAM">   --->   Core 82 'FIFO_URAM' <Latency = 0> <II = 1> <Delay = 1.67> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 512> <Depth = 32> <FIFO>
+ST_2 : Operation 80 [1/1] (1.21ns)   --->   "%packed_k1 = read i512 @_ssdm_op_Read.ap_fifo.volatile.i512P0A, i512 %key1_stream" [source/swiftkv_attention.cpp:866]   --->   Operation 80 'read' 'packed_k1' <Predicate = (icmp_ln860)> <Delay = 1.21> <CoreInst = "FIFO_URAM">   --->   Core 82 'FIFO_URAM' <Latency = 0> <II = 1> <Delay = 1.67> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 512> <Depth = 32> <FIFO>
+ST_2 : Operation 81 [1/1] (0.00ns)   --->   "%key_chunk_13 = trunc i512 %packed_k0" [source/swiftkv_attention.cpp:871]   --->   Operation 81 'trunc' 'key_chunk_13' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 82 [1/1] (0.00ns)   --->   "%key_chunk_14 = trunc i512 %packed_k1" [source/swiftkv_attention.cpp:874]   --->   Operation 82 'trunc' 'key_chunk_14' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 83 [1/1] (0.00ns)   --->   "%key_chunk_15 = partselect i128 @_ssdm_op_PartSelect.i128.i512.i32.i32, i512 %packed_k0, i32 128, i32 255" [source/swiftkv_attention.cpp:871]   --->   Operation 83 'partselect' 'key_chunk_15' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 84 [1/1] (0.00ns)   --->   "%key_chunk_8 = partselect i128 @_ssdm_op_PartSelect.i128.i512.i32.i32, i512 %packed_k1, i32 128, i32 255" [source/swiftkv_attention.cpp:874]   --->   Operation 84 'partselect' 'key_chunk_8' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 85 [1/1] (0.00ns)   --->   "%key_chunk_9 = partselect i128 @_ssdm_op_PartSelect.i128.i512.i32.i32, i512 %packed_k0, i32 256, i32 383" [source/swiftkv_attention.cpp:871]   --->   Operation 85 'partselect' 'key_chunk_9' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 86 [1/1] (0.00ns)   --->   "%key_chunk_10 = partselect i128 @_ssdm_op_PartSelect.i128.i512.i32.i32, i512 %packed_k1, i32 256, i32 383" [source/swiftkv_attention.cpp:874]   --->   Operation 86 'partselect' 'key_chunk_10' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 87 [1/1] (0.00ns)   --->   "%key_chunk_11 = partselect i128 @_ssdm_op_PartSelect.i128.i512.i32.i32, i512 %packed_k0, i32 384, i32 511" [source/swiftkv_attention.cpp:871]   --->   Operation 87 'partselect' 'key_chunk_11' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 88 [1/1] (0.00ns)   --->   "%key_chunk_12 = partselect i128 @_ssdm_op_PartSelect.i128.i512.i32.i32, i512 %packed_k1, i32 384, i32 511" [source/swiftkv_attention.cpp:874]   --->   Operation 88 'partselect' 'key_chunk_12' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 89 [1/1] (0.00ns)   --->   "%key_shift_6 = trunc i40 %metadata" [source/swiftkv_attention.cpp:882]   --->   Operation 89 'trunc' 'key_shift_6' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 90 [1/1] (0.00ns)   --->   "%key_shift_7 = partselect i5 @_ssdm_op_PartSelect.i5.i40.i32.i32, i40 %metadata, i32 5, i32 9" [source/swiftkv_attention.cpp:882]   --->   Operation 90 'partselect' 'key_shift_7' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 91 [1/1] (0.00ns)   --->   "%key_shift_4 = partselect i5 @_ssdm_op_PartSelect.i5.i40.i32.i32, i40 %metadata, i32 10, i32 14" [source/swiftkv_attention.cpp:882]   --->   Operation 91 'partselect' 'key_shift_4' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 92 [1/1] (0.00ns)   --->   "%key_shift_5 = partselect i5 @_ssdm_op_PartSelect.i5.i40.i32.i32, i40 %metadata, i32 15, i32 19" [source/swiftkv_attention.cpp:882]   --->   Operation 92 'partselect' 'key_shift_5' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 93 [1/1] (0.00ns)   --->   "%store_ln847 = store i5 %key_shift_5, i5 %key_shift_3" [source/swiftkv_attention.cpp:847]   --->   Operation 93 'store' 'store_ln847' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 94 [1/1] (0.00ns)   --->   "%store_ln847 = store i5 %key_shift_4, i5 %key_shift_2" [source/swiftkv_attention.cpp:847]   --->   Operation 94 'store' 'store_ln847' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 95 [1/1] (0.00ns)   --->   "%store_ln847 = store i5 %key_shift_7, i5 %key_shift_1" [source/swiftkv_attention.cpp:847]   --->   Operation 95 'store' 'store_ln847' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 96 [1/1] (0.00ns)   --->   "%store_ln847 = store i5 %key_shift_6, i5 %key_shift" [source/swiftkv_attention.cpp:847]   --->   Operation 96 'store' 'store_ln847' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 97 [1/1] (0.00ns)   --->   "%store_ln846 = store i128 %key_chunk_12, i128 %key_chunk_7" [source/swiftkv_attention.cpp:846]   --->   Operation 97 'store' 'store_ln846' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 98 [1/1] (0.00ns)   --->   "%store_ln846 = store i128 %key_chunk_10, i128 %key_chunk_6" [source/swiftkv_attention.cpp:846]   --->   Operation 98 'store' 'store_ln846' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 99 [1/1] (0.00ns)   --->   "%store_ln846 = store i128 %key_chunk_8, i128 %key_chunk_5" [source/swiftkv_attention.cpp:846]   --->   Operation 99 'store' 'store_ln846' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 100 [1/1] (0.00ns)   --->   "%store_ln846 = store i128 %key_chunk_14, i128 %key_chunk_4" [source/swiftkv_attention.cpp:846]   --->   Operation 100 'store' 'store_ln846' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 101 [1/1] (0.00ns)   --->   "%store_ln846 = store i128 %key_chunk_11, i128 %key_chunk_3" [source/swiftkv_attention.cpp:846]   --->   Operation 101 'store' 'store_ln846' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 102 [1/1] (0.00ns)   --->   "%store_ln846 = store i128 %key_chunk_9, i128 %key_chunk_2" [source/swiftkv_attention.cpp:846]   --->   Operation 102 'store' 'store_ln846' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 103 [1/1] (0.00ns)   --->   "%store_ln846 = store i128 %key_chunk_15, i128 %key_chunk_1" [source/swiftkv_attention.cpp:846]   --->   Operation 103 'store' 'store_ln846' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 104 [1/1] (0.00ns)   --->   "%store_ln846 = store i128 %key_chunk_13, i128 %key_chunk" [source/swiftkv_attention.cpp:846]   --->   Operation 104 'store' 'store_ln846' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 105 [1/1] (0.00ns)   --->   "%br_ln887 = br void %load_compressed_dot_query_loop_ifconv" [source/swiftkv_attention.cpp:887]   --->   Operation 105 'br' 'br_ln887' <Predicate = (icmp_ln860)> <Delay = 0.00>
+ST_2 : Operation 106 [1/1] (0.00ns)   --->   "%zext_ln897 = zext i3 %phase" [source/swiftkv_attention.cpp:897]   --->   Operation 106 'zext' 'zext_ln897' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 107 [1/1] (0.00ns)   --->   "%query_0_addr = getelementptr i32 %query_0, i64 0, i64 %zext_ln897" [source/swiftkv_attention.cpp:897]   --->   Operation 107 'getelementptr' 'query_0_addr' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 108 [2/2] (1.19ns)   --->   "%query_raw = load i3 %query_0_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 108 'load' 'query_raw' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_2 : Operation 109 [1/1] (0.00ns)   --->   "%query_1_addr = getelementptr i32 %query_1, i64 0, i64 %zext_ln897" [source/swiftkv_attention.cpp:897]   --->   Operation 109 'getelementptr' 'query_1_addr' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 110 [2/2] (1.19ns)   --->   "%query_raw_1 = load i3 %query_1_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 110 'load' 'query_raw_1' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_2 : Operation 111 [1/1] (0.00ns)   --->   "%query_2_addr = getelementptr i32 %query_2, i64 0, i64 %zext_ln897" [source/swiftkv_attention.cpp:897]   --->   Operation 111 'getelementptr' 'query_2_addr' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 112 [2/2] (1.19ns)   --->   "%query_raw_2 = load i3 %query_2_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 112 'load' 'query_raw_2' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_2 : Operation 113 [1/1] (0.00ns)   --->   "%query_3_addr = getelementptr i32 %query_3, i64 0, i64 %zext_ln897" [source/swiftkv_attention.cpp:897]   --->   Operation 113 'getelementptr' 'query_3_addr' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 114 [2/2] (1.19ns)   --->   "%query_raw_3 = load i3 %query_3_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 114 'load' 'query_raw_3' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_2 : Operation 115 [1/1] (0.00ns)   --->   "%query_4_addr = getelementptr i32 %query_4, i64 0, i64 %zext_ln897" [source/swiftkv_attention.cpp:897]   --->   Operation 115 'getelementptr' 'query_4_addr' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 116 [2/2] (1.19ns)   --->   "%query_raw_4 = load i3 %query_4_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 116 'load' 'query_raw_4' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_2 : Operation 117 [1/1] (0.00ns)   --->   "%query_5_addr = getelementptr i32 %query_5, i64 0, i64 %zext_ln897" [source/swiftkv_attention.cpp:897]   --->   Operation 117 'getelementptr' 'query_5_addr' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 118 [2/2] (1.19ns)   --->   "%query_raw_5 = load i3 %query_5_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 118 'load' 'query_raw_5' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_2 : Operation 119 [1/1] (0.00ns)   --->   "%query_6_addr = getelementptr i32 %query_6, i64 0, i64 %zext_ln897" [source/swiftkv_attention.cpp:897]   --->   Operation 119 'getelementptr' 'query_6_addr' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 120 [2/2] (1.19ns)   --->   "%query_raw_6 = load i3 %query_6_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 120 'load' 'query_raw_6' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_2 : Operation 121 [1/1] (0.00ns)   --->   "%query_7_addr = getelementptr i32 %query_7, i64 0, i64 %zext_ln897" [source/swiftkv_attention.cpp:897]   --->   Operation 121 'getelementptr' 'query_7_addr' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 122 [2/2] (1.19ns)   --->   "%query_raw_7 = load i3 %query_7_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 122 'load' 'query_raw_7' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_2 : Operation 123 [1/1] (0.00ns)   --->   "%query_8_addr = getelementptr i32 %query_8, i64 0, i64 %zext_ln897" [source/swiftkv_attention.cpp:897]   --->   Operation 123 'getelementptr' 'query_8_addr' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 124 [2/2] (1.19ns)   --->   "%query_raw_8 = load i3 %query_8_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 124 'load' 'query_raw_8' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_2 : Operation 125 [1/1] (0.00ns)   --->   "%query_9_addr = getelementptr i32 %query_9, i64 0, i64 %zext_ln897" [source/swiftkv_attention.cpp:897]   --->   Operation 125 'getelementptr' 'query_9_addr' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 126 [2/2] (1.19ns)   --->   "%query_raw_9 = load i3 %query_9_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 126 'load' 'query_raw_9' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_2 : Operation 127 [1/1] (0.00ns)   --->   "%query_10_addr = getelementptr i32 %query_10, i64 0, i64 %zext_ln897" [source/swiftkv_attention.cpp:897]   --->   Operation 127 'getelementptr' 'query_10_addr' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 128 [2/2] (1.19ns)   --->   "%query_raw_10 = load i3 %query_10_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 128 'load' 'query_raw_10' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_2 : Operation 129 [1/1] (0.00ns)   --->   "%query_11_addr = getelementptr i32 %query_11, i64 0, i64 %zext_ln897" [source/swiftkv_attention.cpp:897]   --->   Operation 129 'getelementptr' 'query_11_addr' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 130 [2/2] (1.19ns)   --->   "%query_raw_11 = load i3 %query_11_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 130 'load' 'query_raw_11' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_2 : Operation 131 [1/1] (0.00ns)   --->   "%query_12_addr = getelementptr i32 %query_12, i64 0, i64 %zext_ln897" [source/swiftkv_attention.cpp:897]   --->   Operation 131 'getelementptr' 'query_12_addr' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 132 [2/2] (1.19ns)   --->   "%query_raw_12 = load i3 %query_12_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 132 'load' 'query_raw_12' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_2 : Operation 133 [1/1] (0.00ns)   --->   "%query_13_addr = getelementptr i32 %query_13, i64 0, i64 %zext_ln897" [source/swiftkv_attention.cpp:897]   --->   Operation 133 'getelementptr' 'query_13_addr' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 134 [2/2] (1.19ns)   --->   "%query_raw_13 = load i3 %query_13_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 134 'load' 'query_raw_13' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_2 : Operation 135 [1/1] (0.00ns)   --->   "%query_14_addr = getelementptr i32 %query_14, i64 0, i64 %zext_ln897" [source/swiftkv_attention.cpp:897]   --->   Operation 135 'getelementptr' 'query_14_addr' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 136 [2/2] (1.19ns)   --->   "%query_raw_14 = load i3 %query_14_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 136 'load' 'query_raw_14' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_2 : Operation 137 [1/1] (0.00ns)   --->   "%query_15_addr = getelementptr i32 %query_15, i64 0, i64 %zext_ln897" [source/swiftkv_attention.cpp:897]   --->   Operation 137 'getelementptr' 'query_15_addr' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 138 [2/2] (1.19ns)   --->   "%query_raw_15 = load i3 %query_15_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 138 'load' 'query_raw_15' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+
+State 3 <SV = 2> <Delay = 1.19>
+ST_3 : Operation 139 [1/1] (0.00ns)   --->   "%key_chunk_16 = load i128 %key_chunk"   --->   Operation 139 'load' 'key_chunk_16' <Predicate = (phase == 0)> <Delay = 0.00>
+ST_3 : Operation 140 [1/1] (0.00ns)   --->   "%key_chunk_17 = load i128 %key_chunk_1"   --->   Operation 140 'load' 'key_chunk_17' <Predicate = (phase == 1)> <Delay = 0.00>
+ST_3 : Operation 141 [1/1] (0.00ns)   --->   "%key_chunk_18 = load i128 %key_chunk_2"   --->   Operation 141 'load' 'key_chunk_18' <Predicate = (phase == 2)> <Delay = 0.00>
+ST_3 : Operation 142 [1/1] (0.00ns)   --->   "%key_chunk_19 = load i128 %key_chunk_3"   --->   Operation 142 'load' 'key_chunk_19' <Predicate = (phase == 3)> <Delay = 0.00>
+ST_3 : Operation 143 [1/1] (0.00ns)   --->   "%key_chunk_20 = load i128 %key_chunk_4"   --->   Operation 143 'load' 'key_chunk_20' <Predicate = (phase == 4)> <Delay = 0.00>
+ST_3 : Operation 144 [1/1] (0.00ns)   --->   "%key_chunk_21 = load i128 %key_chunk_5"   --->   Operation 144 'load' 'key_chunk_21' <Predicate = (phase == 5)> <Delay = 0.00>
+ST_3 : Operation 145 [1/1] (0.00ns)   --->   "%key_chunk_22 = load i128 %key_chunk_6"   --->   Operation 145 'load' 'key_chunk_22' <Predicate = (phase == 6)> <Delay = 0.00>
+ST_3 : Operation 146 [1/1] (0.00ns)   --->   "%key_chunk_23 = load i128 %key_chunk_7"   --->   Operation 146 'load' 'key_chunk_23' <Predicate = (phase == 7)> <Delay = 0.00>
+ST_3 : Operation 147 [1/1] (0.00ns)   --->   "%key_shift_8 = load i5 %key_shift"   --->   Operation 147 'load' 'key_shift_8' <Predicate = (trunc_ln == 0)> <Delay = 0.00>
+ST_3 : Operation 148 [1/1] (0.00ns)   --->   "%key_shift_9 = load i5 %key_shift_1"   --->   Operation 148 'load' 'key_shift_9' <Predicate = (trunc_ln == 1)> <Delay = 0.00>
+ST_3 : Operation 149 [1/1] (0.00ns)   --->   "%key_shift_10 = load i5 %key_shift_2"   --->   Operation 149 'load' 'key_shift_10' <Predicate = (trunc_ln == 2)> <Delay = 0.00>
+ST_3 : Operation 150 [1/1] (0.00ns)   --->   "%key_shift_11 = load i5 %key_shift_3"   --->   Operation 150 'load' 'key_shift_11' <Predicate = (trunc_ln == 3)> <Delay = 0.00>
+ST_3 : Operation 151 [1/2] (1.19ns)   --->   "%query_raw = load i3 %query_0_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 151 'load' 'query_raw' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_3 : Operation 152 [1/2] (1.19ns)   --->   "%query_raw_1 = load i3 %query_1_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 152 'load' 'query_raw_1' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_3 : Operation 153 [1/2] (1.19ns)   --->   "%query_raw_2 = load i3 %query_2_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 153 'load' 'query_raw_2' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_3 : Operation 154 [1/2] (1.19ns)   --->   "%query_raw_3 = load i3 %query_3_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 154 'load' 'query_raw_3' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_3 : Operation 155 [1/2] (1.19ns)   --->   "%query_raw_4 = load i3 %query_4_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 155 'load' 'query_raw_4' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_3 : Operation 156 [1/2] (1.19ns)   --->   "%query_raw_5 = load i3 %query_5_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 156 'load' 'query_raw_5' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_3 : Operation 157 [1/2] (1.19ns)   --->   "%query_raw_6 = load i3 %query_6_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 157 'load' 'query_raw_6' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_3 : Operation 158 [1/2] (1.19ns)   --->   "%query_raw_7 = load i3 %query_7_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 158 'load' 'query_raw_7' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_3 : Operation 159 [1/2] (1.19ns)   --->   "%query_raw_8 = load i3 %query_8_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 159 'load' 'query_raw_8' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_3 : Operation 160 [1/2] (1.19ns)   --->   "%query_raw_9 = load i3 %query_9_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 160 'load' 'query_raw_9' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_3 : Operation 161 [1/2] (1.19ns)   --->   "%query_raw_10 = load i3 %query_10_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 161 'load' 'query_raw_10' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_3 : Operation 162 [1/2] (1.19ns)   --->   "%query_raw_11 = load i3 %query_11_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 162 'load' 'query_raw_11' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_3 : Operation 163 [1/2] (1.19ns)   --->   "%query_raw_12 = load i3 %query_12_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 163 'load' 'query_raw_12' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_3 : Operation 164 [1/2] (1.19ns)   --->   "%query_raw_13 = load i3 %query_13_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 164 'load' 'query_raw_13' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_3 : Operation 165 [1/2] (1.19ns)   --->   "%query_raw_14 = load i3 %query_14_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 165 'load' 'query_raw_14' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_3 : Operation 166 [1/2] (1.19ns)   --->   "%query_raw_15 = load i3 %query_15_addr" [source/swiftkv_attention.cpp:896]   --->   Operation 166 'load' 'query_raw_15' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 8> <RAM>
+ST_3 : Operation 167 [1/1] (0.58ns)   --->   "%compressed = sparsemux i128 @_ssdm_op_SparseMux.ap_auto.8i128.i128.i3, i3 0, i128 %key_chunk_16, i3 1, i128 %key_chunk_17, i3 2, i128 %key_chunk_18, i3 3, i128 %key_chunk_19, i3 4, i128 %key_chunk_20, i3 5, i128 %key_chunk_21, i3 6, i128 %key_chunk_22, i3 7, i128 %key_chunk_23, i128 0, i3 %phase" [source/swiftkv_attention.cpp:855]   --->   Operation 167 'sparsemux' 'compressed' <Predicate = true> <Delay = 0.58> <CoreInst = "SparseMux">   --->   Core 147 'SparseMux' <Latency = 0> <II = 1> <Delay = 0.58> <FuncUnit> <Opcode : 'sparsemux'> <InPorts = 2> <OutPorts = 1>
+ST_3 : Operation 168 [1/1] (0.45ns)   --->   "%shift = sparsemux i5 @_ssdm_op_SparseMux.ap_auto.4i5.i5.i2, i2 0, i5 %key_shift_8, i2 1, i5 %key_shift_9, i2 2, i5 %key_shift_10, i2 3, i5 %key_shift_11, i5 0, i2 %trunc_ln" [source/swiftkv_attention.cpp:889]   --->   Operation 168 'sparsemux' 'shift' <Predicate = true> <Delay = 0.45> <CoreInst = "SparseMux">   --->   Core 147 'SparseMux' <Latency = 0> <II = 1> <Delay = 0.45> <FuncUnit> <Opcode : 'sparsemux'> <InPorts = 2> <OutPorts = 1>
+ST_3 : Operation 169 [1/1] (0.00ns)   --->   "%key = trunc i128 %compressed" [source/swiftkv_attention.cpp:790->source/swiftkv_attention.cpp:901]   --->   Operation 169 'trunc' 'key' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 170 [1/1] (0.00ns)   --->   "%key_1 = partselect i8 @_ssdm_op_PartSelect.i8.i128.i32.i32, i128 %compressed, i32 8, i32 15" [source/swiftkv_attention.cpp:790->source/swiftkv_attention.cpp:901]   --->   Operation 170 'partselect' 'key_1' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 171 [1/1] (0.00ns)   --->   "%key_2 = partselect i8 @_ssdm_op_PartSelect.i8.i128.i32.i32, i128 %compressed, i32 16, i32 23" [source/swiftkv_attention.cpp:790->source/swiftkv_attention.cpp:901]   --->   Operation 171 'partselect' 'key_2' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 172 [1/1] (0.00ns)   --->   "%key_3 = partselect i8 @_ssdm_op_PartSelect.i8.i128.i32.i32, i128 %compressed, i32 24, i32 31" [source/swiftkv_attention.cpp:790->source/swiftkv_attention.cpp:901]   --->   Operation 172 'partselect' 'key_3' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 173 [1/1] (0.00ns)   --->   "%key_4 = partselect i8 @_ssdm_op_PartSelect.i8.i128.i32.i32, i128 %compressed, i32 32, i32 39" [source/swiftkv_attention.cpp:790->source/swiftkv_attention.cpp:901]   --->   Operation 173 'partselect' 'key_4' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 174 [1/1] (0.00ns)   --->   "%key_5 = partselect i8 @_ssdm_op_PartSelect.i8.i128.i32.i32, i128 %compressed, i32 40, i32 47" [source/swiftkv_attention.cpp:790->source/swiftkv_attention.cpp:901]   --->   Operation 174 'partselect' 'key_5' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 175 [1/1] (0.00ns)   --->   "%key_6 = partselect i8 @_ssdm_op_PartSelect.i8.i128.i32.i32, i128 %compressed, i32 48, i32 55" [source/swiftkv_attention.cpp:790->source/swiftkv_attention.cpp:901]   --->   Operation 175 'partselect' 'key_6' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 176 [1/1] (0.00ns)   --->   "%key_7 = partselect i8 @_ssdm_op_PartSelect.i8.i128.i32.i32, i128 %compressed, i32 56, i32 63" [source/swiftkv_attention.cpp:790->source/swiftkv_attention.cpp:901]   --->   Operation 176 'partselect' 'key_7' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 177 [1/1] (0.00ns)   --->   "%key_8 = partselect i8 @_ssdm_op_PartSelect.i8.i128.i32.i32, i128 %compressed, i32 64, i32 71" [source/swiftkv_attention.cpp:790->source/swiftkv_attention.cpp:901]   --->   Operation 177 'partselect' 'key_8' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 178 [1/1] (0.00ns)   --->   "%key_9 = partselect i8 @_ssdm_op_PartSelect.i8.i128.i32.i32, i128 %compressed, i32 72, i32 79" [source/swiftkv_attention.cpp:790->source/swiftkv_attention.cpp:901]   --->   Operation 178 'partselect' 'key_9' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 179 [1/1] (0.00ns)   --->   "%key_10 = partselect i8 @_ssdm_op_PartSelect.i8.i128.i32.i32, i128 %compressed, i32 80, i32 87" [source/swiftkv_attention.cpp:790->source/swiftkv_attention.cpp:901]   --->   Operation 179 'partselect' 'key_10' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 180 [1/1] (0.00ns)   --->   "%key_11 = partselect i8 @_ssdm_op_PartSelect.i8.i128.i32.i32, i128 %compressed, i32 88, i32 95" [source/swiftkv_attention.cpp:790->source/swiftkv_attention.cpp:901]   --->   Operation 180 'partselect' 'key_11' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 181 [1/1] (0.00ns)   --->   "%key_12 = partselect i8 @_ssdm_op_PartSelect.i8.i128.i32.i32, i128 %compressed, i32 96, i32 103" [source/swiftkv_attention.cpp:790->source/swiftkv_attention.cpp:901]   --->   Operation 181 'partselect' 'key_12' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 182 [1/1] (0.00ns)   --->   "%key_13 = partselect i8 @_ssdm_op_PartSelect.i8.i128.i32.i32, i128 %compressed, i32 104, i32 111" [source/swiftkv_attention.cpp:790->source/swiftkv_attention.cpp:901]   --->   Operation 182 'partselect' 'key_13' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 183 [1/1] (0.00ns)   --->   "%key_14 = partselect i8 @_ssdm_op_PartSelect.i8.i128.i32.i32, i128 %compressed, i32 112, i32 119" [source/swiftkv_attention.cpp:790->source/swiftkv_attention.cpp:901]   --->   Operation 183 'partselect' 'key_14' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 184 [1/1] (0.00ns)   --->   "%key_15 = partselect i8 @_ssdm_op_PartSelect.i8.i128.i32.i32, i128 %compressed, i32 120, i32 127" [source/swiftkv_attention.cpp:790->source/swiftkv_attention.cpp:901]   --->   Operation 184 'partselect' 'key_15' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 185 [1/1] (0.43ns)   --->   "%icmp_ln909 = icmp_eq  i2 %trunc_ln, i2 0" [source/swiftkv_attention.cpp:909]   --->   Operation 185 'icmp' 'icmp_ln909' <Predicate = (half)> <Delay = 0.43> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.43> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_3 : Operation 186 [1/1] (0.43ns)   --->   "%icmp_ln913 = icmp_eq  i2 %trunc_ln, i2 3" [source/swiftkv_attention.cpp:913]   --->   Operation 186 'icmp' 'icmp_ln913' <Predicate = (half)> <Delay = 0.43> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.43> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_3 : Operation 187 [1/1] (0.00ns)   --->   "%br_ln913 = br i1 %icmp_ln913, void %if.end62, void %fpga_resource_hint.if.then60.554" [source/swiftkv_attention.cpp:913]   --->   Operation 187 'br' 'br_ln913' <Predicate = (half)> <Delay = 0.00>
+
+State 4 <SV = 3> <Delay = 2.29>
+ST_4 : Operation 188 [1/1] (0.00ns)   --->   "%sext_ln791 = sext i32 %query_raw" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 188 'sext' 'sext_ln791' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 189 [1/1] (0.00ns)   --->   "%sext_ln791_1 = sext i8 %key" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 189 'sext' 'sext_ln791_1' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 190 [2/2] (2.29ns)   --->   "%mul_ln791 = mul i40 %sext_ln791, i40 %sext_ln791_1" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 190 'mul' 'mul_ln791' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_4 : Operation 191 [1/1] (0.00ns)   --->   "%sext_ln791_2 = sext i32 %query_raw_1" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 191 'sext' 'sext_ln791_2' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 192 [1/1] (0.00ns)   --->   "%sext_ln791_3 = sext i8 %key_1" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 192 'sext' 'sext_ln791_3' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 193 [2/2] (2.29ns)   --->   "%mul_ln791_1 = mul i40 %sext_ln791_2, i40 %sext_ln791_3" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 193 'mul' 'mul_ln791_1' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_4 : Operation 194 [1/1] (0.00ns)   --->   "%sext_ln791_4 = sext i32 %query_raw_2" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 194 'sext' 'sext_ln791_4' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 195 [1/1] (0.00ns)   --->   "%sext_ln791_5 = sext i8 %key_2" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 195 'sext' 'sext_ln791_5' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 196 [2/2] (2.29ns)   --->   "%mul_ln791_2 = mul i40 %sext_ln791_4, i40 %sext_ln791_5" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 196 'mul' 'mul_ln791_2' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_4 : Operation 197 [1/1] (0.00ns)   --->   "%sext_ln791_6 = sext i32 %query_raw_3" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 197 'sext' 'sext_ln791_6' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 198 [1/1] (0.00ns)   --->   "%sext_ln791_7 = sext i8 %key_3" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 198 'sext' 'sext_ln791_7' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 199 [2/2] (2.29ns)   --->   "%mul_ln791_3 = mul i40 %sext_ln791_6, i40 %sext_ln791_7" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 199 'mul' 'mul_ln791_3' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_4 : Operation 200 [1/1] (0.00ns)   --->   "%sext_ln791_8 = sext i32 %query_raw_4" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 200 'sext' 'sext_ln791_8' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 201 [1/1] (0.00ns)   --->   "%sext_ln791_9 = sext i8 %key_4" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 201 'sext' 'sext_ln791_9' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 202 [2/2] (2.29ns)   --->   "%mul_ln791_4 = mul i40 %sext_ln791_8, i40 %sext_ln791_9" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 202 'mul' 'mul_ln791_4' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_4 : Operation 203 [1/1] (0.00ns)   --->   "%sext_ln791_10 = sext i32 %query_raw_5" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 203 'sext' 'sext_ln791_10' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 204 [1/1] (0.00ns)   --->   "%sext_ln791_11 = sext i8 %key_5" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 204 'sext' 'sext_ln791_11' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 205 [2/2] (2.29ns)   --->   "%mul_ln791_5 = mul i40 %sext_ln791_10, i40 %sext_ln791_11" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 205 'mul' 'mul_ln791_5' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_4 : Operation 206 [1/1] (0.00ns)   --->   "%sext_ln791_12 = sext i32 %query_raw_6" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 206 'sext' 'sext_ln791_12' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 207 [1/1] (0.00ns)   --->   "%sext_ln791_13 = sext i8 %key_6" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 207 'sext' 'sext_ln791_13' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 208 [2/2] (2.29ns)   --->   "%mul_ln791_6 = mul i40 %sext_ln791_12, i40 %sext_ln791_13" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 208 'mul' 'mul_ln791_6' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_4 : Operation 209 [1/1] (0.00ns)   --->   "%sext_ln791_14 = sext i32 %query_raw_7" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 209 'sext' 'sext_ln791_14' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 210 [1/1] (0.00ns)   --->   "%sext_ln791_15 = sext i8 %key_7" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 210 'sext' 'sext_ln791_15' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 211 [2/2] (2.29ns)   --->   "%mul_ln791_7 = mul i40 %sext_ln791_14, i40 %sext_ln791_15" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 211 'mul' 'mul_ln791_7' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_4 : Operation 212 [1/1] (0.00ns)   --->   "%sext_ln791_16 = sext i32 %query_raw_8" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 212 'sext' 'sext_ln791_16' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 213 [1/1] (0.00ns)   --->   "%sext_ln791_17 = sext i8 %key_8" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 213 'sext' 'sext_ln791_17' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 214 [2/2] (2.29ns)   --->   "%mul_ln791_8 = mul i40 %sext_ln791_16, i40 %sext_ln791_17" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 214 'mul' 'mul_ln791_8' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_4 : Operation 215 [1/1] (0.00ns)   --->   "%sext_ln791_18 = sext i32 %query_raw_9" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 215 'sext' 'sext_ln791_18' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 216 [1/1] (0.00ns)   --->   "%sext_ln791_19 = sext i8 %key_9" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 216 'sext' 'sext_ln791_19' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 217 [2/2] (2.29ns)   --->   "%mul_ln791_9 = mul i40 %sext_ln791_18, i40 %sext_ln791_19" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 217 'mul' 'mul_ln791_9' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_4 : Operation 218 [1/1] (0.00ns)   --->   "%sext_ln791_20 = sext i32 %query_raw_10" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 218 'sext' 'sext_ln791_20' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 219 [1/1] (0.00ns)   --->   "%sext_ln791_21 = sext i8 %key_10" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 219 'sext' 'sext_ln791_21' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 220 [2/2] (2.29ns)   --->   "%mul_ln791_10 = mul i40 %sext_ln791_20, i40 %sext_ln791_21" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 220 'mul' 'mul_ln791_10' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_4 : Operation 221 [1/1] (0.00ns)   --->   "%sext_ln791_22 = sext i32 %query_raw_11" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 221 'sext' 'sext_ln791_22' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 222 [1/1] (0.00ns)   --->   "%sext_ln791_23 = sext i8 %key_11" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 222 'sext' 'sext_ln791_23' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 223 [2/2] (2.29ns)   --->   "%mul_ln791_11 = mul i40 %sext_ln791_22, i40 %sext_ln791_23" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 223 'mul' 'mul_ln791_11' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_4 : Operation 224 [1/1] (0.00ns)   --->   "%sext_ln791_24 = sext i32 %query_raw_12" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 224 'sext' 'sext_ln791_24' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 225 [1/1] (0.00ns)   --->   "%sext_ln791_25 = sext i8 %key_12" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 225 'sext' 'sext_ln791_25' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 226 [2/2] (2.29ns)   --->   "%mul_ln791_12 = mul i40 %sext_ln791_24, i40 %sext_ln791_25" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 226 'mul' 'mul_ln791_12' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_4 : Operation 227 [1/1] (0.00ns)   --->   "%sext_ln791_26 = sext i32 %query_raw_13" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 227 'sext' 'sext_ln791_26' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 228 [1/1] (0.00ns)   --->   "%sext_ln791_27 = sext i8 %key_13" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 228 'sext' 'sext_ln791_27' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 229 [2/2] (2.29ns)   --->   "%mul_ln791_13 = mul i40 %sext_ln791_26, i40 %sext_ln791_27" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 229 'mul' 'mul_ln791_13' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_4 : Operation 230 [1/1] (0.00ns)   --->   "%sext_ln791_28 = sext i32 %query_raw_14" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 230 'sext' 'sext_ln791_28' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 231 [1/1] (0.00ns)   --->   "%sext_ln791_29 = sext i8 %key_14" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 231 'sext' 'sext_ln791_29' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 232 [2/2] (2.29ns)   --->   "%mul_ln791_14 = mul i40 %sext_ln791_28, i40 %sext_ln791_29" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 232 'mul' 'mul_ln791_14' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_4 : Operation 233 [1/1] (0.00ns)   --->   "%sext_ln791_30 = sext i32 %query_raw_15" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 233 'sext' 'sext_ln791_30' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 234 [1/1] (0.00ns)   --->   "%sext_ln791_31 = sext i8 %key_15" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 234 'sext' 'sext_ln791_31' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 235 [2/2] (2.29ns)   --->   "%mul_ln791_15 = mul i40 %sext_ln791_30, i40 %sext_ln791_31" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 235 'mul' 'mul_ln791_15' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+
+State 5 <SV = 4> <Delay = 2.29>
+ST_5 : Operation 236 [1/2] (2.29ns)   --->   "%mul_ln791 = mul i40 %sext_ln791, i40 %sext_ln791_1" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 236 'mul' 'mul_ln791' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_5 : Operation 237 [1/2] (2.29ns)   --->   "%mul_ln791_1 = mul i40 %sext_ln791_2, i40 %sext_ln791_3" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 237 'mul' 'mul_ln791_1' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_5 : Operation 238 [1/2] (2.29ns)   --->   "%mul_ln791_2 = mul i40 %sext_ln791_4, i40 %sext_ln791_5" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 238 'mul' 'mul_ln791_2' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_5 : Operation 239 [1/2] (2.29ns)   --->   "%mul_ln791_3 = mul i40 %sext_ln791_6, i40 %sext_ln791_7" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 239 'mul' 'mul_ln791_3' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_5 : Operation 240 [1/2] (2.29ns)   --->   "%mul_ln791_4 = mul i40 %sext_ln791_8, i40 %sext_ln791_9" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 240 'mul' 'mul_ln791_4' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_5 : Operation 241 [1/2] (2.29ns)   --->   "%mul_ln791_5 = mul i40 %sext_ln791_10, i40 %sext_ln791_11" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 241 'mul' 'mul_ln791_5' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_5 : Operation 242 [1/2] (2.29ns)   --->   "%mul_ln791_6 = mul i40 %sext_ln791_12, i40 %sext_ln791_13" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 242 'mul' 'mul_ln791_6' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_5 : Operation 243 [1/2] (2.29ns)   --->   "%mul_ln791_7 = mul i40 %sext_ln791_14, i40 %sext_ln791_15" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 243 'mul' 'mul_ln791_7' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_5 : Operation 244 [1/2] (2.29ns)   --->   "%mul_ln791_8 = mul i40 %sext_ln791_16, i40 %sext_ln791_17" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 244 'mul' 'mul_ln791_8' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_5 : Operation 245 [1/2] (2.29ns)   --->   "%mul_ln791_9 = mul i40 %sext_ln791_18, i40 %sext_ln791_19" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 245 'mul' 'mul_ln791_9' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_5 : Operation 246 [1/2] (2.29ns)   --->   "%mul_ln791_10 = mul i40 %sext_ln791_20, i40 %sext_ln791_21" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 246 'mul' 'mul_ln791_10' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_5 : Operation 247 [1/2] (2.29ns)   --->   "%mul_ln791_11 = mul i40 %sext_ln791_22, i40 %sext_ln791_23" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 247 'mul' 'mul_ln791_11' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_5 : Operation 248 [1/2] (2.29ns)   --->   "%mul_ln791_12 = mul i40 %sext_ln791_24, i40 %sext_ln791_25" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 248 'mul' 'mul_ln791_12' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_5 : Operation 249 [1/2] (2.29ns)   --->   "%mul_ln791_13 = mul i40 %sext_ln791_26, i40 %sext_ln791_27" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 249 'mul' 'mul_ln791_13' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_5 : Operation 250 [1/2] (2.29ns)   --->   "%mul_ln791_14 = mul i40 %sext_ln791_28, i40 %sext_ln791_29" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 250 'mul' 'mul_ln791_14' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_5 : Operation 251 [1/2] (2.29ns)   --->   "%mul_ln791_15 = mul i40 %sext_ln791_30, i40 %sext_ln791_31" [source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901]   --->   Operation 251 'mul' 'mul_ln791_15' <Predicate = true> <Delay = 2.29> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 1> <II = 1> <Delay = 2.29> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+
+State 6 <SV = 5> <Delay = 1.92>
+ST_6 : Operation 252 [1/1] (0.00ns)   --->   "%sext_ln797 = sext i40 %mul_ln791" [source/swiftkv_attention.cpp:797->source/swiftkv_attention.cpp:901]   --->   Operation 252 'sext' 'sext_ln797' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 253 [1/1] (0.00ns)   --->   "%sext_ln798 = sext i40 %mul_ln791_1" [source/swiftkv_attention.cpp:798->source/swiftkv_attention.cpp:901]   --->   Operation 253 'sext' 'sext_ln798' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 254 [1/1] (0.96ns)   --->   "%add_ln797 = add i41 %sext_ln798, i41 %sext_ln797" [source/swiftkv_attention.cpp:797->source/swiftkv_attention.cpp:901]   --->   Operation 254 'add' 'add_ln797' <Predicate = true> <Delay = 0.96> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.96> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_6 : Operation 255 [1/1] (0.00ns)   --->   "%sext_ln797_1 = sext i40 %mul_ln791_2" [source/swiftkv_attention.cpp:797->source/swiftkv_attention.cpp:901]   --->   Operation 255 'sext' 'sext_ln797_1' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 256 [1/1] (0.00ns)   --->   "%sext_ln798_1 = sext i40 %mul_ln791_3" [source/swiftkv_attention.cpp:798->source/swiftkv_attention.cpp:901]   --->   Operation 256 'sext' 'sext_ln798_1' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 257 [1/1] (0.96ns)   --->   "%add_ln797_1 = add i41 %sext_ln798_1, i41 %sext_ln797_1" [source/swiftkv_attention.cpp:797->source/swiftkv_attention.cpp:901]   --->   Operation 257 'add' 'add_ln797_1' <Predicate = true> <Delay = 0.96> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.96> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_6 : Operation 258 [1/1] (0.00ns)   --->   "%sext_ln797_2 = sext i40 %mul_ln791_4" [source/swiftkv_attention.cpp:797->source/swiftkv_attention.cpp:901]   --->   Operation 258 'sext' 'sext_ln797_2' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 259 [1/1] (0.00ns)   --->   "%sext_ln798_2 = sext i40 %mul_ln791_5" [source/swiftkv_attention.cpp:798->source/swiftkv_attention.cpp:901]   --->   Operation 259 'sext' 'sext_ln798_2' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 260 [1/1] (0.96ns)   --->   "%add_ln797_2 = add i41 %sext_ln798_2, i41 %sext_ln797_2" [source/swiftkv_attention.cpp:797->source/swiftkv_attention.cpp:901]   --->   Operation 260 'add' 'add_ln797_2' <Predicate = true> <Delay = 0.96> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.96> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_6 : Operation 261 [1/1] (0.00ns)   --->   "%sext_ln797_3 = sext i40 %mul_ln791_6" [source/swiftkv_attention.cpp:797->source/swiftkv_attention.cpp:901]   --->   Operation 261 'sext' 'sext_ln797_3' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 262 [1/1] (0.00ns)   --->   "%sext_ln798_3 = sext i40 %mul_ln791_7" [source/swiftkv_attention.cpp:798->source/swiftkv_attention.cpp:901]   --->   Operation 262 'sext' 'sext_ln798_3' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 263 [1/1] (0.96ns)   --->   "%add_ln797_3 = add i41 %sext_ln798_3, i41 %sext_ln797_3" [source/swiftkv_attention.cpp:797->source/swiftkv_attention.cpp:901]   --->   Operation 263 'add' 'add_ln797_3' <Predicate = true> <Delay = 0.96> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.96> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_6 : Operation 264 [1/1] (0.00ns)   --->   "%sext_ln797_4 = sext i40 %mul_ln791_8" [source/swiftkv_attention.cpp:797->source/swiftkv_attention.cpp:901]   --->   Operation 264 'sext' 'sext_ln797_4' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 265 [1/1] (0.00ns)   --->   "%sext_ln798_4 = sext i40 %mul_ln791_9" [source/swiftkv_attention.cpp:798->source/swiftkv_attention.cpp:901]   --->   Operation 265 'sext' 'sext_ln798_4' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 266 [1/1] (0.96ns)   --->   "%add_ln797_4 = add i41 %sext_ln798_4, i41 %sext_ln797_4" [source/swiftkv_attention.cpp:797->source/swiftkv_attention.cpp:901]   --->   Operation 266 'add' 'add_ln797_4' <Predicate = true> <Delay = 0.96> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.96> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_6 : Operation 267 [1/1] (0.00ns)   --->   "%sext_ln797_5 = sext i40 %mul_ln791_10" [source/swiftkv_attention.cpp:797->source/swiftkv_attention.cpp:901]   --->   Operation 267 'sext' 'sext_ln797_5' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 268 [1/1] (0.00ns)   --->   "%sext_ln798_5 = sext i40 %mul_ln791_11" [source/swiftkv_attention.cpp:798->source/swiftkv_attention.cpp:901]   --->   Operation 268 'sext' 'sext_ln798_5' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 269 [1/1] (0.96ns)   --->   "%add_ln797_5 = add i41 %sext_ln798_5, i41 %sext_ln797_5" [source/swiftkv_attention.cpp:797->source/swiftkv_attention.cpp:901]   --->   Operation 269 'add' 'add_ln797_5' <Predicate = true> <Delay = 0.96> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.96> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_6 : Operation 270 [1/1] (0.00ns)   --->   "%sext_ln797_6 = sext i40 %mul_ln791_12" [source/swiftkv_attention.cpp:797->source/swiftkv_attention.cpp:901]   --->   Operation 270 'sext' 'sext_ln797_6' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 271 [1/1] (0.00ns)   --->   "%sext_ln798_6 = sext i40 %mul_ln791_13" [source/swiftkv_attention.cpp:798->source/swiftkv_attention.cpp:901]   --->   Operation 271 'sext' 'sext_ln798_6' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 272 [1/1] (0.96ns)   --->   "%add_ln797_6 = add i41 %sext_ln798_6, i41 %sext_ln797_6" [source/swiftkv_attention.cpp:797->source/swiftkv_attention.cpp:901]   --->   Operation 272 'add' 'add_ln797_6' <Predicate = true> <Delay = 0.96> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.96> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_6 : Operation 273 [1/1] (0.00ns)   --->   "%sext_ln797_7 = sext i40 %mul_ln791_14" [source/swiftkv_attention.cpp:797->source/swiftkv_attention.cpp:901]   --->   Operation 273 'sext' 'sext_ln797_7' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 274 [1/1] (0.00ns)   --->   "%sext_ln798_7 = sext i40 %mul_ln791_15" [source/swiftkv_attention.cpp:798->source/swiftkv_attention.cpp:901]   --->   Operation 274 'sext' 'sext_ln798_7' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 275 [1/1] (0.96ns)   --->   "%add_ln797_7 = add i41 %sext_ln798_7, i41 %sext_ln797_7" [source/swiftkv_attention.cpp:797->source/swiftkv_attention.cpp:901]   --->   Operation 275 'add' 'add_ln797_7' <Predicate = true> <Delay = 0.96> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.96> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_6 : Operation 276 [1/1] (0.00ns)   --->   "%sext_ln804 = sext i41 %add_ln797" [source/swiftkv_attention.cpp:804->source/swiftkv_attention.cpp:901]   --->   Operation 276 'sext' 'sext_ln804' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 277 [1/1] (0.00ns)   --->   "%sext_ln805 = sext i41 %add_ln797_1" [source/swiftkv_attention.cpp:805->source/swiftkv_attention.cpp:901]   --->   Operation 277 'sext' 'sext_ln805' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 278 [1/1] (0.96ns)   --->   "%add_ln804 = add i42 %sext_ln805, i42 %sext_ln804" [source/swiftkv_attention.cpp:804->source/swiftkv_attention.cpp:901]   --->   Operation 278 'add' 'add_ln804' <Predicate = true> <Delay = 0.96> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.96> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_6 : Operation 279 [1/1] (0.00ns)   --->   "%sext_ln804_1 = sext i41 %add_ln797_2" [source/swiftkv_attention.cpp:804->source/swiftkv_attention.cpp:901]   --->   Operation 279 'sext' 'sext_ln804_1' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 280 [1/1] (0.00ns)   --->   "%sext_ln805_1 = sext i41 %add_ln797_3" [source/swiftkv_attention.cpp:805->source/swiftkv_attention.cpp:901]   --->   Operation 280 'sext' 'sext_ln805_1' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 281 [1/1] (0.96ns)   --->   "%add_ln804_1 = add i42 %sext_ln805_1, i42 %sext_ln804_1" [source/swiftkv_attention.cpp:804->source/swiftkv_attention.cpp:901]   --->   Operation 281 'add' 'add_ln804_1' <Predicate = true> <Delay = 0.96> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.96> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_6 : Operation 282 [1/1] (0.00ns)   --->   "%sext_ln804_2 = sext i41 %add_ln797_4" [source/swiftkv_attention.cpp:804->source/swiftkv_attention.cpp:901]   --->   Operation 282 'sext' 'sext_ln804_2' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 283 [1/1] (0.00ns)   --->   "%sext_ln805_2 = sext i41 %add_ln797_5" [source/swiftkv_attention.cpp:805->source/swiftkv_attention.cpp:901]   --->   Operation 283 'sext' 'sext_ln805_2' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 284 [1/1] (0.96ns)   --->   "%add_ln804_2 = add i42 %sext_ln805_2, i42 %sext_ln804_2" [source/swiftkv_attention.cpp:804->source/swiftkv_attention.cpp:901]   --->   Operation 284 'add' 'add_ln804_2' <Predicate = true> <Delay = 0.96> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.96> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_6 : Operation 285 [1/1] (0.00ns)   --->   "%sext_ln804_3 = sext i41 %add_ln797_6" [source/swiftkv_attention.cpp:804->source/swiftkv_attention.cpp:901]   --->   Operation 285 'sext' 'sext_ln804_3' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 286 [1/1] (0.00ns)   --->   "%sext_ln805_3 = sext i41 %add_ln797_7" [source/swiftkv_attention.cpp:805->source/swiftkv_attention.cpp:901]   --->   Operation 286 'sext' 'sext_ln805_3' <Predicate = true> <Delay = 0.00>
+ST_6 : Operation 287 [1/1] (0.96ns)   --->   "%add_ln804_3 = add i42 %sext_ln805_3, i42 %sext_ln804_3" [source/swiftkv_attention.cpp:804->source/swiftkv_attention.cpp:901]   --->   Operation 287 'add' 'add_ln804_3' <Predicate = true> <Delay = 0.96> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.96> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+
+State 7 <SV = 6> <Delay = 1.92>
+ST_7 : Operation 288 [1/1] (0.00ns)   --->   "%sext_ln811 = sext i42 %add_ln804" [source/swiftkv_attention.cpp:811->source/swiftkv_attention.cpp:901]   --->   Operation 288 'sext' 'sext_ln811' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 289 [1/1] (0.00ns)   --->   "%sext_ln812 = sext i42 %add_ln804_1" [source/swiftkv_attention.cpp:812->source/swiftkv_attention.cpp:901]   --->   Operation 289 'sext' 'sext_ln812' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 290 [1/1] (0.96ns)   --->   "%add_ln811 = add i43 %sext_ln812, i43 %sext_ln811" [source/swiftkv_attention.cpp:811->source/swiftkv_attention.cpp:901]   --->   Operation 290 'add' 'add_ln811' <Predicate = true> <Delay = 0.96> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.96> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_7 : Operation 291 [1/1] (0.00ns)   --->   "%sext_ln811_1 = sext i42 %add_ln804_2" [source/swiftkv_attention.cpp:811->source/swiftkv_attention.cpp:901]   --->   Operation 291 'sext' 'sext_ln811_1' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 292 [1/1] (0.00ns)   --->   "%sext_ln812_1 = sext i42 %add_ln804_3" [source/swiftkv_attention.cpp:812->source/swiftkv_attention.cpp:901]   --->   Operation 292 'sext' 'sext_ln812_1' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 293 [1/1] (0.96ns)   --->   "%add_ln811_1 = add i43 %sext_ln812_1, i43 %sext_ln811_1" [source/swiftkv_attention.cpp:811->source/swiftkv_attention.cpp:901]   --->   Operation 293 'add' 'add_ln811_1' <Predicate = true> <Delay = 0.96> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.96> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_7 : Operation 294 [1/1] (0.00ns)   --->   "%sext_ln815 = sext i43 %add_ln811" [source/swiftkv_attention.cpp:815->source/swiftkv_attention.cpp:901]   --->   Operation 294 'sext' 'sext_ln815' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 295 [1/1] (0.00ns)   --->   "%sext_ln815_1 = sext i43 %add_ln811_1" [source/swiftkv_attention.cpp:815->source/swiftkv_attention.cpp:901]   --->   Operation 295 'sext' 'sext_ln815_1' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 296 [1/1] (0.96ns)   --->   "%sum = add i44 %sext_ln815_1, i44 %sext_ln815" [source/swiftkv_attention.cpp:815->source/swiftkv_attention.cpp:901]   --->   Operation 296 'add' 'sum' <Predicate = true> <Delay = 0.96> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.96> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_7 : Operation 297 [1/1] (0.70ns)   --->   "%icmp_ln821 = icmp_ugt  i5 %shift, i5 9" [source/swiftkv_attention.cpp:821->source/swiftkv_attention.cpp:901]   --->   Operation 297 'icmp' 'icmp_ln821' <Predicate = true> <Delay = 0.70> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_7 : Operation 298 [1/1] (0.70ns)   --->   "%add_ln822 = add i5 %shift, i5 22" [source/swiftkv_attention.cpp:822->source/swiftkv_attention.cpp:901]   --->   Operation 298 'add' 'add_ln822' <Predicate = true> <Delay = 0.70> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_7 : Operation 299 [1/1] (0.70ns)   --->   "%sub_ln824 = sub i5 10, i5 %shift" [source/swiftkv_attention.cpp:824->source/swiftkv_attention.cpp:901]   --->   Operation 299 'sub' 'sub_ln824' <Predicate = true> <Delay = 0.70> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_7 : Operation 300 [1/1] (0.70ns)   --->   "%sub_ln824_1 = sub i5 0, i5 %sub_ln824" [source/swiftkv_attention.cpp:824->source/swiftkv_attention.cpp:901]   --->   Operation 300 'sub' 'sub_ln824_1' <Predicate = true> <Delay = 0.70> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+
+State 8 <SV = 7> <Delay = 2.37>
+ST_8 : Operation 301 [1/1] (0.00ns)   --->   "%add_ln822cast = zext i5 %add_ln822" [source/swiftkv_attention.cpp:822->source/swiftkv_attention.cpp:901]   --->   Operation 301 'zext' 'add_ln822cast' <Predicate = (icmp_ln821)> <Delay = 0.00>
+ST_8 : Operation 302 [1/1] (1.15ns)   --->   "%scaled_1 = shl i44 %sum, i44 %add_ln822cast" [source/swiftkv_attention.cpp:822->source/swiftkv_attention.cpp:901]   --->   Operation 302 'shl' 'scaled_1' <Predicate = (icmp_ln821)> <Delay = 1.15> <CoreInst = "Shifter">   --->   Core 75 'Shifter' <Latency = 0> <II = 1> <Delay = 1.15> <FuncUnit> <Opcode : 'shl' 'lshr' 'ashr'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 303 [1/1] (0.00ns) (grouped into LUT with out node scaled)   --->   "%tmp = bitselect i1 @_ssdm_op_BitSelect.i1.i5.i32, i5 %sub_ln824, i32 4" [source/swiftkv_attention.cpp:824->source/swiftkv_attention.cpp:901]   --->   Operation 303 'bitselect' 'tmp' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 304 [1/1] (0.00ns)   --->   "%sext_ln824 = sext i5 %sub_ln824_1" [source/swiftkv_attention.cpp:824->source/swiftkv_attention.cpp:901]   --->   Operation 304 'sext' 'sext_ln824' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 305 [1/1] (0.00ns)   --->   "%sext_ln824cast = zext i32 %sext_ln824" [source/swiftkv_attention.cpp:824->source/swiftkv_attention.cpp:901]   --->   Operation 305 'zext' 'sext_ln824cast' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 306 [1/1] (1.15ns)   --->   "%scaled_2 = shl i44 %sum, i44 %sext_ln824cast" [source/swiftkv_attention.cpp:824->source/swiftkv_attention.cpp:901]   --->   Operation 306 'shl' 'scaled_2' <Predicate = true> <Delay = 1.15> <CoreInst = "Shifter">   --->   Core 75 'Shifter' <Latency = 0> <II = 1> <Delay = 1.15> <FuncUnit> <Opcode : 'shl' 'lshr' 'ashr'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 307 [1/1] (0.00ns)   --->   "%sub_ln824cast = zext i5 %sub_ln824" [source/swiftkv_attention.cpp:824->source/swiftkv_attention.cpp:901]   --->   Operation 307 'zext' 'sub_ln824cast' <Predicate = (!icmp_ln821)> <Delay = 0.00>
+ST_8 : Operation 308 [1/1] (1.15ns)   --->   "%scaled_3 = ashr i44 %sum, i44 %sub_ln824cast" [source/swiftkv_attention.cpp:824->source/swiftkv_attention.cpp:901]   --->   Operation 308 'ashr' 'scaled_3' <Predicate = (!icmp_ln821)> <Delay = 1.15> <CoreInst = "Shifter">   --->   Core 75 'Shifter' <Latency = 0> <II = 1> <Delay = 1.15> <FuncUnit> <Opcode : 'shl' 'lshr' 'ashr'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 309 [1/1] (0.00ns) (grouped into LUT with out node scaled)   --->   "%xor_ln821 = xor i1 %icmp_ln821, i1 1" [source/swiftkv_attention.cpp:821->source/swiftkv_attention.cpp:901]   --->   Operation 309 'xor' 'xor_ln821' <Predicate = true> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 310 [1/1] (0.00ns) (grouped into LUT with out node scaled)   --->   "%and_ln824 = and i1 %tmp, i1 %xor_ln821" [source/swiftkv_attention.cpp:824->source/swiftkv_attention.cpp:901]   --->   Operation 310 'and' 'and_ln824' <Predicate = true> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 311 [1/1] (0.00ns) (grouped into LUT with out node scaled)   --->   "%select_ln821 = select i1 %icmp_ln821, i44 %scaled_1, i44 %scaled_3" [source/swiftkv_attention.cpp:821->source/swiftkv_attention.cpp:901]   --->   Operation 311 'select' 'select_ln821' <Predicate = true> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.25> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 312 [1/1] (0.25ns) (out node of the LUT)   --->   "%scaled = select i1 %and_ln824, i44 %scaled_2, i44 %select_ln821" [source/swiftkv_attention.cpp:820->source/swiftkv_attention.cpp:901]   --->   Operation 312 'select' 'scaled' <Predicate = true> <Delay = 0.25> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.25> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 313 [1/1] (0.38ns)   --->   "%store_ln850 = store i44 %scaled, i44 %group_first_half" [source/swiftkv_attention.cpp:850]   --->   Operation 313 'store' 'store_ln850' <Predicate = (!half)> <Delay = 0.38>
+ST_8 : Operation 314 [1/1] (0.00ns)   --->   "%br_ln903 = br void %for.inc64" [source/swiftkv_attention.cpp:903]   --->   Operation 314 'br' 'br_ln903' <Predicate = (!half)> <Delay = 0.00>
+ST_8 : Operation 315 [1/1] (0.00ns)   --->   "%group_first_half_load = load i44 %group_first_half" [source/swiftkv_attention.cpp:907]   --->   Operation 315 'load' 'group_first_half_load' <Predicate = (half)> <Delay = 0.00>
+ST_8 : Operation 316 [1/1] (0.96ns)   --->   "%group_dot = add i44 %scaled, i44 %group_first_half_load" [source/swiftkv_attention.cpp:907]   --->   Operation 316 'add' 'group_dot' <Predicate = (half)> <Delay = 0.96> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.96> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+
+State 9 <SV = 8> <Delay = 1.60>
+ST_9 : Operation 317 [1/1] (0.00ns)   --->   "%token_dot_load = load i44 %token_dot" [source/swiftkv_attention.cpp:911]   --->   Operation 317 'load' 'token_dot_load' <Predicate = (half & !icmp_ln909)> <Delay = 0.00>
+ST_9 : Operation 318 [1/1] (0.96ns)   --->   "%next_dot = add i44 %group_dot, i44 %token_dot_load" [source/swiftkv_attention.cpp:911]   --->   Operation 318 'add' 'next_dot' <Predicate = (half & !icmp_ln909)> <Delay = 0.96> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.96> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_9 : Operation 319 [1/1] (0.25ns)   --->   "%group_dot_2 = select i1 %icmp_ln909, i44 %group_dot, i44 %next_dot" [source/swiftkv_attention.cpp:909]   --->   Operation 319 'select' 'group_dot_2' <Predicate = (half)> <Delay = 0.25> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.25> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_9 : Operation 320 [1/1] (0.38ns)   --->   "%store_ln851 = store i44 %group_dot_2, i44 %token_dot" [source/swiftkv_attention.cpp:851]   --->   Operation 320 'store' 'store_ln851' <Predicate = (half)> <Delay = 0.38>
+ST_9 : Operation 321 [1/1] (0.00ns)   --->   "%br_ln0 = br void %for.inc64"   --->   Operation 321 'br' 'br_ln0' <Predicate = (half)> <Delay = 0.00>
+
+State 10 <SV = 9> <Delay = 1.88>
+ST_10 : Operation 322 [1/1] (0.00ns)   --->   "%sext_ln915 = sext i44 %group_dot_2" [source/swiftkv_attention.cpp:915]   --->   Operation 322 'sext' 'sext_ln915' <Predicate = (half & icmp_ln913)> <Delay = 0.00>
+ST_10 : Operation 323 [5/5] (1.88ns)   --->   "%mul_ln916 = mul i58 %sext_ln915, i58 11585" [source/swiftkv_attention.cpp:916]   --->   Operation 323 'mul' 'mul_ln916' <Predicate = (half & icmp_ln913)> <Delay = 1.88> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 1.88> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+
+State 11 <SV = 10> <Delay = 1.88>
+ST_11 : Operation 324 [4/5] (1.88ns)   --->   "%mul_ln916 = mul i58 %sext_ln915, i58 11585" [source/swiftkv_attention.cpp:916]   --->   Operation 324 'mul' 'mul_ln916' <Predicate = (half & icmp_ln913)> <Delay = 1.88> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 1.88> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+
+State 12 <SV = 11> <Delay = 1.88>
+ST_12 : Operation 325 [3/5] (1.88ns)   --->   "%mul_ln916 = mul i58 %sext_ln915, i58 11585" [source/swiftkv_attention.cpp:916]   --->   Operation 325 'mul' 'mul_ln916' <Predicate = (half & icmp_ln913)> <Delay = 1.88> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 1.88> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+
+State 13 <SV = 12> <Delay = 1.88>
+ST_13 : Operation 326 [2/5] (1.88ns)   --->   "%mul_ln916 = mul i58 %sext_ln915, i58 11585" [source/swiftkv_attention.cpp:916]   --->   Operation 326 'mul' 'mul_ln916' <Predicate = (half & icmp_ln913)> <Delay = 1.88> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 1.88> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+
+State 14 <SV = 13> <Delay = 1.88>
+ST_14 : Operation 327 [1/5] (1.88ns)   --->   "%mul_ln916 = mul i58 %sext_ln915, i58 11585" [source/swiftkv_attention.cpp:916]   --->   Operation 327 'mul' 'mul_ln916' <Predicate = (half & icmp_ln913)> <Delay = 1.88> <CoreInst = "Mul_DSP">   --->   Core 5 'Mul_DSP' <Latency = 4> <II = 1> <Delay = 1.88> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_14 : Operation 328 [1/1] (0.00ns)   --->   "%specfucore_ln916 = specfucore void @_ssdm_op_SpecFUCore, i58 %mul_ln916, i64 12, i64 3, i64 4" [source/swiftkv_attention.cpp:916]   --->   Operation 328 'specfucore' 'specfucore_ln916' <Predicate = (half & icmp_ln913)> <Delay = 0.00>
+ST_14 : Operation 329 [1/1] (0.00ns)   --->   "%tmp_164 = bitselect i1 @_ssdm_op_BitSelect.i1.i58.i32, i58 %mul_ln916, i32 57" [source/swiftkv_attention.cpp:915]   --->   Operation 329 'bitselect' 'tmp_164' <Predicate = (half & icmp_ln913)> <Delay = 0.00>
+ST_14 : Operation 330 [1/1] (0.00ns)   --->   "%trunc_ln915 = trunc i58 %mul_ln916" [source/swiftkv_attention.cpp:915]   --->   Operation 330 'trunc' 'trunc_ln915' <Predicate = (half & icmp_ln913)> <Delay = 0.00>
+ST_14 : Operation 331 [1/1] (0.00ns)   --->   "%tmp_s = partselect i2 @_ssdm_op_PartSelect.i2.i58.i32.i32, i58 %mul_ln916, i32 56, i32 57" [source/swiftkv_attention.cpp:915]   --->   Operation 331 'partselect' 'tmp_s' <Predicate = (half & icmp_ln913)> <Delay = 0.00>
+
+State 15 <SV = 14> <Delay = 2.22>
+ST_15 : Operation 332 [1/1] (0.00ns) (grouped into LUT with out node score_1)   --->   "%score = partselect i32 @_ssdm_op_PartSelect.i32.i58.i32.i32, i58 %mul_ln916, i32 24, i32 55" [source/swiftkv_attention.cpp:915]   --->   Operation 332 'partselect' 'score' <Predicate = (half & icmp_ln913)> <Delay = 0.00>
+ST_15 : Operation 333 [1/1] (0.00ns) (grouped into LUT with out node score_1)   --->   "%tmp_165 = bitselect i1 @_ssdm_op_BitSelect.i1.i58.i32, i58 %mul_ln916, i32 24" [source/swiftkv_attention.cpp:914]   --->   Operation 333 'bitselect' 'tmp_165' <Predicate = (half & icmp_ln913)> <Delay = 0.00>
+ST_15 : Operation 334 [1/1] (0.00ns) (grouped into LUT with out node score_1)   --->   "%tmp_166 = bitselect i1 @_ssdm_op_BitSelect.i1.i58.i32, i58 %mul_ln916, i32 23" [source/swiftkv_attention.cpp:915]   --->   Operation 334 'bitselect' 'tmp_166' <Predicate = (half & icmp_ln913)> <Delay = 0.00>
+ST_15 : Operation 335 [1/1] (0.82ns)   --->   "%icmp_ln915 = icmp_ne  i23 %trunc_ln915, i23 0" [source/swiftkv_attention.cpp:915]   --->   Operation 335 'icmp' 'icmp_ln915' <Predicate = (half & icmp_ln913)> <Delay = 0.82> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.82> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_15 : Operation 336 [1/1] (0.00ns) (grouped into LUT with out node and_ln915_1)   --->   "%tmp_167 = bitselect i1 @_ssdm_op_BitSelect.i1.i58.i32, i58 %mul_ln916, i32 55" [source/swiftkv_attention.cpp:915]   --->   Operation 336 'bitselect' 'tmp_167' <Predicate = (half & icmp_ln913)> <Delay = 0.00>
+ST_15 : Operation 337 [1/1] (0.00ns) (grouped into LUT with out node score_1)   --->   "%or_ln915 = or i1 %tmp_165, i1 %icmp_ln915" [source/swiftkv_attention.cpp:915]   --->   Operation 337 'or' 'or_ln915' <Predicate = (half & icmp_ln913)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_15 : Operation 338 [1/1] (0.00ns) (grouped into LUT with out node score_1)   --->   "%and_ln915 = and i1 %or_ln915, i1 %tmp_166" [source/swiftkv_attention.cpp:915]   --->   Operation 338 'and' 'and_ln915' <Predicate = (half & icmp_ln913)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_15 : Operation 339 [1/1] (0.00ns) (grouped into LUT with out node score_1)   --->   "%zext_ln915 = zext i1 %and_ln915" [source/swiftkv_attention.cpp:915]   --->   Operation 339 'zext' 'zext_ln915' <Predicate = (half & icmp_ln913)> <Delay = 0.00>
+ST_15 : Operation 340 [1/1] (0.88ns) (out node of the LUT)   --->   "%score_1 = add i32 %score, i32 %zext_ln915" [source/swiftkv_attention.cpp:915]   --->   Operation 340 'add' 'score_1' <Predicate = (half & icmp_ln913)> <Delay = 0.88> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.88> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_15 : Operation 341 [1/1] (0.00ns)   --->   "%tmp_168 = bitselect i1 @_ssdm_op_BitSelect.i1.i32.i32, i32 %score_1, i32 31" [source/swiftkv_attention.cpp:915]   --->   Operation 341 'bitselect' 'tmp_168' <Predicate = (half & icmp_ln913)> <Delay = 0.00>
+ST_15 : Operation 342 [1/1] (0.00ns) (grouped into LUT with out node and_ln915_1)   --->   "%xor_ln915 = xor i1 %tmp_168, i1 1" [source/swiftkv_attention.cpp:915]   --->   Operation 342 'xor' 'xor_ln915' <Predicate = (half & icmp_ln913)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_15 : Operation 343 [1/1] (0.12ns) (out node of the LUT)   --->   "%and_ln915_1 = and i1 %tmp_167, i1 %xor_ln915" [source/swiftkv_attention.cpp:915]   --->   Operation 343 'and' 'and_ln915_1' <Predicate = (half & icmp_ln913)> <Delay = 0.12> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_15 : Operation 344 [1/1] (0.43ns)   --->   "%icmp_ln915_1 = icmp_eq  i2 %tmp_s, i2 3" [source/swiftkv_attention.cpp:915]   --->   Operation 344 'icmp' 'icmp_ln915_1' <Predicate = (half & icmp_ln913)> <Delay = 0.43> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.43> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_15 : Operation 345 [1/1] (0.43ns)   --->   "%icmp_ln915_2 = icmp_eq  i2 %tmp_s, i2 0" [source/swiftkv_attention.cpp:915]   --->   Operation 345 'icmp' 'icmp_ln915_2' <Predicate = (half & icmp_ln913)> <Delay = 0.43> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.43> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_15 : Operation 346 [1/1] (0.00ns) (grouped into LUT with out node and_ln915_4)   --->   "%select_ln915 = select i1 %and_ln915_1, i1 %icmp_ln915_1, i1 %icmp_ln915_2" [source/swiftkv_attention.cpp:915]   --->   Operation 346 'select' 'select_ln915' <Predicate = (half & icmp_ln913)> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.27> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_15 : Operation 347 [1/1] (0.00ns) (grouped into LUT with out node and_ln915_5)   --->   "%tmp_169 = bitselect i1 @_ssdm_op_BitSelect.i1.i58.i32, i58 %mul_ln916, i32 56" [source/swiftkv_attention.cpp:915]   --->   Operation 347 'bitselect' 'tmp_169' <Predicate = (half & icmp_ln913)> <Delay = 0.00>
+ST_15 : Operation 348 [1/1] (0.00ns) (grouped into LUT with out node and_ln915_5)   --->   "%xor_ln915_4 = xor i1 %tmp_169, i1 1" [source/swiftkv_attention.cpp:915]   --->   Operation 348 'xor' 'xor_ln915_4' <Predicate = (half & icmp_ln913)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_15 : Operation 349 [1/1] (0.00ns) (grouped into LUT with out node and_ln915_5)   --->   "%and_ln915_2 = and i1 %tmp_164, i1 %xor_ln915_4" [source/swiftkv_attention.cpp:915]   --->   Operation 349 'and' 'and_ln915_2' <Predicate = (half & icmp_ln913)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_15 : Operation 350 [1/1] (0.00ns) (grouped into LUT with out node and_ln915_5)   --->   "%select_ln915_1 = select i1 %and_ln915_1, i1 %and_ln915_2, i1 %icmp_ln915_1" [source/swiftkv_attention.cpp:915]   --->   Operation 350 'select' 'select_ln915_1' <Predicate = (half & icmp_ln913)> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.27> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_15 : Operation 351 [1/1] (0.00ns) (grouped into LUT with out node or_ln915_2)   --->   "%and_ln915_3 = and i1 %and_ln915_1, i1 %icmp_ln915_1" [source/swiftkv_attention.cpp:915]   --->   Operation 351 'and' 'and_ln915_3' <Predicate = (half & icmp_ln913)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_15 : Operation 352 [1/1] (0.00ns) (grouped into LUT with out node and_ln915_4)   --->   "%xor_ln915_1 = xor i1 %select_ln915, i1 1" [source/swiftkv_attention.cpp:915]   --->   Operation 352 'xor' 'xor_ln915_1' <Predicate = (half & icmp_ln913)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_15 : Operation 353 [1/1] (0.00ns) (grouped into LUT with out node and_ln915_4)   --->   "%or_ln915_1 = or i1 %tmp_168, i1 %xor_ln915_1" [source/swiftkv_attention.cpp:915]   --->   Operation 353 'or' 'or_ln915_1' <Predicate = (half & icmp_ln913)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_15 : Operation 354 [1/1] (0.00ns) (grouped into LUT with out node and_ln915_4)   --->   "%xor_ln915_2 = xor i1 %tmp_164, i1 1" [source/swiftkv_attention.cpp:915]   --->   Operation 354 'xor' 'xor_ln915_2' <Predicate = (half & icmp_ln913)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_15 : Operation 355 [1/1] (0.27ns) (out node of the LUT)   --->   "%and_ln915_4 = and i1 %or_ln915_1, i1 %xor_ln915_2" [source/swiftkv_attention.cpp:915]   --->   Operation 355 'and' 'and_ln915_4' <Predicate = (half & icmp_ln913)> <Delay = 0.27> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_15 : Operation 356 [1/1] (0.27ns) (out node of the LUT)   --->   "%and_ln915_5 = and i1 %tmp_168, i1 %select_ln915_1" [source/swiftkv_attention.cpp:915]   --->   Operation 356 'and' 'and_ln915_5' <Predicate = (half & icmp_ln913)> <Delay = 0.27> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_15 : Operation 357 [1/1] (0.00ns) (grouped into LUT with out node or_ln915_2)   --->   "%or_ln915_3 = or i1 %and_ln915_3, i1 %and_ln915_5" [source/swiftkv_attention.cpp:915]   --->   Operation 357 'or' 'or_ln915_3' <Predicate = (half & icmp_ln913)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_15 : Operation 358 [1/1] (0.00ns) (grouped into LUT with out node or_ln915_2)   --->   "%xor_ln915_3 = xor i1 %or_ln915_3, i1 1" [source/swiftkv_attention.cpp:915]   --->   Operation 358 'xor' 'xor_ln915_3' <Predicate = (half & icmp_ln913)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_15 : Operation 359 [1/1] (0.00ns) (grouped into LUT with out node or_ln915_2)   --->   "%and_ln915_6 = and i1 %tmp_164, i1 %xor_ln915_3" [source/swiftkv_attention.cpp:915]   --->   Operation 359 'and' 'and_ln915_6' <Predicate = (half & icmp_ln913)> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_15 : Operation 360 [1/1] (0.12ns) (out node of the LUT)   --->   "%or_ln915_2 = or i1 %and_ln915_4, i1 %and_ln915_6" [source/swiftkv_attention.cpp:915]   --->   Operation 360 'or' 'or_ln915_2' <Predicate = (half & icmp_ln913)> <Delay = 0.12> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_15 : Operation 367 [1/1] (0.00ns)   --->   "%ret_ln0 = ret"   --->   Operation 367 'ret' 'ret_ln0' <Predicate = (icmp_ln855)> <Delay = 0.00>
+
+State 16 <SV = 15> <Delay = 1.44>
+ST_16 : Operation 361 [1/1] (0.00ns)   --->   "%rbegin = specregionbegin i32 @_ssdm_op_SpecRegionBegin, void @empty_416" [source/swiftkv_attention.cpp:914]   --->   Operation 361 'specregionbegin' 'rbegin' <Predicate = (half & icmp_ln913)> <Delay = 0.00>
+ST_16 : Operation 362 [1/1] (0.00ns) (grouped into LUT with out node score_2)   --->   "%select_ln915_2 = select i1 %and_ln915_4, i32 2147483647, i32 2147483648" [source/swiftkv_attention.cpp:915]   --->   Operation 362 'select' 'select_ln915_2' <Predicate = (half & icmp_ln913 & or_ln915_2)> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_16 : Operation 363 [1/1] (0.22ns) (out node of the LUT)   --->   "%score_2 = select i1 %or_ln915_2, i32 %select_ln915_2, i32 %score_1" [source/swiftkv_attention.cpp:915]   --->   Operation 363 'select' 'score_2' <Predicate = (half & icmp_ln913)> <Delay = 0.22> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_16 : Operation 364 [1/1] (0.00ns)   --->   "%rend = specregionend i32 @_ssdm_op_SpecRegionEnd, void @empty_416, i32 %rbegin" [source/swiftkv_attention.cpp:914]   --->   Operation 364 'specregionend' 'rend' <Predicate = (half & icmp_ln913)> <Delay = 0.00>
+ST_16 : Operation 365 [1/1] (1.21ns)   --->   "%write_ln917 = write void @_ssdm_op_Write.ap_fifo.volatile.i32P0A, i32 %score_stream, i32 %score_2" [source/swiftkv_attention.cpp:917]   --->   Operation 365 'write' 'write_ln917' <Predicate = (half & icmp_ln913)> <Delay = 1.21> <CoreInst = "FIFO_SRL">   --->   Core 81 'FIFO_SRL' <Latency = 0> <II = 1> <Delay = 1.46> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 32> <Depth = 4> <FIFO>
+ST_16 : Operation 366 [1/1] (0.00ns)   --->   "%br_ln918 = br void %if.end62" [source/swiftkv_attention.cpp:918]   --->   Operation 366 'br' 'br_ln918' <Predicate = (half & icmp_ln913)> <Delay = 0.00>
+
+
+============================================================
++ Verbose Summary: Timing violations
+============================================================
+Target clock period: 3.333ns, clock uncertainty: 0.900ns.
+
+ <State 1>: 1.559ns
+The critical path consists of the following:
+	'store' operation 0 bit ('store_ln854', source/swiftkv_attention.cpp:854) of constant 0 on local variable 'dot_phase', source/swiftkv_attention.cpp:854 [64]  (0.387 ns)
+	'load' operation 16 bit ('dot_phase', source/swiftkv_attention.cpp:855) on local variable 'dot_phase', source/swiftkv_attention.cpp:854 [67]  (0.000 ns)
+	'icmp' operation 1 bit ('icmp_ln855', source/swiftkv_attention.cpp:855) [68]  (0.785 ns)
+	'store' operation 0 bit ('store_ln854', source/swiftkv_attention.cpp:854) of variable 'dot_phase', source/swiftkv_attention.cpp:856 on local variable 'dot_phase', source/swiftkv_attention.cpp:854 [341]  (0.387 ns)
+
+ <State 2>: 1.217ns
+The critical path consists of the following:
+	fifo read operation ('metadata', source/swiftkv_attention.cpp:862) on port 'key_metadata_stream' (source/swiftkv_attention.cpp:862) [80]  (1.217 ns)
+
+ <State 3>: 1.196ns
+The critical path consists of the following:
+	'load' operation 32 bit ('query_raw', source/swiftkv_attention.cpp:896) on array 'query_0' [124]  (1.196 ns)
+
+ <State 4>: 2.291ns
+The critical path consists of the following:
+	'mul' operation 40 bit ('mul_ln791', source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901) [160]  (2.291 ns)
+
+ <State 5>: 2.291ns
+The critical path consists of the following:
+	'mul' operation 40 bit ('mul_ln791', source/swiftkv_attention.cpp:791->source/swiftkv_attention.cpp:901) [160]  (2.291 ns)
+
+ <State 6>: 1.927ns
+The critical path consists of the following:
+	'add' operation 41 bit ('add_ln797', source/swiftkv_attention.cpp:797->source/swiftkv_attention.cpp:901) [223]  (0.964 ns)
+	'add' operation 42 bit ('add_ln804', source/swiftkv_attention.cpp:804->source/swiftkv_attention.cpp:901) [247]  (0.963 ns)
+
+ <State 7>: 1.924ns
+The critical path consists of the following:
+	'add' operation 43 bit ('add_ln811', source/swiftkv_attention.cpp:811->source/swiftkv_attention.cpp:901) [259]  (0.962 ns)
+	'add' operation 44 bit ('sum', source/swiftkv_attention.cpp:815->source/swiftkv_attention.cpp:901) [265]  (0.962 ns)
+
+ <State 8>: 2.374ns
+The critical path consists of the following:
+	'shl' operation 44 bit ('scaled_1', source/swiftkv_attention.cpp:822->source/swiftkv_attention.cpp:901) [269]  (1.156 ns)
+	'select' operation 44 bit ('select_ln821', source/swiftkv_attention.cpp:821->source/swiftkv_attention.cpp:901) [280]  (0.000 ns)
+	'select' operation 44 bit ('scaled', source/swiftkv_attention.cpp:820->source/swiftkv_attention.cpp:901) [281]  (0.257 ns)
+	'add' operation 44 bit ('group_dot', source/swiftkv_attention.cpp:907) [289]  (0.961 ns)
+
+ <State 9>: 1.605ns
+The critical path consists of the following:
+	'load' operation 44 bit ('token_dot_load', source/swiftkv_attention.cpp:911) on local variable 'token_dot', source/swiftkv_attention.cpp:851 [288]  (0.000 ns)
+	'add' operation 44 bit ('next_dot', source/swiftkv_attention.cpp:911) [291]  (0.961 ns)
+	'select' operation 44 bit ('group_dot', source/swiftkv_attention.cpp:909) [292]  (0.257 ns)
+	'store' operation 0 bit ('store_ln851', source/swiftkv_attention.cpp:851) of variable 'group_dot', source/swiftkv_attention.cpp:909 on local variable 'token_dot', source/swiftkv_attention.cpp:851 [338]  (0.387 ns)
+
+ <State 10>: 1.884ns
+The critical path consists of the following:
+	'mul' operation 58 bit ('mul_ln916', source/swiftkv_attention.cpp:916) [298]  (1.884 ns)
+
+ <State 11>: 1.884ns
+The critical path consists of the following:
+	'mul' operation 58 bit ('mul_ln916', source/swiftkv_attention.cpp:916) [298]  (1.884 ns)
+
+ <State 12>: 1.884ns
+The critical path consists of the following:
+	'mul' operation 58 bit ('mul_ln916', source/swiftkv_attention.cpp:916) [298]  (1.884 ns)
+
+ <State 13>: 1.884ns
+The critical path consists of the following:
+	'mul' operation 58 bit ('mul_ln916', source/swiftkv_attention.cpp:916) [298]  (1.884 ns)
+
+ <State 14>: 1.884ns
+The critical path consists of the following:
+	'mul' operation 58 bit ('mul_ln916', source/swiftkv_attention.cpp:916) [298]  (1.884 ns)
+
+ <State 15>: 2.229ns
+The critical path consists of the following:
+	'icmp' operation 1 bit ('icmp_ln915', source/swiftkv_attention.cpp:915) [305]  (0.827 ns)
+	'or' operation 1 bit ('or_ln915', source/swiftkv_attention.cpp:915) [307]  (0.000 ns)
+	'and' operation 1 bit ('and_ln915', source/swiftkv_attention.cpp:915) [308]  (0.000 ns)
+	'add' operation 32 bit ('score', source/swiftkv_attention.cpp:915) [310]  (0.880 ns)
+	'xor' operation 1 bit ('xor_ln915', source/swiftkv_attention.cpp:915) [312]  (0.000 ns)
+	'and' operation 1 bit ('and_ln915_1', source/swiftkv_attention.cpp:915) [313]  (0.122 ns)
+	'select' operation 1 bit ('select_ln915', source/swiftkv_attention.cpp:915) [317]  (0.000 ns)
+	'xor' operation 1 bit ('xor_ln915_1', source/swiftkv_attention.cpp:915) [323]  (0.000 ns)
+	'or' operation 1 bit ('or_ln915_1', source/swiftkv_attention.cpp:915) [324]  (0.000 ns)
+	'and' operation 1 bit ('and_ln915_4', source/swiftkv_attention.cpp:915) [326]  (0.278 ns)
+	'or' operation 1 bit ('or_ln915_2', source/swiftkv_attention.cpp:915) [332]  (0.122 ns)
+
+ <State 16>: 1.444ns
+The critical path consists of the following:
+	'select' operation 32 bit ('select_ln915_2', source/swiftkv_attention.cpp:915) [331]  (0.000 ns)
+	'select' operation 32 bit ('score', source/swiftkv_attention.cpp:915) [333]  (0.227 ns)
+	fifo write operation ('write_ln917', source/swiftkv_attention.cpp:917) on port 'score_stream' (source/swiftkv_attention.cpp:917) [335]  (1.217 ns)
+
+
+============================================================
++ Verbose Summary: Binding
+============================================================
+N/A
+* FSMD analyzer results:
+  - Output states:
+ - Input state : 
+  - Chain level:
+	State 1
+	State 2
+	State 3
+	State 4
+	State 5
+	State 6
+	State 7
+	State 8
+	State 9
+	State 10
+	State 11
+	State 12
+	State 13
+	State 14
+	State 15
+	State 16
+
+
+============================================================
++ Verbose Summary: Datapath Resource usage 
+============================================================
+N/A

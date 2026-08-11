@@ -1,0 +1,1234 @@
+{
+  "0": {
+    "basicblocks": 23,
+    "calls": "85 25 60 31 40 34 94",
+    "file": "int4_decoder_controller.cpp",
+    "fileloc": 509,
+    "instructions": 253,
+    "loads": {
+      "L": 7
+    },
+    "name": "int4_decoder_token_controller",
+    "stores": {
+      "L": 23
+    },
+    "total_instructions": 28930
+  },
+  "1": {
+    "basicblocks": 10,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 355,
+    "instructions": 42,
+    "loads": {
+      "L": 2
+    },
+    "name": "int4_cache_and_replay_activation<2>",
+    "stores": {
+      "L": 2
+    },
+    "total_instructions": 42
+  },
+  "10": {
+    "basicblocks": 3,
+    "calls": "",
+    "file": "int4_decoder_controller.cpp",
+    "fileloc": 125,
+    "instructions": 22,
+    "loads": {
+      "L": 4
+    },
+    "name": "int4_route_linear_projection<0>",
+    "stores": {
+      "L": 4
+    },
+    "total_instructions": 22
+  },
+  "11": {
+    "basicblocks": 1,
+    "calls": "82 33 83 57 54 52",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 928,
+    "instructions": 55,
+    "name": "int4_run_four_pes",
+    "total_instructions": 9796
+  },
+  "12": {
+    "basicblocks": 12,
+    "calls": "",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1241,
+    "instructions": 329,
+    "loads": {
+      "L": 5
+    },
+    "name": "swiftkv_update_value_engine<2>",
+    "stores": {
+      "L": 8
+    },
+    "total_instructions": 329
+  },
+  "13": {
+    "basicblocks": 1,
+    "calls": "44 53 66 71 42",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1566,
+    "instructions": 81,
+    "loads": {
+      "L": 1
+    },
+    "name": "swiftkv_attention_head",
+    "stores": {
+      "L": 5
+    },
+    "total_instructions": 2962
+  },
+  "14": {
+    "basicblocks": 4,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 392,
+    "instructions": 16,
+    "loads": {
+      "L": 1
+    },
+    "name": "int4_stream_pe_inputs",
+    "total_instructions": 17
+  },
+  "15": {
+    "basicblocks": 28,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 689,
+    "instructions": 167,
+    "loads": {
+      "L": 1
+    },
+    "name": "int4_write_outputs",
+    "stores": {
+      "L": 2
+    },
+    "total_instructions": 167
+  },
+  "16": {
+    "basicblocks": 9,
+    "calls": "",
+    "file": "int4_decoder_blocks.cpp",
+    "fileloc": 804,
+    "instructions": 137,
+    "loads": {
+      "L": 3
+    },
+    "name": "int4_swiglu_quantize_pe0",
+    "stores": {
+      "L": 1
+    },
+    "total_instructions": 137
+  },
+  "17": {
+    "basicblocks": 10,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 355,
+    "instructions": 42,
+    "loads": {
+      "L": 2
+    },
+    "name": "int4_cache_and_replay_activation<3>",
+    "stores": {
+      "L": 2
+    },
+    "total_instructions": 42
+  },
+  "18": {
+    "basicblocks": 91,
+    "calls": "",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 387,
+    "instructions": 691,
+    "loads": {
+      "L": 4
+    },
+    "name": "swiftkv_quantize_kv_record",
+    "stores": {
+      "L": 5
+    },
+    "total_instructions": 691
+  },
+  "19": {
+    "basicblocks": 23,
+    "calls": "",
+    "file": "int4_decoder_blocks.cpp",
+    "fileloc": 40,
+    "instructions": 109,
+    "loads": {
+      "L": 1
+    },
+    "name": "int4_rms_sumsq_pe",
+    "total_instructions": 109
+  },
+  "2": {
+    "basicblocks": 4,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 392,
+    "instructions": 16,
+    "loads": {
+      "L": 1
+    },
+    "name": "int4_stream_pe_inputs",
+    "total_instructions": 17
+  },
+  "20": {
+    "basicblocks": 11,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 447,
+    "instructions": 1713,
+    "name": "int4_stream_integer_blocks",
+    "total_instructions": 1713
+  },
+  "21": {
+    "basicblocks": 13,
+    "calls": "",
+    "file": "int4_decoder_blocks.cpp",
+    "fileloc": 930,
+    "instructions": 37,
+    "name": "int4_swiglu_gather_streams",
+    "total_instructions": 37
+  },
+  "22": {
+    "basicblocks": 1,
+    "calls": "16 93 68 5 21",
+    "file": "int4_decoder_blocks.cpp",
+    "fileloc": 1043,
+    "instructions": 38,
+    "name": "int4_swiglu_quantize_four_pes_stream",
+    "total_instructions": 623
+  },
+  "23": {
+    "basicblocks": 13,
+    "calls": "58 10 41 26 56 70 92 86",
+    "file": "int4_decoder_controller.cpp",
+    "fileloc": 166,
+    "instructions": 58,
+    "loads": {
+      "L": 7
+    },
+    "name": "int4_execute_dispatch_linear",
+    "stores": {
+      "L": 4
+    },
+    "total_instructions": 11825
+  },
+  "24": {
+    "basicblocks": 30,
+    "calls": "11",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 1431,
+    "instructions": 107,
+    "loads": {
+      "L": 5
+    },
+    "name": "int4_linear_4pe_from_stream",
+    "stores": {
+      "L": 22
+    },
+    "total_instructions": 9903
+  },
+  "25": {
+    "basicblocks": 6,
+    "calls": "",
+    "file": "int4_decoder_controller.cpp",
+    "fileloc": 405,
+    "instructions": 39,
+    "loads": {
+      "L": 4
+    },
+    "name": "int4_preload_model_prefix_4ddr",
+    "stores": {
+      "G": 8
+    },
+    "total_instructions": 43
+  },
+  "26": {
+    "basicblocks": 3,
+    "calls": "",
+    "file": "int4_decoder_controller.cpp",
+    "fileloc": 125,
+    "instructions": 22,
+    "loads": {
+      "L": 4
+    },
+    "name": "int4_route_linear_projection<2>",
+    "stores": {
+      "L": 4
+    },
+    "total_instructions": 22
+  },
+  "27": {
+    "basicblocks": 32,
+    "calls": "18 13",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1798,
+    "instructions": 474,
+    "loads": {
+      "L": 14
+    },
+    "name": "swiftkv_run_bank",
+    "stores": {
+      "L": 24
+    },
+    "total_instructions": 4127
+  },
+  "28": {
+    "basicblocks": 10,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 355,
+    "instructions": 42,
+    "loads": {
+      "L": 2
+    },
+    "name": "int4_cache_and_replay_activation<0>",
+    "stores": {
+      "L": 2
+    },
+    "total_instructions": 42
+  },
+  "29": {
+    "basicblocks": 11,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 447,
+    "instructions": 1713,
+    "name": "int4_stream_integer_blocks",
+    "total_instructions": 1713
+  },
+  "3": {
+    "basicblocks": 9,
+    "calls": "",
+    "file": "int4_decoder_blocks.cpp",
+    "fileloc": 100,
+    "instructions": 131,
+    "loads": {
+      "L": 3
+    },
+    "name": "int4_rms_normalize_quantize_pe",
+    "stores": {
+      "L": 1
+    },
+    "total_instructions": 131
+  },
+  "30": {
+    "basicblocks": 53,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 536,
+    "instructions": 320,
+    "loads": {
+      "L": 5
+    },
+    "name": "int4_dequantize_final_blocks",
+    "stores": {
+      "L": 4
+    },
+    "total_instructions": 320
+  },
+  "31": {
+    "basicblocks": 3,
+    "calls": "",
+    "file": "int4_decoder_controller.cpp",
+    "fileloc": 457,
+    "instructions": 22,
+    "loads": {
+      "L": 4
+    },
+    "name": "int4_load_residual_4ddr",
+    "stores": {
+      "L": 4
+    },
+    "total_instructions": 22
+  },
+  "32": {
+    "basicblocks": 23,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 653,
+    "instructions": 102,
+    "name": "int4_pack_dequantized_outputs",
+    "total_instructions": 102
+  },
+  "33": {
+    "basicblocks": 21,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 248,
+    "instructions": 83,
+    "loads": {
+      "L": 2
+    },
+    "name": "int4_broadcast_activation",
+    "stores": {
+      "L": 3
+    },
+    "total_instructions": 83
+  },
+  "34": {
+    "basicblocks": 1,
+    "calls": "8 80 74 36 7 72 9",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 2135,
+    "instructions": 94,
+    "loads": {
+      "L": 2
+    },
+    "name": "swiftkv_run_four_pes",
+    "stores": {
+      "L": 2
+    },
+    "total_instructions": 16709
+  },
+  "35": {
+    "basicblocks": 23,
+    "calls": "",
+    "file": "int4_decoder_blocks.cpp",
+    "fileloc": 40,
+    "instructions": 109,
+    "loads": {
+      "L": 1
+    },
+    "name": "int4_rms_sumsq_pe",
+    "total_instructions": 109
+  },
+  "36": {
+    "basicblocks": 1,
+    "calls": "27",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1969,
+    "instructions": 9,
+    "name": "swiftkv_run_pe<1>",
+    "stores": {
+      "L": 2
+    },
+    "total_instructions": 4136
+  },
+  "37": {
+    "basicblocks": 23,
+    "calls": "",
+    "file": "int4_decoder_blocks.cpp",
+    "fileloc": 40,
+    "instructions": 109,
+    "loads": {
+      "L": 1
+    },
+    "name": "int4_rms_sumsq_pe",
+    "total_instructions": 109
+  },
+  "38": {
+    "basicblocks": 7,
+    "calls": "",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1163,
+    "instructions": 55,
+    "loads": {
+      "L": 1
+    },
+    "name": "swiftkv_prepare_update_engine_phases<1>",
+    "total_instructions": 55
+  },
+  "39": {
+    "basicblocks": 5,
+    "calls": "95 67",
+    "file": "int4_decoder_controller.cpp",
+    "fileloc": 10,
+    "instructions": 7,
+    "name": "int4_preprocess_activation_stream",
+    "total_instructions": 1698
+  },
+  "4": {
+    "basicblocks": 1,
+    "calls": "78 37 19 35 77",
+    "file": "int4_decoder_blocks.cpp",
+    "fileloc": 302,
+    "instructions": 18,
+    "name": "int4_rms_sumsq_four_pes",
+    "total_instructions": 466
+  },
+  "40": {
+    "basicblocks": 1,
+    "calls": "23",
+    "file": "int4_decoder_controller.cpp",
+    "fileloc": 317,
+    "instructions": 8,
+    "name": "int4_dispatch_linear_registered",
+    "total_instructions": 11833
+  },
+  "41": {
+    "basicblocks": 3,
+    "calls": "",
+    "file": "int4_decoder_controller.cpp",
+    "fileloc": 125,
+    "instructions": 22,
+    "loads": {
+      "L": 4
+    },
+    "name": "int4_route_linear_projection<1>",
+    "stores": {
+      "L": 4
+    },
+    "total_instructions": 22
+  },
+  "42": {
+    "basicblocks": 33,
+    "calls": "6",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1427,
+    "instructions": 351,
+    "loads": {
+      "L": 18
+    },
+    "name": "swiftkv_update_values_and_quantize",
+    "stores": {
+      "L": 2
+    },
+    "total_instructions": 1965
+  },
+  "43": {
+    "basicblocks": 3,
+    "calls": "",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1137,
+    "instructions": 17,
+    "loads": {
+      "L": 1
+    },
+    "name": "swiftkv_broadcast_update_controls",
+    "total_instructions": 17
+  },
+  "44": {
+    "basicblocks": 4,
+    "calls": "",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 668,
+    "instructions": 18,
+    "loads": {
+      "L": 2
+    },
+    "name": "swiftkv_read_compressed_kv_cache",
+    "total_instructions": 18
+  },
+  "45": {
+    "basicblocks": 10,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 355,
+    "instructions": 42,
+    "loads": {
+      "L": 2
+    },
+    "name": "int4_cache_and_replay_activation<1>",
+    "stores": {
+      "L": 2
+    },
+    "total_instructions": 42
+  },
+  "46": {
+    "basicblocks": 9,
+    "calls": "",
+    "file": "int4_decoder_blocks.cpp",
+    "fileloc": 100,
+    "instructions": 131,
+    "loads": {
+      "L": 3
+    },
+    "name": "int4_rms_normalize_quantize_pe",
+    "stores": {
+      "L": 1
+    },
+    "total_instructions": 131
+  },
+  "47": {
+    "basicblocks": 7,
+    "calls": "",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1163,
+    "instructions": 55,
+    "loads": {
+      "L": 1
+    },
+    "name": "swiftkv_prepare_update_engine_phases<2>",
+    "total_instructions": 55
+  },
+  "48": {
+    "basicblocks": 11,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 447,
+    "instructions": 1713,
+    "name": "int4_stream_integer_blocks",
+    "total_instructions": 1713
+  },
+  "49": {
+    "basicblocks": 11,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 447,
+    "instructions": 1713,
+    "name": "int4_stream_integer_blocks",
+    "total_instructions": 1713
+  },
+  "5": {
+    "basicblocks": 9,
+    "calls": "",
+    "file": "int4_decoder_blocks.cpp",
+    "fileloc": 837,
+    "instructions": 137,
+    "loads": {
+      "L": 3
+    },
+    "name": "int4_swiglu_quantize_pe3",
+    "stores": {
+      "L": 1
+    },
+    "total_instructions": 137
+  },
+  "50": {
+    "basicblocks": 7,
+    "calls": "",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1163,
+    "instructions": 55,
+    "loads": {
+      "L": 1
+    },
+    "name": "swiftkv_prepare_update_engine_phases<3>",
+    "total_instructions": 55
+  },
+  "51": {
+    "basicblocks": 12,
+    "calls": "",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1241,
+    "instructions": 329,
+    "loads": {
+      "L": 5
+    },
+    "name": "swiftkv_update_value_engine<3>",
+    "stores": {
+      "L": 8
+    },
+    "total_instructions": 329
+  },
+  "52": {
+    "basicblocks": 1,
+    "calls": "14 17 29 30 69 91",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 816,
+    "instructions": 50,
+    "name": "int4_run_pe_dataflow<3>",
+    "total_instructions": 2411
+  },
+  "53": {
+    "basicblocks": 24,
+    "calls": "",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 688,
+    "instructions": 151,
+    "loads": {
+      "L": 6
+    },
+    "name": "swiftkv_route_compressed_kv_cache",
+    "total_instructions": 151
+  },
+  "54": {
+    "basicblocks": 1,
+    "calls": "81 1 49 88 32 84",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 816,
+    "instructions": 50,
+    "name": "int4_run_pe_dataflow<2>",
+    "total_instructions": 2411
+  },
+  "55": {
+    "basicblocks": 53,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 536,
+    "instructions": 320,
+    "loads": {
+      "L": 5
+    },
+    "name": "int4_dequantize_final_blocks",
+    "stores": {
+      "L": 4
+    },
+    "total_instructions": 320
+  },
+  "56": {
+    "basicblocks": 3,
+    "calls": "",
+    "file": "int4_decoder_controller.cpp",
+    "fileloc": 125,
+    "instructions": 22,
+    "loads": {
+      "L": 4
+    },
+    "name": "int4_route_linear_projection<4>",
+    "stores": {
+      "L": 4
+    },
+    "total_instructions": 22
+  },
+  "57": {
+    "basicblocks": 1,
+    "calls": "2 45 20 59 65 15",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 816,
+    "instructions": 50,
+    "name": "int4_run_pe_dataflow<1>",
+    "total_instructions": 2411
+  },
+  "58": {
+    "basicblocks": 1,
+    "calls": "39 24",
+    "file": "int4_decoder_controller.cpp",
+    "fileloc": 46,
+    "instructions": 12,
+    "name": "int4_run_preprocess_and_linear",
+    "total_instructions": 11613
+  },
+  "59": {
+    "basicblocks": 53,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 536,
+    "instructions": 320,
+    "loads": {
+      "L": 5
+    },
+    "name": "int4_dequantize_final_blocks",
+    "stores": {
+      "L": 4
+    },
+    "total_instructions": 320
+  },
+  "6": {
+    "basicblocks": 1,
+    "calls": "43 87 38 47 50 79 63 12 51",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1332,
+    "instructions": 61,
+    "loads": {
+      "L": 1
+    },
+    "name": "swiftkv_accumulate_values_split",
+    "stores": {
+      "L": 9
+    },
+    "total_instructions": 1614
+  },
+  "60": {
+    "basicblocks": 5,
+    "calls": "",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1691,
+    "instructions": 29,
+    "loads": {
+      "G": 1,
+      "L": 1
+    },
+    "name": "swiftkv_load_rope_position",
+    "stores": {
+      "L": 2
+    },
+    "total_instructions": 29
+  },
+  "61": {
+    "basicblocks": 9,
+    "calls": "",
+    "file": "int4_decoder_blocks.cpp",
+    "fileloc": 100,
+    "instructions": 131,
+    "loads": {
+      "L": 3
+    },
+    "name": "int4_rms_normalize_quantize_pe",
+    "stores": {
+      "L": 1
+    },
+    "total_instructions": 131
+  },
+  "62": {
+    "basicblocks": 12,
+    "calls": "",
+    "file": "int4_decoder_blocks.cpp",
+    "fileloc": 254,
+    "instructions": 33,
+    "name": "int4_rms_gather_streams",
+    "total_instructions": 33
+  },
+  "63": {
+    "basicblocks": 12,
+    "calls": "",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1241,
+    "instructions": 329,
+    "loads": {
+      "L": 5
+    },
+    "name": "swiftkv_update_value_engine<1>",
+    "stores": {
+      "L": 8
+    },
+    "total_instructions": 329
+  },
+  "64": {
+    "basicblocks": 1,
+    "calls": "46 3 61 76 62",
+    "file": "int4_decoder_blocks.cpp",
+    "fileloc": 386,
+    "instructions": 34,
+    "name": "int4_rms_normalize_quantize_four_pes_stream",
+    "total_instructions": 591
+  },
+  "65": {
+    "basicblocks": 23,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 653,
+    "instructions": 102,
+    "name": "int4_pack_dequantized_outputs",
+    "total_instructions": 102
+  },
+  "66": {
+    "basicblocks": 20,
+    "calls": "",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 834,
+    "instructions": 423,
+    "loads": {
+      "L": 17
+    },
+    "name": "swiftkv_process_compressed_kv",
+    "total_instructions": 423
+  },
+  "67": {
+    "basicblocks": 1,
+    "calls": "22",
+    "file": "int4_decoder_blocks.cpp",
+    "fileloc": 1147,
+    "instructions": 2,
+    "name": "int4_swiglu_quantize_stream_4pe",
+    "total_instructions": 625
+  },
+  "68": {
+    "basicblocks": 9,
+    "calls": "",
+    "file": "int4_decoder_blocks.cpp",
+    "fileloc": 826,
+    "instructions": 137,
+    "loads": {
+      "L": 3
+    },
+    "name": "int4_swiglu_quantize_pe2",
+    "stores": {
+      "L": 1
+    },
+    "total_instructions": 137
+  },
+  "69": {
+    "basicblocks": 23,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 653,
+    "instructions": 102,
+    "name": "int4_pack_dequantized_outputs",
+    "total_instructions": 102
+  },
+  "7": {
+    "basicblocks": 1,
+    "calls": "27",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1969,
+    "instructions": 9,
+    "name": "swiftkv_run_pe<2>",
+    "stores": {
+      "L": 2
+    },
+    "total_instructions": 4136
+  },
+  "70": {
+    "basicblocks": 3,
+    "calls": "",
+    "file": "int4_decoder_controller.cpp",
+    "fileloc": 125,
+    "instructions": 22,
+    "loads": {
+      "L": 4
+    },
+    "name": "int4_route_linear_projection<5>",
+    "stores": {
+      "L": 4
+    },
+    "total_instructions": 22
+  },
+  "71": {
+    "basicblocks": 19,
+    "calls": "89",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1082,
+    "instructions": 290,
+    "loads": {
+      "G": 4,
+      "L": 2
+    },
+    "name": "swiftkv_coefficient_producer",
+    "stores": {
+      "L": 1
+    },
+    "total_instructions": 324
+  },
+  "72": {
+    "basicblocks": 1,
+    "calls": "27",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1969,
+    "instructions": 9,
+    "name": "swiftkv_run_pe<3>",
+    "stores": {
+      "L": 2
+    },
+    "total_instructions": 4136
+  },
+  "73": {
+    "basicblocks": 28,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 689,
+    "instructions": 167,
+    "loads": {
+      "L": 1
+    },
+    "name": "int4_write_outputs",
+    "stores": {
+      "L": 2
+    },
+    "total_instructions": 167
+  },
+  "74": {
+    "basicblocks": 1,
+    "calls": "27",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1969,
+    "instructions": 9,
+    "name": "swiftkv_run_pe<0>",
+    "stores": {
+      "L": 2
+    },
+    "total_instructions": 4136
+  },
+  "75": {
+    "basicblocks": 4,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 392,
+    "instructions": 16,
+    "loads": {
+      "L": 1
+    },
+    "name": "int4_stream_pe_inputs",
+    "total_instructions": 17
+  },
+  "76": {
+    "basicblocks": 9,
+    "calls": "",
+    "file": "int4_decoder_blocks.cpp",
+    "fileloc": 100,
+    "instructions": 131,
+    "loads": {
+      "L": 3
+    },
+    "name": "int4_rms_normalize_quantize_pe",
+    "stores": {
+      "L": 1
+    },
+    "total_instructions": 131
+  },
+  "77": {
+    "basicblocks": 1,
+    "calls": "",
+    "file": "int4_decoder_blocks.cpp",
+    "fileloc": 84,
+    "instructions": 12,
+    "name": "int4_rms_merge_and_rsqrt",
+    "stores": {
+      "L": 1
+    },
+    "total_instructions": 12
+  },
+  "78": {
+    "basicblocks": 23,
+    "calls": "",
+    "file": "int4_decoder_blocks.cpp",
+    "fileloc": 40,
+    "instructions": 109,
+    "loads": {
+      "L": 1
+    },
+    "name": "int4_rms_sumsq_pe",
+    "total_instructions": 109
+  },
+  "79": {
+    "basicblocks": 12,
+    "calls": "",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1241,
+    "instructions": 329,
+    "loads": {
+      "L": 5
+    },
+    "name": "swiftkv_update_value_engine<0>",
+    "stores": {
+      "L": 8
+    },
+    "total_instructions": 329
+  },
+  "8": {
+    "basicblocks": 1,
+    "calls": "",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1781,
+    "instructions": 8,
+    "loads": {
+      "L": 2
+    },
+    "name": "swiftkv_broadcast_pe_commands",
+    "total_instructions": 8
+  },
+  "80": {
+    "basicblocks": 3,
+    "calls": "",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1730,
+    "instructions": 18,
+    "loads": {
+      "L": 2
+    },
+    "name": "swiftkv_broadcast_rope",
+    "total_instructions": 18
+  },
+  "81": {
+    "basicblocks": 4,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 392,
+    "instructions": 16,
+    "loads": {
+      "L": 1
+    },
+    "name": "int4_stream_pe_inputs",
+    "total_instructions": 17
+  },
+  "82": {
+    "basicblocks": 1,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 791,
+    "instructions": 14,
+    "name": "int4_broadcast_linear_commands",
+    "total_instructions": 14
+  },
+  "83": {
+    "basicblocks": 1,
+    "calls": "75 28 48 55 90 73",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 816,
+    "instructions": 50,
+    "name": "int4_run_pe_dataflow<0>",
+    "total_instructions": 2411
+  },
+  "84": {
+    "basicblocks": 28,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 689,
+    "instructions": 167,
+    "loads": {
+      "L": 1
+    },
+    "name": "int4_write_outputs",
+    "stores": {
+      "L": 2
+    },
+    "total_instructions": 167
+  },
+  "85": {
+    "basicblocks": 3,
+    "calls": "",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1662,
+    "instructions": 19,
+    "loads": {
+      "L": 2
+    },
+    "name": "swiftkv_preload_rope_lut",
+    "stores": {
+      "G": 1
+    },
+    "total_instructions": 19
+  },
+  "86": {
+    "basicblocks": 3,
+    "calls": "",
+    "file": "int4_decoder_controller.cpp",
+    "fileloc": 125,
+    "instructions": 22,
+    "loads": {
+      "L": 4
+    },
+    "name": "int4_route_linear_projection<6>",
+    "stores": {
+      "L": 4
+    },
+    "total_instructions": 22
+  },
+  "87": {
+    "basicblocks": 7,
+    "calls": "",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 1163,
+    "instructions": 55,
+    "loads": {
+      "L": 1
+    },
+    "name": "swiftkv_prepare_update_engine_phases<0>",
+    "total_instructions": 55
+  },
+  "88": {
+    "basicblocks": 53,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 536,
+    "instructions": 320,
+    "loads": {
+      "L": 5
+    },
+    "name": "int4_dequantize_final_blocks",
+    "stores": {
+      "L": 4
+    },
+    "total_instructions": 320
+  },
+  "89": {
+    "basicblocks": 6,
+    "calls": "",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 233,
+    "instructions": 34,
+    "loads": {
+      "L": 1
+    },
+    "name": "swiftkv_reciprocal_normalization",
+    "stores": {
+      "L": 1
+    },
+    "total_instructions": 34
+  },
+  "9": {
+    "basicblocks": 12,
+    "calls": "",
+    "file": "swiftkv_attention.cpp",
+    "fileloc": 2080,
+    "instructions": 45,
+    "name": "swiftkv_gather_attention_streams",
+    "stores": {
+      "L": 2
+    },
+    "total_instructions": 45
+  },
+  "90": {
+    "basicblocks": 23,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 653,
+    "instructions": 102,
+    "name": "int4_pack_dequantized_outputs",
+    "total_instructions": 102
+  },
+  "91": {
+    "basicblocks": 28,
+    "calls": "",
+    "file": "int4_linear_controller.cpp",
+    "fileloc": 689,
+    "instructions": 167,
+    "loads": {
+      "L": 1
+    },
+    "name": "int4_write_outputs",
+    "stores": {
+      "L": 2
+    },
+    "total_instructions": 167
+  },
+  "92": {
+    "basicblocks": 3,
+    "calls": "",
+    "file": "int4_decoder_controller.cpp",
+    "fileloc": 125,
+    "instructions": 22,
+    "loads": {
+      "L": 4
+    },
+    "name": "int4_route_linear_projection<7>",
+    "stores": {
+      "L": 4
+    },
+    "total_instructions": 22
+  },
+  "93": {
+    "basicblocks": 9,
+    "calls": "",
+    "file": "int4_decoder_blocks.cpp",
+    "fileloc": 815,
+    "instructions": 137,
+    "loads": {
+      "L": 3
+    },
+    "name": "int4_swiglu_quantize_pe1",
+    "stores": {
+      "L": 1
+    },
+    "total_instructions": 137
+  },
+  "94": {
+    "basicblocks": 3,
+    "calls": "",
+    "file": "int4_decoder_controller.cpp",
+    "fileloc": 481,
+    "instructions": 22,
+    "loads": {
+      "L": 4
+    },
+    "name": "int4_store_residual_4ddr",
+    "stores": {
+      "L": 4
+    },
+    "total_instructions": 22
+  },
+  "95": {
+    "basicblocks": 1,
+    "calls": "4 64",
+    "file": "int4_decoder_blocks.cpp",
+    "fileloc": 440,
+    "instructions": 9,
+    "loads": {
+      "L": 1
+    },
+    "name": "int4_rmsnorm_quantize_stream_4pe",
+    "stores": {
+      "L": 1
+    },
+    "total_instructions": 1066
+  }
+}

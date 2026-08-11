@@ -1,0 +1,320 @@
+
+
+================================================================
+== Vitis HLS Report for 'int4_rms_normalize_quantize_pe_14_Pipeline_normalize_word_loop_normalize_lane_lo'
+================================================================
+* Date:           Tue Aug 11 09:17:15 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.466 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+---------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline|
+    |   min   |   max   |    min   |    max   | min | max |   Type  |
+    +---------+---------+----------+----------+-----+-----+---------+
+    |       44|       44|  0.147 us|  0.147 us|   44|   44|       no|
+    +---------+---------+----------+----------+-----+-----+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +-------------------------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |                                           |  Latency (cycles) | Iteration|  Initiation Interval  | Trip |          |
+        |                 Loop Name                 |   min   |   max   |  Latency |  achieved |   target  | Count| Pipelined|
+        +-------------------------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |- normalize_word_loop_normalize_lane_loop  |       42|       42|        12|          1|          1|    32|       yes|
+        +-------------------------------------------+---------+---------+----------+-----------+-----------+------+----------+
+
+============================================================
++ Verbose Summary: Synthesis Manager
+============================================================
+InlineROM: 1
+ExposeGlobal: 0
+============================================================
++ Verbose Summary: CDFG Model
+============================================================
+IsTopModel: 0
+ResetActiveHigh: 1
+IsCombinational: 0
+IsDatapathOnly: 0
+HasWiredReturn: 1
+HasMFsm: 2
+HasVarLatency: 1
+IsPipeline: 0
+IsRtlPipelined: 0
+IsInstanceOverlapped: 0
+IsDontTouch: 0
+HasImplIP: 0
+IsGatedGlobalClock: 0
+
++ Individual pipeline summary: 
+  * Pipeline-0: initiation interval (II) = 1, depth = 12
+
+
+============================================================
++ Verbose Summary: Schedule
+============================================================
+* Number of FSM states : 12
+* Pipeline : 1
+  Pipeline-0 : II = 1, D = 12, States = { 1 2 3 4 5 6 7 8 9 10 11 12 }
+* Dataflow Pipeline: 0
+
+* FSM state transitions: 
+1 --> 2 
+2 --> 3 
+3 --> 4 
+4 --> 5 
+5 --> 6 
+6 --> 7 
+7 --> 8 
+8 --> 9 
+9 --> 10 
+10 --> 11 
+11 --> 12 
+12 --> 
+
+* FSM state operations: 
+
+State 1 <SV = 0> <Delay = 2.46>
+ST_1 : Operation 15 [1/1] (0.00ns)   --->   "%max_abs_bits_6 = alloca i32 1" [source/int4_decoder_blocks.cpp:119]   --->   Operation 15 'alloca' 'max_abs_bits_6' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 16 [1/1] (0.00ns)   --->   "%packed_lane = alloca i32 1" [source/int4_decoder_blocks.cpp:136]   --->   Operation 16 'alloca' 'packed_lane' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 17 [1/1] (0.00ns)   --->   "%word_in_group = alloca i32 1" [source/int4_decoder_blocks.cpp:122]   --->   Operation 17 'alloca' 'word_in_group' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 18 [1/1] (0.00ns)   --->   "%indvar_flatten = alloca i32 1"   --->   Operation 18 'alloca' 'indvar_flatten' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 19 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %normalized, i64 666, i64 18, i64 1"   --->   Operation 19 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 20 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %input_r, i64 666, i64 22, i64 18446744073709551615"   --->   Operation 20 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 21 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %model_norm_cache2, i64 666, i64 20, i64 18446744073709551615"   --->   Operation 21 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 22 [1/1] (0.00ns)   --->   "%reciprocal_rms_read = read i32 @_ssdm_op_Read.ap_auto.float, i32 %reciprocal_rms"   --->   Operation 22 'read' 'reciprocal_rms_read' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 23 [1/1] (0.00ns)   --->   "%idx_read = read i13 @_ssdm_op_Read.ap_auto.i13, i13 %idx"   --->   Operation 23 'read' 'idx_read' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 24 [1/1] (0.00ns)   --->   "%tmp = read i6 @_ssdm_op_Read.ap_auto.i6, i6 %empty"   --->   Operation 24 'read' 'tmp' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 25 [1/1] (0.38ns)   --->   "%store_ln0 = store i6 0, i6 %indvar_flatten"   --->   Operation 25 'store' 'store_ln0' <Predicate = true> <Delay = 0.38>
+ST_1 : Operation 26 [1/1] (0.38ns)   --->   "%store_ln122 = store i2 0, i2 %word_in_group" [source/int4_decoder_blocks.cpp:122]   --->   Operation 26 'store' 'store_ln122' <Predicate = true> <Delay = 0.38>
+ST_1 : Operation 27 [1/1] (0.38ns)   --->   "%store_ln136 = store i5 0, i5 %packed_lane" [source/int4_decoder_blocks.cpp:136]   --->   Operation 27 'store' 'store_ln136' <Predicate = true> <Delay = 0.38>
+ST_1 : Operation 28 [1/1] (0.38ns)   --->   "%store_ln119 = store i32 0, i32 %max_abs_bits_6" [source/int4_decoder_blocks.cpp:119]   --->   Operation 28 'store' 'store_ln119' <Predicate = true> <Delay = 0.38>
+ST_1 : Operation 29 [1/1] (0.00ns)   --->   "%br_ln0 = br void %for.body11"   --->   Operation 29 'br' 'br_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 30 [1/1] (0.00ns)   --->   "%indvar_flatten_load = load i6 %indvar_flatten" [source/int4_decoder_blocks.cpp:123]   --->   Operation 30 'load' 'indvar_flatten_load' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 31 [1/1] (0.70ns)   --->   "%icmp_ln123 = icmp_eq  i6 %indvar_flatten_load, i6 32" [source/int4_decoder_blocks.cpp:123]   --->   Operation 31 'icmp' 'icmp_ln123' <Predicate = true> <Delay = 0.70> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_1 : Operation 32 [1/1] (0.70ns)   --->   "%add_ln123 = add i6 %indvar_flatten_load, i6 1" [source/int4_decoder_blocks.cpp:123]   --->   Operation 32 'add' 'add_ln123' <Predicate = true> <Delay = 0.70> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_1 : Operation 33 [1/1] (0.00ns)   --->   "%br_ln123 = br i1 %icmp_ln123, void %for.inc25, void %for.end27.exitStub" [source/int4_decoder_blocks.cpp:123]   --->   Operation 33 'br' 'br_ln123' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 34 [1/1] (0.00ns)   --->   "%packed_lane_load = load i5 %packed_lane" [source/int4_decoder_blocks.cpp:137]   --->   Operation 34 'load' 'packed_lane_load' <Predicate = (!icmp_ln123)> <Delay = 0.00>
+ST_1 : Operation 35 [1/1] (0.00ns)   --->   "%word_in_group_load = load i2 %word_in_group" [source/int4_decoder_blocks.cpp:124]   --->   Operation 35 'load' 'word_in_group_load' <Predicate = (!icmp_ln123)> <Delay = 0.00>
+ST_1 : Operation 36 [1/1] (0.70ns)   --->   "%icmp_ln137 = icmp_eq  i5 %packed_lane_load, i5 16" [source/int4_decoder_blocks.cpp:137]   --->   Operation 36 'icmp' 'icmp_ln137' <Predicate = (!icmp_ln123)> <Delay = 0.70> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_1 : Operation 37 [1/1] (0.27ns)   --->   "%select_ln119 = select i1 %icmp_ln137, i5 0, i5 %packed_lane_load" [source/int4_decoder_blocks.cpp:119]   --->   Operation 37 'select' 'select_ln119' <Predicate = (!icmp_ln123)> <Delay = 0.27> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.27> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_1 : Operation 38 [1/1] (0.43ns)   --->   "%add_ln124 = add i2 %word_in_group_load, i2 1" [source/int4_decoder_blocks.cpp:124]   --->   Operation 38 'add' 'add_ln124' <Predicate = (!icmp_ln123)> <Delay = 0.43> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.43> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_1 : Operation 39 [1/1] (0.27ns)   --->   "%select_ln123 = select i1 %icmp_ln137, i2 %add_ln124, i2 %word_in_group_load" [source/int4_decoder_blocks.cpp:123]   --->   Operation 39 'select' 'select_ln123' <Predicate = (!icmp_ln123)> <Delay = 0.27> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.27> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_1 : Operation 40 [1/1] (0.00ns)   --->   "%empty_928 = trunc i2 %select_ln123" [source/int4_decoder_blocks.cpp:123]   --->   Operation 40 'trunc' 'empty_928' <Predicate = (!icmp_ln123)> <Delay = 0.00>
+ST_1 : Operation 41 [1/1] (0.00ns)   --->   "%tmp_s = bitconcatenate i5 @_ssdm_op_BitConcatenate.i5.i1.i4, i1 %empty_928, i4 0" [source/int4_decoder_blocks.cpp:123]   --->   Operation 41 'bitconcatenate' 'tmp_s' <Predicate = (!icmp_ln123)> <Delay = 0.00>
+ST_1 : Operation 42 [1/1] (0.00ns)   --->   "%trunc_ln119 = trunc i5 %select_ln119" [source/int4_decoder_blocks.cpp:119]   --->   Operation 42 'trunc' 'trunc_ln119' <Predicate = (!icmp_ln123)> <Delay = 0.00>
+ST_1 : Operation 43 [1/1] (0.70ns)   --->   "%add_ln141 = add i5 %select_ln119, i5 %tmp_s" [source/int4_decoder_blocks.cpp:141]   --->   Operation 43 'add' 'add_ln141' <Predicate = (!icmp_ln123)> <Delay = 0.70> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_1 : Operation 44 [1/1] (0.70ns)   --->   "%add_ln138 = add i5 %select_ln119, i5 1" [source/int4_decoder_blocks.cpp:138]   --->   Operation 44 'add' 'add_ln138' <Predicate = (!icmp_ln123)> <Delay = 0.70> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_1 : Operation 45 [1/1] (0.38ns)   --->   "%store_ln123 = store i6 %add_ln123, i6 %indvar_flatten" [source/int4_decoder_blocks.cpp:123]   --->   Operation 45 'store' 'store_ln123' <Predicate = (!icmp_ln123)> <Delay = 0.38>
+ST_1 : Operation 46 [1/1] (0.38ns)   --->   "%store_ln122 = store i2 %select_ln123, i2 %word_in_group" [source/int4_decoder_blocks.cpp:122]   --->   Operation 46 'store' 'store_ln122' <Predicate = (!icmp_ln123)> <Delay = 0.38>
+ST_1 : Operation 47 [1/1] (0.38ns)   --->   "%store_ln136 = store i5 %add_ln138, i5 %packed_lane" [source/int4_decoder_blocks.cpp:136]   --->   Operation 47 'store' 'store_ln136' <Predicate = (!icmp_ln123)> <Delay = 0.38>
+
+State 2 <SV = 1> <Delay = 1.90>
+ST_2 : Operation 48 [1/1] (0.00ns)   --->   "%zext_ln123 = zext i2 %select_ln123" [source/int4_decoder_blocks.cpp:123]   --->   Operation 48 'zext' 'zext_ln123' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 49 [1/1] (0.70ns)   --->   "%add_ln125 = add i6 %tmp, i6 %zext_ln123" [source/int4_decoder_blocks.cpp:125]   --->   Operation 49 'add' 'add_ln125' <Predicate = true> <Delay = 0.70> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_2 : Operation 50 [1/1] (0.00ns)   --->   "%add_ln125_cast2 = zext i6 %add_ln125" [source/int4_decoder_blocks.cpp:125]   --->   Operation 50 'zext' 'add_ln125_cast2' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 51 [1/1] (0.00ns)   --->   "%input_addr = getelementptr i512 %input_r, i64 0, i64 %add_ln125_cast2" [source/int4_decoder_blocks.cpp:125]   --->   Operation 51 'getelementptr' 'input_addr' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 52 [2/2] (1.20ns)   --->   "%input_load = load i6 %input_addr" [source/int4_decoder_blocks.cpp:125]   --->   Operation 52 'load' 'input_load' <Predicate = true> <Delay = 1.20> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.20> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 512> <Depth = 64> <RAM>
+
+State 3 <SV = 2> <Delay = 1.69>
+ST_3 : Operation 53 [1/1] (0.00ns)   --->   "%add_ln125_cast = zext i6 %add_ln125" [source/int4_decoder_blocks.cpp:125]   --->   Operation 53 'zext' 'add_ln125_cast' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 54 [1/2] (1.20ns)   --->   "%input_load = load i6 %input_addr" [source/int4_decoder_blocks.cpp:125]   --->   Operation 54 'load' 'input_load' <Predicate = true> <Delay = 1.20> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.20> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 512> <Depth = 64> <RAM>
+ST_3 : Operation 55 [1/1] (0.00ns)   --->   "%input_lanes = trunc i512 %input_load" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:130]   --->   Operation 55 'trunc' 'input_lanes' <Predicate = (trunc_ln119 == 0)> <Delay = 0.00>
+ST_3 : Operation 56 [1/1] (0.00ns)   --->   "%input_lanes_31 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %input_load, i32 32, i32 63" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:130]   --->   Operation 56 'partselect' 'input_lanes_31' <Predicate = (trunc_ln119 == 1)> <Delay = 0.00>
+ST_3 : Operation 57 [1/1] (0.00ns)   --->   "%input_lanes_32 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %input_load, i32 64, i32 95" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:130]   --->   Operation 57 'partselect' 'input_lanes_32' <Predicate = (trunc_ln119 == 2)> <Delay = 0.00>
+ST_3 : Operation 58 [1/1] (0.00ns)   --->   "%input_lanes_33 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %input_load, i32 96, i32 127" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:130]   --->   Operation 58 'partselect' 'input_lanes_33' <Predicate = (trunc_ln119 == 3)> <Delay = 0.00>
+ST_3 : Operation 59 [1/1] (0.00ns)   --->   "%input_lanes_34 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %input_load, i32 128, i32 159" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:130]   --->   Operation 59 'partselect' 'input_lanes_34' <Predicate = (trunc_ln119 == 4)> <Delay = 0.00>
+ST_3 : Operation 60 [1/1] (0.00ns)   --->   "%input_lanes_35 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %input_load, i32 160, i32 191" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:130]   --->   Operation 60 'partselect' 'input_lanes_35' <Predicate = (trunc_ln119 == 5)> <Delay = 0.00>
+ST_3 : Operation 61 [1/1] (0.00ns)   --->   "%input_lanes_36 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %input_load, i32 192, i32 223" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:130]   --->   Operation 61 'partselect' 'input_lanes_36' <Predicate = (trunc_ln119 == 6)> <Delay = 0.00>
+ST_3 : Operation 62 [1/1] (0.00ns)   --->   "%input_lanes_37 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %input_load, i32 224, i32 255" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:130]   --->   Operation 62 'partselect' 'input_lanes_37' <Predicate = (trunc_ln119 == 7)> <Delay = 0.00>
+ST_3 : Operation 63 [1/1] (0.00ns)   --->   "%input_lanes_38 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %input_load, i32 256, i32 287" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:130]   --->   Operation 63 'partselect' 'input_lanes_38' <Predicate = (trunc_ln119 == 8)> <Delay = 0.00>
+ST_3 : Operation 64 [1/1] (0.00ns)   --->   "%input_lanes_39 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %input_load, i32 288, i32 319" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:130]   --->   Operation 64 'partselect' 'input_lanes_39' <Predicate = (trunc_ln119 == 9)> <Delay = 0.00>
+ST_3 : Operation 65 [1/1] (0.00ns)   --->   "%input_lanes_40 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %input_load, i32 320, i32 351" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:130]   --->   Operation 65 'partselect' 'input_lanes_40' <Predicate = (trunc_ln119 == 10)> <Delay = 0.00>
+ST_3 : Operation 66 [1/1] (0.00ns)   --->   "%input_lanes_41 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %input_load, i32 352, i32 383" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:130]   --->   Operation 66 'partselect' 'input_lanes_41' <Predicate = (trunc_ln119 == 11)> <Delay = 0.00>
+ST_3 : Operation 67 [1/1] (0.00ns)   --->   "%input_lanes_42 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %input_load, i32 384, i32 415" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:130]   --->   Operation 67 'partselect' 'input_lanes_42' <Predicate = (trunc_ln119 == 12)> <Delay = 0.00>
+ST_3 : Operation 68 [1/1] (0.00ns)   --->   "%input_lanes_43 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %input_load, i32 416, i32 447" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:130]   --->   Operation 68 'partselect' 'input_lanes_43' <Predicate = (trunc_ln119 == 13)> <Delay = 0.00>
+ST_3 : Operation 69 [1/1] (0.00ns)   --->   "%input_lanes_44 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %input_load, i32 448, i32 479" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:130]   --->   Operation 69 'partselect' 'input_lanes_44' <Predicate = (trunc_ln119 == 14)> <Delay = 0.00>
+ST_3 : Operation 70 [1/1] (0.00ns)   --->   "%input_lanes_45 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %input_load, i32 480, i32 511" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:130]   --->   Operation 70 'partselect' 'input_lanes_45' <Predicate = (trunc_ln119 == 15)> <Delay = 0.00>
+ST_3 : Operation 71 [1/1] (0.75ns)   --->   "%p_sum = add i13 %add_ln125_cast, i13 %idx_read" [source/int4_decoder_blocks.cpp:125]   --->   Operation 71 'add' 'p_sum' <Predicate = true> <Delay = 0.75> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.75> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_3 : Operation 72 [1/1] (0.49ns)   --->   "%bits = sparsemux i32 @_ssdm_op_SparseMux.ap_auto.16i32.i32.i4, i4 0, i32 %input_lanes, i4 1, i32 %input_lanes_31, i4 2, i32 %input_lanes_32, i4 3, i32 %input_lanes_33, i4 4, i32 %input_lanes_34, i4 5, i32 %input_lanes_35, i4 6, i32 %input_lanes_36, i4 7, i32 %input_lanes_37, i4 8, i32 %input_lanes_38, i4 9, i32 %input_lanes_39, i4 10, i32 %input_lanes_40, i4 11, i32 %input_lanes_41, i4 12, i32 %input_lanes_42, i4 13, i32 %input_lanes_43, i4 14, i32 %input_lanes_44, i4 15, i32 %input_lanes_45, i32 0, i4 %trunc_ln119" [source/int4_decoder_blocks.cpp:144]   --->   Operation 72 'sparsemux' 'bits' <Predicate = true> <Delay = 0.49> <CoreInst = "SparseMux">   --->   Core 147 'SparseMux' <Latency = 0> <II = 1> <Delay = 0.49> <FuncUnit> <Opcode : 'sparsemux'> <InPorts = 2> <OutPorts = 1>
+
+State 4 <SV = 3> <Delay = 2.38>
+ST_4 : Operation 73 [1/1] (0.00ns)   --->   "%p_sum_cast = zext i13 %p_sum" [source/int4_decoder_blocks.cpp:125]   --->   Operation 73 'zext' 'p_sum_cast' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 74 [1/1] (0.00ns)   --->   "%model_norm_cache2_addr = getelementptr i512 %model_norm_cache2, i64 0, i64 %p_sum_cast" [source/int4_decoder_blocks.cpp:125]   --->   Operation 74 'getelementptr' 'model_norm_cache2_addr' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 75 [3/3] (2.38ns)   --->   "%model_norm_cache2_load = load i13 %model_norm_cache2_addr" [source/int4_decoder_blocks.cpp:125]   --->   Operation 75 'load' 'model_norm_cache2_load' <Predicate = true> <Delay = 2.38> <CoreInst = "RAM_1P_URAM">   --->   Core 91 'RAM_1P_URAM' <Latency = 2> <II = 1> <Delay = 2.38> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 512> <Depth = 4160> <RAM>
+ST_4 : Operation 76 [1/1] (0.00ns)   --->   "%x = bitcast i32 %bits" [source/int4_decoder_blocks.cpp:16->source/int4_decoder_blocks.cpp:143]   --->   Operation 76 'bitcast' 'x' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 77 [4/4] (2.32ns)   --->   "%mul6 = fmul i32 %x, i32 %reciprocal_rms_read" [source/int4_decoder_blocks.cpp:148]   --->   Operation 77 'fmul' 'mul6' <Predicate = true> <Delay = 2.32> <CoreInst = "FMul_maxdsp">   --->   Core 30 'FMul_maxdsp' <Latency = 3> <II = 1> <Delay = 2.32> <FuncUnit> <Opcode : 'fmul'> <InPorts = 2> <OutPorts = 1>
+
+State 5 <SV = 4> <Delay = 2.38>
+ST_5 : Operation 78 [2/3] (2.38ns)   --->   "%model_norm_cache2_load = load i13 %model_norm_cache2_addr" [source/int4_decoder_blocks.cpp:125]   --->   Operation 78 'load' 'model_norm_cache2_load' <Predicate = true> <Delay = 2.38> <CoreInst = "RAM_1P_URAM">   --->   Core 91 'RAM_1P_URAM' <Latency = 2> <II = 1> <Delay = 2.38> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 512> <Depth = 4160> <RAM>
+ST_5 : Operation 79 [3/4] (2.32ns)   --->   "%mul6 = fmul i32 %x, i32 %reciprocal_rms_read" [source/int4_decoder_blocks.cpp:148]   --->   Operation 79 'fmul' 'mul6' <Predicate = true> <Delay = 2.32> <CoreInst = "FMul_maxdsp">   --->   Core 30 'FMul_maxdsp' <Latency = 3> <II = 1> <Delay = 2.32> <FuncUnit> <Opcode : 'fmul'> <InPorts = 2> <OutPorts = 1>
+
+State 6 <SV = 5> <Delay = 2.38>
+ST_6 : Operation 80 [1/3] (2.38ns)   --->   "%model_norm_cache2_load = load i13 %model_norm_cache2_addr" [source/int4_decoder_blocks.cpp:125]   --->   Operation 80 'load' 'model_norm_cache2_load' <Predicate = true> <Delay = 2.38> <CoreInst = "RAM_1P_URAM">   --->   Core 91 'RAM_1P_URAM' <Latency = 2> <II = 1> <Delay = 2.38> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 512> <Depth = 4160> <RAM>
+ST_6 : Operation 81 [1/1] (0.00ns)   --->   "%gamma_lanes = trunc i512 %model_norm_cache2_load" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:132]   --->   Operation 81 'trunc' 'gamma_lanes' <Predicate = (trunc_ln119 == 0)> <Delay = 0.00>
+ST_6 : Operation 82 [1/1] (0.00ns)   --->   "%gamma_lanes_31 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %model_norm_cache2_load, i32 32, i32 63" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:132]   --->   Operation 82 'partselect' 'gamma_lanes_31' <Predicate = (trunc_ln119 == 1)> <Delay = 0.00>
+ST_6 : Operation 83 [1/1] (0.00ns)   --->   "%gamma_lanes_32 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %model_norm_cache2_load, i32 64, i32 95" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:132]   --->   Operation 83 'partselect' 'gamma_lanes_32' <Predicate = (trunc_ln119 == 2)> <Delay = 0.00>
+ST_6 : Operation 84 [1/1] (0.00ns)   --->   "%gamma_lanes_33 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %model_norm_cache2_load, i32 96, i32 127" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:132]   --->   Operation 84 'partselect' 'gamma_lanes_33' <Predicate = (trunc_ln119 == 3)> <Delay = 0.00>
+ST_6 : Operation 85 [1/1] (0.00ns)   --->   "%gamma_lanes_34 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %model_norm_cache2_load, i32 128, i32 159" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:132]   --->   Operation 85 'partselect' 'gamma_lanes_34' <Predicate = (trunc_ln119 == 4)> <Delay = 0.00>
+ST_6 : Operation 86 [1/1] (0.00ns)   --->   "%gamma_lanes_35 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %model_norm_cache2_load, i32 160, i32 191" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:132]   --->   Operation 86 'partselect' 'gamma_lanes_35' <Predicate = (trunc_ln119 == 5)> <Delay = 0.00>
+ST_6 : Operation 87 [1/1] (0.00ns)   --->   "%gamma_lanes_36 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %model_norm_cache2_load, i32 192, i32 223" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:132]   --->   Operation 87 'partselect' 'gamma_lanes_36' <Predicate = (trunc_ln119 == 6)> <Delay = 0.00>
+ST_6 : Operation 88 [1/1] (0.00ns)   --->   "%gamma_lanes_37 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %model_norm_cache2_load, i32 224, i32 255" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:132]   --->   Operation 88 'partselect' 'gamma_lanes_37' <Predicate = (trunc_ln119 == 7)> <Delay = 0.00>
+ST_6 : Operation 89 [1/1] (0.00ns)   --->   "%gamma_lanes_38 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %model_norm_cache2_load, i32 256, i32 287" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:132]   --->   Operation 89 'partselect' 'gamma_lanes_38' <Predicate = (trunc_ln119 == 8)> <Delay = 0.00>
+ST_6 : Operation 90 [1/1] (0.00ns)   --->   "%gamma_lanes_39 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %model_norm_cache2_load, i32 288, i32 319" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:132]   --->   Operation 90 'partselect' 'gamma_lanes_39' <Predicate = (trunc_ln119 == 9)> <Delay = 0.00>
+ST_6 : Operation 91 [1/1] (0.00ns)   --->   "%gamma_lanes_40 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %model_norm_cache2_load, i32 320, i32 351" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:132]   --->   Operation 91 'partselect' 'gamma_lanes_40' <Predicate = (trunc_ln119 == 10)> <Delay = 0.00>
+ST_6 : Operation 92 [1/1] (0.00ns)   --->   "%gamma_lanes_41 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %model_norm_cache2_load, i32 352, i32 383" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:132]   --->   Operation 92 'partselect' 'gamma_lanes_41' <Predicate = (trunc_ln119 == 11)> <Delay = 0.00>
+ST_6 : Operation 93 [1/1] (0.00ns)   --->   "%gamma_lanes_42 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %model_norm_cache2_load, i32 384, i32 415" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:132]   --->   Operation 93 'partselect' 'gamma_lanes_42' <Predicate = (trunc_ln119 == 12)> <Delay = 0.00>
+ST_6 : Operation 94 [1/1] (0.00ns)   --->   "%gamma_lanes_43 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %model_norm_cache2_load, i32 416, i32 447" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:132]   --->   Operation 94 'partselect' 'gamma_lanes_43' <Predicate = (trunc_ln119 == 13)> <Delay = 0.00>
+ST_6 : Operation 95 [1/1] (0.00ns)   --->   "%gamma_lanes_44 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %model_norm_cache2_load, i32 448, i32 479" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:132]   --->   Operation 95 'partselect' 'gamma_lanes_44' <Predicate = (trunc_ln119 == 14)> <Delay = 0.00>
+ST_6 : Operation 96 [1/1] (0.00ns)   --->   "%gamma_lanes_45 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %model_norm_cache2_load, i32 480, i32 511" [source/int4_decoder_blocks.cpp:36->source/int4_decoder_blocks.cpp:132]   --->   Operation 96 'partselect' 'gamma_lanes_45' <Predicate = (trunc_ln119 == 15)> <Delay = 0.00>
+ST_6 : Operation 97 [2/4] (2.32ns)   --->   "%mul6 = fmul i32 %x, i32 %reciprocal_rms_read" [source/int4_decoder_blocks.cpp:148]   --->   Operation 97 'fmul' 'mul6' <Predicate = true> <Delay = 2.32> <CoreInst = "FMul_maxdsp">   --->   Core 30 'FMul_maxdsp' <Latency = 3> <II = 1> <Delay = 2.32> <FuncUnit> <Opcode : 'fmul'> <InPorts = 2> <OutPorts = 1>
+
+State 7 <SV = 6> <Delay = 2.32>
+ST_7 : Operation 98 [1/1] (0.49ns)   --->   "%bits_7 = sparsemux i32 @_ssdm_op_SparseMux.ap_auto.16i32.i32.i4, i4 0, i32 %gamma_lanes, i4 1, i32 %gamma_lanes_31, i4 2, i32 %gamma_lanes_32, i4 3, i32 %gamma_lanes_33, i4 4, i32 %gamma_lanes_34, i4 5, i32 %gamma_lanes_35, i4 6, i32 %gamma_lanes_36, i4 7, i32 %gamma_lanes_37, i4 8, i32 %gamma_lanes_38, i4 9, i32 %gamma_lanes_39, i4 10, i32 %gamma_lanes_40, i4 11, i32 %gamma_lanes_41, i4 12, i32 %gamma_lanes_42, i4 13, i32 %gamma_lanes_43, i4 14, i32 %gamma_lanes_44, i4 15, i32 %gamma_lanes_45, i32 0, i4 %trunc_ln119" [source/int4_decoder_blocks.cpp:146]   --->   Operation 98 'sparsemux' 'bits_7' <Predicate = true> <Delay = 0.49> <CoreInst = "SparseMux">   --->   Core 147 'SparseMux' <Latency = 0> <II = 1> <Delay = 0.49> <FuncUnit> <Opcode : 'sparsemux'> <InPorts = 2> <OutPorts = 1>
+ST_7 : Operation 99 [1/4] (2.32ns)   --->   "%mul6 = fmul i32 %x, i32 %reciprocal_rms_read" [source/int4_decoder_blocks.cpp:148]   --->   Operation 99 'fmul' 'mul6' <Predicate = true> <Delay = 2.32> <CoreInst = "FMul_maxdsp">   --->   Core 30 'FMul_maxdsp' <Latency = 3> <II = 1> <Delay = 2.32> <FuncUnit> <Opcode : 'fmul'> <InPorts = 2> <OutPorts = 1>
+
+State 8 <SV = 7> <Delay = 2.32>
+ST_8 : Operation 100 [1/1] (0.00ns)   --->   "%weight = bitcast i32 %bits_7" [source/int4_decoder_blocks.cpp:16->source/int4_decoder_blocks.cpp:145]   --->   Operation 100 'bitcast' 'weight' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 101 [4/4] (2.32ns)   --->   "%value = fmul i32 %mul6, i32 %weight" [source/int4_decoder_blocks.cpp:148]   --->   Operation 101 'fmul' 'value' <Predicate = true> <Delay = 2.32> <CoreInst = "FMul_maxdsp">   --->   Core 30 'FMul_maxdsp' <Latency = 3> <II = 1> <Delay = 2.32> <FuncUnit> <Opcode : 'fmul'> <InPorts = 2> <OutPorts = 1>
+
+State 9 <SV = 8> <Delay = 2.32>
+ST_9 : Operation 102 [3/4] (2.32ns)   --->   "%value = fmul i32 %mul6, i32 %weight" [source/int4_decoder_blocks.cpp:148]   --->   Operation 102 'fmul' 'value' <Predicate = true> <Delay = 2.32> <CoreInst = "FMul_maxdsp">   --->   Core 30 'FMul_maxdsp' <Latency = 3> <II = 1> <Delay = 2.32> <FuncUnit> <Opcode : 'fmul'> <InPorts = 2> <OutPorts = 1>
+
+State 10 <SV = 9> <Delay = 2.32>
+ST_10 : Operation 103 [2/4] (2.32ns)   --->   "%value = fmul i32 %mul6, i32 %weight" [source/int4_decoder_blocks.cpp:148]   --->   Operation 103 'fmul' 'value' <Predicate = true> <Delay = 2.32> <CoreInst = "FMul_maxdsp">   --->   Core 30 'FMul_maxdsp' <Latency = 3> <II = 1> <Delay = 2.32> <FuncUnit> <Opcode : 'fmul'> <InPorts = 2> <OutPorts = 1>
+
+State 11 <SV = 10> <Delay = 2.32>
+ST_11 : Operation 104 [1/4] (2.32ns)   --->   "%value = fmul i32 %mul6, i32 %weight" [source/int4_decoder_blocks.cpp:148]   --->   Operation 104 'fmul' 'value' <Predicate = true> <Delay = 2.32> <CoreInst = "FMul_maxdsp">   --->   Core 30 'FMul_maxdsp' <Latency = 3> <II = 1> <Delay = 2.32> <FuncUnit> <Opcode : 'fmul'> <InPorts = 2> <OutPorts = 1>
+ST_11 : Operation 119 [1/1] (0.00ns)   --->   "%max_abs_bits_6_load = load i32 %max_abs_bits_6"   --->   Operation 119 'load' 'max_abs_bits_6_load' <Predicate = (icmp_ln123)> <Delay = 0.00>
+ST_11 : Operation 120 [1/1] (0.00ns)   --->   "%write_ln0 = write void @_ssdm_op_Write.ap_auto.i32P0A, i32 %max_abs_bits_6_out, i32 %max_abs_bits_6_load"   --->   Operation 120 'write' 'write_ln0' <Predicate = (icmp_ln123)> <Delay = 0.00>
+ST_11 : Operation 121 [1/1] (0.00ns)   --->   "%ret_ln0 = ret"   --->   Operation 121 'ret' 'ret_ln0' <Predicate = (icmp_ln123)> <Delay = 0.00>
+
+State 12 <SV = 11> <Delay = 1.49>
+ST_12 : Operation 105 [1/1] (0.00ns)   --->   "%max_abs_bits_6_load_1 = load i32 %max_abs_bits_6" [source/int4_decoder_blocks.cpp:154]   --->   Operation 105 'load' 'max_abs_bits_6_load_1' <Predicate = true> <Delay = 0.00>
+ST_12 : Operation 106 [1/1] (0.00ns)   --->   "%specloopname_ln0 = specloopname void @_ssdm_op_SpecLoopName, void @normalize_word_loop_normalize_lane_loop_str"   --->   Operation 106 'specloopname' 'specloopname_ln0' <Predicate = true> <Delay = 0.00>
+ST_12 : Operation 107 [1/1] (0.00ns)   --->   "%speclooptripcount_ln0 = speclooptripcount void @_ssdm_op_SpecLoopTripCount, i64 32, i64 32, i64 32"   --->   Operation 107 'speclooptripcount' 'speclooptripcount_ln0' <Predicate = true> <Delay = 0.00>
+ST_12 : Operation 108 [1/1] (0.00ns)   --->   "%specpipeline_ln139 = specpipeline void @_ssdm_op_SpecPipeline, i32 1, i32 0, i32 0, i32 0, void @empty_418" [source/int4_decoder_blocks.cpp:139]   --->   Operation 108 'specpipeline' 'specpipeline_ln139' <Predicate = true> <Delay = 0.00>
+ST_12 : Operation 109 [1/1] (0.00ns)   --->   "%zext_ln144 = zext i5 %add_ln141" [source/int4_decoder_blocks.cpp:144]   --->   Operation 109 'zext' 'zext_ln144' <Predicate = true> <Delay = 0.00>
+ST_12 : Operation 110 [1/1] (0.00ns)   --->   "%normalized_addr = getelementptr i32 %normalized, i64 0, i64 %zext_ln144" [source/int4_decoder_blocks.cpp:149]   --->   Operation 110 'getelementptr' 'normalized_addr' <Predicate = true> <Delay = 0.00>
+ST_12 : Operation 111 [1/1] (1.19ns)   --->   "%store_ln149 = store i32 %value, i5 %normalized_addr" [source/int4_decoder_blocks.cpp:149]   --->   Operation 111 'store' 'store_ln149' <Predicate = true> <Delay = 1.19> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 32> <Depth = 32> <RAM>
+ST_12 : Operation 112 [1/1] (0.00ns)   --->   "%value_bits = bitcast i32 %value" [source/int4_decoder_blocks.cpp:23->source/int4_decoder_blocks.cpp:151]   --->   Operation 112 'bitcast' 'value_bits' <Predicate = true> <Delay = 0.00>
+ST_12 : Operation 113 [1/1] (0.00ns)   --->   "%magnitude_bits = trunc i32 %value_bits" [source/int4_decoder_blocks.cpp:150]   --->   Operation 113 'trunc' 'magnitude_bits' <Predicate = true> <Delay = 0.00>
+ST_12 : Operation 114 [1/1] (0.00ns)   --->   "%zext_ln152 = zext i31 %magnitude_bits" [source/int4_decoder_blocks.cpp:152]   --->   Operation 114 'zext' 'zext_ln152' <Predicate = true> <Delay = 0.00>
+ST_12 : Operation 115 [1/1] (0.88ns)   --->   "%icmp_ln154 = icmp_ugt  i32 %zext_ln152, i32 %max_abs_bits_6_load_1" [source/int4_decoder_blocks.cpp:154]   --->   Operation 115 'icmp' 'icmp_ln154' <Predicate = true> <Delay = 0.88> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.88> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_12 : Operation 116 [1/1] (0.22ns)   --->   "%max_abs_bits = select i1 %icmp_ln154, i32 %zext_ln152, i32 %max_abs_bits_6_load_1" [source/int4_decoder_blocks.cpp:154]   --->   Operation 116 'select' 'max_abs_bits' <Predicate = true> <Delay = 0.22> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_12 : Operation 117 [1/1] (0.38ns)   --->   "%store_ln119 = store i32 %max_abs_bits, i32 %max_abs_bits_6" [source/int4_decoder_blocks.cpp:119]   --->   Operation 117 'store' 'store_ln119' <Predicate = true> <Delay = 0.38>
+ST_12 : Operation 118 [1/1] (0.00ns)   --->   "%br_ln136 = br void %for.body11" [source/int4_decoder_blocks.cpp:136]   --->   Operation 118 'br' 'br_ln136' <Predicate = true> <Delay = 0.00>
+
+
+============================================================
++ Verbose Summary: Timing violations
+============================================================
+Target clock period: 3.333ns, clock uncertainty: 0.900ns.
+
+ <State 1>: 2.466ns
+The critical path consists of the following:
+	'store' operation 0 bit ('store_ln136', source/int4_decoder_blocks.cpp:136) of constant 0 on local variable 'packed_lane', source/int4_decoder_blocks.cpp:136 [20]  (0.387 ns)
+	'load' operation 5 bit ('packed_lane_load', source/int4_decoder_blocks.cpp:137) on local variable 'packed_lane', source/int4_decoder_blocks.cpp:136 [30]  (0.000 ns)
+	'icmp' operation 1 bit ('icmp_ln137', source/int4_decoder_blocks.cpp:137) [34]  (0.707 ns)
+	'select' operation 5 bit ('select_ln119', source/int4_decoder_blocks.cpp:119) [35]  (0.278 ns)
+	'add' operation 5 bit ('add_ln138', source/int4_decoder_blocks.cpp:138) [99]  (0.707 ns)
+	'store' operation 0 bit ('store_ln136', source/int4_decoder_blocks.cpp:136) of variable 'add_ln138', source/int4_decoder_blocks.cpp:138 on local variable 'packed_lane', source/int4_decoder_blocks.cpp:136 [102]  (0.387 ns)
+
+ <State 2>: 1.906ns
+The critical path consists of the following:
+	'add' operation 6 bit ('add_ln125', source/int4_decoder_blocks.cpp:125) [39]  (0.706 ns)
+	'getelementptr' operation 6 bit ('input_addr', source/int4_decoder_blocks.cpp:125) [42]  (0.000 ns)
+	'load' operation 512 bit ('input_load', source/int4_decoder_blocks.cpp:125) on array 'input_r' [43]  (1.200 ns)
+
+ <State 3>: 1.693ns
+The critical path consists of the following:
+	'load' operation 512 bit ('input_load', source/int4_decoder_blocks.cpp:125) on array 'input_r' [43]  (1.200 ns)
+	'sparsemux' operation 32 bit ('bits', source/int4_decoder_blocks.cpp:144) [86]  (0.493 ns)
+
+ <State 4>: 2.389ns
+The critical path consists of the following:
+	'getelementptr' operation 13 bit ('model_norm_cache2_addr', source/int4_decoder_blocks.cpp:125) [62]  (0.000 ns)
+	'load' operation 512 bit ('model_norm_cache2_load', source/int4_decoder_blocks.cpp:125) on array 'model_norm_cache2' [63]  (2.389 ns)
+
+ <State 5>: 2.389ns
+The critical path consists of the following:
+	'load' operation 512 bit ('model_norm_cache2_load', source/int4_decoder_blocks.cpp:125) on array 'model_norm_cache2' [63]  (2.389 ns)
+
+ <State 6>: 2.389ns
+The critical path consists of the following:
+	'load' operation 512 bit ('model_norm_cache2_load', source/int4_decoder_blocks.cpp:125) on array 'model_norm_cache2' [63]  (2.389 ns)
+
+ <State 7>: 2.322ns
+The critical path consists of the following:
+	'fmul' operation 32 bit ('mul6', source/int4_decoder_blocks.cpp:148) [90]  (2.322 ns)
+
+ <State 8>: 2.322ns
+The critical path consists of the following:
+	'fmul' operation 32 bit ('value', source/int4_decoder_blocks.cpp:148) [91]  (2.322 ns)
+
+ <State 9>: 2.322ns
+The critical path consists of the following:
+	'fmul' operation 32 bit ('value', source/int4_decoder_blocks.cpp:148) [91]  (2.322 ns)
+
+ <State 10>: 2.322ns
+The critical path consists of the following:
+	'fmul' operation 32 bit ('value', source/int4_decoder_blocks.cpp:148) [91]  (2.322 ns)
+
+ <State 11>: 2.322ns
+The critical path consists of the following:
+	'fmul' operation 32 bit ('value', source/int4_decoder_blocks.cpp:148) [91]  (2.322 ns)
+
+ <State 12>: 1.494ns
+The critical path consists of the following:
+	'load' operation 32 bit ('max_abs_bits_6_load_1', source/int4_decoder_blocks.cpp:154) on local variable 'max_abs_bits', source/int4_decoder_blocks.cpp:119 [29]  (0.000 ns)
+	'icmp' operation 1 bit ('icmp_ln154', source/int4_decoder_blocks.cpp:154) [97]  (0.880 ns)
+	'select' operation 32 bit ('max_abs_bits', source/int4_decoder_blocks.cpp:154) [98]  (0.227 ns)
+	'store' operation 0 bit ('store_ln119', source/int4_decoder_blocks.cpp:119) of variable 'max_abs_bits', source/int4_decoder_blocks.cpp:154 on local variable 'max_abs_bits', source/int4_decoder_blocks.cpp:119 [103]  (0.387 ns)
+
+
+============================================================
++ Verbose Summary: Binding
+============================================================
+N/A
+* FSMD analyzer results:
+  - Output states:
+ - Input state : 
+  - Chain level:
+	State 1
+	State 2
+	State 3
+	State 4
+	State 5
+	State 6
+	State 7
+	State 8
+	State 9
+	State 10
+	State 11
+	State 12
+
+
+============================================================
++ Verbose Summary: Datapath Resource usage 
+============================================================
+N/A

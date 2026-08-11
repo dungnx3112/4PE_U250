@@ -1,0 +1,178 @@
+
+
+================================================================
+== Vitis HLS Report for 'int4_rms_sumsq_pe_11'
+================================================================
+* Date:           Tue Aug 11 09:17:11 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.602 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+-----------+-----------+------+------+---------+
+    |  Latency (cycles) |   Latency (absolute)  |   Interval  | Pipeline|
+    |   min   |   max   |    min    |    max    |  min |  max |   Type  |
+    +---------+---------+-----------+-----------+------+------+---------+
+    |     4175|     4175|  13.915 us|  13.915 us|  4175|  4175|       no|
+    +---------+---------+-----------+-----------+------+------+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        N/A
+
+============================================================
++ Verbose Summary: Synthesis Manager
+============================================================
+InlineROM: 1
+ExposeGlobal: 0
+============================================================
++ Verbose Summary: CDFG Model
+============================================================
+IsTopModel: 0
+ResetActiveHigh: 1
+IsCombinational: 2
+IsDatapathOnly: 0
+HasWiredReturn: 1
+HasMFsm: 0
+HasVarLatency: 1
+IsPipeline: 0
+IsRtlPipelined: 0
+IsInstanceOverlapped: 0
+IsDontTouch: 0
+HasImplIP: 0
+IsGatedGlobalClock: 0
+
+
+============================================================
++ Verbose Summary: Schedule
+============================================================
+* Number of FSM states : 5
+* Pipeline : 0
+* Dataflow Pipeline: 0
+
+* FSM state transitions: 
+1 --> 2 
+2 --> 3 
+3 --> 4 
+4 --> 5 
+5 --> 
+
+* FSM state operations: 
+
+State 1 <SV = 0> <Delay = 0.00>
+ST_1 : Operation 6 [1/1] (0.00ns)   --->   "%merged_01_loc = alloca i64 1"   --->   Operation 6 'alloca' 'merged_01_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 7 [1/1] (0.00ns)   --->   "%mux_case_02_loc = alloca i64 1"   --->   Operation 7 'alloca' 'mux_case_02_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 8 [1/1] (0.00ns)   --->   "%mux_case_16_loc = alloca i64 1"   --->   Operation 8 'alloca' 'mux_case_16_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 9 [1/1] (0.00ns)   --->   "%mux_case_27_loc = alloca i64 1"   --->   Operation 9 'alloca' 'mux_case_27_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 10 [1/1] (0.00ns)   --->   "%mux_case_38_loc = alloca i64 1"   --->   Operation 10 'alloca' 'mux_case_38_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 11 [1/1] (0.00ns)   --->   "%mux_case_49_loc = alloca i64 1"   --->   Operation 11 'alloca' 'mux_case_49_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 12 [1/1] (0.00ns)   --->   "%mux_case_510_loc = alloca i64 1"   --->   Operation 12 'alloca' 'mux_case_510_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 13 [1/1] (0.00ns)   --->   "%mux_case_611_loc = alloca i64 1"   --->   Operation 13 'alloca' 'mux_case_611_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 14 [1/1] (0.00ns)   --->   "%mux_case_712_loc = alloca i64 1"   --->   Operation 14 'alloca' 'mux_case_712_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 15 [1/1] (0.00ns)   --->   "%mux_case_813_loc = alloca i64 1"   --->   Operation 15 'alloca' 'mux_case_813_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 16 [1/1] (0.00ns)   --->   "%mux_case_914_loc = alloca i64 1"   --->   Operation 16 'alloca' 'mux_case_914_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 17 [1/1] (0.00ns)   --->   "%mux_case_1015_loc = alloca i64 1"   --->   Operation 17 'alloca' 'mux_case_1015_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 18 [1/1] (0.00ns)   --->   "%mux_case_1116_loc = alloca i64 1"   --->   Operation 18 'alloca' 'mux_case_1116_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 19 [1/1] (0.00ns)   --->   "%mux_case_1217_loc = alloca i64 1"   --->   Operation 19 'alloca' 'mux_case_1217_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 20 [1/1] (0.00ns)   --->   "%mux_case_1318_loc = alloca i64 1"   --->   Operation 20 'alloca' 'mux_case_1318_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 21 [1/1] (0.00ns)   --->   "%mux_case_1419_loc = alloca i64 1"   --->   Operation 21 'alloca' 'mux_case_1419_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 22 [1/1] (0.00ns)   --->   "%mux_case_1520_loc = alloca i64 1"   --->   Operation 22 'alloca' 'mux_case_1520_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 23 [2/2] (0.00ns)   --->   "%call_ln0 = call void @int4_rms_sumsq_pe.11_Pipeline_sumsq_word_loop_sumsq_lane_loop, i512 %input_r, i32 %mux_case_1520_loc, i32 %mux_case_1419_loc, i32 %mux_case_1318_loc, i32 %mux_case_1217_loc, i32 %mux_case_1116_loc, i32 %mux_case_1015_loc, i32 %mux_case_914_loc, i32 %mux_case_813_loc, i32 %mux_case_712_loc, i32 %mux_case_611_loc, i32 %mux_case_510_loc, i32 %mux_case_49_loc, i32 %mux_case_38_loc, i32 %mux_case_27_loc, i32 %mux_case_16_loc, i32 %mux_case_02_loc"   --->   Operation 23 'call' 'call_ln0' <Predicate = true> <Delay = 0.00> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+
+State 2 <SV = 1> <Delay = 0.00>
+ST_2 : Operation 24 [1/2] (0.00ns)   --->   "%call_ln0 = call void @int4_rms_sumsq_pe.11_Pipeline_sumsq_word_loop_sumsq_lane_loop, i512 %input_r, i32 %mux_case_1520_loc, i32 %mux_case_1419_loc, i32 %mux_case_1318_loc, i32 %mux_case_1217_loc, i32 %mux_case_1116_loc, i32 %mux_case_1015_loc, i32 %mux_case_914_loc, i32 %mux_case_813_loc, i32 %mux_case_712_loc, i32 %mux_case_611_loc, i32 %mux_case_510_loc, i32 %mux_case_49_loc, i32 %mux_case_38_loc, i32 %mux_case_27_loc, i32 %mux_case_16_loc, i32 %mux_case_02_loc"   --->   Operation 24 'call' 'call_ln0' <Predicate = true> <Delay = 0.00> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+
+State 3 <SV = 2> <Delay = 0.49>
+ST_3 : Operation 25 [1/1] (0.00ns)   --->   "%mux_case_1520_loc_load = load i32 %mux_case_1520_loc"   --->   Operation 25 'load' 'mux_case_1520_loc_load' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 26 [1/1] (0.00ns)   --->   "%mux_case_1419_loc_load = load i32 %mux_case_1419_loc"   --->   Operation 26 'load' 'mux_case_1419_loc_load' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 27 [1/1] (0.00ns)   --->   "%mux_case_1318_loc_load = load i32 %mux_case_1318_loc"   --->   Operation 27 'load' 'mux_case_1318_loc_load' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 28 [1/1] (0.00ns)   --->   "%mux_case_1217_loc_load = load i32 %mux_case_1217_loc"   --->   Operation 28 'load' 'mux_case_1217_loc_load' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 29 [1/1] (0.00ns)   --->   "%mux_case_1116_loc_load = load i32 %mux_case_1116_loc"   --->   Operation 29 'load' 'mux_case_1116_loc_load' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 30 [1/1] (0.00ns)   --->   "%mux_case_1015_loc_load = load i32 %mux_case_1015_loc"   --->   Operation 30 'load' 'mux_case_1015_loc_load' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 31 [1/1] (0.00ns)   --->   "%mux_case_914_loc_load = load i32 %mux_case_914_loc"   --->   Operation 31 'load' 'mux_case_914_loc_load' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 32 [1/1] (0.00ns)   --->   "%mux_case_813_loc_load = load i32 %mux_case_813_loc"   --->   Operation 32 'load' 'mux_case_813_loc_load' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 33 [1/1] (0.00ns)   --->   "%mux_case_712_loc_load = load i32 %mux_case_712_loc"   --->   Operation 33 'load' 'mux_case_712_loc_load' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 34 [1/1] (0.00ns)   --->   "%mux_case_611_loc_load = load i32 %mux_case_611_loc"   --->   Operation 34 'load' 'mux_case_611_loc_load' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 35 [1/1] (0.00ns)   --->   "%mux_case_510_loc_load = load i32 %mux_case_510_loc"   --->   Operation 35 'load' 'mux_case_510_loc_load' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 36 [1/1] (0.00ns)   --->   "%mux_case_49_loc_load = load i32 %mux_case_49_loc"   --->   Operation 36 'load' 'mux_case_49_loc_load' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 37 [1/1] (0.00ns)   --->   "%mux_case_38_loc_load = load i32 %mux_case_38_loc"   --->   Operation 37 'load' 'mux_case_38_loc_load' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 38 [1/1] (0.00ns)   --->   "%mux_case_27_loc_load = load i32 %mux_case_27_loc"   --->   Operation 38 'load' 'mux_case_27_loc_load' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 39 [1/1] (0.00ns)   --->   "%mux_case_16_loc_load = load i32 %mux_case_16_loc"   --->   Operation 39 'load' 'mux_case_16_loc_load' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 40 [1/1] (0.00ns)   --->   "%mux_case_02_loc_load = load i32 %mux_case_02_loc"   --->   Operation 40 'load' 'mux_case_02_loc_load' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 41 [2/2] (0.49ns)   --->   "%call_ln0 = call void @int4_rms_sumsq_pe.11_Pipeline_merge_sumsq_lane_loop, i32 %mux_case_02_loc_load, i32 %mux_case_16_loc_load, i32 %mux_case_27_loc_load, i32 %mux_case_38_loc_load, i32 %mux_case_49_loc_load, i32 %mux_case_510_loc_load, i32 %mux_case_611_loc_load, i32 %mux_case_712_loc_load, i32 %mux_case_813_loc_load, i32 %mux_case_914_loc_load, i32 %mux_case_1015_loc_load, i32 %mux_case_1116_loc_load, i32 %mux_case_1217_loc_load, i32 %mux_case_1318_loc_load, i32 %mux_case_1419_loc_load, i32 %mux_case_1520_loc_load, i32 %merged_01_loc"   --->   Operation 41 'call' 'call_ln0' <Predicate = true> <Delay = 0.49> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+
+State 4 <SV = 3> <Delay = 0.00>
+ST_4 : Operation 42 [1/2] (0.00ns)   --->   "%call_ln0 = call void @int4_rms_sumsq_pe.11_Pipeline_merge_sumsq_lane_loop, i32 %mux_case_02_loc_load, i32 %mux_case_16_loc_load, i32 %mux_case_27_loc_load, i32 %mux_case_38_loc_load, i32 %mux_case_49_loc_load, i32 %mux_case_510_loc_load, i32 %mux_case_611_loc_load, i32 %mux_case_712_loc_load, i32 %mux_case_813_loc_load, i32 %mux_case_914_loc_load, i32 %mux_case_1015_loc_load, i32 %mux_case_1116_loc_load, i32 %mux_case_1217_loc_load, i32 %mux_case_1318_loc_load, i32 %mux_case_1419_loc_load, i32 %mux_case_1520_loc_load, i32 %merged_01_loc"   --->   Operation 42 'call' 'call_ln0' <Predicate = true> <Delay = 0.00> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+
+State 5 <SV = 4> <Delay = 1.21>
+ST_5 : Operation 43 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %input_r, i64 666, i64 22, i64 18446744073709551615"   --->   Operation 43 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_5 : Operation 44 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i32 %partial_2, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 44 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_5 : Operation 45 [1/1] (0.00ns)   --->   "%merged_01_loc_load = load i32 %merged_01_loc"   --->   Operation 45 'load' 'merged_01_loc_load' <Predicate = true> <Delay = 0.00>
+ST_5 : Operation 46 [1/1] (0.00ns)   --->   "%bitcast_ln81 = bitcast i32 %merged_01_loc_load" [source/int4_decoder_blocks.cpp:81]   --->   Operation 46 'bitcast' 'bitcast_ln81' <Predicate = true> <Delay = 0.00>
+ST_5 : Operation 47 [1/1] (1.21ns)   --->   "%write_ln81 = write void @_ssdm_op_Write.ap_fifo.volatile.i32P0A, i32 %partial_2, i32 %bitcast_ln81" [source/int4_decoder_blocks.cpp:81]   --->   Operation 47 'write' 'write_ln81' <Predicate = true> <Delay = 1.21> <CoreInst = "FIFO_SRL">   --->   Core 81 'FIFO_SRL' <Latency = 0> <II = 1> <Delay = 1.39> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 32> <Depth = 2> <FIFO>
+ST_5 : Operation 48 [1/1] (0.00ns)   --->   "%ret_ln82 = ret" [source/int4_decoder_blocks.cpp:82]   --->   Operation 48 'ret' 'ret_ln82' <Predicate = true> <Delay = 0.00>
+
+
+============================================================
++ Verbose Summary: Timing violations
+============================================================
+Target clock period: 3.333ns, clock uncertainty: 0.900ns.
+
+ <State 1>: 0.000ns
+The critical path consists of the following:
+
+ <State 2>: 0.000ns
+The critical path consists of the following:
+
+ <State 3>: 0.493ns
+The critical path consists of the following:
+	'load' operation 32 bit ('mux_case_1520_loc_load') on local variable 'mux_case_1520_loc' [23]  (0.000 ns)
+	'call' operation 0 bit ('call_ln0') to 'int4_rms_sumsq_pe.11_Pipeline_merge_sumsq_lane_loop' [39]  (0.493 ns)
+
+ <State 4>: 0.000ns
+The critical path consists of the following:
+
+ <State 5>: 1.217ns
+The critical path consists of the following:
+	'load' operation 32 bit ('merged_01_loc_load') on local variable 'merged_01_loc' [40]  (0.000 ns)
+	fifo write operation ('write_ln81', source/int4_decoder_blocks.cpp:81) on port 'partial_2' (source/int4_decoder_blocks.cpp:81) [42]  (1.217 ns)
+
+
+============================================================
++ Verbose Summary: Binding
+============================================================
+N/A
+* FSMD analyzer results:
+  - Output states:
+ - Input state : 
+  - Chain level:
+	State 1
+	State 2
+	State 3
+	State 4
+	State 5
+
+
+============================================================
++ Verbose Summary: Datapath Resource usage 
+============================================================
+N/A

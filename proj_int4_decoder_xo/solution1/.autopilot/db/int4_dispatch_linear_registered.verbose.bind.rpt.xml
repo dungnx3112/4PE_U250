@@ -1,0 +1,48 @@
+<profile>
+
+<section name = "Vitis HLS Report for 'int4_dispatch_linear_registered'" level="0">
+<item name = "Date">Tue Aug 11 09:17:55 2026
+</item>
+<item name = "Version">2023.2 (Build 4023990 on Oct 11 2023)</item>
+<item name = "Project">proj_int4_decoder_xo</item>
+<item name = "Solution">solution1 (Vitis Kernel Flow Target)</item>
+<item name = "Product family">virtexuplus</item>
+<item name = "Target device">xcu250-figd2104-2L-e</item>
+</section>
+
+<section name = "Performance Estimates" level="0">
+<item name = "Timing">
+<section name = "" level="1">
+<item name = "Summary"><table name="" hasTotal="0">
+<keys size="4">Clock, Target, Estimated, Uncertainty</keys>
+<column name="ap_clk">3.33 ns, 2.608 ns, 0.90 ns</column>
+</table>
+</item>
+</section>
+</item>
+<item name = "Latency">
+<section name = "" level="1">
+<item name = "Summary"><table name="" hasTotal="0">
+<keys size="8">, min, max, min, max, min, max, Type</keys>
+<column name="">80, 694274, 0.267 us, 2.314 ms, 80, 694274, dataflow</column>
+</table>
+</item>
+<item name = "Detail">
+<section name = "" level="1">
+<item name = "Instance"><table name="" hasTotal="0">
+<keys size="9">Instance, Module, min, max, min, max, min, max, Type</keys>
+<column name="call_ln0_entry_proc58_fu_366">entry_proc58, 0, 0, 0 ns, 0 ns, 0, 0, no</column>
+<column name="call_ln0_int4_dispatch_linear_registered_Block_entry1_proc24_fu_406">int4_dispatch_linear_registered_Block_entry1_proc24, 0, 0, 0 ns, 0 ns, 0, 0, no</column>
+<column name="grp_int4_execute_dispatch_linear_fu_413">int4_execute_dispatch_linear, 79, 694273, 0.263 us, 2.314 ms, 79, 694273, no</column>
+</table>
+</item>
+<item name = "Loop"><table name="" hasTotal="0">
+<keys size="8">Loop Name, min, max, Latency, achieved, target, Count, Pipelined</keys>
+</table>
+</item>
+</section>
+</item>
+</section>
+</item>
+</section>
+</profile>

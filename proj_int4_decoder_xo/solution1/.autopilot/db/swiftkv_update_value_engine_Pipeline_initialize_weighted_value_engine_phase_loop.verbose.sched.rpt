@@ -1,0 +1,142 @@
+
+
+================================================================
+== Vitis HLS Report for 'swiftkv_update_value_engine_Pipeline_initialize_weighted_value_engine_phase_loop'
+================================================================
+* Date:           Tue Aug 11 09:16:59 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.291 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+-----------+-----------+-----+-----+---------+
+    |  Latency (cycles) |   Latency (absolute)  |  Interval | Pipeline|
+    |   min   |   max   |    min    |    max    | min | max |   Type  |
+    +---------+---------+-----------+-----------+-----+-----+---------+
+    |       10|       10|  33.330 ns|  33.330 ns|   10|   10|       no|
+    +---------+---------+-----------+-----------+-----+-----+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +-----------------------------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |                                               |  Latency (cycles) | Iteration|  Initiation Interval  | Trip |          |
+        |                   Loop Name                   |   min   |   max   |  Latency |  achieved |   target  | Count| Pipelined|
+        +-----------------------------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |- initialize_weighted_value_engine_phase_loop  |        8|        8|         1|          1|          1|     8|       yes|
+        +-----------------------------------------------+---------+---------+----------+-----------+-----------+------+----------+
+
+============================================================
++ Verbose Summary: Synthesis Manager
+============================================================
+InlineROM: 1
+ExposeGlobal: 0
+============================================================
++ Verbose Summary: CDFG Model
+============================================================
+IsTopModel: 0
+ResetActiveHigh: 1
+IsCombinational: 0
+IsDatapathOnly: 0
+HasWiredReturn: 1
+HasMFsm: 2
+HasVarLatency: 1
+IsPipeline: 0
+IsRtlPipelined: 0
+IsInstanceOverlapped: 0
+IsDontTouch: 0
+HasImplIP: 0
+IsGatedGlobalClock: 0
+
++ Individual pipeline summary: 
+  * Pipeline-0: initiation interval (II) = 1, depth = 1
+
+
+============================================================
++ Verbose Summary: Schedule
+============================================================
+* Number of FSM states : 1
+* Pipeline : 1
+  Pipeline-0 : II = 1, D = 1, States = { 1 }
+* Dataflow Pipeline: 0
+
+* FSM state transitions: 
+1 --> 
+
+* FSM state operations: 
+
+State 1 <SV = 0> <Delay = 2.29>
+ST_1 : Operation 4 [1/1] (0.00ns)   --->   "%phase = alloca i32 1" [source/swiftkv_attention.cpp:1249]   --->   Operation 4 'alloca' 'phase' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 5 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %weighted_value_0, i64 666, i64 22, i64 1"   --->   Operation 5 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 6 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %weighted_value_1, i64 666, i64 22, i64 1"   --->   Operation 6 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 7 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %weighted_value_2, i64 666, i64 22, i64 1"   --->   Operation 7 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 8 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i32 %weighted_value_3, i64 666, i64 22, i64 1"   --->   Operation 8 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 9 [1/1] (0.38ns)   --->   "%store_ln1249 = store i4 0, i4 %phase" [source/swiftkv_attention.cpp:1249]   --->   Operation 9 'store' 'store_ln1249' <Predicate = true> <Delay = 0.38>
+ST_1 : Operation 10 [1/1] (0.00ns)   --->   "%br_ln0 = br void %initialize_weighted_value_engine_lane_loop"   --->   Operation 10 'br' 'br_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 11 [1/1] (0.00ns)   --->   "%phase_4 = load i4 %phase" [source/swiftkv_attention.cpp:1249]   --->   Operation 11 'load' 'phase_4' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 12 [1/1] (0.70ns)   --->   "%icmp_ln1249 = icmp_eq  i4 %phase_4, i4 8" [source/swiftkv_attention.cpp:1249]   --->   Operation 12 'icmp' 'icmp_ln1249' <Predicate = true> <Delay = 0.70> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_1 : Operation 13 [1/1] (0.70ns)   --->   "%add_ln1249 = add i4 %phase_4, i4 1" [source/swiftkv_attention.cpp:1249]   --->   Operation 13 'add' 'add_ln1249' <Predicate = true> <Delay = 0.70> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_1 : Operation 14 [1/1] (0.00ns)   --->   "%br_ln1249 = br i1 %icmp_ln1249, void %initialize_weighted_value_engine_lane_loop.split, void %for.end7.exitStub" [source/swiftkv_attention.cpp:1249]   --->   Operation 14 'br' 'br_ln1249' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 15 [1/1] (0.00ns)   --->   "%zext_ln1249 = zext i4 %phase_4" [source/swiftkv_attention.cpp:1249]   --->   Operation 15 'zext' 'zext_ln1249' <Predicate = (!icmp_ln1249)> <Delay = 0.00>
+ST_1 : Operation 16 [1/1] (0.00ns)   --->   "%specpipeline_ln1250 = specpipeline void @_ssdm_op_SpecPipeline, i32 1, i32 0, i32 0, i32 0, void @empty_418" [source/swiftkv_attention.cpp:1250]   --->   Operation 16 'specpipeline' 'specpipeline_ln1250' <Predicate = (!icmp_ln1249)> <Delay = 0.00>
+ST_1 : Operation 17 [1/1] (0.00ns)   --->   "%speclooptripcount_ln1249 = speclooptripcount void @_ssdm_op_SpecLoopTripCount, i64 8, i64 8, i64 8" [source/swiftkv_attention.cpp:1249]   --->   Operation 17 'speclooptripcount' 'speclooptripcount_ln1249' <Predicate = (!icmp_ln1249)> <Delay = 0.00>
+ST_1 : Operation 18 [1/1] (0.00ns)   --->   "%specloopname_ln1249 = specloopname void @_ssdm_op_SpecLoopName, void @empty_461" [source/swiftkv_attention.cpp:1249]   --->   Operation 18 'specloopname' 'specloopname_ln1249' <Predicate = (!icmp_ln1249)> <Delay = 0.00>
+ST_1 : Operation 19 [1/1] (0.00ns)   --->   "%weighted_value_0_addr = getelementptr i32 %weighted_value_0, i64 0, i64 %zext_ln1249" [source/swiftkv_attention.cpp:1256]   --->   Operation 19 'getelementptr' 'weighted_value_0_addr' <Predicate = (!icmp_ln1249)> <Delay = 0.00>
+ST_1 : Operation 20 [1/1] (0.00ns)   --->   "%weighted_value_1_addr = getelementptr i32 %weighted_value_1, i64 0, i64 %zext_ln1249" [source/swiftkv_attention.cpp:1256]   --->   Operation 20 'getelementptr' 'weighted_value_1_addr' <Predicate = (!icmp_ln1249)> <Delay = 0.00>
+ST_1 : Operation 21 [1/1] (0.00ns)   --->   "%weighted_value_2_addr = getelementptr i32 %weighted_value_2, i64 0, i64 %zext_ln1249" [source/swiftkv_attention.cpp:1256]   --->   Operation 21 'getelementptr' 'weighted_value_2_addr' <Predicate = (!icmp_ln1249)> <Delay = 0.00>
+ST_1 : Operation 22 [1/1] (0.00ns)   --->   "%weighted_value_3_addr = getelementptr i32 %weighted_value_3, i64 0, i64 %zext_ln1249" [source/swiftkv_attention.cpp:1256]   --->   Operation 22 'getelementptr' 'weighted_value_3_addr' <Predicate = (!icmp_ln1249)> <Delay = 0.00>
+ST_1 : Operation 23 [1/1] (1.19ns)   --->   "%store_ln1257 = store i32 0, i3 %weighted_value_0_addr" [source/swiftkv_attention.cpp:1257]   --->   Operation 23 'store' 'store_ln1257' <Predicate = (!icmp_ln1249)> <Delay = 1.19> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 32> <Depth = 8> <RAM>
+ST_1 : Operation 24 [1/1] (1.19ns)   --->   "%store_ln1257 = store i32 0, i3 %weighted_value_1_addr" [source/swiftkv_attention.cpp:1257]   --->   Operation 24 'store' 'store_ln1257' <Predicate = (!icmp_ln1249)> <Delay = 1.19> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 32> <Depth = 8> <RAM>
+ST_1 : Operation 25 [1/1] (1.19ns)   --->   "%store_ln1257 = store i32 0, i3 %weighted_value_2_addr" [source/swiftkv_attention.cpp:1257]   --->   Operation 25 'store' 'store_ln1257' <Predicate = (!icmp_ln1249)> <Delay = 1.19> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 32> <Depth = 8> <RAM>
+ST_1 : Operation 26 [1/1] (1.19ns)   --->   "%store_ln1257 = store i32 0, i3 %weighted_value_3_addr" [source/swiftkv_attention.cpp:1257]   --->   Operation 26 'store' 'store_ln1257' <Predicate = (!icmp_ln1249)> <Delay = 1.19> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.19> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 32> <Depth = 8> <RAM>
+ST_1 : Operation 27 [1/1] (0.38ns)   --->   "%store_ln1249 = store i4 %add_ln1249, i4 %phase" [source/swiftkv_attention.cpp:1249]   --->   Operation 27 'store' 'store_ln1249' <Predicate = (!icmp_ln1249)> <Delay = 0.38>
+ST_1 : Operation 28 [1/1] (0.00ns)   --->   "%br_ln1249 = br void %initialize_weighted_value_engine_lane_loop" [source/swiftkv_attention.cpp:1249]   --->   Operation 28 'br' 'br_ln1249' <Predicate = (!icmp_ln1249)> <Delay = 0.00>
+ST_1 : Operation 29 [1/1] (0.00ns)   --->   "%ret_ln0 = ret"   --->   Operation 29 'ret' 'ret_ln0' <Predicate = (icmp_ln1249)> <Delay = 0.00>
+
+
+============================================================
++ Verbose Summary: Timing violations
+============================================================
+Target clock period: 3.333ns, clock uncertainty: 0.900ns.
+
+ <State 1>: 2.291ns
+The critical path consists of the following:
+	'store' operation 0 bit ('store_ln1249', source/swiftkv_attention.cpp:1249) of constant 0 on local variable 'phase', source/swiftkv_attention.cpp:1249 [10]  (0.387 ns)
+	'load' operation 4 bit ('phase', source/swiftkv_attention.cpp:1249) on local variable 'phase', source/swiftkv_attention.cpp:1249 [13]  (0.000 ns)
+	'icmp' operation 1 bit ('icmp_ln1249', source/swiftkv_attention.cpp:1249) [14]  (0.708 ns)
+	'store' operation 0 bit ('store_ln1257', source/swiftkv_attention.cpp:1257) of constant 0 on array 'weighted_value_0' [26]  (1.196 ns)
+
+
+============================================================
++ Verbose Summary: Binding
+============================================================
+N/A
+* FSMD analyzer results:
+  - Output states:
+ - Input state : 
+  - Chain level:
+	State 1
+
+
+============================================================
++ Verbose Summary: Datapath Resource usage 
+============================================================
+N/A

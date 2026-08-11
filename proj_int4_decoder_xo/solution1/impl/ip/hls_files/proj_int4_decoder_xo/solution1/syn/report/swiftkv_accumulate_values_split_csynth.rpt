@@ -1,0 +1,396 @@
+
+
+================================================================
+== Vitis HLS Report for 'swiftkv_accumulate_values_split'
+================================================================
+* Date:           Tue Aug 11 09:18:18 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.433 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-------+----------+
+    |  Latency (cycles) |  Latency (absolute) |   Interval  | Pipeline |
+    |   min   |   max   |    min   |    max   | min |  max  |   Type   |
+    +---------+---------+----------+----------+-----+-------+----------+
+    |       32|    32792|  0.107 us|  0.109 ms|   31|  32791|  dataflow|
+    +---------+---------+----------+----------+-----+-------+----------+
+
+    + Detail: 
+        * Instance: 
+        +-------------------------------------------+------------------------------------------+---------+---------+-----------+-----------+-----+-------+---------+
+        |                                           |                                          |  Latency (cycles) |   Latency (absolute)  |   Interval  | Pipeline|
+        |                  Instance                 |                  Module                  |   min   |   max   |    min    |    max    | min |  max  |   Type  |
+        +-------------------------------------------+------------------------------------------+---------+---------+-----------+-----------+-----+-------+---------+
+        |swiftkv_broadcast_update_controls_U0       |swiftkv_broadcast_update_controls         |        5|     4100|  16.665 ns|  13.665 us|    5|   4100|       no|
+        |swiftkv_prepare_update_engine_phases_0_U0  |swiftkv_prepare_update_engine_phases_0_s  |       13|    32773|  43.329 ns|   0.109 ms|   13|  32773|       no|
+        |swiftkv_prepare_update_engine_phases_1_U0  |swiftkv_prepare_update_engine_phases_1_s  |       13|    32773|  43.329 ns|   0.109 ms|   13|  32773|       no|
+        |swiftkv_prepare_update_engine_phases_2_U0  |swiftkv_prepare_update_engine_phases_2_s  |       13|    32773|  43.329 ns|   0.109 ms|   13|  32773|       no|
+        |swiftkv_prepare_update_engine_phases_3_U0  |swiftkv_prepare_update_engine_phases_3_s  |       13|    32773|  43.329 ns|   0.109 ms|   13|  32773|       no|
+        |swiftkv_update_value_engine_0_U0           |swiftkv_update_value_engine_0_s           |       30|    32790|  99.990 ns|   0.109 ms|   30|  32790|       no|
+        |swiftkv_update_value_engine_1_U0           |swiftkv_update_value_engine_1_s           |       30|    32790|  99.990 ns|   0.109 ms|   30|  32790|       no|
+        |swiftkv_update_value_engine_2_U0           |swiftkv_update_value_engine_2_s           |       30|    32790|  99.990 ns|   0.109 ms|   30|  32790|       no|
+        |swiftkv_update_value_engine_3_U0           |swiftkv_update_value_engine_3_s           |       30|    32790|  99.990 ns|   0.109 ms|   30|  32790|       no|
+        +-------------------------------------------+------------------------------------------+---------+---------+-----------+-----------+-----+-------+---------+
+
+        * Loop: 
+        N/A
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+------+
+|         Name        | BRAM_18K|  DSP  |    FF   |   LUT   | URAM |
++---------------------+---------+-------+---------+---------+------+
+|DSP                  |        -|      -|        -|        -|     -|
+|Expression           |        -|      -|        0|       36|     -|
+|FIFO                 |        -|      -|      336|      536|     -|
+|Instance             |        -|     32|     9918|    13921|     -|
+|Memory               |        -|      -|        -|        -|     -|
+|Multiplexer          |        -|      -|        -|       45|     -|
+|Register             |        -|      -|        9|        -|     -|
++---------------------+---------+-------+---------+---------+------+
+|Total                |        0|     32|    10263|    14538|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available SLR        |     1344|   3072|   864000|   432000|   320|
++---------------------+---------+-------+---------+---------+------+
+|Utilization SLR (%)  |        0|      1|        1|        3|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available            |     5376|  12288|  3456000|  1728000|  1280|
++---------------------+---------+-------+---------+---------+------+
+|Utilization (%)      |        0|     ~0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+
++ Detail: 
+    * Instance: 
+    +-------------------------------------------+------------------------------------------+---------+----+------+------+-----+
+    |                  Instance                 |                  Module                  | BRAM_18K| DSP|  FF  |  LUT | URAM|
+    +-------------------------------------------+------------------------------------------+---------+----+------+------+-----+
+    |swiftkv_broadcast_update_controls_U0       |swiftkv_broadcast_update_controls         |        0|   0|    34|   277|    0|
+    |swiftkv_prepare_update_engine_phases_0_U0  |swiftkv_prepare_update_engine_phases_0_s  |        0|   0|   710|   365|    0|
+    |swiftkv_prepare_update_engine_phases_1_U0  |swiftkv_prepare_update_engine_phases_1_s  |        0|   0|   710|   365|    0|
+    |swiftkv_prepare_update_engine_phases_2_U0  |swiftkv_prepare_update_engine_phases_2_s  |        0|   0|   710|   365|    0|
+    |swiftkv_prepare_update_engine_phases_3_U0  |swiftkv_prepare_update_engine_phases_3_s  |        0|   0|   710|   365|    0|
+    |swiftkv_update_value_engine_0_U0           |swiftkv_update_value_engine_0_s           |        0|   8|  1761|  3046|    0|
+    |swiftkv_update_value_engine_1_U0           |swiftkv_update_value_engine_1_s           |        0|   8|  1761|  3046|    0|
+    |swiftkv_update_value_engine_2_U0           |swiftkv_update_value_engine_2_s           |        0|   8|  1761|  3046|    0|
+    |swiftkv_update_value_engine_3_U0           |swiftkv_update_value_engine_3_s           |        0|   8|  1761|  3046|    0|
+    +-------------------------------------------+------------------------------------------+---------+----+------+------+-----+
+    |Total                                      |                                          |        0|  32|  9918| 13921|    0|
+    +-------------------------------------------+------------------------------------------+---------+----+------+------+-----+
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    +--------------------------+---------+----+----+-----+------+-----+---------+
+    |           Name           | BRAM_18K| FF | LUT| URAM| Depth| Bits| Size:D*B|
+    +--------------------------+---------+----+----+-----+------+-----+---------+
+    |engine0_control_stream_U  |        0|   5|   0|    -|     4|   59|      236|
+    |engine0_phase_stream_U    |        0|   7|   0|    -|     8|   57|      456|
+    |engine1_control_stream_U  |        0|   5|   0|    -|     4|   59|      236|
+    |engine1_phase_stream_U    |        0|   7|   0|    -|     8|   57|      456|
+    |engine2_control_stream_U  |        0|   5|   0|    -|     4|   59|      236|
+    |engine2_phase_stream_U    |        0|   7|   0|    -|     8|   57|      456|
+    |engine3_control_stream_U  |        0|   5|   0|    -|     4|   59|      236|
+    |engine3_phase_stream_U    |        0|   7|   0|    -|     8|   57|      456|
+    |position_val_c30_U        |        0|  36|   0|    -|     2|   12|       24|
+    |position_val_c31_U        |        0|  36|   0|    -|     2|   12|       24|
+    |position_val_c32_U        |        0|  36|   0|    -|     2|   12|       24|
+    |position_val_c33_U        |        0|  36|   0|    -|     2|   12|       24|
+    |position_val_c34_U        |        0|  36|   0|    -|     2|   12|       24|
+    |position_val_c35_U        |        0|  36|   0|    -|     2|   12|       24|
+    |position_val_c36_U        |        0|  36|   0|    -|     2|   12|       24|
+    |position_val_c_U          |        0|  36|   0|    -|     2|   12|       24|
+    +--------------------------+---------+----+----+-----+------+-----+---------+
+    |Total                     |        0| 336|   0|    0|    64|  560|     2960|
+    +--------------------------+---------+----+----+-----+------+-----+---------+
+
+    * Expression: 
+    +-------------------------------------------------------+----------+----+---+----+------------+------------+
+    |                     Variable Name                     | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +-------------------------------------------------------+----------+----+---+----+------------+------------+
+    |ap_idle                                                |       and|   0|  0|   2|           1|           1|
+    |ap_sync_continue                                       |       and|   0|  0|   2|           1|           1|
+    |ap_sync_done                                           |       and|   0|  0|   2|           1|           1|
+    |ap_sync_ready                                          |       and|   0|  0|   2|           1|           1|
+    |swiftkv_broadcast_update_controls_U0_ap_start          |       and|   0|  0|   2|           1|           1|
+    |swiftkv_update_value_engine_0_U0_ap_start              |       and|   0|  0|   2|           1|           1|
+    |swiftkv_update_value_engine_1_U0_ap_start              |       and|   0|  0|   2|           1|           1|
+    |swiftkv_update_value_engine_2_U0_ap_start              |       and|   0|  0|   2|           1|           1|
+    |swiftkv_update_value_engine_3_U0_ap_start              |       and|   0|  0|   2|           1|           1|
+    |ap_sync_swiftkv_broadcast_update_controls_U0_ap_ready  |        or|   0|  0|   2|           1|           1|
+    |ap_sync_swiftkv_update_value_engine_0_U0_ap_ready      |        or|   0|  0|   2|           1|           1|
+    |ap_sync_swiftkv_update_value_engine_1_U0_ap_ready      |        or|   0|  0|   2|           1|           1|
+    |ap_sync_swiftkv_update_value_engine_2_U0_ap_ready      |        or|   0|  0|   2|           1|           1|
+    |ap_sync_swiftkv_update_value_engine_3_U0_ap_ready      |        or|   0|  0|   2|           1|           1|
+    |swiftkv_prepare_update_engine_phases_0_U0_ap_start     |        or|   0|  0|   2|           1|           1|
+    |swiftkv_prepare_update_engine_phases_1_U0_ap_start     |        or|   0|  0|   2|           1|           1|
+    |swiftkv_prepare_update_engine_phases_2_U0_ap_start     |        or|   0|  0|   2|           1|           1|
+    |swiftkv_prepare_update_engine_phases_3_U0_ap_start     |        or|   0|  0|   2|           1|           1|
+    +-------------------------------------------------------+----------+----+---+----+------------+------------+
+    |Total                                                  |          |   0|  0|  36|          18|          18|
+    +-------------------------------------------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +-----------------------------------------------------------+----+-----------+-----+-----------+
+    |                            Name                           | LUT| Input Size| Bits| Total Bits|
+    +-----------------------------------------------------------+----+-----------+-----+-----------+
+    |ap_sync_reg_swiftkv_broadcast_update_controls_U0_ap_ready  |   9|          2|    1|          2|
+    |ap_sync_reg_swiftkv_update_value_engine_0_U0_ap_ready      |   9|          2|    1|          2|
+    |ap_sync_reg_swiftkv_update_value_engine_1_U0_ap_ready      |   9|          2|    1|          2|
+    |ap_sync_reg_swiftkv_update_value_engine_2_U0_ap_ready      |   9|          2|    1|          2|
+    |ap_sync_reg_swiftkv_update_value_engine_3_U0_ap_ready      |   9|          2|    1|          2|
+    +-----------------------------------------------------------+----+-----------+-----+-----------+
+    |Total                                                      |  45|         10|    5|         10|
+    +-----------------------------------------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +----------------------------------------------------------------+---+----+-----+-----------+
+    |                              Name                              | FF| LUT| Bits| Const Bits|
+    +----------------------------------------------------------------+---+----+-----+-----------+
+    |ap_sync_reg_swiftkv_broadcast_update_controls_U0_ap_ready       |  1|   0|    1|          0|
+    |ap_sync_reg_swiftkv_prepare_update_engine_phases_0_U0_ap_start  |  1|   0|    1|          0|
+    |ap_sync_reg_swiftkv_prepare_update_engine_phases_1_U0_ap_start  |  1|   0|    1|          0|
+    |ap_sync_reg_swiftkv_prepare_update_engine_phases_2_U0_ap_start  |  1|   0|    1|          0|
+    |ap_sync_reg_swiftkv_prepare_update_engine_phases_3_U0_ap_start  |  1|   0|    1|          0|
+    |ap_sync_reg_swiftkv_update_value_engine_0_U0_ap_ready           |  1|   0|    1|          0|
+    |ap_sync_reg_swiftkv_update_value_engine_1_U0_ap_ready           |  1|   0|    1|          0|
+    |ap_sync_reg_swiftkv_update_value_engine_2_U0_ap_ready           |  1|   0|    1|          0|
+    |ap_sync_reg_swiftkv_update_value_engine_3_U0_ap_ready           |  1|   0|    1|          0|
+    +----------------------------------------------------------------+---+----+-----+-----------+
+    |Total                                                           |  9|   0|    9|          0|
+    +----------------------------------------------------------------+---+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++-----------------------------------+-----+-----+------------+---------------------------------+--------------+
+|             RTL Ports             | Dir | Bits|  Protocol  |          Source Object          |    C Type    |
++-----------------------------------+-----+-----+------------+---------------------------------+--------------+
+|value_metadata_stream_dout         |   in|   40|     ap_fifo|            value_metadata_stream|       pointer|
+|value_metadata_stream_empty_n      |   in|    1|     ap_fifo|            value_metadata_stream|       pointer|
+|value_metadata_stream_read         |  out|    1|     ap_fifo|            value_metadata_stream|       pointer|
+|value0_engine0_stream_dout         |   in|  128|     ap_fifo|            value0_engine0_stream|       pointer|
+|value0_engine0_stream_empty_n      |   in|    1|     ap_fifo|            value0_engine0_stream|       pointer|
+|value0_engine0_stream_read         |  out|    1|     ap_fifo|            value0_engine0_stream|       pointer|
+|value0_engine1_stream_dout         |   in|  128|     ap_fifo|            value0_engine1_stream|       pointer|
+|value0_engine1_stream_empty_n      |   in|    1|     ap_fifo|            value0_engine1_stream|       pointer|
+|value0_engine1_stream_read         |  out|    1|     ap_fifo|            value0_engine1_stream|       pointer|
+|value0_engine2_stream_dout         |   in|  128|     ap_fifo|            value0_engine2_stream|       pointer|
+|value0_engine2_stream_empty_n      |   in|    1|     ap_fifo|            value0_engine2_stream|       pointer|
+|value0_engine2_stream_read         |  out|    1|     ap_fifo|            value0_engine2_stream|       pointer|
+|value0_engine3_stream_dout         |   in|  128|     ap_fifo|            value0_engine3_stream|       pointer|
+|value0_engine3_stream_empty_n      |   in|    1|     ap_fifo|            value0_engine3_stream|       pointer|
+|value0_engine3_stream_read         |  out|    1|     ap_fifo|            value0_engine3_stream|       pointer|
+|value1_engine0_stream_dout         |   in|  128|     ap_fifo|            value1_engine0_stream|       pointer|
+|value1_engine0_stream_empty_n      |   in|    1|     ap_fifo|            value1_engine0_stream|       pointer|
+|value1_engine0_stream_read         |  out|    1|     ap_fifo|            value1_engine0_stream|       pointer|
+|value1_engine1_stream_dout         |   in|  128|     ap_fifo|            value1_engine1_stream|       pointer|
+|value1_engine1_stream_empty_n      |   in|    1|     ap_fifo|            value1_engine1_stream|       pointer|
+|value1_engine1_stream_read         |  out|    1|     ap_fifo|            value1_engine1_stream|       pointer|
+|value1_engine2_stream_dout         |   in|  128|     ap_fifo|            value1_engine2_stream|       pointer|
+|value1_engine2_stream_empty_n      |   in|    1|     ap_fifo|            value1_engine2_stream|       pointer|
+|value1_engine2_stream_read         |  out|    1|     ap_fifo|            value1_engine2_stream|       pointer|
+|value1_engine3_stream_dout         |   in|  128|     ap_fifo|            value1_engine3_stream|       pointer|
+|value1_engine3_stream_empty_n      |   in|    1|     ap_fifo|            value1_engine3_stream|       pointer|
+|value1_engine3_stream_read         |  out|    1|     ap_fifo|            value1_engine3_stream|       pointer|
+|control_stream_dout                |   in|   19|     ap_fifo|                   control_stream|       pointer|
+|control_stream_empty_n             |   in|    1|     ap_fifo|                   control_stream|       pointer|
+|control_stream_read                |  out|    1|     ap_fifo|                   control_stream|       pointer|
+|position_val                       |   in|   12|     ap_none|                     position_val|        scalar|
+|position_val_ap_vld                |   in|    1|     ap_none|                     position_val|        scalar|
+|weighted_value_engine0_0_address0  |  out|    3|   ap_memory|         weighted_value_engine0_0|         array|
+|weighted_value_engine0_0_ce0       |  out|    1|   ap_memory|         weighted_value_engine0_0|         array|
+|weighted_value_engine0_0_d0        |  out|   32|   ap_memory|         weighted_value_engine0_0|         array|
+|weighted_value_engine0_0_q0        |   in|   32|   ap_memory|         weighted_value_engine0_0|         array|
+|weighted_value_engine0_0_we0       |  out|    1|   ap_memory|         weighted_value_engine0_0|         array|
+|weighted_value_engine0_0_address1  |  out|    3|   ap_memory|         weighted_value_engine0_0|         array|
+|weighted_value_engine0_0_ce1       |  out|    1|   ap_memory|         weighted_value_engine0_0|         array|
+|weighted_value_engine0_0_d1        |  out|   32|   ap_memory|         weighted_value_engine0_0|         array|
+|weighted_value_engine0_0_q1        |   in|   32|   ap_memory|         weighted_value_engine0_0|         array|
+|weighted_value_engine0_0_we1       |  out|    1|   ap_memory|         weighted_value_engine0_0|         array|
+|weighted_value_engine0_1_address0  |  out|    3|   ap_memory|         weighted_value_engine0_1|         array|
+|weighted_value_engine0_1_ce0       |  out|    1|   ap_memory|         weighted_value_engine0_1|         array|
+|weighted_value_engine0_1_d0        |  out|   32|   ap_memory|         weighted_value_engine0_1|         array|
+|weighted_value_engine0_1_q0        |   in|   32|   ap_memory|         weighted_value_engine0_1|         array|
+|weighted_value_engine0_1_we0       |  out|    1|   ap_memory|         weighted_value_engine0_1|         array|
+|weighted_value_engine0_1_address1  |  out|    3|   ap_memory|         weighted_value_engine0_1|         array|
+|weighted_value_engine0_1_ce1       |  out|    1|   ap_memory|         weighted_value_engine0_1|         array|
+|weighted_value_engine0_1_d1        |  out|   32|   ap_memory|         weighted_value_engine0_1|         array|
+|weighted_value_engine0_1_q1        |   in|   32|   ap_memory|         weighted_value_engine0_1|         array|
+|weighted_value_engine0_1_we1       |  out|    1|   ap_memory|         weighted_value_engine0_1|         array|
+|weighted_value_engine0_2_address0  |  out|    3|   ap_memory|         weighted_value_engine0_2|         array|
+|weighted_value_engine0_2_ce0       |  out|    1|   ap_memory|         weighted_value_engine0_2|         array|
+|weighted_value_engine0_2_d0        |  out|   32|   ap_memory|         weighted_value_engine0_2|         array|
+|weighted_value_engine0_2_q0        |   in|   32|   ap_memory|         weighted_value_engine0_2|         array|
+|weighted_value_engine0_2_we0       |  out|    1|   ap_memory|         weighted_value_engine0_2|         array|
+|weighted_value_engine0_2_address1  |  out|    3|   ap_memory|         weighted_value_engine0_2|         array|
+|weighted_value_engine0_2_ce1       |  out|    1|   ap_memory|         weighted_value_engine0_2|         array|
+|weighted_value_engine0_2_d1        |  out|   32|   ap_memory|         weighted_value_engine0_2|         array|
+|weighted_value_engine0_2_q1        |   in|   32|   ap_memory|         weighted_value_engine0_2|         array|
+|weighted_value_engine0_2_we1       |  out|    1|   ap_memory|         weighted_value_engine0_2|         array|
+|weighted_value_engine0_3_address0  |  out|    3|   ap_memory|         weighted_value_engine0_3|         array|
+|weighted_value_engine0_3_ce0       |  out|    1|   ap_memory|         weighted_value_engine0_3|         array|
+|weighted_value_engine0_3_d0        |  out|   32|   ap_memory|         weighted_value_engine0_3|         array|
+|weighted_value_engine0_3_q0        |   in|   32|   ap_memory|         weighted_value_engine0_3|         array|
+|weighted_value_engine0_3_we0       |  out|    1|   ap_memory|         weighted_value_engine0_3|         array|
+|weighted_value_engine0_3_address1  |  out|    3|   ap_memory|         weighted_value_engine0_3|         array|
+|weighted_value_engine0_3_ce1       |  out|    1|   ap_memory|         weighted_value_engine0_3|         array|
+|weighted_value_engine0_3_d1        |  out|   32|   ap_memory|         weighted_value_engine0_3|         array|
+|weighted_value_engine0_3_q1        |   in|   32|   ap_memory|         weighted_value_engine0_3|         array|
+|weighted_value_engine0_3_we1       |  out|    1|   ap_memory|         weighted_value_engine0_3|         array|
+|weighted_value_engine1_0_address0  |  out|    3|   ap_memory|         weighted_value_engine1_0|         array|
+|weighted_value_engine1_0_ce0       |  out|    1|   ap_memory|         weighted_value_engine1_0|         array|
+|weighted_value_engine1_0_d0        |  out|   32|   ap_memory|         weighted_value_engine1_0|         array|
+|weighted_value_engine1_0_q0        |   in|   32|   ap_memory|         weighted_value_engine1_0|         array|
+|weighted_value_engine1_0_we0       |  out|    1|   ap_memory|         weighted_value_engine1_0|         array|
+|weighted_value_engine1_0_address1  |  out|    3|   ap_memory|         weighted_value_engine1_0|         array|
+|weighted_value_engine1_0_ce1       |  out|    1|   ap_memory|         weighted_value_engine1_0|         array|
+|weighted_value_engine1_0_d1        |  out|   32|   ap_memory|         weighted_value_engine1_0|         array|
+|weighted_value_engine1_0_q1        |   in|   32|   ap_memory|         weighted_value_engine1_0|         array|
+|weighted_value_engine1_0_we1       |  out|    1|   ap_memory|         weighted_value_engine1_0|         array|
+|weighted_value_engine1_1_address0  |  out|    3|   ap_memory|         weighted_value_engine1_1|         array|
+|weighted_value_engine1_1_ce0       |  out|    1|   ap_memory|         weighted_value_engine1_1|         array|
+|weighted_value_engine1_1_d0        |  out|   32|   ap_memory|         weighted_value_engine1_1|         array|
+|weighted_value_engine1_1_q0        |   in|   32|   ap_memory|         weighted_value_engine1_1|         array|
+|weighted_value_engine1_1_we0       |  out|    1|   ap_memory|         weighted_value_engine1_1|         array|
+|weighted_value_engine1_1_address1  |  out|    3|   ap_memory|         weighted_value_engine1_1|         array|
+|weighted_value_engine1_1_ce1       |  out|    1|   ap_memory|         weighted_value_engine1_1|         array|
+|weighted_value_engine1_1_d1        |  out|   32|   ap_memory|         weighted_value_engine1_1|         array|
+|weighted_value_engine1_1_q1        |   in|   32|   ap_memory|         weighted_value_engine1_1|         array|
+|weighted_value_engine1_1_we1       |  out|    1|   ap_memory|         weighted_value_engine1_1|         array|
+|weighted_value_engine1_2_address0  |  out|    3|   ap_memory|         weighted_value_engine1_2|         array|
+|weighted_value_engine1_2_ce0       |  out|    1|   ap_memory|         weighted_value_engine1_2|         array|
+|weighted_value_engine1_2_d0        |  out|   32|   ap_memory|         weighted_value_engine1_2|         array|
+|weighted_value_engine1_2_q0        |   in|   32|   ap_memory|         weighted_value_engine1_2|         array|
+|weighted_value_engine1_2_we0       |  out|    1|   ap_memory|         weighted_value_engine1_2|         array|
+|weighted_value_engine1_2_address1  |  out|    3|   ap_memory|         weighted_value_engine1_2|         array|
+|weighted_value_engine1_2_ce1       |  out|    1|   ap_memory|         weighted_value_engine1_2|         array|
+|weighted_value_engine1_2_d1        |  out|   32|   ap_memory|         weighted_value_engine1_2|         array|
+|weighted_value_engine1_2_q1        |   in|   32|   ap_memory|         weighted_value_engine1_2|         array|
+|weighted_value_engine1_2_we1       |  out|    1|   ap_memory|         weighted_value_engine1_2|         array|
+|weighted_value_engine1_3_address0  |  out|    3|   ap_memory|         weighted_value_engine1_3|         array|
+|weighted_value_engine1_3_ce0       |  out|    1|   ap_memory|         weighted_value_engine1_3|         array|
+|weighted_value_engine1_3_d0        |  out|   32|   ap_memory|         weighted_value_engine1_3|         array|
+|weighted_value_engine1_3_q0        |   in|   32|   ap_memory|         weighted_value_engine1_3|         array|
+|weighted_value_engine1_3_we0       |  out|    1|   ap_memory|         weighted_value_engine1_3|         array|
+|weighted_value_engine1_3_address1  |  out|    3|   ap_memory|         weighted_value_engine1_3|         array|
+|weighted_value_engine1_3_ce1       |  out|    1|   ap_memory|         weighted_value_engine1_3|         array|
+|weighted_value_engine1_3_d1        |  out|   32|   ap_memory|         weighted_value_engine1_3|         array|
+|weighted_value_engine1_3_q1        |   in|   32|   ap_memory|         weighted_value_engine1_3|         array|
+|weighted_value_engine1_3_we1       |  out|    1|   ap_memory|         weighted_value_engine1_3|         array|
+|weighted_value_engine2_0_address0  |  out|    3|   ap_memory|         weighted_value_engine2_0|         array|
+|weighted_value_engine2_0_ce0       |  out|    1|   ap_memory|         weighted_value_engine2_0|         array|
+|weighted_value_engine2_0_d0        |  out|   32|   ap_memory|         weighted_value_engine2_0|         array|
+|weighted_value_engine2_0_q0        |   in|   32|   ap_memory|         weighted_value_engine2_0|         array|
+|weighted_value_engine2_0_we0       |  out|    1|   ap_memory|         weighted_value_engine2_0|         array|
+|weighted_value_engine2_0_address1  |  out|    3|   ap_memory|         weighted_value_engine2_0|         array|
+|weighted_value_engine2_0_ce1       |  out|    1|   ap_memory|         weighted_value_engine2_0|         array|
+|weighted_value_engine2_0_d1        |  out|   32|   ap_memory|         weighted_value_engine2_0|         array|
+|weighted_value_engine2_0_q1        |   in|   32|   ap_memory|         weighted_value_engine2_0|         array|
+|weighted_value_engine2_0_we1       |  out|    1|   ap_memory|         weighted_value_engine2_0|         array|
+|weighted_value_engine2_1_address0  |  out|    3|   ap_memory|         weighted_value_engine2_1|         array|
+|weighted_value_engine2_1_ce0       |  out|    1|   ap_memory|         weighted_value_engine2_1|         array|
+|weighted_value_engine2_1_d0        |  out|   32|   ap_memory|         weighted_value_engine2_1|         array|
+|weighted_value_engine2_1_q0        |   in|   32|   ap_memory|         weighted_value_engine2_1|         array|
+|weighted_value_engine2_1_we0       |  out|    1|   ap_memory|         weighted_value_engine2_1|         array|
+|weighted_value_engine2_1_address1  |  out|    3|   ap_memory|         weighted_value_engine2_1|         array|
+|weighted_value_engine2_1_ce1       |  out|    1|   ap_memory|         weighted_value_engine2_1|         array|
+|weighted_value_engine2_1_d1        |  out|   32|   ap_memory|         weighted_value_engine2_1|         array|
+|weighted_value_engine2_1_q1        |   in|   32|   ap_memory|         weighted_value_engine2_1|         array|
+|weighted_value_engine2_1_we1       |  out|    1|   ap_memory|         weighted_value_engine2_1|         array|
+|weighted_value_engine2_2_address0  |  out|    3|   ap_memory|         weighted_value_engine2_2|         array|
+|weighted_value_engine2_2_ce0       |  out|    1|   ap_memory|         weighted_value_engine2_2|         array|
+|weighted_value_engine2_2_d0        |  out|   32|   ap_memory|         weighted_value_engine2_2|         array|
+|weighted_value_engine2_2_q0        |   in|   32|   ap_memory|         weighted_value_engine2_2|         array|
+|weighted_value_engine2_2_we0       |  out|    1|   ap_memory|         weighted_value_engine2_2|         array|
+|weighted_value_engine2_2_address1  |  out|    3|   ap_memory|         weighted_value_engine2_2|         array|
+|weighted_value_engine2_2_ce1       |  out|    1|   ap_memory|         weighted_value_engine2_2|         array|
+|weighted_value_engine2_2_d1        |  out|   32|   ap_memory|         weighted_value_engine2_2|         array|
+|weighted_value_engine2_2_q1        |   in|   32|   ap_memory|         weighted_value_engine2_2|         array|
+|weighted_value_engine2_2_we1       |  out|    1|   ap_memory|         weighted_value_engine2_2|         array|
+|weighted_value_engine2_3_address0  |  out|    3|   ap_memory|         weighted_value_engine2_3|         array|
+|weighted_value_engine2_3_ce0       |  out|    1|   ap_memory|         weighted_value_engine2_3|         array|
+|weighted_value_engine2_3_d0        |  out|   32|   ap_memory|         weighted_value_engine2_3|         array|
+|weighted_value_engine2_3_q0        |   in|   32|   ap_memory|         weighted_value_engine2_3|         array|
+|weighted_value_engine2_3_we0       |  out|    1|   ap_memory|         weighted_value_engine2_3|         array|
+|weighted_value_engine2_3_address1  |  out|    3|   ap_memory|         weighted_value_engine2_3|         array|
+|weighted_value_engine2_3_ce1       |  out|    1|   ap_memory|         weighted_value_engine2_3|         array|
+|weighted_value_engine2_3_d1        |  out|   32|   ap_memory|         weighted_value_engine2_3|         array|
+|weighted_value_engine2_3_q1        |   in|   32|   ap_memory|         weighted_value_engine2_3|         array|
+|weighted_value_engine2_3_we1       |  out|    1|   ap_memory|         weighted_value_engine2_3|         array|
+|weighted_value_engine3_0_address0  |  out|    3|   ap_memory|         weighted_value_engine3_0|         array|
+|weighted_value_engine3_0_ce0       |  out|    1|   ap_memory|         weighted_value_engine3_0|         array|
+|weighted_value_engine3_0_d0        |  out|   32|   ap_memory|         weighted_value_engine3_0|         array|
+|weighted_value_engine3_0_q0        |   in|   32|   ap_memory|         weighted_value_engine3_0|         array|
+|weighted_value_engine3_0_we0       |  out|    1|   ap_memory|         weighted_value_engine3_0|         array|
+|weighted_value_engine3_0_address1  |  out|    3|   ap_memory|         weighted_value_engine3_0|         array|
+|weighted_value_engine3_0_ce1       |  out|    1|   ap_memory|         weighted_value_engine3_0|         array|
+|weighted_value_engine3_0_d1        |  out|   32|   ap_memory|         weighted_value_engine3_0|         array|
+|weighted_value_engine3_0_q1        |   in|   32|   ap_memory|         weighted_value_engine3_0|         array|
+|weighted_value_engine3_0_we1       |  out|    1|   ap_memory|         weighted_value_engine3_0|         array|
+|weighted_value_engine3_1_address0  |  out|    3|   ap_memory|         weighted_value_engine3_1|         array|
+|weighted_value_engine3_1_ce0       |  out|    1|   ap_memory|         weighted_value_engine3_1|         array|
+|weighted_value_engine3_1_d0        |  out|   32|   ap_memory|         weighted_value_engine3_1|         array|
+|weighted_value_engine3_1_q0        |   in|   32|   ap_memory|         weighted_value_engine3_1|         array|
+|weighted_value_engine3_1_we0       |  out|    1|   ap_memory|         weighted_value_engine3_1|         array|
+|weighted_value_engine3_1_address1  |  out|    3|   ap_memory|         weighted_value_engine3_1|         array|
+|weighted_value_engine3_1_ce1       |  out|    1|   ap_memory|         weighted_value_engine3_1|         array|
+|weighted_value_engine3_1_d1        |  out|   32|   ap_memory|         weighted_value_engine3_1|         array|
+|weighted_value_engine3_1_q1        |   in|   32|   ap_memory|         weighted_value_engine3_1|         array|
+|weighted_value_engine3_1_we1       |  out|    1|   ap_memory|         weighted_value_engine3_1|         array|
+|weighted_value_engine3_2_address0  |  out|    3|   ap_memory|         weighted_value_engine3_2|         array|
+|weighted_value_engine3_2_ce0       |  out|    1|   ap_memory|         weighted_value_engine3_2|         array|
+|weighted_value_engine3_2_d0        |  out|   32|   ap_memory|         weighted_value_engine3_2|         array|
+|weighted_value_engine3_2_q0        |   in|   32|   ap_memory|         weighted_value_engine3_2|         array|
+|weighted_value_engine3_2_we0       |  out|    1|   ap_memory|         weighted_value_engine3_2|         array|
+|weighted_value_engine3_2_address1  |  out|    3|   ap_memory|         weighted_value_engine3_2|         array|
+|weighted_value_engine3_2_ce1       |  out|    1|   ap_memory|         weighted_value_engine3_2|         array|
+|weighted_value_engine3_2_d1        |  out|   32|   ap_memory|         weighted_value_engine3_2|         array|
+|weighted_value_engine3_2_q1        |   in|   32|   ap_memory|         weighted_value_engine3_2|         array|
+|weighted_value_engine3_2_we1       |  out|    1|   ap_memory|         weighted_value_engine3_2|         array|
+|weighted_value_engine3_3_address0  |  out|    3|   ap_memory|         weighted_value_engine3_3|         array|
+|weighted_value_engine3_3_ce0       |  out|    1|   ap_memory|         weighted_value_engine3_3|         array|
+|weighted_value_engine3_3_d0        |  out|   32|   ap_memory|         weighted_value_engine3_3|         array|
+|weighted_value_engine3_3_q0        |   in|   32|   ap_memory|         weighted_value_engine3_3|         array|
+|weighted_value_engine3_3_we0       |  out|    1|   ap_memory|         weighted_value_engine3_3|         array|
+|weighted_value_engine3_3_address1  |  out|    3|   ap_memory|         weighted_value_engine3_3|         array|
+|weighted_value_engine3_3_ce1       |  out|    1|   ap_memory|         weighted_value_engine3_3|         array|
+|weighted_value_engine3_3_d1        |  out|   32|   ap_memory|         weighted_value_engine3_3|         array|
+|weighted_value_engine3_3_q1        |   in|   32|   ap_memory|         weighted_value_engine3_3|         array|
+|weighted_value_engine3_3_we1       |  out|    1|   ap_memory|         weighted_value_engine3_3|         array|
+|ap_clk                             |   in|    1|  ap_ctrl_hs|  swiftkv_accumulate_values_split|  return value|
+|ap_rst                             |   in|    1|  ap_ctrl_hs|  swiftkv_accumulate_values_split|  return value|
+|ap_start                           |   in|    1|  ap_ctrl_hs|  swiftkv_accumulate_values_split|  return value|
+|ap_done                            |  out|    1|  ap_ctrl_hs|  swiftkv_accumulate_values_split|  return value|
+|ap_ready                           |  out|    1|  ap_ctrl_hs|  swiftkv_accumulate_values_split|  return value|
+|ap_idle                            |  out|    1|  ap_ctrl_hs|  swiftkv_accumulate_values_split|  return value|
+|ap_continue                        |   in|    1|  ap_ctrl_hs|  swiftkv_accumulate_values_split|  return value|
++-----------------------------------+-----+-----+------------+---------------------------------+--------------+
+

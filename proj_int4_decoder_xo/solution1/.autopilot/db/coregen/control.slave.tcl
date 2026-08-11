@@ -1,0 +1,4 @@
+dict set slaves control {ports {position {type i_ap_none width 12} model_bank0 {type i_ap_none width 64} model_bank1 {type i_ap_none width 64} model_bank2 {type i_ap_none width 64} model_bank3 {type i_ap_none width 64} rope_lut_ddr {type i_ap_none width 64} residual_pe0 {type i_ap_none width 64} residual_pe1 {type i_ap_none width 64} residual_pe2 {type i_ap_none width 64} residual_pe3 {type i_ap_none width 64} logits_pe0 {type i_ap_none width 64} logits_pe1 {type i_ap_none width 64} logits_pe2 {type i_ap_none width 64} logits_pe3 {type i_ap_none width 64} kv_cache_pe0 {type i_ap_none width 64} kv_cache_pe1 {type i_ap_none width 64} kv_cache_pe2 {type i_ap_none width 64} kv_cache_pe3 {type i_ap_none width 64} ap_start {type ap_ctrl width 1} ap_done {type ap_ctrl width 1} ap_ready {type ap_ctrl width 1} ap_continue {type ap_ctrl width 1} ap_idle {type ap_ctrl width 1}} mems {} has_ctrl 1}
+set datawidth 32
+set addrwidth 64
+set intr_clr_mode TOW

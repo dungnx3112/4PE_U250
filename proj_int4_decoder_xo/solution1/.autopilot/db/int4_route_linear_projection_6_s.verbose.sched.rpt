@@ -1,0 +1,175 @@
+
+
+================================================================
+== Vitis HLS Report for 'int4_route_linear_projection_6_s'
+================================================================
+* Date:           Tue Aug 11 09:17:53 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.607 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+---------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline|
+    |   min   |   max   |    min   |    max   | min | max |   Type  |
+    +---------+---------+----------+----------+-----+-----+---------+
+    |       67|       67|  0.223 us|  0.223 us|   67|   67|       no|
+    +---------+---------+----------+----------+-----+-----+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +--------------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |                                |  Latency (cycles) | Iteration|  Initiation Interval  | Trip |          |
+        |            Loop Name           |   min   |   max   |  Latency |  achieved |   target  | Count| Pipelined|
+        +--------------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |- route_linear_projection_loop  |       65|       65|         3|          1|          1|    64|       yes|
+        +--------------------------------+---------+---------+----------+-----------+-----------+------+----------+
+
+============================================================
++ Verbose Summary: Synthesis Manager
+============================================================
+InlineROM: 1
+ExposeGlobal: 0
+============================================================
++ Verbose Summary: CDFG Model
+============================================================
+IsTopModel: 0
+ResetActiveHigh: 1
+IsCombinational: 0
+IsDatapathOnly: 0
+HasWiredReturn: 1
+HasMFsm: 2
+HasVarLatency: 1
+IsPipeline: 0
+IsRtlPipelined: 0
+IsInstanceOverlapped: 0
+IsDontTouch: 0
+HasImplIP: 0
+IsGatedGlobalClock: 0
+
++ Individual pipeline summary: 
+  * Pipeline-0: initiation interval (II) = 1, depth = 3
+
+
+============================================================
++ Verbose Summary: Schedule
+============================================================
+* Number of FSM states : 3
+* Pipeline : 1
+  Pipeline-0 : II = 1, D = 3, States = { 1 2 3 }
+* Dataflow Pipeline: 0
+
+* FSM state transitions: 
+1 --> 2 
+2 --> 3 
+3 --> 
+
+* FSM state operations: 
+
+State 1 <SV = 0> <Delay = 2.60>
+ST_1 : Operation 6 [1/1] (0.00ns)   --->   "%word = alloca i32 1" [source/int4_decoder_controller.cpp:157]   --->   Operation 6 'alloca' 'word' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 7 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %linear_stage3, i64 666, i64 24, i64 18446744073709551615"   --->   Operation 7 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 8 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %linear_stage2, i64 666, i64 24, i64 18446744073709551615"   --->   Operation 8 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 9 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %linear_stage1, i64 666, i64 24, i64 18446744073709551615"   --->   Operation 9 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 10 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %linear_stage0, i64 666, i64 24, i64 18446744073709551615"   --->   Operation 10 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 11 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %output3, i64 666, i64 22, i64 18446744073709551615"   --->   Operation 11 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 12 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %output2, i64 666, i64 22, i64 18446744073709551615"   --->   Operation 12 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 13 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %output1, i64 666, i64 22, i64 18446744073709551615"   --->   Operation 13 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 14 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %output0, i64 666, i64 22, i64 18446744073709551615"   --->   Operation 14 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 15 [1/1] (0.38ns)   --->   "%store_ln157 = store i7 0, i7 %word" [source/int4_decoder_controller.cpp:157]   --->   Operation 15 'store' 'store_ln157' <Predicate = true> <Delay = 0.38>
+ST_1 : Operation 16 [1/1] (0.00ns)   --->   "%br_ln157 = br void %for.inc" [source/int4_decoder_controller.cpp:157]   --->   Operation 16 'br' 'br_ln157' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 17 [1/1] (0.00ns)   --->   "%word_18 = load i7 %word" [source/int4_decoder_controller.cpp:157]   --->   Operation 17 'load' 'word_18' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 18 [1/1] (0.70ns)   --->   "%icmp_ln157 = icmp_eq  i7 %word_18, i7 64" [source/int4_decoder_controller.cpp:157]   --->   Operation 18 'icmp' 'icmp_ln157' <Predicate = true> <Delay = 0.70> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_1 : Operation 19 [1/1] (0.70ns)   --->   "%add_ln157 = add i7 %word_18, i7 1" [source/int4_decoder_controller.cpp:157]   --->   Operation 19 'add' 'add_ln157' <Predicate = true> <Delay = 0.70> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_1 : Operation 20 [1/1] (0.00ns)   --->   "%br_ln157 = br i1 %icmp_ln157, void %for.inc.split, void %for.end" [source/int4_decoder_controller.cpp:157]   --->   Operation 20 'br' 'br_ln157' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 21 [1/1] (0.00ns)   --->   "%zext_ln157 = zext i7 %word_18" [source/int4_decoder_controller.cpp:157]   --->   Operation 21 'zext' 'zext_ln157' <Predicate = (!icmp_ln157)> <Delay = 0.00>
+ST_1 : Operation 22 [1/1] (0.00ns)   --->   "%linear_stage0_addr = getelementptr i512 %linear_stage0, i64 0, i64 %zext_ln157" [source/int4_decoder_controller.cpp:159]   --->   Operation 22 'getelementptr' 'linear_stage0_addr' <Predicate = (!icmp_ln157)> <Delay = 0.00>
+ST_1 : Operation 23 [2/2] (2.22ns)   --->   "%linear_stage0_load = load i9 %linear_stage0_addr" [source/int4_decoder_controller.cpp:159]   --->   Operation 23 'load' 'linear_stage0_load' <Predicate = (!icmp_ln157)> <Delay = 2.22> <CoreInst = "RAM_2P_URAM">   --->   Core 95 'RAM_2P_URAM' <Latency = 1> <II = 1> <Delay = 2.22> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 512> <Depth = 504> <RAM>
+ST_1 : Operation 24 [1/1] (0.00ns)   --->   "%linear_stage1_addr = getelementptr i512 %linear_stage1, i64 0, i64 %zext_ln157" [source/int4_decoder_controller.cpp:160]   --->   Operation 24 'getelementptr' 'linear_stage1_addr' <Predicate = (!icmp_ln157)> <Delay = 0.00>
+ST_1 : Operation 25 [2/2] (2.22ns)   --->   "%linear_stage1_load = load i9 %linear_stage1_addr" [source/int4_decoder_controller.cpp:160]   --->   Operation 25 'load' 'linear_stage1_load' <Predicate = (!icmp_ln157)> <Delay = 2.22> <CoreInst = "RAM_2P_URAM">   --->   Core 95 'RAM_2P_URAM' <Latency = 1> <II = 1> <Delay = 2.22> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 512> <Depth = 504> <RAM>
+ST_1 : Operation 26 [1/1] (0.00ns)   --->   "%linear_stage2_addr = getelementptr i512 %linear_stage2, i64 0, i64 %zext_ln157" [source/int4_decoder_controller.cpp:161]   --->   Operation 26 'getelementptr' 'linear_stage2_addr' <Predicate = (!icmp_ln157)> <Delay = 0.00>
+ST_1 : Operation 27 [2/2] (2.22ns)   --->   "%linear_stage2_load = load i9 %linear_stage2_addr" [source/int4_decoder_controller.cpp:161]   --->   Operation 27 'load' 'linear_stage2_load' <Predicate = (!icmp_ln157)> <Delay = 2.22> <CoreInst = "RAM_2P_URAM">   --->   Core 95 'RAM_2P_URAM' <Latency = 1> <II = 1> <Delay = 2.22> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 512> <Depth = 504> <RAM>
+ST_1 : Operation 28 [1/1] (0.00ns)   --->   "%linear_stage3_addr = getelementptr i512 %linear_stage3, i64 0, i64 %zext_ln157" [source/int4_decoder_controller.cpp:162]   --->   Operation 28 'getelementptr' 'linear_stage3_addr' <Predicate = (!icmp_ln157)> <Delay = 0.00>
+ST_1 : Operation 29 [2/2] (2.22ns)   --->   "%linear_stage3_load = load i9 %linear_stage3_addr" [source/int4_decoder_controller.cpp:162]   --->   Operation 29 'load' 'linear_stage3_load' <Predicate = (!icmp_ln157)> <Delay = 2.22> <CoreInst = "RAM_2P_URAM">   --->   Core 95 'RAM_2P_URAM' <Latency = 1> <II = 1> <Delay = 2.22> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 512> <Depth = 504> <RAM>
+ST_1 : Operation 30 [1/1] (0.38ns)   --->   "%store_ln157 = store i7 %add_ln157, i7 %word" [source/int4_decoder_controller.cpp:157]   --->   Operation 30 'store' 'store_ln157' <Predicate = (!icmp_ln157)> <Delay = 0.38>
+
+State 2 <SV = 1> <Delay = 2.22>
+ST_2 : Operation 31 [1/2] (2.22ns)   --->   "%linear_stage0_load = load i9 %linear_stage0_addr" [source/int4_decoder_controller.cpp:159]   --->   Operation 31 'load' 'linear_stage0_load' <Predicate = true> <Delay = 2.22> <CoreInst = "RAM_2P_URAM">   --->   Core 95 'RAM_2P_URAM' <Latency = 1> <II = 1> <Delay = 2.22> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 512> <Depth = 504> <RAM>
+ST_2 : Operation 32 [1/2] (2.22ns)   --->   "%linear_stage1_load = load i9 %linear_stage1_addr" [source/int4_decoder_controller.cpp:160]   --->   Operation 32 'load' 'linear_stage1_load' <Predicate = true> <Delay = 2.22> <CoreInst = "RAM_2P_URAM">   --->   Core 95 'RAM_2P_URAM' <Latency = 1> <II = 1> <Delay = 2.22> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 512> <Depth = 504> <RAM>
+ST_2 : Operation 33 [1/2] (2.22ns)   --->   "%linear_stage2_load = load i9 %linear_stage2_addr" [source/int4_decoder_controller.cpp:161]   --->   Operation 33 'load' 'linear_stage2_load' <Predicate = true> <Delay = 2.22> <CoreInst = "RAM_2P_URAM">   --->   Core 95 'RAM_2P_URAM' <Latency = 1> <II = 1> <Delay = 2.22> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 512> <Depth = 504> <RAM>
+ST_2 : Operation 34 [1/2] (2.22ns)   --->   "%linear_stage3_load = load i9 %linear_stage3_addr" [source/int4_decoder_controller.cpp:162]   --->   Operation 34 'load' 'linear_stage3_load' <Predicate = true> <Delay = 2.22> <CoreInst = "RAM_2P_URAM">   --->   Core 95 'RAM_2P_URAM' <Latency = 1> <II = 1> <Delay = 2.22> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 512> <Depth = 504> <RAM>
+ST_2 : Operation 47 [1/1] (0.00ns)   --->   "%ret_ln164 = ret" [source/int4_decoder_controller.cpp:164]   --->   Operation 47 'ret' 'ret_ln164' <Predicate = (icmp_ln157)> <Delay = 0.00>
+
+State 3 <SV = 2> <Delay = 1.20>
+ST_3 : Operation 35 [1/1] (0.00ns)   --->   "%specpipeline_ln158 = specpipeline void @_ssdm_op_SpecPipeline, i32 1, i32 0, i32 0, i32 0, void @empty_418" [source/int4_decoder_controller.cpp:158]   --->   Operation 35 'specpipeline' 'specpipeline_ln158' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 36 [1/1] (0.00ns)   --->   "%speclooptripcount_ln157 = speclooptripcount void @_ssdm_op_SpecLoopTripCount, i64 64, i64 64, i64 64" [source/int4_decoder_controller.cpp:157]   --->   Operation 36 'speclooptripcount' 'speclooptripcount_ln157' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 37 [1/1] (0.00ns)   --->   "%specloopname_ln157 = specloopname void @_ssdm_op_SpecLoopName, void @empty_456" [source/int4_decoder_controller.cpp:157]   --->   Operation 37 'specloopname' 'specloopname_ln157' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 38 [1/1] (0.00ns)   --->   "%output0_addr = getelementptr i512 %output0, i64 0, i64 %zext_ln157" [source/int4_decoder_controller.cpp:159]   --->   Operation 38 'getelementptr' 'output0_addr' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 39 [1/1] (1.20ns)   --->   "%store_ln159 = store i512 %linear_stage0_load, i6 %output0_addr" [source/int4_decoder_controller.cpp:159]   --->   Operation 39 'store' 'store_ln159' <Predicate = true> <Delay = 1.20> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.20> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 512> <Depth = 64> <RAM>
+ST_3 : Operation 40 [1/1] (0.00ns)   --->   "%output1_addr = getelementptr i512 %output1, i64 0, i64 %zext_ln157" [source/int4_decoder_controller.cpp:160]   --->   Operation 40 'getelementptr' 'output1_addr' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 41 [1/1] (1.20ns)   --->   "%store_ln160 = store i512 %linear_stage1_load, i6 %output1_addr" [source/int4_decoder_controller.cpp:160]   --->   Operation 41 'store' 'store_ln160' <Predicate = true> <Delay = 1.20> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.20> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 512> <Depth = 64> <RAM>
+ST_3 : Operation 42 [1/1] (0.00ns)   --->   "%output2_addr = getelementptr i512 %output2, i64 0, i64 %zext_ln157" [source/int4_decoder_controller.cpp:161]   --->   Operation 42 'getelementptr' 'output2_addr' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 43 [1/1] (1.20ns)   --->   "%store_ln161 = store i512 %linear_stage2_load, i6 %output2_addr" [source/int4_decoder_controller.cpp:161]   --->   Operation 43 'store' 'store_ln161' <Predicate = true> <Delay = 1.20> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.20> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 512> <Depth = 64> <RAM>
+ST_3 : Operation 44 [1/1] (0.00ns)   --->   "%output3_addr = getelementptr i512 %output3, i64 0, i64 %zext_ln157" [source/int4_decoder_controller.cpp:162]   --->   Operation 44 'getelementptr' 'output3_addr' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 45 [1/1] (1.20ns)   --->   "%store_ln162 = store i512 %linear_stage3_load, i6 %output3_addr" [source/int4_decoder_controller.cpp:162]   --->   Operation 45 'store' 'store_ln162' <Predicate = true> <Delay = 1.20> <CoreInst = "RAM_2P_BRAM">   --->   Core 94 'RAM_2P_BRAM' <Latency = 1> <II = 1> <Delay = 1.20> <Storage> <Opcode : 'load' 'store'> <Ports = 2> <Width = 512> <Depth = 64> <RAM>
+ST_3 : Operation 46 [1/1] (0.00ns)   --->   "%br_ln157 = br void %for.inc" [source/int4_decoder_controller.cpp:157]   --->   Operation 46 'br' 'br_ln157' <Predicate = true> <Delay = 0.00>
+
+
+============================================================
++ Verbose Summary: Timing violations
+============================================================
+Target clock period: 3.333ns, clock uncertainty: 0.900ns.
+
+ <State 1>: 2.607ns
+The critical path consists of the following:
+	'store' operation 0 bit ('store_ln157', source/int4_decoder_controller.cpp:157) of constant 0 on local variable 'word', source/int4_decoder_controller.cpp:157 [18]  (0.387 ns)
+	'load' operation 7 bit ('word', source/int4_decoder_controller.cpp:157) on local variable 'word', source/int4_decoder_controller.cpp:157 [21]  (0.000 ns)
+	'getelementptr' operation 9 bit ('linear_stage0_addr', source/int4_decoder_controller.cpp:159) [30]  (0.000 ns)
+	'load' operation 512 bit ('linear_stage0_load', source/int4_decoder_controller.cpp:159) on array 'linear_stage0' [32]  (2.220 ns)
+
+ <State 2>: 2.220ns
+The critical path consists of the following:
+	'load' operation 512 bit ('linear_stage0_load', source/int4_decoder_controller.cpp:159) on array 'linear_stage0' [32]  (2.220 ns)
+
+ <State 3>: 1.200ns
+The critical path consists of the following:
+	'getelementptr' operation 6 bit ('output0_addr', source/int4_decoder_controller.cpp:159) [31]  (0.000 ns)
+	'store' operation 0 bit ('store_ln159', source/int4_decoder_controller.cpp:159) of variable 'linear_stage0_load', source/int4_decoder_controller.cpp:159 on array 'output0' [33]  (1.200 ns)
+
+
+============================================================
++ Verbose Summary: Binding
+============================================================
+N/A
+* FSMD analyzer results:
+  - Output states:
+ - Input state : 
+  - Chain level:
+	State 1
+	State 2
+	State 3
+
+
+============================================================
++ Verbose Summary: Datapath Resource usage 
+============================================================
+N/A

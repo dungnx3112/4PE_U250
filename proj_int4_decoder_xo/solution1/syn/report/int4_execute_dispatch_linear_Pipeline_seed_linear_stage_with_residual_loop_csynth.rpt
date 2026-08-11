@@ -1,0 +1,175 @@
+
+
+================================================================
+== Vitis HLS Report for 'int4_execute_dispatch_linear_Pipeline_seed_linear_stage_with_residual_loop'
+================================================================
+* Date:           Tue Aug 11 09:18:26 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.220 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+---------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline|
+    |   min   |   max   |    min   |    max   | min | max |   Type  |
+    +---------+---------+----------+----------+-----+-----+---------+
+    |       67|       67|  0.223 us|  0.223 us|   67|   67|       no|
+    +---------+---------+----------+----------+-----+-----+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +----------------------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |                                        |  Latency (cycles) | Iteration|  Initiation Interval  | Trip |          |
+        |                Loop Name               |   min   |   max   |  Latency |  achieved |   target  | Count| Pipelined|
+        +----------------------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |- seed_linear_stage_with_residual_loop  |       65|       65|         3|          1|          1|    64|       yes|
+        +----------------------------------------+---------+---------+----------+-----------+-----------+------+----------+
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+------+
+|         Name        | BRAM_18K|  DSP  |    FF   |   LUT   | URAM |
++---------------------+---------+-------+---------+---------+------+
+|DSP                  |        -|      -|        -|        -|     -|
+|Expression           |        -|      -|        0|       31|     -|
+|FIFO                 |        -|      -|        -|        -|     -|
+|Instance             |        -|      -|        -|        -|     -|
+|Memory               |        -|      -|        -|        -|     -|
+|Multiplexer          |        -|      -|        -|       36|     -|
+|Register             |        -|      -|     2074|        -|     -|
++---------------------+---------+-------+---------+---------+------+
+|Total                |        0|      0|     2074|       67|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available SLR        |     1344|   3072|   864000|   432000|   320|
++---------------------+---------+-------+---------+---------+------+
+|Utilization SLR (%)  |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available            |     5376|  12288|  3456000|  1728000|  1280|
++---------------------+---------+-------+---------+---------+------+
+|Utilization (%)      |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+
++ Detail: 
+    * Instance: 
+    N/A
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +----------------------+----------+----+---+----+------------+------------+
+    |     Variable Name    | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +----------------------+----------+----+---+----+------------+------------+
+    |add_ln235_fu_188_p2   |         +|   0|  0|  14|           7|           1|
+    |icmp_ln235_fu_182_p2  |      icmp|   0|  0|  15|           7|           8|
+    |ap_enable_pp0         |       xor|   0|  0|   2|           1|           2|
+    +----------------------+----------+----+---+----+------------+------------+
+    |Total                 |          |   0|  0|  31|          15|          11|
+    +----------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +--------------------------+----+-----------+-----+-----------+
+    |           Name           | LUT| Input Size| Bits| Total Bits|
+    +--------------------------+----+-----------+-----+-----------+
+    |ap_done_int               |   9|          2|    1|          2|
+    |ap_enable_reg_pp0_iter1   |   9|          2|    1|          2|
+    |ap_sig_allocacmp_word_26  |   9|          2|    7|         14|
+    |word_fu_50                |   9|          2|    7|         14|
+    +--------------------------+----+-----------+-----+-----------+
+    |Total                     |  36|          8|   16|         32|
+    +--------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +----------------------------------+-----+----+-----+-----------+
+    |               Name               |  FF | LUT| Bits| Const Bits|
+    +----------------------------------+-----+----+-----+-----------+
+    |ap_CS_fsm                         |    1|   0|    1|          0|
+    |ap_done_reg                       |    1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter1           |    1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter2           |    1|   0|    1|          0|
+    |ap_loop_exit_ready_pp0_iter1_reg  |    1|   0|    1|          0|
+    |residual_pe0_load_reg_246         |  512|   0|  512|          0|
+    |residual_pe1_load_reg_251         |  512|   0|  512|          0|
+    |residual_pe2_load_reg_256         |  512|   0|  512|          0|
+    |residual_pe3_load_reg_261         |  512|   0|  512|          0|
+    |word_fu_50                        |    7|   0|    7|          0|
+    |zext_ln235_reg_218                |    7|   0|   64|         57|
+    |zext_ln235_reg_218_pp0_iter1_reg  |    7|   0|   64|         57|
+    +----------------------------------+-----+----+-----+-----------+
+    |Total                             | 2074|   0| 2188|        114|
+    +----------------------------------+-----+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++------------------------+-----+-----+------------+----------------------------------------------------------------------------+--------------+
+|        RTL Ports       | Dir | Bits|  Protocol  |                                Source Object                               |    C Type    |
++------------------------+-----+-----+------------+----------------------------------------------------------------------------+--------------+
+|ap_clk                  |   in|    1|  ap_ctrl_hs|  int4_execute_dispatch_linear_Pipeline_seed_linear_stage_with_residual_loop|  return value|
+|ap_rst                  |   in|    1|  ap_ctrl_hs|  int4_execute_dispatch_linear_Pipeline_seed_linear_stage_with_residual_loop|  return value|
+|ap_start                |   in|    1|  ap_ctrl_hs|  int4_execute_dispatch_linear_Pipeline_seed_linear_stage_with_residual_loop|  return value|
+|ap_done                 |  out|    1|  ap_ctrl_hs|  int4_execute_dispatch_linear_Pipeline_seed_linear_stage_with_residual_loop|  return value|
+|ap_idle                 |  out|    1|  ap_ctrl_hs|  int4_execute_dispatch_linear_Pipeline_seed_linear_stage_with_residual_loop|  return value|
+|ap_ready                |  out|    1|  ap_ctrl_hs|  int4_execute_dispatch_linear_Pipeline_seed_linear_stage_with_residual_loop|  return value|
+|residual_pe0_address0   |  out|    6|   ap_memory|                                                                residual_pe0|         array|
+|residual_pe0_ce0        |  out|    1|   ap_memory|                                                                residual_pe0|         array|
+|residual_pe0_q0         |   in|  512|   ap_memory|                                                                residual_pe0|         array|
+|linear_stage0_address1  |  out|    9|   ap_memory|                                                               linear_stage0|         array|
+|linear_stage0_ce1       |  out|    1|   ap_memory|                                                               linear_stage0|         array|
+|linear_stage0_we1       |  out|    1|   ap_memory|                                                               linear_stage0|         array|
+|linear_stage0_d1        |  out|  512|   ap_memory|                                                               linear_stage0|         array|
+|residual_pe1_address0   |  out|    6|   ap_memory|                                                                residual_pe1|         array|
+|residual_pe1_ce0        |  out|    1|   ap_memory|                                                                residual_pe1|         array|
+|residual_pe1_q0         |   in|  512|   ap_memory|                                                                residual_pe1|         array|
+|linear_stage1_address1  |  out|    9|   ap_memory|                                                               linear_stage1|         array|
+|linear_stage1_ce1       |  out|    1|   ap_memory|                                                               linear_stage1|         array|
+|linear_stage1_we1       |  out|    1|   ap_memory|                                                               linear_stage1|         array|
+|linear_stage1_d1        |  out|  512|   ap_memory|                                                               linear_stage1|         array|
+|residual_pe2_address0   |  out|    6|   ap_memory|                                                                residual_pe2|         array|
+|residual_pe2_ce0        |  out|    1|   ap_memory|                                                                residual_pe2|         array|
+|residual_pe2_q0         |   in|  512|   ap_memory|                                                                residual_pe2|         array|
+|linear_stage2_address1  |  out|    9|   ap_memory|                                                               linear_stage2|         array|
+|linear_stage2_ce1       |  out|    1|   ap_memory|                                                               linear_stage2|         array|
+|linear_stage2_we1       |  out|    1|   ap_memory|                                                               linear_stage2|         array|
+|linear_stage2_d1        |  out|  512|   ap_memory|                                                               linear_stage2|         array|
+|residual_pe3_address0   |  out|    6|   ap_memory|                                                                residual_pe3|         array|
+|residual_pe3_ce0        |  out|    1|   ap_memory|                                                                residual_pe3|         array|
+|residual_pe3_q0         |   in|  512|   ap_memory|                                                                residual_pe3|         array|
+|linear_stage3_address1  |  out|    9|   ap_memory|                                                               linear_stage3|         array|
+|linear_stage3_ce1       |  out|    1|   ap_memory|                                                               linear_stage3|         array|
+|linear_stage3_we1       |  out|    1|   ap_memory|                                                               linear_stage3|         array|
+|linear_stage3_d1        |  out|  512|   ap_memory|                                                               linear_stage3|         array|
++------------------------+-----+-----+------------+----------------------------------------------------------------------------+--------------+
+

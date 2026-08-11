@@ -1,0 +1,612 @@
+
+
+================================================================
+== Vitis HLS Report for 'swiftkv_quantize_kv_record'
+================================================================
+* Date:           Tue Aug 11 09:16:52 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.731 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+---------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline|
+    |   min   |   max   |    min   |    max   | min | max |   Type  |
+    +---------+---------+----------+----------+-----+-----+---------+
+    |      137|      137|  0.457 us|  0.457 us|  137|  137|       no|
+    +---------+---------+----------+----------+-----+-----+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +--------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |                          |  Latency (cycles) | Iteration|  Initiation Interval  | Trip |          |
+        |         Loop Name        |   min   |   max   |  Latency |  achieved |   target  | Count| Pipelined|
+        +--------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |- quantize_kv_group_loop  |      136|      136|        34|          -|          -|     4|        no|
+        +--------------------------+---------+---------+----------+-----------+-----------+------+----------+
+
+============================================================
++ Verbose Summary: Synthesis Manager
+============================================================
+InlineROM: 1
+ExposeGlobal: 0
+============================================================
++ Verbose Summary: CDFG Model
+============================================================
+IsTopModel: 0
+ResetActiveHigh: 1
+IsCombinational: 0
+IsDatapathOnly: 0
+HasWiredReturn: 1
+HasMFsm: 0
+HasVarLatency: 1
+IsPipeline: 0
+IsRtlPipelined: 0
+IsInstanceOverlapped: 0
+IsDontTouch: 0
+HasImplIP: 0
+IsGatedGlobalClock: 0
+
+
+============================================================
++ Verbose Summary: Schedule
+============================================================
+* Number of FSM states : 13
+* Pipeline : 0
+* Dataflow Pipeline: 0
+
+* FSM state transitions: 
+1 --> 2 
+2 --> 3 
+3 --> 4 
+4 --> 5 
+5 --> 6 
+6 --> 7 
+7 --> 8 
+8 --> 9 
+9 --> 10 
+10 --> 11 
+11 --> 12 
+12 --> 13 
+13 --> 2 
+
+* FSM state operations: 
+
+State 1 <SV = 0> <Delay = 0.38>
+ST_1 : Operation 14 [1/1] (0.00ns)   --->   "%metadata = alloca i32 1" [source/swiftkv_attention.cpp:393]   --->   Operation 14 'alloca' 'metadata' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 15 [1/1] (0.00ns)   --->   "%group = alloca i32 1" [source/swiftkv_attention.cpp:400]   --->   Operation 15 'alloca' 'group' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 16 [1/1] (0.00ns)   --->   "%empty = alloca i32 1"   --->   Operation 16 'alloca' 'empty' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 17 [1/1] (0.00ns)   --->   "%empty_729 = alloca i32 1"   --->   Operation 17 'alloca' 'empty_729' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 18 [1/1] (0.00ns)   --->   "%empty_730 = alloca i32 1"   --->   Operation 18 'alloca' 'empty_730' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 19 [1/1] (0.00ns)   --->   "%empty_731 = alloca i32 1"   --->   Operation 19 'alloca' 'empty_731' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 20 [1/1] (0.00ns)   --->   "%empty_732 = alloca i32 1"   --->   Operation 20 'alloca' 'empty_732' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 21 [1/1] (0.00ns)   --->   "%empty_733 = alloca i32 1"   --->   Operation 21 'alloca' 'empty_733' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 22 [1/1] (0.00ns)   --->   "%empty_734 = alloca i32 1"   --->   Operation 22 'alloca' 'empty_734' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 23 [1/1] (0.00ns)   --->   "%empty_735 = alloca i32 1"   --->   Operation 23 'alloca' 'empty_735' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 24 [1/1] (0.00ns)   --->   "%quantized_v_group_loc = alloca i64 1"   --->   Operation 24 'alloca' 'quantized_v_group_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 25 [1/1] (0.00ns)   --->   "%quantized_v_group_1_loc = alloca i64 1"   --->   Operation 25 'alloca' 'quantized_v_group_1_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 26 [1/1] (0.00ns)   --->   "%quantized_v_group_2_loc = alloca i64 1"   --->   Operation 26 'alloca' 'quantized_v_group_2_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 27 [1/1] (0.00ns)   --->   "%quantized_v_group_3_loc = alloca i64 1"   --->   Operation 27 'alloca' 'quantized_v_group_3_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 28 [1/1] (0.00ns)   --->   "%quantized_v_group_4_loc = alloca i64 1"   --->   Operation 28 'alloca' 'quantized_v_group_4_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 29 [1/1] (0.00ns)   --->   "%quantized_v_group_5_loc = alloca i64 1"   --->   Operation 29 'alloca' 'quantized_v_group_5_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 30 [1/1] (0.00ns)   --->   "%quantized_v_group_6_loc = alloca i64 1"   --->   Operation 30 'alloca' 'quantized_v_group_6_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 31 [1/1] (0.00ns)   --->   "%quantized_v_group_7_loc = alloca i64 1"   --->   Operation 31 'alloca' 'quantized_v_group_7_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 32 [1/1] (0.00ns)   --->   "%quantized_v_group_8_loc = alloca i64 1"   --->   Operation 32 'alloca' 'quantized_v_group_8_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 33 [1/1] (0.00ns)   --->   "%quantized_v_group_9_loc = alloca i64 1"   --->   Operation 33 'alloca' 'quantized_v_group_9_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 34 [1/1] (0.00ns)   --->   "%quantized_v_group_10_loc = alloca i64 1"   --->   Operation 34 'alloca' 'quantized_v_group_10_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 35 [1/1] (0.00ns)   --->   "%quantized_v_group_11_loc = alloca i64 1"   --->   Operation 35 'alloca' 'quantized_v_group_11_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 36 [1/1] (0.00ns)   --->   "%quantized_v_group_12_loc = alloca i64 1"   --->   Operation 36 'alloca' 'quantized_v_group_12_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 37 [1/1] (0.00ns)   --->   "%quantized_v_group_13_loc = alloca i64 1"   --->   Operation 37 'alloca' 'quantized_v_group_13_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 38 [1/1] (0.00ns)   --->   "%quantized_v_group_14_loc = alloca i64 1"   --->   Operation 38 'alloca' 'quantized_v_group_14_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 39 [1/1] (0.00ns)   --->   "%quantized_v_group_15_loc = alloca i64 1"   --->   Operation 39 'alloca' 'quantized_v_group_15_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 40 [1/1] (0.00ns)   --->   "%quantized_v_group_16_loc = alloca i64 1"   --->   Operation 40 'alloca' 'quantized_v_group_16_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 41 [1/1] (0.00ns)   --->   "%quantized_v_group_17_loc = alloca i64 1"   --->   Operation 41 'alloca' 'quantized_v_group_17_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 42 [1/1] (0.00ns)   --->   "%quantized_v_group_18_loc = alloca i64 1"   --->   Operation 42 'alloca' 'quantized_v_group_18_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 43 [1/1] (0.00ns)   --->   "%quantized_v_group_19_loc = alloca i64 1"   --->   Operation 43 'alloca' 'quantized_v_group_19_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 44 [1/1] (0.00ns)   --->   "%quantized_v_group_20_loc = alloca i64 1"   --->   Operation 44 'alloca' 'quantized_v_group_20_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 45 [1/1] (0.00ns)   --->   "%quantized_v_group_21_loc = alloca i64 1"   --->   Operation 45 'alloca' 'quantized_v_group_21_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 46 [1/1] (0.00ns)   --->   "%quantized_v_group_22_loc = alloca i64 1"   --->   Operation 46 'alloca' 'quantized_v_group_22_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 47 [1/1] (0.00ns)   --->   "%quantized_v_group_23_loc = alloca i64 1"   --->   Operation 47 'alloca' 'quantized_v_group_23_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 48 [1/1] (0.00ns)   --->   "%quantized_v_group_24_loc = alloca i64 1"   --->   Operation 48 'alloca' 'quantized_v_group_24_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 49 [1/1] (0.00ns)   --->   "%quantized_v_group_25_loc = alloca i64 1"   --->   Operation 49 'alloca' 'quantized_v_group_25_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 50 [1/1] (0.00ns)   --->   "%quantized_v_group_26_loc = alloca i64 1"   --->   Operation 50 'alloca' 'quantized_v_group_26_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 51 [1/1] (0.00ns)   --->   "%quantized_v_group_27_loc = alloca i64 1"   --->   Operation 51 'alloca' 'quantized_v_group_27_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 52 [1/1] (0.00ns)   --->   "%quantized_v_group_28_loc = alloca i64 1"   --->   Operation 52 'alloca' 'quantized_v_group_28_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 53 [1/1] (0.00ns)   --->   "%quantized_v_group_29_loc = alloca i64 1"   --->   Operation 53 'alloca' 'quantized_v_group_29_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 54 [1/1] (0.00ns)   --->   "%quantized_v_group_30_loc = alloca i64 1"   --->   Operation 54 'alloca' 'quantized_v_group_30_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 55 [1/1] (0.00ns)   --->   "%quantized_v_group_31_loc = alloca i64 1"   --->   Operation 55 'alloca' 'quantized_v_group_31_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 56 [1/1] (0.00ns)   --->   "%quantized_k_group_loc = alloca i64 1"   --->   Operation 56 'alloca' 'quantized_k_group_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 57 [1/1] (0.00ns)   --->   "%quantized_k_group_1_loc = alloca i64 1"   --->   Operation 57 'alloca' 'quantized_k_group_1_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 58 [1/1] (0.00ns)   --->   "%quantized_k_group_2_loc = alloca i64 1"   --->   Operation 58 'alloca' 'quantized_k_group_2_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 59 [1/1] (0.00ns)   --->   "%quantized_k_group_3_loc = alloca i64 1"   --->   Operation 59 'alloca' 'quantized_k_group_3_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 60 [1/1] (0.00ns)   --->   "%quantized_k_group_4_loc = alloca i64 1"   --->   Operation 60 'alloca' 'quantized_k_group_4_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 61 [1/1] (0.00ns)   --->   "%quantized_k_group_5_loc = alloca i64 1"   --->   Operation 61 'alloca' 'quantized_k_group_5_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 62 [1/1] (0.00ns)   --->   "%quantized_k_group_6_loc = alloca i64 1"   --->   Operation 62 'alloca' 'quantized_k_group_6_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 63 [1/1] (0.00ns)   --->   "%quantized_k_group_7_loc = alloca i64 1"   --->   Operation 63 'alloca' 'quantized_k_group_7_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 64 [1/1] (0.00ns)   --->   "%quantized_k_group_8_loc = alloca i64 1"   --->   Operation 64 'alloca' 'quantized_k_group_8_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 65 [1/1] (0.00ns)   --->   "%quantized_k_group_9_loc = alloca i64 1"   --->   Operation 65 'alloca' 'quantized_k_group_9_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 66 [1/1] (0.00ns)   --->   "%quantized_k_group_10_loc = alloca i64 1"   --->   Operation 66 'alloca' 'quantized_k_group_10_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 67 [1/1] (0.00ns)   --->   "%quantized_k_group_11_loc = alloca i64 1"   --->   Operation 67 'alloca' 'quantized_k_group_11_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 68 [1/1] (0.00ns)   --->   "%quantized_k_group_12_loc = alloca i64 1"   --->   Operation 68 'alloca' 'quantized_k_group_12_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 69 [1/1] (0.00ns)   --->   "%quantized_k_group_13_loc = alloca i64 1"   --->   Operation 69 'alloca' 'quantized_k_group_13_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 70 [1/1] (0.00ns)   --->   "%quantized_k_group_14_loc = alloca i64 1"   --->   Operation 70 'alloca' 'quantized_k_group_14_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 71 [1/1] (0.00ns)   --->   "%quantized_k_group_15_loc = alloca i64 1"   --->   Operation 71 'alloca' 'quantized_k_group_15_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 72 [1/1] (0.00ns)   --->   "%quantized_k_group_16_loc = alloca i64 1"   --->   Operation 72 'alloca' 'quantized_k_group_16_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 73 [1/1] (0.00ns)   --->   "%quantized_k_group_17_loc = alloca i64 1"   --->   Operation 73 'alloca' 'quantized_k_group_17_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 74 [1/1] (0.00ns)   --->   "%quantized_k_group_18_loc = alloca i64 1"   --->   Operation 74 'alloca' 'quantized_k_group_18_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 75 [1/1] (0.00ns)   --->   "%quantized_k_group_19_loc = alloca i64 1"   --->   Operation 75 'alloca' 'quantized_k_group_19_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 76 [1/1] (0.00ns)   --->   "%quantized_k_group_20_loc = alloca i64 1"   --->   Operation 76 'alloca' 'quantized_k_group_20_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 77 [1/1] (0.00ns)   --->   "%quantized_k_group_21_loc = alloca i64 1"   --->   Operation 77 'alloca' 'quantized_k_group_21_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 78 [1/1] (0.00ns)   --->   "%quantized_k_group_22_loc = alloca i64 1"   --->   Operation 78 'alloca' 'quantized_k_group_22_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 79 [1/1] (0.00ns)   --->   "%quantized_k_group_23_loc = alloca i64 1"   --->   Operation 79 'alloca' 'quantized_k_group_23_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 80 [1/1] (0.00ns)   --->   "%quantized_k_group_24_loc = alloca i64 1"   --->   Operation 80 'alloca' 'quantized_k_group_24_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 81 [1/1] (0.00ns)   --->   "%quantized_k_group_25_loc = alloca i64 1"   --->   Operation 81 'alloca' 'quantized_k_group_25_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 82 [1/1] (0.00ns)   --->   "%quantized_k_group_26_loc = alloca i64 1"   --->   Operation 82 'alloca' 'quantized_k_group_26_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 83 [1/1] (0.00ns)   --->   "%quantized_k_group_27_loc = alloca i64 1"   --->   Operation 83 'alloca' 'quantized_k_group_27_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 84 [1/1] (0.00ns)   --->   "%quantized_k_group_28_loc = alloca i64 1"   --->   Operation 84 'alloca' 'quantized_k_group_28_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 85 [1/1] (0.00ns)   --->   "%quantized_k_group_29_loc = alloca i64 1"   --->   Operation 85 'alloca' 'quantized_k_group_29_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 86 [1/1] (0.00ns)   --->   "%quantized_k_group_30_loc = alloca i64 1"   --->   Operation 86 'alloca' 'quantized_k_group_30_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 87 [1/1] (0.00ns)   --->   "%quantized_k_group_31_loc = alloca i64 1"   --->   Operation 87 'alloca' 'quantized_k_group_31_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 88 [1/1] (0.00ns)   --->   "%maximum_k_loc = alloca i64 1"   --->   Operation 88 'alloca' 'maximum_k_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 89 [1/1] (0.00ns)   --->   "%maximum_v_loc = alloca i64 1"   --->   Operation 89 'alloca' 'maximum_v_loc' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 90 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %k_words, i64 666, i64 18, i64 18446744073709551615"   --->   Operation 90 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 91 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %v_words, i64 666, i64 18, i64 18446744073709551615"   --->   Operation 91 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 92 [1/1] (0.38ns)   --->   "%store_ln400 = store i3 0, i3 %group" [source/swiftkv_attention.cpp:400]   --->   Operation 92 'store' 'store_ln400' <Predicate = true> <Delay = 0.38>
+ST_1 : Operation 93 [1/1] (0.38ns)   --->   "%store_ln393 = store i512 0, i512 %metadata" [source/swiftkv_attention.cpp:393]   --->   Operation 93 'store' 'store_ln393' <Predicate = true> <Delay = 0.38>
+ST_1 : Operation 94 [1/1] (0.00ns)   --->   "%br_ln400 = br void %unpack_kv_group_loop" [source/swiftkv_attention.cpp:400]   --->   Operation 94 'br' 'br_ln400' <Predicate = true> <Delay = 0.00>
+
+State 2 <SV = 1> <Delay = 1.20>
+ST_2 : Operation 95 [1/1] (0.00ns)   --->   "%group_2 = load i3 %group" [source/swiftkv_attention.cpp:413]   --->   Operation 95 'load' 'group_2' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 96 [1/1] (0.57ns)   --->   "%icmp_ln401 = icmp_eq  i3 %group_2, i3 4" [source/swiftkv_attention.cpp:401]   --->   Operation 96 'icmp' 'icmp_ln401' <Predicate = true> <Delay = 0.57> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.57> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_2 : Operation 97 [1/1] (0.57ns)   --->   "%add_ln402 = add i3 %group_2, i3 1" [source/swiftkv_attention.cpp:402]   --->   Operation 97 'add' 'add_ln402' <Predicate = true> <Delay = 0.57> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.57> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_2 : Operation 98 [1/1] (0.00ns)   --->   "%br_ln400 = br i1 %icmp_ln401, void %unpack_kv_group_loop.split, void %for.end201" [source/swiftkv_attention.cpp:400]   --->   Operation 98 'br' 'br_ln400' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 99 [1/1] (0.00ns)   --->   "%trunc_ln413 = trunc i3 %group_2" [source/swiftkv_attention.cpp:413]   --->   Operation 99 'trunc' 'trunc_ln413' <Predicate = (!icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 100 [1/1] (0.00ns)   --->   "%shl_ln413 = shl i3 %group_2, i3 1" [source/swiftkv_attention.cpp:413]   --->   Operation 100 'shl' 'shl_ln413' <Predicate = (!icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 101 [1/1] (0.00ns)   --->   "%zext_ln413 = zext i3 %shl_ln413" [source/swiftkv_attention.cpp:413]   --->   Operation 101 'zext' 'zext_ln413' <Predicate = (!icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 102 [1/1] (0.00ns)   --->   "%k_words_addr = getelementptr i512 %k_words, i64 0, i64 %zext_ln413" [source/swiftkv_attention.cpp:413]   --->   Operation 102 'getelementptr' 'k_words_addr' <Predicate = (!icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 103 [2/2] (1.20ns)   --->   "%k_lower = load i3 %k_words_addr" [source/swiftkv_attention.cpp:413]   --->   Operation 103 'load' 'k_lower' <Predicate = (!icmp_ln401)> <Delay = 1.20> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.20> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 512> <Depth = 8> <RAM>
+ST_2 : Operation 104 [1/1] (0.00ns)   --->   "%v_words_addr = getelementptr i512 %v_words, i64 0, i64 %zext_ln413" [source/swiftkv_attention.cpp:415]   --->   Operation 104 'getelementptr' 'v_words_addr' <Predicate = (!icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 105 [2/2] (1.20ns)   --->   "%v_lower = load i3 %v_words_addr" [source/swiftkv_attention.cpp:415]   --->   Operation 105 'load' 'v_lower' <Predicate = (!icmp_ln401)> <Delay = 1.20> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.20> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 512> <Depth = 8> <RAM>
+ST_2 : Operation 106 [1/1] (0.00ns)   --->   "%metadata_load_1 = load i512 %metadata" [source/swiftkv_attention.cpp:543]   --->   Operation 106 'load' 'metadata_load_1' <Predicate = (icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 107 [1/1] (0.00ns)   --->   "%p_load238 = load i256 %empty" [source/swiftkv_attention.cpp:536]   --->   Operation 107 'load' 'p_load238' <Predicate = (icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 108 [1/1] (0.00ns)   --->   "%p_load237 = load i256 %empty_729" [source/swiftkv_attention.cpp:536]   --->   Operation 108 'load' 'p_load237' <Predicate = (icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 109 [1/1] (0.00ns)   --->   "%p_load236 = load i256 %empty_730" [source/swiftkv_attention.cpp:538]   --->   Operation 109 'load' 'p_load236' <Predicate = (icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 110 [1/1] (0.00ns)   --->   "%p_load235 = load i256 %empty_731" [source/swiftkv_attention.cpp:538]   --->   Operation 110 'load' 'p_load235' <Predicate = (icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 111 [1/1] (0.00ns)   --->   "%p_load234 = load i256 %empty_732" [source/swiftkv_attention.cpp:540]   --->   Operation 111 'load' 'p_load234' <Predicate = (icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 112 [1/1] (0.00ns)   --->   "%p_load233 = load i256 %empty_733" [source/swiftkv_attention.cpp:540]   --->   Operation 112 'load' 'p_load233' <Predicate = (icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 113 [1/1] (0.00ns)   --->   "%p_load232 = load i256 %empty_734" [source/swiftkv_attention.cpp:542]   --->   Operation 113 'load' 'p_load232' <Predicate = (icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 114 [1/1] (0.00ns)   --->   "%p_load = load i256 %empty_735" [source/swiftkv_attention.cpp:542]   --->   Operation 114 'load' 'p_load' <Predicate = (icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 115 [1/1] (0.00ns)   --->   "%record_1 = bitconcatenate i512 @_ssdm_op_BitConcatenate.i512.i256.i256, i256 %p_load237, i256 %p_load238" [source/swiftkv_attention.cpp:536]   --->   Operation 115 'bitconcatenate' 'record_1' <Predicate = (icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 116 [1/1] (0.00ns)   --->   "%record_2 = bitconcatenate i512 @_ssdm_op_BitConcatenate.i512.i256.i256, i256 %p_load235, i256 %p_load236" [source/swiftkv_attention.cpp:538]   --->   Operation 116 'bitconcatenate' 'record_2' <Predicate = (icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 117 [1/1] (0.00ns)   --->   "%record_3 = bitconcatenate i512 @_ssdm_op_BitConcatenate.i512.i256.i256, i256 %p_load233, i256 %p_load234" [source/swiftkv_attention.cpp:540]   --->   Operation 117 'bitconcatenate' 'record_3' <Predicate = (icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 118 [1/1] (0.00ns)   --->   "%record_4 = bitconcatenate i512 @_ssdm_op_BitConcatenate.i512.i256.i256, i256 %p_load, i256 %p_load232" [source/swiftkv_attention.cpp:542]   --->   Operation 118 'bitconcatenate' 'record_4' <Predicate = (icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 119 [1/1] (0.00ns)   --->   "%mrv = insertvalue i2560 <undef>, i512 %metadata_load_1" [source/swiftkv_attention.cpp:543]   --->   Operation 119 'insertvalue' 'mrv' <Predicate = (icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 120 [1/1] (0.00ns)   --->   "%mrv_1 = insertvalue i2560 %mrv, i512 %record_1" [source/swiftkv_attention.cpp:543]   --->   Operation 120 'insertvalue' 'mrv_1' <Predicate = (icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 121 [1/1] (0.00ns)   --->   "%mrv_2 = insertvalue i2560 %mrv_1, i512 %record_2" [source/swiftkv_attention.cpp:543]   --->   Operation 121 'insertvalue' 'mrv_2' <Predicate = (icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 122 [1/1] (0.00ns)   --->   "%mrv_3 = insertvalue i2560 %mrv_2, i512 %record_3" [source/swiftkv_attention.cpp:543]   --->   Operation 122 'insertvalue' 'mrv_3' <Predicate = (icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 123 [1/1] (0.00ns)   --->   "%mrv_4 = insertvalue i2560 %mrv_3, i512 %record_4" [source/swiftkv_attention.cpp:543]   --->   Operation 123 'insertvalue' 'mrv_4' <Predicate = (icmp_ln401)> <Delay = 0.00>
+ST_2 : Operation 124 [1/1] (0.00ns)   --->   "%ret_ln543 = ret i2560 %mrv_4" [source/swiftkv_attention.cpp:543]   --->   Operation 124 'ret' 'ret_ln543' <Predicate = (icmp_ln401)> <Delay = 0.00>
+
+State 3 <SV = 2> <Delay = 1.20>
+ST_3 : Operation 125 [1/2] (1.20ns)   --->   "%k_lower = load i3 %k_words_addr" [source/swiftkv_attention.cpp:413]   --->   Operation 125 'load' 'k_lower' <Predicate = true> <Delay = 1.20> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.20> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 512> <Depth = 8> <RAM>
+ST_3 : Operation 126 [1/1] (0.00ns)   --->   "%or_ln414 = or i3 %shl_ln413, i3 1" [source/swiftkv_attention.cpp:414]   --->   Operation 126 'or' 'or_ln414' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 127 [1/1] (0.00ns)   --->   "%zext_ln414 = zext i3 %or_ln414" [source/swiftkv_attention.cpp:414]   --->   Operation 127 'zext' 'zext_ln414' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 128 [1/1] (0.00ns)   --->   "%k_words_addr_1 = getelementptr i512 %k_words, i64 0, i64 %zext_ln414" [source/swiftkv_attention.cpp:414]   --->   Operation 128 'getelementptr' 'k_words_addr_1' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 129 [2/2] (1.20ns)   --->   "%k_upper = load i3 %k_words_addr_1" [source/swiftkv_attention.cpp:414]   --->   Operation 129 'load' 'k_upper' <Predicate = true> <Delay = 1.20> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.20> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 512> <Depth = 8> <RAM>
+ST_3 : Operation 130 [1/2] (1.20ns)   --->   "%v_lower = load i3 %v_words_addr" [source/swiftkv_attention.cpp:415]   --->   Operation 130 'load' 'v_lower' <Predicate = true> <Delay = 1.20> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.20> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 512> <Depth = 8> <RAM>
+ST_3 : Operation 131 [1/1] (0.00ns)   --->   "%v_words_addr_1 = getelementptr i512 %v_words, i64 0, i64 %zext_ln414" [source/swiftkv_attention.cpp:416]   --->   Operation 131 'getelementptr' 'v_words_addr_1' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 132 [2/2] (1.20ns)   --->   "%v_upper = load i3 %v_words_addr_1" [source/swiftkv_attention.cpp:416]   --->   Operation 132 'load' 'v_upper' <Predicate = true> <Delay = 1.20> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.20> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 512> <Depth = 8> <RAM>
+ST_3 : Operation 133 [1/1] (0.00ns)   --->   "%k_raw = trunc i512 %k_lower" [source/swiftkv_attention.cpp:430]   --->   Operation 133 'trunc' 'k_raw' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 134 [1/1] (0.00ns)   --->   "%v_raw = trunc i512 %v_lower" [source/swiftkv_attention.cpp:436]   --->   Operation 134 'trunc' 'v_raw' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 135 [1/1] (0.00ns)   --->   "%k_raw_32 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_lower, i32 32, i32 63" [source/swiftkv_attention.cpp:430]   --->   Operation 135 'partselect' 'k_raw_32' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 136 [1/1] (0.00ns)   --->   "%v_raw_32 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_lower, i32 32, i32 63" [source/swiftkv_attention.cpp:436]   --->   Operation 136 'partselect' 'v_raw_32' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 137 [1/1] (0.00ns)   --->   "%k_raw_33 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_lower, i32 64, i32 95" [source/swiftkv_attention.cpp:430]   --->   Operation 137 'partselect' 'k_raw_33' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 138 [1/1] (0.00ns)   --->   "%v_raw_33 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_lower, i32 64, i32 95" [source/swiftkv_attention.cpp:436]   --->   Operation 138 'partselect' 'v_raw_33' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 139 [1/1] (0.00ns)   --->   "%k_raw_34 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_lower, i32 96, i32 127" [source/swiftkv_attention.cpp:430]   --->   Operation 139 'partselect' 'k_raw_34' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 140 [1/1] (0.00ns)   --->   "%v_raw_34 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_lower, i32 96, i32 127" [source/swiftkv_attention.cpp:436]   --->   Operation 140 'partselect' 'v_raw_34' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 141 [1/1] (0.00ns)   --->   "%k_raw_35 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_lower, i32 128, i32 159" [source/swiftkv_attention.cpp:430]   --->   Operation 141 'partselect' 'k_raw_35' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 142 [1/1] (0.00ns)   --->   "%v_raw_35 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_lower, i32 128, i32 159" [source/swiftkv_attention.cpp:436]   --->   Operation 142 'partselect' 'v_raw_35' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 143 [1/1] (0.00ns)   --->   "%k_raw_36 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_lower, i32 160, i32 191" [source/swiftkv_attention.cpp:430]   --->   Operation 143 'partselect' 'k_raw_36' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 144 [1/1] (0.00ns)   --->   "%v_raw_36 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_lower, i32 160, i32 191" [source/swiftkv_attention.cpp:436]   --->   Operation 144 'partselect' 'v_raw_36' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 145 [1/1] (0.00ns)   --->   "%k_raw_37 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_lower, i32 192, i32 223" [source/swiftkv_attention.cpp:430]   --->   Operation 145 'partselect' 'k_raw_37' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 146 [1/1] (0.00ns)   --->   "%v_raw_37 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_lower, i32 192, i32 223" [source/swiftkv_attention.cpp:436]   --->   Operation 146 'partselect' 'v_raw_37' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 147 [1/1] (0.00ns)   --->   "%k_raw_38 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_lower, i32 224, i32 255" [source/swiftkv_attention.cpp:430]   --->   Operation 147 'partselect' 'k_raw_38' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 148 [1/1] (0.00ns)   --->   "%v_raw_38 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_lower, i32 224, i32 255" [source/swiftkv_attention.cpp:436]   --->   Operation 148 'partselect' 'v_raw_38' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 149 [1/1] (0.00ns)   --->   "%k_raw_39 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_lower, i32 256, i32 287" [source/swiftkv_attention.cpp:430]   --->   Operation 149 'partselect' 'k_raw_39' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 150 [1/1] (0.00ns)   --->   "%v_raw_39 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_lower, i32 256, i32 287" [source/swiftkv_attention.cpp:436]   --->   Operation 150 'partselect' 'v_raw_39' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 151 [1/1] (0.00ns)   --->   "%k_raw_40 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_lower, i32 288, i32 319" [source/swiftkv_attention.cpp:430]   --->   Operation 151 'partselect' 'k_raw_40' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 152 [1/1] (0.00ns)   --->   "%v_raw_40 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_lower, i32 288, i32 319" [source/swiftkv_attention.cpp:436]   --->   Operation 152 'partselect' 'v_raw_40' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 153 [1/1] (0.00ns)   --->   "%k_raw_41 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_lower, i32 320, i32 351" [source/swiftkv_attention.cpp:430]   --->   Operation 153 'partselect' 'k_raw_41' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 154 [1/1] (0.00ns)   --->   "%v_raw_41 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_lower, i32 320, i32 351" [source/swiftkv_attention.cpp:436]   --->   Operation 154 'partselect' 'v_raw_41' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 155 [1/1] (0.00ns)   --->   "%k_raw_42 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_lower, i32 352, i32 383" [source/swiftkv_attention.cpp:430]   --->   Operation 155 'partselect' 'k_raw_42' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 156 [1/1] (0.00ns)   --->   "%v_raw_42 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_lower, i32 352, i32 383" [source/swiftkv_attention.cpp:436]   --->   Operation 156 'partselect' 'v_raw_42' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 157 [1/1] (0.00ns)   --->   "%k_raw_43 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_lower, i32 384, i32 415" [source/swiftkv_attention.cpp:430]   --->   Operation 157 'partselect' 'k_raw_43' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 158 [1/1] (0.00ns)   --->   "%v_raw_43 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_lower, i32 384, i32 415" [source/swiftkv_attention.cpp:436]   --->   Operation 158 'partselect' 'v_raw_43' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 159 [1/1] (0.00ns)   --->   "%k_raw_44 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_lower, i32 416, i32 447" [source/swiftkv_attention.cpp:430]   --->   Operation 159 'partselect' 'k_raw_44' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 160 [1/1] (0.00ns)   --->   "%v_raw_44 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_lower, i32 416, i32 447" [source/swiftkv_attention.cpp:436]   --->   Operation 160 'partselect' 'v_raw_44' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 161 [1/1] (0.00ns)   --->   "%k_raw_45 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_lower, i32 448, i32 479" [source/swiftkv_attention.cpp:430]   --->   Operation 161 'partselect' 'k_raw_45' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 162 [1/1] (0.00ns)   --->   "%v_raw_45 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_lower, i32 448, i32 479" [source/swiftkv_attention.cpp:436]   --->   Operation 162 'partselect' 'v_raw_45' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 163 [1/1] (0.00ns)   --->   "%k_raw_46 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_lower, i32 480, i32 511" [source/swiftkv_attention.cpp:430]   --->   Operation 163 'partselect' 'k_raw_46' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 164 [1/1] (0.00ns)   --->   "%v_raw_46 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_lower, i32 480, i32 511" [source/swiftkv_attention.cpp:436]   --->   Operation 164 'partselect' 'v_raw_46' <Predicate = true> <Delay = 0.00>
+
+State 4 <SV = 3> <Delay = 1.20>
+ST_4 : Operation 165 [1/2] (1.20ns)   --->   "%k_upper = load i3 %k_words_addr_1" [source/swiftkv_attention.cpp:414]   --->   Operation 165 'load' 'k_upper' <Predicate = true> <Delay = 1.20> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.20> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 512> <Depth = 8> <RAM>
+ST_4 : Operation 166 [1/2] (1.20ns)   --->   "%v_upper = load i3 %v_words_addr_1" [source/swiftkv_attention.cpp:416]   --->   Operation 166 'load' 'v_upper' <Predicate = true> <Delay = 1.20> <CoreInst = "RAM_1P_BRAM">   --->   Core 90 'RAM_1P_BRAM' <Latency = 1> <II = 1> <Delay = 1.20> <Storage> <Opcode : 'load' 'store'> <Ports = 1> <Width = 512> <Depth = 8> <RAM>
+ST_4 : Operation 167 [1/1] (0.00ns)   --->   "%k_raw_47 = trunc i512 %k_upper" [source/swiftkv_attention.cpp:428]   --->   Operation 167 'trunc' 'k_raw_47' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 168 [1/1] (0.00ns)   --->   "%v_raw_47 = trunc i512 %v_upper" [source/swiftkv_attention.cpp:434]   --->   Operation 168 'trunc' 'v_raw_47' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 169 [1/1] (0.00ns)   --->   "%k_raw_48 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_upper, i32 32, i32 63" [source/swiftkv_attention.cpp:428]   --->   Operation 169 'partselect' 'k_raw_48' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 170 [1/1] (0.00ns)   --->   "%v_raw_48 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_upper, i32 32, i32 63" [source/swiftkv_attention.cpp:434]   --->   Operation 170 'partselect' 'v_raw_48' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 171 [1/1] (0.00ns)   --->   "%k_raw_49 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_upper, i32 64, i32 95" [source/swiftkv_attention.cpp:428]   --->   Operation 171 'partselect' 'k_raw_49' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 172 [1/1] (0.00ns)   --->   "%v_raw_49 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_upper, i32 64, i32 95" [source/swiftkv_attention.cpp:434]   --->   Operation 172 'partselect' 'v_raw_49' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 173 [1/1] (0.00ns)   --->   "%k_raw_50 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_upper, i32 96, i32 127" [source/swiftkv_attention.cpp:428]   --->   Operation 173 'partselect' 'k_raw_50' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 174 [1/1] (0.00ns)   --->   "%v_raw_50 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_upper, i32 96, i32 127" [source/swiftkv_attention.cpp:434]   --->   Operation 174 'partselect' 'v_raw_50' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 175 [1/1] (0.00ns)   --->   "%k_raw_51 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_upper, i32 128, i32 159" [source/swiftkv_attention.cpp:428]   --->   Operation 175 'partselect' 'k_raw_51' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 176 [1/1] (0.00ns)   --->   "%v_raw_51 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_upper, i32 128, i32 159" [source/swiftkv_attention.cpp:434]   --->   Operation 176 'partselect' 'v_raw_51' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 177 [1/1] (0.00ns)   --->   "%k_raw_52 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_upper, i32 160, i32 191" [source/swiftkv_attention.cpp:428]   --->   Operation 177 'partselect' 'k_raw_52' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 178 [1/1] (0.00ns)   --->   "%v_raw_52 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_upper, i32 160, i32 191" [source/swiftkv_attention.cpp:434]   --->   Operation 178 'partselect' 'v_raw_52' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 179 [1/1] (0.00ns)   --->   "%k_raw_53 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_upper, i32 192, i32 223" [source/swiftkv_attention.cpp:428]   --->   Operation 179 'partselect' 'k_raw_53' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 180 [1/1] (0.00ns)   --->   "%v_raw_53 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_upper, i32 192, i32 223" [source/swiftkv_attention.cpp:434]   --->   Operation 180 'partselect' 'v_raw_53' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 181 [1/1] (0.00ns)   --->   "%k_raw_54 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_upper, i32 224, i32 255" [source/swiftkv_attention.cpp:428]   --->   Operation 181 'partselect' 'k_raw_54' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 182 [1/1] (0.00ns)   --->   "%v_raw_54 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_upper, i32 224, i32 255" [source/swiftkv_attention.cpp:434]   --->   Operation 182 'partselect' 'v_raw_54' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 183 [1/1] (0.00ns)   --->   "%k_raw_55 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_upper, i32 256, i32 287" [source/swiftkv_attention.cpp:428]   --->   Operation 183 'partselect' 'k_raw_55' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 184 [1/1] (0.00ns)   --->   "%v_raw_55 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_upper, i32 256, i32 287" [source/swiftkv_attention.cpp:434]   --->   Operation 184 'partselect' 'v_raw_55' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 185 [1/1] (0.00ns)   --->   "%k_raw_56 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_upper, i32 288, i32 319" [source/swiftkv_attention.cpp:428]   --->   Operation 185 'partselect' 'k_raw_56' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 186 [1/1] (0.00ns)   --->   "%v_raw_56 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_upper, i32 288, i32 319" [source/swiftkv_attention.cpp:434]   --->   Operation 186 'partselect' 'v_raw_56' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 187 [1/1] (0.00ns)   --->   "%k_raw_57 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_upper, i32 320, i32 351" [source/swiftkv_attention.cpp:428]   --->   Operation 187 'partselect' 'k_raw_57' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 188 [1/1] (0.00ns)   --->   "%v_raw_57 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_upper, i32 320, i32 351" [source/swiftkv_attention.cpp:434]   --->   Operation 188 'partselect' 'v_raw_57' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 189 [1/1] (0.00ns)   --->   "%k_raw_58 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_upper, i32 352, i32 383" [source/swiftkv_attention.cpp:428]   --->   Operation 189 'partselect' 'k_raw_58' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 190 [1/1] (0.00ns)   --->   "%v_raw_58 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_upper, i32 352, i32 383" [source/swiftkv_attention.cpp:434]   --->   Operation 190 'partselect' 'v_raw_58' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 191 [1/1] (0.00ns)   --->   "%k_raw_59 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_upper, i32 384, i32 415" [source/swiftkv_attention.cpp:428]   --->   Operation 191 'partselect' 'k_raw_59' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 192 [1/1] (0.00ns)   --->   "%v_raw_59 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_upper, i32 384, i32 415" [source/swiftkv_attention.cpp:434]   --->   Operation 192 'partselect' 'v_raw_59' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 193 [1/1] (0.00ns)   --->   "%k_raw_60 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_upper, i32 416, i32 447" [source/swiftkv_attention.cpp:428]   --->   Operation 193 'partselect' 'k_raw_60' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 194 [1/1] (0.00ns)   --->   "%v_raw_60 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_upper, i32 416, i32 447" [source/swiftkv_attention.cpp:434]   --->   Operation 194 'partselect' 'v_raw_60' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 195 [1/1] (0.00ns)   --->   "%k_raw_61 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_upper, i32 448, i32 479" [source/swiftkv_attention.cpp:428]   --->   Operation 195 'partselect' 'k_raw_61' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 196 [1/1] (0.00ns)   --->   "%v_raw_61 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_upper, i32 448, i32 479" [source/swiftkv_attention.cpp:434]   --->   Operation 196 'partselect' 'v_raw_61' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 197 [1/1] (0.00ns)   --->   "%k_raw_62 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %k_upper, i32 480, i32 511" [source/swiftkv_attention.cpp:428]   --->   Operation 197 'partselect' 'k_raw_62' <Predicate = true> <Delay = 0.00>
+ST_4 : Operation 198 [1/1] (0.00ns)   --->   "%v_raw_62 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %v_upper, i32 480, i32 511" [source/swiftkv_attention.cpp:434]   --->   Operation 198 'partselect' 'v_raw_62' <Predicate = true> <Delay = 0.00>
+
+State 5 <SV = 4> <Delay = 1.69>
+ST_5 : Operation 199 [2/2] (1.69ns)   --->   "%call_ln430 = call void @swiftkv_quantize_kv_record_Pipeline_find_kv_group_max_block_loop, i32 %k_raw, i32 %k_raw_35, i32 %k_raw_39, i32 %k_raw_43, i32 %k_raw_47, i32 %k_raw_51, i32 %k_raw_55, i32 %k_raw_59, i32 %k_raw_32, i32 %k_raw_36, i32 %k_raw_40, i32 %k_raw_44, i32 %k_raw_48, i32 %k_raw_52, i32 %k_raw_56, i32 %k_raw_60, i32 %k_raw_33, i32 %k_raw_37, i32 %k_raw_41, i32 %k_raw_45, i32 %k_raw_49, i32 %k_raw_53, i32 %k_raw_57, i32 %k_raw_61, i32 %k_raw_34, i32 %k_raw_38, i32 %k_raw_42, i32 %k_raw_46, i32 %k_raw_50, i32 %k_raw_54, i32 %k_raw_58, i32 %k_raw_62, i32 %v_raw, i32 %v_raw_35, i32 %v_raw_39, i32 %v_raw_43, i32 %v_raw_47, i32 %v_raw_51, i32 %v_raw_55, i32 %v_raw_59, i32 %v_raw_32, i32 %v_raw_36, i32 %v_raw_40, i32 %v_raw_44, i32 %v_raw_48, i32 %v_raw_52, i32 %v_raw_56, i32 %v_raw_60, i32 %v_raw_33, i32 %v_raw_37, i32 %v_raw_41, i32 %v_raw_45, i32 %v_raw_49, i32 %v_raw_53, i32 %v_raw_57, i32 %v_raw_61, i32 %v_raw_34, i32 %v_raw_38, i32 %v_raw_42, i32 %v_raw_46, i32 %v_raw_50, i32 %v_raw_54, i32 %v_raw_58, i32 %v_raw_62, i32 %maximum_v_loc, i32 %maximum_k_loc" [source/swiftkv_attention.cpp:430]   --->   Operation 199 'call' 'call_ln430' <Predicate = true> <Delay = 1.69> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+
+State 6 <SV = 5> <Delay = 0.00>
+ST_6 : Operation 200 [1/2] (0.00ns)   --->   "%call_ln430 = call void @swiftkv_quantize_kv_record_Pipeline_find_kv_group_max_block_loop, i32 %k_raw, i32 %k_raw_35, i32 %k_raw_39, i32 %k_raw_43, i32 %k_raw_47, i32 %k_raw_51, i32 %k_raw_55, i32 %k_raw_59, i32 %k_raw_32, i32 %k_raw_36, i32 %k_raw_40, i32 %k_raw_44, i32 %k_raw_48, i32 %k_raw_52, i32 %k_raw_56, i32 %k_raw_60, i32 %k_raw_33, i32 %k_raw_37, i32 %k_raw_41, i32 %k_raw_45, i32 %k_raw_49, i32 %k_raw_53, i32 %k_raw_57, i32 %k_raw_61, i32 %k_raw_34, i32 %k_raw_38, i32 %k_raw_42, i32 %k_raw_46, i32 %k_raw_50, i32 %k_raw_54, i32 %k_raw_58, i32 %k_raw_62, i32 %v_raw, i32 %v_raw_35, i32 %v_raw_39, i32 %v_raw_43, i32 %v_raw_47, i32 %v_raw_51, i32 %v_raw_55, i32 %v_raw_59, i32 %v_raw_32, i32 %v_raw_36, i32 %v_raw_40, i32 %v_raw_44, i32 %v_raw_48, i32 %v_raw_52, i32 %v_raw_56, i32 %v_raw_60, i32 %v_raw_33, i32 %v_raw_37, i32 %v_raw_41, i32 %v_raw_45, i32 %v_raw_49, i32 %v_raw_53, i32 %v_raw_57, i32 %v_raw_61, i32 %v_raw_34, i32 %v_raw_38, i32 %v_raw_42, i32 %v_raw_46, i32 %v_raw_50, i32 %v_raw_54, i32 %v_raw_58, i32 %v_raw_62, i32 %maximum_v_loc, i32 %maximum_k_loc" [source/swiftkv_attention.cpp:430]   --->   Operation 200 'call' 'call_ln430' <Predicate = true> <Delay = 0.00> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+
+State 7 <SV = 6> <Delay = 2.03>
+ST_7 : Operation 201 [1/1] (0.00ns)   --->   "%maximum_v_loc_load = load i32 %maximum_v_loc"   --->   Operation 201 'load' 'maximum_v_loc_load' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 202 [1/1] (0.00ns)   --->   "%empty_736 = trunc i32 %maximum_v_loc_load"   --->   Operation 202 'trunc' 'empty_736' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 203 [1/1] (0.00ns)   --->   "%maximum_k_loc_load = load i32 %maximum_k_loc"   --->   Operation 203 'load' 'maximum_k_loc_load' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 204 [1/1] (0.00ns)   --->   "%empty_737 = trunc i32 %maximum_k_loc_load"   --->   Operation 204 'trunc' 'empty_737' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 205 [1/1] (0.00ns)   --->   "%tmp = partselect i16 @_ssdm_op_PartSelect.i16.i32.i32.i32, i32 %maximum_k_loc_load, i32 16, i32 31" [source/swiftkv_attention.cpp:329->source/swiftkv_attention.cpp:485]   --->   Operation 205 'partselect' 'tmp' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 206 [1/1] (0.78ns)   --->   "%icmp_ln329 = icmp_ne  i16 %tmp, i16 0" [source/swiftkv_attention.cpp:329->source/swiftkv_attention.cpp:485]   --->   Operation 206 'icmp' 'icmp_ln329' <Predicate = true> <Delay = 0.78> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.78> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_7 : Operation 207 [1/1] (0.24ns)   --->   "%probe = select i1 %icmp_ln329, i16 %tmp, i16 %empty_737" [source/swiftkv_attention.cpp:329->source/swiftkv_attention.cpp:485]   --->   Operation 207 'select' 'probe' <Predicate = true> <Delay = 0.24> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.24> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_7 : Operation 208 [1/1] (0.00ns)   --->   "%trunc_ln327 = trunc i16 %probe" [source/swiftkv_attention.cpp:327->source/swiftkv_attention.cpp:485]   --->   Operation 208 'trunc' 'trunc_ln327' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 209 [1/1] (0.00ns)   --->   "%tmp_150 = partselect i8 @_ssdm_op_PartSelect.i8.i16.i32.i32, i16 %probe, i32 8, i32 15" [source/swiftkv_attention.cpp:333->source/swiftkv_attention.cpp:485]   --->   Operation 209 'partselect' 'tmp_150' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 210 [1/1] (0.70ns)   --->   "%icmp_ln333 = icmp_ne  i8 %tmp_150, i8 0" [source/swiftkv_attention.cpp:333->source/swiftkv_attention.cpp:485]   --->   Operation 210 'icmp' 'icmp_ln333' <Predicate = true> <Delay = 0.70> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_7 : Operation 211 [1/1] (0.30ns)   --->   "%probe_1 = select i1 %icmp_ln333, i8 %tmp_150, i8 %trunc_ln327" [source/swiftkv_attention.cpp:333->source/swiftkv_attention.cpp:485]   --->   Operation 211 'select' 'probe_1' <Predicate = true> <Delay = 0.30> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.30> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_7 : Operation 212 [1/1] (0.00ns)   --->   "%trunc_ln327_1 = trunc i8 %probe_1" [source/swiftkv_attention.cpp:327->source/swiftkv_attention.cpp:485]   --->   Operation 212 'trunc' 'trunc_ln327_1' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 213 [1/1] (0.00ns)   --->   "%probe_2 = partselect i4 @_ssdm_op_PartSelect.i4.i8.i32.i32, i8 %probe_1, i32 4, i32 7" [source/swiftkv_attention.cpp:337->source/swiftkv_attention.cpp:485]   --->   Operation 213 'partselect' 'probe_2' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 214 [1/1] (0.88ns)   --->   "%icmp_ln348 = icmp_ne  i32 %maximum_k_loc_load, i32 0" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485]   --->   Operation 214 'icmp' 'icmp_ln348' <Predicate = true> <Delay = 0.88> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.88> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_7 : Operation 215 [1/1] (0.00ns)   --->   "%probe_4 = partselect i16 @_ssdm_op_PartSelect.i16.i32.i32.i32, i32 %maximum_v_loc_load, i32 16, i32 31" [source/swiftkv_attention.cpp:329->source/swiftkv_attention.cpp:487]   --->   Operation 215 'partselect' 'probe_4' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 216 [1/1] (0.78ns)   --->   "%icmp_ln329_1 = icmp_ne  i16 %probe_4, i16 0" [source/swiftkv_attention.cpp:329->source/swiftkv_attention.cpp:487]   --->   Operation 216 'icmp' 'icmp_ln329_1' <Predicate = true> <Delay = 0.78> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.78> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_7 : Operation 217 [1/1] (0.24ns)   --->   "%probe_5 = select i1 %icmp_ln329_1, i16 %probe_4, i16 %empty_736" [source/swiftkv_attention.cpp:329->source/swiftkv_attention.cpp:487]   --->   Operation 217 'select' 'probe_5' <Predicate = true> <Delay = 0.24> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.24> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_7 : Operation 218 [1/1] (0.00ns)   --->   "%trunc_ln329 = trunc i16 %probe_5" [source/swiftkv_attention.cpp:329->source/swiftkv_attention.cpp:487]   --->   Operation 218 'trunc' 'trunc_ln329' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 219 [1/1] (0.00ns)   --->   "%tmp_156 = partselect i8 @_ssdm_op_PartSelect.i8.i16.i32.i32, i16 %probe_5, i32 8, i32 15" [source/swiftkv_attention.cpp:333->source/swiftkv_attention.cpp:487]   --->   Operation 219 'partselect' 'tmp_156' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 220 [1/1] (0.70ns)   --->   "%icmp_ln333_1 = icmp_ne  i8 %tmp_156, i8 0" [source/swiftkv_attention.cpp:333->source/swiftkv_attention.cpp:487]   --->   Operation 220 'icmp' 'icmp_ln333_1' <Predicate = true> <Delay = 0.70> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_7 : Operation 221 [1/1] (0.30ns)   --->   "%probe_6 = select i1 %icmp_ln333_1, i8 %tmp_156, i8 %trunc_ln329" [source/swiftkv_attention.cpp:333->source/swiftkv_attention.cpp:487]   --->   Operation 221 'select' 'probe_6' <Predicate = true> <Delay = 0.30> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.30> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_7 : Operation 222 [1/1] (0.00ns)   --->   "%trunc_ln333 = trunc i8 %probe_6" [source/swiftkv_attention.cpp:333->source/swiftkv_attention.cpp:487]   --->   Operation 222 'trunc' 'trunc_ln333' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 223 [1/1] (0.00ns)   --->   "%probe_7 = partselect i4 @_ssdm_op_PartSelect.i4.i8.i32.i32, i8 %probe_6, i32 4, i32 7" [source/swiftkv_attention.cpp:337->source/swiftkv_attention.cpp:487]   --->   Operation 223 'partselect' 'probe_7' <Predicate = true> <Delay = 0.00>
+ST_7 : Operation 224 [1/1] (0.88ns)   --->   "%icmp_ln348_2 = icmp_ne  i32 %maximum_v_loc_load, i32 0" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:487]   --->   Operation 224 'icmp' 'icmp_ln348_2' <Predicate = true> <Delay = 0.88> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.88> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+
+State 8 <SV = 7> <Delay = 2.05>
+ST_8 : Operation 225 [1/1] (0.00ns) (grouped into LUT with out node most_significant_bit_2)   --->   "%most_significant_bit = select i1 %icmp_ln329, i5 16, i5 0" [source/swiftkv_attention.cpp:329->source/swiftkv_attention.cpp:485]   --->   Operation 225 'select' 'most_significant_bit' <Predicate = (!icmp_ln333)> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.27> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 226 [1/1] (0.00ns) (grouped into LUT with out node most_significant_bit_2)   --->   "%most_significant_bit_1 = select i1 %icmp_ln329, i5 24, i5 8" [source/swiftkv_attention.cpp:335->source/swiftkv_attention.cpp:485]   --->   Operation 226 'select' 'most_significant_bit_1' <Predicate = (icmp_ln333)> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.27> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 227 [1/1] (0.27ns) (out node of the LUT)   --->   "%most_significant_bit_2 = select i1 %icmp_ln333, i5 %most_significant_bit_1, i5 %most_significant_bit" [source/swiftkv_attention.cpp:333->source/swiftkv_attention.cpp:485]   --->   Operation 227 'select' 'most_significant_bit_2' <Predicate = true> <Delay = 0.27> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.27> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 228 [1/1] (0.70ns)   --->   "%icmp_ln337 = icmp_ne  i4 %probe_2, i4 0" [source/swiftkv_attention.cpp:337->source/swiftkv_attention.cpp:485]   --->   Operation 228 'icmp' 'icmp_ln337' <Predicate = true> <Delay = 0.70> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 229 [1/1] (0.00ns) (grouped into LUT with out node most_significant_bit_4)   --->   "%most_significant_bit_3 = or i5 %most_significant_bit_2, i5 4" [source/swiftkv_attention.cpp:339->source/swiftkv_attention.cpp:485]   --->   Operation 229 'or' 'most_significant_bit_3' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 230 [1/1] (0.27ns) (out node of the LUT)   --->   "%most_significant_bit_4 = select i1 %icmp_ln337, i5 %most_significant_bit_3, i5 %most_significant_bit_2" [source/swiftkv_attention.cpp:337->source/swiftkv_attention.cpp:485]   --->   Operation 230 'select' 'most_significant_bit_4' <Predicate = true> <Delay = 0.27> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.27> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 231 [1/1] (0.35ns)   --->   "%probe_3 = select i1 %icmp_ln337, i4 %probe_2, i4 %trunc_ln327_1" [source/swiftkv_attention.cpp:337->source/swiftkv_attention.cpp:485]   --->   Operation 231 'select' 'probe_3' <Predicate = true> <Delay = 0.35> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.35> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 232 [1/1] (0.00ns)   --->   "%tmp_152 = partselect i2 @_ssdm_op_PartSelect.i2.i4.i32.i32, i4 %probe_3, i32 2, i32 3" [source/swiftkv_attention.cpp:341->source/swiftkv_attention.cpp:485]   --->   Operation 232 'partselect' 'tmp_152' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 233 [1/1] (0.43ns)   --->   "%icmp_ln341 = icmp_ne  i2 %tmp_152, i2 0" [source/swiftkv_attention.cpp:341->source/swiftkv_attention.cpp:485]   --->   Operation 233 'icmp' 'icmp_ln341' <Predicate = true> <Delay = 0.43> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.43> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 234 [1/1] (0.00ns) (grouped into LUT with out node most_significant_bit_6)   --->   "%most_significant_bit_5 = or i5 %most_significant_bit_4, i5 2" [source/swiftkv_attention.cpp:343->source/swiftkv_attention.cpp:485]   --->   Operation 234 'or' 'most_significant_bit_5' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 235 [1/1] (0.27ns) (out node of the LUT)   --->   "%most_significant_bit_6 = select i1 %icmp_ln341, i5 %most_significant_bit_5, i5 %most_significant_bit_4" [source/swiftkv_attention.cpp:341->source/swiftkv_attention.cpp:485]   --->   Operation 235 'select' 'most_significant_bit_6' <Predicate = true> <Delay = 0.27> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.27> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 236 [1/1] (0.00ns) (grouped into LUT with out node most_significant_bit_8)   --->   "%tmp_153 = bitselect i1 @_ssdm_op_BitSelect.i1.i4.i32, i4 %probe_3, i32 3" [source/swiftkv_attention.cpp:345->source/swiftkv_attention.cpp:485]   --->   Operation 236 'bitselect' 'tmp_153' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 237 [1/1] (0.00ns) (grouped into LUT with out node most_significant_bit_8)   --->   "%tmp_154 = bitselect i1 @_ssdm_op_BitSelect.i1.i4.i32, i4 %probe_3, i32 1" [source/swiftkv_attention.cpp:345->source/swiftkv_attention.cpp:485]   --->   Operation 237 'bitselect' 'tmp_154' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 238 [1/1] (0.00ns) (grouped into LUT with out node most_significant_bit_8)   --->   "%select_ln341 = select i1 %icmp_ln341, i1 %tmp_153, i1 %tmp_154" [source/swiftkv_attention.cpp:341->source/swiftkv_attention.cpp:485]   --->   Operation 238 'select' 'select_ln341' <Predicate = true> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.27> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 239 [1/1] (0.00ns) (grouped into LUT with out node most_significant_bit_8)   --->   "%most_significant_bit_7 = or i5 %most_significant_bit_6, i5 1" [source/swiftkv_attention.cpp:346->source/swiftkv_attention.cpp:485]   --->   Operation 239 'or' 'most_significant_bit_7' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 240 [1/1] (0.27ns) (out node of the LUT)   --->   "%most_significant_bit_8 = select i1 %select_ln341, i5 %most_significant_bit_7, i5 %most_significant_bit_6" [source/swiftkv_attention.cpp:345->source/swiftkv_attention.cpp:485]   --->   Operation 240 'select' 'most_significant_bit_8' <Predicate = true> <Delay = 0.27> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.27> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 241 [1/1] (0.00ns) (grouped into LUT with out node most_significant_bit_11)   --->   "%most_significant_bit_9 = select i1 %icmp_ln329_1, i5 16, i5 0" [source/swiftkv_attention.cpp:329->source/swiftkv_attention.cpp:487]   --->   Operation 241 'select' 'most_significant_bit_9' <Predicate = (!icmp_ln333_1)> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.27> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 242 [1/1] (0.00ns) (grouped into LUT with out node most_significant_bit_11)   --->   "%most_significant_bit_10 = select i1 %icmp_ln329_1, i5 24, i5 8" [source/swiftkv_attention.cpp:335->source/swiftkv_attention.cpp:487]   --->   Operation 242 'select' 'most_significant_bit_10' <Predicate = (icmp_ln333_1)> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.27> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 243 [1/1] (0.27ns) (out node of the LUT)   --->   "%most_significant_bit_11 = select i1 %icmp_ln333_1, i5 %most_significant_bit_10, i5 %most_significant_bit_9" [source/swiftkv_attention.cpp:333->source/swiftkv_attention.cpp:487]   --->   Operation 243 'select' 'most_significant_bit_11' <Predicate = true> <Delay = 0.27> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.27> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 244 [1/1] (0.70ns)   --->   "%icmp_ln337_1 = icmp_ne  i4 %probe_7, i4 0" [source/swiftkv_attention.cpp:337->source/swiftkv_attention.cpp:487]   --->   Operation 244 'icmp' 'icmp_ln337_1' <Predicate = true> <Delay = 0.70> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 245 [1/1] (0.00ns) (grouped into LUT with out node most_significant_bit_13)   --->   "%most_significant_bit_12 = or i5 %most_significant_bit_11, i5 4" [source/swiftkv_attention.cpp:339->source/swiftkv_attention.cpp:487]   --->   Operation 245 'or' 'most_significant_bit_12' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 246 [1/1] (0.35ns)   --->   "%probe_8 = select i1 %icmp_ln337_1, i4 %probe_7, i4 %trunc_ln333" [source/swiftkv_attention.cpp:337->source/swiftkv_attention.cpp:487]   --->   Operation 246 'select' 'probe_8' <Predicate = true> <Delay = 0.35> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.35> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 247 [1/1] (0.27ns) (out node of the LUT)   --->   "%most_significant_bit_13 = select i1 %icmp_ln337_1, i5 %most_significant_bit_12, i5 %most_significant_bit_11" [source/swiftkv_attention.cpp:337->source/swiftkv_attention.cpp:487]   --->   Operation 247 'select' 'most_significant_bit_13' <Predicate = true> <Delay = 0.27> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.27> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 248 [1/1] (0.00ns)   --->   "%tmp_158 = partselect i2 @_ssdm_op_PartSelect.i2.i4.i32.i32, i4 %probe_8, i32 2, i32 3" [source/swiftkv_attention.cpp:341->source/swiftkv_attention.cpp:487]   --->   Operation 248 'partselect' 'tmp_158' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 249 [1/1] (0.43ns)   --->   "%icmp_ln341_1 = icmp_ne  i2 %tmp_158, i2 0" [source/swiftkv_attention.cpp:341->source/swiftkv_attention.cpp:487]   --->   Operation 249 'icmp' 'icmp_ln341_1' <Predicate = true> <Delay = 0.43> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.43> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_8 : Operation 250 [1/1] (0.00ns) (grouped into LUT with out node most_significant_bit_15)   --->   "%most_significant_bit_14 = or i5 %most_significant_bit_13, i5 2" [source/swiftkv_attention.cpp:343->source/swiftkv_attention.cpp:487]   --->   Operation 250 'or' 'most_significant_bit_14' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 251 [1/1] (0.27ns) (out node of the LUT)   --->   "%most_significant_bit_15 = select i1 %icmp_ln341_1, i5 %most_significant_bit_14, i5 %most_significant_bit_13" [source/swiftkv_attention.cpp:341->source/swiftkv_attention.cpp:487]   --->   Operation 251 'select' 'most_significant_bit_15' <Predicate = true> <Delay = 0.27> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.27> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 252 [1/1] (0.00ns) (grouped into LUT with out node most_significant_bit_17)   --->   "%tmp_159 = bitselect i1 @_ssdm_op_BitSelect.i1.i4.i32, i4 %probe_8, i32 3" [source/swiftkv_attention.cpp:345->source/swiftkv_attention.cpp:487]   --->   Operation 252 'bitselect' 'tmp_159' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 253 [1/1] (0.00ns) (grouped into LUT with out node most_significant_bit_17)   --->   "%tmp_160 = bitselect i1 @_ssdm_op_BitSelect.i1.i4.i32, i4 %probe_8, i32 1" [source/swiftkv_attention.cpp:345->source/swiftkv_attention.cpp:487]   --->   Operation 253 'bitselect' 'tmp_160' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 254 [1/1] (0.00ns) (grouped into LUT with out node most_significant_bit_17)   --->   "%select_ln341_2 = select i1 %icmp_ln341_1, i1 %tmp_159, i1 %tmp_160" [source/swiftkv_attention.cpp:341->source/swiftkv_attention.cpp:487]   --->   Operation 254 'select' 'select_ln341_2' <Predicate = true> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.27> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_8 : Operation 255 [1/1] (0.00ns) (grouped into LUT with out node most_significant_bit_17)   --->   "%most_significant_bit_16 = or i5 %most_significant_bit_15, i5 1" [source/swiftkv_attention.cpp:346->source/swiftkv_attention.cpp:487]   --->   Operation 255 'or' 'most_significant_bit_16' <Predicate = true> <Delay = 0.00>
+ST_8 : Operation 256 [1/1] (0.27ns) (out node of the LUT)   --->   "%most_significant_bit_17 = select i1 %select_ln341_2, i5 %most_significant_bit_16, i5 %most_significant_bit_15" [source/swiftkv_attention.cpp:345->source/swiftkv_attention.cpp:487]   --->   Operation 256 'select' 'most_significant_bit_17' <Predicate = true> <Delay = 0.27> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.27> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+
+State 9 <SV = 8> <Delay = 0.98>
+ST_9 : Operation 257 [1/1] (0.70ns)   --->   "%icmp_ln348_1 = icmp_ugt  i5 %most_significant_bit_8, i5 6" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485]   --->   Operation 257 'icmp' 'icmp_ln348_1' <Predicate = true> <Delay = 0.70> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_9 : Operation 258 [1/1] (0.00ns) (grouped into LUT with out node shift_k_1)   --->   "%and_ln348 = and i1 %icmp_ln348_1, i1 %icmp_ln348" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485]   --->   Operation 258 'and' 'and_ln348' <Predicate = true> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_9 : Operation 259 [1/1] (0.70ns)   --->   "%shift_k = add i5 %most_significant_bit_8, i5 26" [source/swiftkv_attention.cpp:349->source/swiftkv_attention.cpp:485]   --->   Operation 259 'add' 'shift_k' <Predicate = true> <Delay = 0.70> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_9 : Operation 260 [1/1] (0.27ns) (out node of the LUT)   --->   "%shift_k_1 = select i1 %and_ln348, i5 %shift_k, i5 0" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485]   --->   Operation 260 'select' 'shift_k_1' <Predicate = true> <Delay = 0.27> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.27> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_9 : Operation 261 [1/1] (0.70ns)   --->   "%icmp_ln348_3 = icmp_ugt  i5 %most_significant_bit_17, i5 6" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:487]   --->   Operation 261 'icmp' 'icmp_ln348_3' <Predicate = true> <Delay = 0.70> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_9 : Operation 262 [1/1] (0.00ns) (grouped into LUT with out node shift_v_1)   --->   "%and_ln348_1 = and i1 %icmp_ln348_3, i1 %icmp_ln348_2" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:487]   --->   Operation 262 'and' 'and_ln348_1' <Predicate = true> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.12> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_9 : Operation 263 [1/1] (0.70ns)   --->   "%shift_v = add i5 %most_significant_bit_17, i5 26" [source/swiftkv_attention.cpp:349->source/swiftkv_attention.cpp:487]   --->   Operation 263 'add' 'shift_v' <Predicate = true> <Delay = 0.70> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_9 : Operation 264 [1/1] (0.27ns) (out node of the LUT)   --->   "%shift_v_1 = select i1 %and_ln348_1, i5 %shift_v, i5 0" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:487]   --->   Operation 264 'select' 'shift_v_1' <Predicate = true> <Delay = 0.27> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.27> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+
+State 10 <SV = 9> <Delay = 1.56>
+ST_10 : Operation 265 [1/1] (0.70ns)   --->   "%cmp_i_i96_i275 = icmp_eq  i5 %shift_k_1, i5 0" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485]   --->   Operation 265 'icmp' 'cmp_i_i96_i275' <Predicate = true> <Delay = 0.70> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_10 : Operation 266 [1/1] (0.00ns)   --->   "%shift_k_2_cast = zext i5 %shift_k_1" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485]   --->   Operation 266 'zext' 'shift_k_2_cast' <Predicate = true> <Delay = 0.00>
+ST_10 : Operation 267 [1/1] (0.70ns)   --->   "%sub_i285 = add i6 %shift_k_2_cast, i6 63" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485]   --->   Operation 267 'add' 'sub_i285' <Predicate = true> <Delay = 0.70> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_10 : Operation 268 [1/1] (0.00ns)   --->   "%sub_i285_cast = sext i6 %sub_i285" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485]   --->   Operation 268 'sext' 'sub_i285_cast' <Predicate = true> <Delay = 0.00>
+ST_10 : Operation 269 [1/1] (0.70ns)   --->   "%cmp_i73_i288 = icmp_ne  i5 %shift_k_1, i5 0" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485]   --->   Operation 269 'icmp' 'cmp_i73_i288' <Predicate = true> <Delay = 0.70> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_10 : Operation 270 [1/1] (0.62ns)   --->   "%shl_i75_i291 = shl i32 1, i32 %sub_i285_cast" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485]   --->   Operation 270 'shl' 'shl_i75_i291' <Predicate = true> <Delay = 0.62> <CoreInst = "Shifter">   --->   Core 75 'Shifter' <Latency = 0> <II = 1> <Delay = 0.62> <FuncUnit> <Opcode : 'shl' 'lshr' 'ashr'> <InPorts = 2> <OutPorts = 1>
+ST_10 : Operation 271 [1/1] (0.70ns)   --->   "%sub_i78_i294 = sub i6 1, i6 %shift_k_2_cast" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485]   --->   Operation 271 'sub' 'sub_i78_i294' <Predicate = true> <Delay = 0.70> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_10 : Operation 272 [1/1] (0.00ns)   --->   "%sub_i78_i294_cast = sext i6 %sub_i78_i294" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485]   --->   Operation 272 'sext' 'sub_i78_i294_cast' <Predicate = true> <Delay = 0.00>
+ST_10 : Operation 273 [1/1] (0.62ns)   --->   "%shr_i79_i295 = lshr i32 1, i32 %sub_i78_i294_cast" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485]   --->   Operation 273 'lshr' 'shr_i79_i295' <Predicate = true> <Delay = 0.62> <CoreInst = "Shifter">   --->   Core 75 'Shifter' <Latency = 0> <II = 1> <Delay = 0.62> <FuncUnit> <Opcode : 'shl' 'lshr' 'ashr'> <InPorts = 2> <OutPorts = 1>
+ST_10 : Operation 274 [1/1] (0.70ns)   --->   "%cmp_i_i96_i = icmp_eq  i5 %shift_v_1, i5 0" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:487]   --->   Operation 274 'icmp' 'cmp_i_i96_i' <Predicate = true> <Delay = 0.70> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_10 : Operation 275 [1/1] (0.00ns)   --->   "%shift_v_2_cast = zext i5 %shift_v_1" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:487]   --->   Operation 275 'zext' 'shift_v_2_cast' <Predicate = true> <Delay = 0.00>
+ST_10 : Operation 276 [1/1] (0.70ns)   --->   "%sub_i = add i6 %shift_v_2_cast, i6 63" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:487]   --->   Operation 276 'add' 'sub_i' <Predicate = true> <Delay = 0.70> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_10 : Operation 277 [1/1] (0.00ns)   --->   "%sub_i_cast = sext i6 %sub_i" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:487]   --->   Operation 277 'sext' 'sub_i_cast' <Predicate = true> <Delay = 0.00>
+ST_10 : Operation 278 [1/1] (0.70ns)   --->   "%cmp_i73_i = icmp_ne  i5 %shift_v_1, i5 0" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:487]   --->   Operation 278 'icmp' 'cmp_i73_i' <Predicate = true> <Delay = 0.70> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_10 : Operation 279 [1/1] (0.62ns)   --->   "%shl_i75_i = shl i32 1, i32 %sub_i_cast" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:487]   --->   Operation 279 'shl' 'shl_i75_i' <Predicate = true> <Delay = 0.62> <CoreInst = "Shifter">   --->   Core 75 'Shifter' <Latency = 0> <II = 1> <Delay = 0.62> <FuncUnit> <Opcode : 'shl' 'lshr' 'ashr'> <InPorts = 2> <OutPorts = 1>
+ST_10 : Operation 280 [1/1] (0.70ns)   --->   "%sub_i78_i = sub i6 1, i6 %shift_v_2_cast" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:487]   --->   Operation 280 'sub' 'sub_i78_i' <Predicate = true> <Delay = 0.70> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_10 : Operation 281 [1/1] (0.00ns)   --->   "%sub_i78_i_cast = sext i6 %sub_i78_i" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:487]   --->   Operation 281 'sext' 'sub_i78_i_cast' <Predicate = true> <Delay = 0.00>
+ST_10 : Operation 282 [1/1] (0.62ns)   --->   "%shr_i79_i = lshr i32 1, i32 %sub_i78_i_cast" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:487]   --->   Operation 282 'lshr' 'shr_i79_i' <Predicate = true> <Delay = 0.62> <CoreInst = "Shifter">   --->   Core 75 'Shifter' <Latency = 0> <II = 1> <Delay = 0.62> <FuncUnit> <Opcode : 'shl' 'lshr' 'ashr'> <InPorts = 2> <OutPorts = 1>
+ST_10 : Operation 283 [1/1] (0.00ns) (grouped into LUT with out node rounding_1)   --->   "%rounding = select i1 %cmp_i73_i288, i32 %shl_i75_i291, i32 %shr_i79_i295" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485]   --->   Operation 283 'select' 'rounding' <Predicate = true> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_10 : Operation 284 [1/1] (0.22ns) (out node of the LUT)   --->   "%rounding_1 = select i1 %cmp_i_i96_i275, i32 0, i32 %rounding" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485]   --->   Operation 284 'select' 'rounding_1' <Predicate = true> <Delay = 0.22> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_10 : Operation 285 [1/1] (0.00ns) (grouped into LUT with out node rounding_3)   --->   "%rounding_2 = select i1 %cmp_i73_i, i32 %shl_i75_i, i32 %shr_i79_i" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:487]   --->   Operation 285 'select' 'rounding_2' <Predicate = true> <Delay = 0.00> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_10 : Operation 286 [1/1] (0.22ns) (out node of the LUT)   --->   "%rounding_3 = select i1 %cmp_i_i96_i, i32 0, i32 %rounding_2" [source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:487]   --->   Operation 286 'select' 'rounding_3' <Predicate = true> <Delay = 0.22> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.22> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+
+State 11 <SV = 10> <Delay = 2.34>
+ST_11 : Operation 287 [2/2] (2.34ns)   --->   "%call_ln436 = call void @swiftkv_quantize_kv_record_Pipeline_quantize_kv_group_block_loop, i32 %v_raw_34, i32 %v_raw_38, i32 %v_raw_42, i32 %v_raw_46, i32 %v_raw_50, i32 %v_raw_54, i32 %v_raw_58, i32 %v_raw_62, i32 %rounding_3, i5 %shift_v_1, i32 %k_raw_34, i32 %k_raw_38, i32 %k_raw_42, i32 %k_raw_46, i32 %k_raw_50, i32 %k_raw_54, i32 %k_raw_58, i32 %k_raw_62, i32 %rounding_1, i5 %shift_k_1, i32 %v_raw_33, i32 %v_raw_37, i32 %v_raw_41, i32 %v_raw_45, i32 %v_raw_49, i32 %v_raw_53, i32 %v_raw_57, i32 %v_raw_61, i32 %k_raw_33, i32 %k_raw_37, i32 %k_raw_41, i32 %k_raw_45, i32 %k_raw_49, i32 %k_raw_53, i32 %k_raw_57, i32 %k_raw_61, i32 %v_raw_32, i32 %v_raw_36, i32 %v_raw_40, i32 %v_raw_44, i32 %v_raw_48, i32 %v_raw_52, i32 %v_raw_56, i32 %v_raw_60, i32 %k_raw_32, i32 %k_raw_36, i32 %k_raw_40, i32 %k_raw_44, i32 %k_raw_48, i32 %k_raw_52, i32 %k_raw_56, i32 %k_raw_60, i32 %v_raw, i32 %v_raw_35, i32 %v_raw_39, i32 %v_raw_43, i32 %v_raw_47, i32 %v_raw_51, i32 %v_raw_55, i32 %v_raw_59, i32 %k_raw, i32 %k_raw_35, i32 %k_raw_39, i32 %k_raw_43, i32 %k_raw_47, i32 %k_raw_51, i32 %k_raw_55, i32 %k_raw_59, i8 %quantized_k_group_31_loc, i8 %quantized_k_group_30_loc, i8 %quantized_k_group_29_loc, i8 %quantized_k_group_28_loc, i8 %quantized_k_group_27_loc, i8 %quantized_k_group_26_loc, i8 %quantized_k_group_25_loc, i8 %quantized_k_group_24_loc, i8 %quantized_k_group_23_loc, i8 %quantized_k_group_22_loc, i8 %quantized_k_group_21_loc, i8 %quantized_k_group_20_loc, i8 %quantized_k_group_19_loc, i8 %quantized_k_group_18_loc, i8 %quantized_k_group_17_loc, i8 %quantized_k_group_16_loc, i8 %quantized_k_group_15_loc, i8 %quantized_k_group_14_loc, i8 %quantized_k_group_13_loc, i8 %quantized_k_group_12_loc, i8 %quantized_k_group_11_loc, i8 %quantized_k_group_10_loc, i8 %quantized_k_group_9_loc, i8 %quantized_k_group_8_loc, i8 %quantized_k_group_7_loc, i8 %quantized_k_group_6_loc, i8 %quantized_k_group_5_loc, i8 %quantized_k_group_4_loc, i8 %quantized_k_group_3_loc, i8 %quantized_k_group_2_loc, i8 %quantized_k_group_1_loc, i8 %quantized_k_group_loc, i8 %quantized_v_group_31_loc, i8 %quantized_v_group_30_loc, i8 %quantized_v_group_29_loc, i8 %quantized_v_group_28_loc, i8 %quantized_v_group_27_loc, i8 %quantized_v_group_26_loc, i8 %quantized_v_group_25_loc, i8 %quantized_v_group_24_loc, i8 %quantized_v_group_23_loc, i8 %quantized_v_group_22_loc, i8 %quantized_v_group_21_loc, i8 %quantized_v_group_20_loc, i8 %quantized_v_group_19_loc, i8 %quantized_v_group_18_loc, i8 %quantized_v_group_17_loc, i8 %quantized_v_group_16_loc, i8 %quantized_v_group_15_loc, i8 %quantized_v_group_14_loc, i8 %quantized_v_group_13_loc, i8 %quantized_v_group_12_loc, i8 %quantized_v_group_11_loc, i8 %quantized_v_group_10_loc, i8 %quantized_v_group_9_loc, i8 %quantized_v_group_8_loc, i8 %quantized_v_group_7_loc, i8 %quantized_v_group_6_loc, i8 %quantized_v_group_5_loc, i8 %quantized_v_group_4_loc, i8 %quantized_v_group_3_loc, i8 %quantized_v_group_2_loc, i8 %quantized_v_group_1_loc, i8 %quantized_v_group_loc" [source/swiftkv_attention.cpp:436]   --->   Operation 287 'call' 'call_ln436' <Predicate = true> <Delay = 2.34> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+
+State 12 <SV = 11> <Delay = 0.00>
+ST_12 : Operation 288 [1/2] (0.00ns)   --->   "%call_ln436 = call void @swiftkv_quantize_kv_record_Pipeline_quantize_kv_group_block_loop, i32 %v_raw_34, i32 %v_raw_38, i32 %v_raw_42, i32 %v_raw_46, i32 %v_raw_50, i32 %v_raw_54, i32 %v_raw_58, i32 %v_raw_62, i32 %rounding_3, i5 %shift_v_1, i32 %k_raw_34, i32 %k_raw_38, i32 %k_raw_42, i32 %k_raw_46, i32 %k_raw_50, i32 %k_raw_54, i32 %k_raw_58, i32 %k_raw_62, i32 %rounding_1, i5 %shift_k_1, i32 %v_raw_33, i32 %v_raw_37, i32 %v_raw_41, i32 %v_raw_45, i32 %v_raw_49, i32 %v_raw_53, i32 %v_raw_57, i32 %v_raw_61, i32 %k_raw_33, i32 %k_raw_37, i32 %k_raw_41, i32 %k_raw_45, i32 %k_raw_49, i32 %k_raw_53, i32 %k_raw_57, i32 %k_raw_61, i32 %v_raw_32, i32 %v_raw_36, i32 %v_raw_40, i32 %v_raw_44, i32 %v_raw_48, i32 %v_raw_52, i32 %v_raw_56, i32 %v_raw_60, i32 %k_raw_32, i32 %k_raw_36, i32 %k_raw_40, i32 %k_raw_44, i32 %k_raw_48, i32 %k_raw_52, i32 %k_raw_56, i32 %k_raw_60, i32 %v_raw, i32 %v_raw_35, i32 %v_raw_39, i32 %v_raw_43, i32 %v_raw_47, i32 %v_raw_51, i32 %v_raw_55, i32 %v_raw_59, i32 %k_raw, i32 %k_raw_35, i32 %k_raw_39, i32 %k_raw_43, i32 %k_raw_47, i32 %k_raw_51, i32 %k_raw_55, i32 %k_raw_59, i8 %quantized_k_group_31_loc, i8 %quantized_k_group_30_loc, i8 %quantized_k_group_29_loc, i8 %quantized_k_group_28_loc, i8 %quantized_k_group_27_loc, i8 %quantized_k_group_26_loc, i8 %quantized_k_group_25_loc, i8 %quantized_k_group_24_loc, i8 %quantized_k_group_23_loc, i8 %quantized_k_group_22_loc, i8 %quantized_k_group_21_loc, i8 %quantized_k_group_20_loc, i8 %quantized_k_group_19_loc, i8 %quantized_k_group_18_loc, i8 %quantized_k_group_17_loc, i8 %quantized_k_group_16_loc, i8 %quantized_k_group_15_loc, i8 %quantized_k_group_14_loc, i8 %quantized_k_group_13_loc, i8 %quantized_k_group_12_loc, i8 %quantized_k_group_11_loc, i8 %quantized_k_group_10_loc, i8 %quantized_k_group_9_loc, i8 %quantized_k_group_8_loc, i8 %quantized_k_group_7_loc, i8 %quantized_k_group_6_loc, i8 %quantized_k_group_5_loc, i8 %quantized_k_group_4_loc, i8 %quantized_k_group_3_loc, i8 %quantized_k_group_2_loc, i8 %quantized_k_group_1_loc, i8 %quantized_k_group_loc, i8 %quantized_v_group_31_loc, i8 %quantized_v_group_30_loc, i8 %quantized_v_group_29_loc, i8 %quantized_v_group_28_loc, i8 %quantized_v_group_27_loc, i8 %quantized_v_group_26_loc, i8 %quantized_v_group_25_loc, i8 %quantized_v_group_24_loc, i8 %quantized_v_group_23_loc, i8 %quantized_v_group_22_loc, i8 %quantized_v_group_21_loc, i8 %quantized_v_group_20_loc, i8 %quantized_v_group_19_loc, i8 %quantized_v_group_18_loc, i8 %quantized_v_group_17_loc, i8 %quantized_v_group_16_loc, i8 %quantized_v_group_15_loc, i8 %quantized_v_group_14_loc, i8 %quantized_v_group_13_loc, i8 %quantized_v_group_12_loc, i8 %quantized_v_group_11_loc, i8 %quantized_v_group_10_loc, i8 %quantized_v_group_9_loc, i8 %quantized_v_group_8_loc, i8 %quantized_v_group_7_loc, i8 %quantized_v_group_6_loc, i8 %quantized_v_group_5_loc, i8 %quantized_v_group_4_loc, i8 %quantized_v_group_3_loc, i8 %quantized_v_group_2_loc, i8 %quantized_v_group_1_loc, i8 %quantized_v_group_loc" [source/swiftkv_attention.cpp:436]   --->   Operation 288 'call' 'call_ln436' <Predicate = true> <Delay = 0.00> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+
+State 13 <SV = 12> <Delay = 2.32>
+ST_13 : Operation 289 [1/1] (0.00ns)   --->   "%metadata_load = load i512 %metadata" [source/swiftkv_attention.cpp:491]   --->   Operation 289 'load' 'metadata_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 290 [1/1] (0.00ns)   --->   "%speclooptripcount_ln393 = speclooptripcount void @_ssdm_op_SpecLoopTripCount, i64 4, i64 4, i64 4" [source/swiftkv_attention.cpp:393]   --->   Operation 290 'speclooptripcount' 'speclooptripcount_ln393' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 291 [1/1] (0.00ns)   --->   "%specloopname_ln400 = specloopname void @_ssdm_op_SpecLoopName, void @empty_464" [source/swiftkv_attention.cpp:400]   --->   Operation 291 'specloopname' 'specloopname_ln400' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 292 [1/1] (0.00ns)   --->   "%quantized_k_group_31_loc_load = load i8 %quantized_k_group_31_loc"   --->   Operation 292 'load' 'quantized_k_group_31_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 293 [1/1] (0.00ns)   --->   "%quantized_k_group_30_loc_load = load i8 %quantized_k_group_30_loc"   --->   Operation 293 'load' 'quantized_k_group_30_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 294 [1/1] (0.00ns)   --->   "%quantized_k_group_29_loc_load = load i8 %quantized_k_group_29_loc"   --->   Operation 294 'load' 'quantized_k_group_29_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 295 [1/1] (0.00ns)   --->   "%quantized_k_group_28_loc_load = load i8 %quantized_k_group_28_loc"   --->   Operation 295 'load' 'quantized_k_group_28_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 296 [1/1] (0.00ns)   --->   "%quantized_k_group_27_loc_load = load i8 %quantized_k_group_27_loc"   --->   Operation 296 'load' 'quantized_k_group_27_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 297 [1/1] (0.00ns)   --->   "%quantized_k_group_26_loc_load = load i8 %quantized_k_group_26_loc"   --->   Operation 297 'load' 'quantized_k_group_26_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 298 [1/1] (0.00ns)   --->   "%quantized_k_group_25_loc_load = load i8 %quantized_k_group_25_loc"   --->   Operation 298 'load' 'quantized_k_group_25_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 299 [1/1] (0.00ns)   --->   "%quantized_k_group_24_loc_load = load i8 %quantized_k_group_24_loc"   --->   Operation 299 'load' 'quantized_k_group_24_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 300 [1/1] (0.00ns)   --->   "%quantized_k_group_23_loc_load = load i8 %quantized_k_group_23_loc"   --->   Operation 300 'load' 'quantized_k_group_23_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 301 [1/1] (0.00ns)   --->   "%quantized_k_group_22_loc_load = load i8 %quantized_k_group_22_loc"   --->   Operation 301 'load' 'quantized_k_group_22_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 302 [1/1] (0.00ns)   --->   "%quantized_k_group_21_loc_load = load i8 %quantized_k_group_21_loc"   --->   Operation 302 'load' 'quantized_k_group_21_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 303 [1/1] (0.00ns)   --->   "%quantized_k_group_20_loc_load = load i8 %quantized_k_group_20_loc"   --->   Operation 303 'load' 'quantized_k_group_20_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 304 [1/1] (0.00ns)   --->   "%quantized_k_group_19_loc_load = load i8 %quantized_k_group_19_loc"   --->   Operation 304 'load' 'quantized_k_group_19_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 305 [1/1] (0.00ns)   --->   "%quantized_k_group_18_loc_load = load i8 %quantized_k_group_18_loc"   --->   Operation 305 'load' 'quantized_k_group_18_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 306 [1/1] (0.00ns)   --->   "%quantized_k_group_17_loc_load = load i8 %quantized_k_group_17_loc"   --->   Operation 306 'load' 'quantized_k_group_17_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 307 [1/1] (0.00ns)   --->   "%quantized_k_group_16_loc_load = load i8 %quantized_k_group_16_loc"   --->   Operation 307 'load' 'quantized_k_group_16_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 308 [1/1] (0.00ns)   --->   "%quantized_k_group_15_loc_load = load i8 %quantized_k_group_15_loc"   --->   Operation 308 'load' 'quantized_k_group_15_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 309 [1/1] (0.00ns)   --->   "%quantized_k_group_14_loc_load = load i8 %quantized_k_group_14_loc"   --->   Operation 309 'load' 'quantized_k_group_14_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 310 [1/1] (0.00ns)   --->   "%quantized_k_group_13_loc_load = load i8 %quantized_k_group_13_loc"   --->   Operation 310 'load' 'quantized_k_group_13_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 311 [1/1] (0.00ns)   --->   "%quantized_k_group_12_loc_load = load i8 %quantized_k_group_12_loc"   --->   Operation 311 'load' 'quantized_k_group_12_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 312 [1/1] (0.00ns)   --->   "%quantized_k_group_11_loc_load = load i8 %quantized_k_group_11_loc"   --->   Operation 312 'load' 'quantized_k_group_11_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 313 [1/1] (0.00ns)   --->   "%quantized_k_group_10_loc_load = load i8 %quantized_k_group_10_loc"   --->   Operation 313 'load' 'quantized_k_group_10_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 314 [1/1] (0.00ns)   --->   "%quantized_k_group_9_loc_load = load i8 %quantized_k_group_9_loc"   --->   Operation 314 'load' 'quantized_k_group_9_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 315 [1/1] (0.00ns)   --->   "%quantized_k_group_8_loc_load = load i8 %quantized_k_group_8_loc"   --->   Operation 315 'load' 'quantized_k_group_8_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 316 [1/1] (0.00ns)   --->   "%quantized_k_group_7_loc_load = load i8 %quantized_k_group_7_loc"   --->   Operation 316 'load' 'quantized_k_group_7_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 317 [1/1] (0.00ns)   --->   "%quantized_k_group_6_loc_load = load i8 %quantized_k_group_6_loc"   --->   Operation 317 'load' 'quantized_k_group_6_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 318 [1/1] (0.00ns)   --->   "%quantized_k_group_5_loc_load = load i8 %quantized_k_group_5_loc"   --->   Operation 318 'load' 'quantized_k_group_5_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 319 [1/1] (0.00ns)   --->   "%quantized_k_group_4_loc_load = load i8 %quantized_k_group_4_loc"   --->   Operation 319 'load' 'quantized_k_group_4_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 320 [1/1] (0.00ns)   --->   "%quantized_k_group_3_loc_load = load i8 %quantized_k_group_3_loc"   --->   Operation 320 'load' 'quantized_k_group_3_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 321 [1/1] (0.00ns)   --->   "%quantized_k_group_2_loc_load = load i8 %quantized_k_group_2_loc"   --->   Operation 321 'load' 'quantized_k_group_2_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 322 [1/1] (0.00ns)   --->   "%quantized_k_group_1_loc_load = load i8 %quantized_k_group_1_loc"   --->   Operation 322 'load' 'quantized_k_group_1_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 323 [1/1] (0.00ns)   --->   "%quantized_k_group_loc_load = load i8 %quantized_k_group_loc"   --->   Operation 323 'load' 'quantized_k_group_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 324 [1/1] (0.00ns)   --->   "%quantized_v_group_31_loc_load = load i8 %quantized_v_group_31_loc"   --->   Operation 324 'load' 'quantized_v_group_31_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 325 [1/1] (0.00ns)   --->   "%quantized_v_group_30_loc_load = load i8 %quantized_v_group_30_loc"   --->   Operation 325 'load' 'quantized_v_group_30_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 326 [1/1] (0.00ns)   --->   "%quantized_v_group_29_loc_load = load i8 %quantized_v_group_29_loc"   --->   Operation 326 'load' 'quantized_v_group_29_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 327 [1/1] (0.00ns)   --->   "%quantized_v_group_28_loc_load = load i8 %quantized_v_group_28_loc"   --->   Operation 327 'load' 'quantized_v_group_28_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 328 [1/1] (0.00ns)   --->   "%quantized_v_group_27_loc_load = load i8 %quantized_v_group_27_loc"   --->   Operation 328 'load' 'quantized_v_group_27_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 329 [1/1] (0.00ns)   --->   "%quantized_v_group_26_loc_load = load i8 %quantized_v_group_26_loc"   --->   Operation 329 'load' 'quantized_v_group_26_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 330 [1/1] (0.00ns)   --->   "%quantized_v_group_25_loc_load = load i8 %quantized_v_group_25_loc"   --->   Operation 330 'load' 'quantized_v_group_25_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 331 [1/1] (0.00ns)   --->   "%quantized_v_group_24_loc_load = load i8 %quantized_v_group_24_loc"   --->   Operation 331 'load' 'quantized_v_group_24_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 332 [1/1] (0.00ns)   --->   "%quantized_v_group_23_loc_load = load i8 %quantized_v_group_23_loc"   --->   Operation 332 'load' 'quantized_v_group_23_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 333 [1/1] (0.00ns)   --->   "%quantized_v_group_22_loc_load = load i8 %quantized_v_group_22_loc"   --->   Operation 333 'load' 'quantized_v_group_22_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 334 [1/1] (0.00ns)   --->   "%quantized_v_group_21_loc_load = load i8 %quantized_v_group_21_loc"   --->   Operation 334 'load' 'quantized_v_group_21_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 335 [1/1] (0.00ns)   --->   "%quantized_v_group_20_loc_load = load i8 %quantized_v_group_20_loc"   --->   Operation 335 'load' 'quantized_v_group_20_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 336 [1/1] (0.00ns)   --->   "%quantized_v_group_19_loc_load = load i8 %quantized_v_group_19_loc"   --->   Operation 336 'load' 'quantized_v_group_19_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 337 [1/1] (0.00ns)   --->   "%quantized_v_group_18_loc_load = load i8 %quantized_v_group_18_loc"   --->   Operation 337 'load' 'quantized_v_group_18_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 338 [1/1] (0.00ns)   --->   "%quantized_v_group_17_loc_load = load i8 %quantized_v_group_17_loc"   --->   Operation 338 'load' 'quantized_v_group_17_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 339 [1/1] (0.00ns)   --->   "%quantized_v_group_16_loc_load = load i8 %quantized_v_group_16_loc"   --->   Operation 339 'load' 'quantized_v_group_16_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 340 [1/1] (0.00ns)   --->   "%quantized_v_group_15_loc_load = load i8 %quantized_v_group_15_loc"   --->   Operation 340 'load' 'quantized_v_group_15_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 341 [1/1] (0.00ns)   --->   "%quantized_v_group_14_loc_load = load i8 %quantized_v_group_14_loc"   --->   Operation 341 'load' 'quantized_v_group_14_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 342 [1/1] (0.00ns)   --->   "%quantized_v_group_13_loc_load = load i8 %quantized_v_group_13_loc"   --->   Operation 342 'load' 'quantized_v_group_13_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 343 [1/1] (0.00ns)   --->   "%quantized_v_group_12_loc_load = load i8 %quantized_v_group_12_loc"   --->   Operation 343 'load' 'quantized_v_group_12_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 344 [1/1] (0.00ns)   --->   "%quantized_v_group_11_loc_load = load i8 %quantized_v_group_11_loc"   --->   Operation 344 'load' 'quantized_v_group_11_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 345 [1/1] (0.00ns)   --->   "%quantized_v_group_10_loc_load = load i8 %quantized_v_group_10_loc"   --->   Operation 345 'load' 'quantized_v_group_10_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 346 [1/1] (0.00ns)   --->   "%quantized_v_group_9_loc_load = load i8 %quantized_v_group_9_loc"   --->   Operation 346 'load' 'quantized_v_group_9_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 347 [1/1] (0.00ns)   --->   "%quantized_v_group_8_loc_load = load i8 %quantized_v_group_8_loc"   --->   Operation 347 'load' 'quantized_v_group_8_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 348 [1/1] (0.00ns)   --->   "%quantized_v_group_7_loc_load = load i8 %quantized_v_group_7_loc"   --->   Operation 348 'load' 'quantized_v_group_7_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 349 [1/1] (0.00ns)   --->   "%quantized_v_group_6_loc_load = load i8 %quantized_v_group_6_loc"   --->   Operation 349 'load' 'quantized_v_group_6_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 350 [1/1] (0.00ns)   --->   "%quantized_v_group_5_loc_load = load i8 %quantized_v_group_5_loc"   --->   Operation 350 'load' 'quantized_v_group_5_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 351 [1/1] (0.00ns)   --->   "%quantized_v_group_4_loc_load = load i8 %quantized_v_group_4_loc"   --->   Operation 351 'load' 'quantized_v_group_4_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 352 [1/1] (0.00ns)   --->   "%quantized_v_group_3_loc_load = load i8 %quantized_v_group_3_loc"   --->   Operation 352 'load' 'quantized_v_group_3_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 353 [1/1] (0.00ns)   --->   "%quantized_v_group_2_loc_load = load i8 %quantized_v_group_2_loc"   --->   Operation 353 'load' 'quantized_v_group_2_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 354 [1/1] (0.00ns)   --->   "%quantized_v_group_1_loc_load = load i8 %quantized_v_group_1_loc"   --->   Operation 354 'load' 'quantized_v_group_1_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 355 [1/1] (0.00ns)   --->   "%quantized_v_group_loc_load = load i8 %quantized_v_group_loc"   --->   Operation 355 'load' 'quantized_v_group_loc_load' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 356 [1/1] (0.00ns)   --->   "%or_ln = bitconcatenate i4 @_ssdm_op_BitConcatenate.i4.i2.i2, i2 %trunc_ln413, i2 %trunc_ln413" [source/swiftkv_attention.cpp:494]   --->   Operation 356 'bitconcatenate' 'or_ln' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 357 [1/1] (0.00ns)   --->   "%zext_ln491 = zext i4 %or_ln" [source/swiftkv_attention.cpp:491]   --->   Operation 357 'zext' 'zext_ln491' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 358 [1/1] (0.00ns)   --->   "%zext_ln491_1 = zext i4 %or_ln" [source/swiftkv_attention.cpp:491]   --->   Operation 358 'zext' 'zext_ln491_1' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 359 [1/1] (0.62ns)   --->   "%shl_ln491 = shl i20 31, i20 %zext_ln491_1" [source/swiftkv_attention.cpp:491]   --->   Operation 359 'shl' 'shl_ln491' <Predicate = true> <Delay = 0.62> <CoreInst = "Shifter">   --->   Core 75 'Shifter' <Latency = 0> <II = 1> <Delay = 0.62> <FuncUnit> <Opcode : 'shl' 'lshr' 'ashr'> <InPorts = 2> <OutPorts = 1>
+ST_13 : Operation 360 [1/1] (0.00ns) (grouped into LUT with out node and_ln491)   --->   "%zext_ln491_2 = zext i20 %shl_ln491" [source/swiftkv_attention.cpp:491]   --->   Operation 360 'zext' 'zext_ln491_2' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 361 [1/1] (0.00ns) (grouped into LUT with out node and_ln491)   --->   "%xor_ln491 = xor i21 %zext_ln491_2, i21 2097151" [source/swiftkv_attention.cpp:491]   --->   Operation 361 'xor' 'xor_ln491' <Predicate = true> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.24> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_13 : Operation 362 [1/1] (0.00ns) (grouped into LUT with out node and_ln491)   --->   "%sext_ln491 = sext i21 %xor_ln491" [source/swiftkv_attention.cpp:491]   --->   Operation 362 'sext' 'sext_ln491' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 363 [1/1] (0.29ns) (out node of the LUT)   --->   "%and_ln491 = and i512 %metadata_load, i512 %sext_ln491" [source/swiftkv_attention.cpp:491]   --->   Operation 363 'and' 'and_ln491' <Predicate = true> <Delay = 0.29> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.29> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_13 : Operation 364 [1/1] (0.00ns)   --->   "%zext_ln491_3 = zext i5 %shift_k_1" [source/swiftkv_attention.cpp:491]   --->   Operation 364 'zext' 'zext_ln491_3' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 365 [1/1] (0.59ns)   --->   "%shl_ln491_1 = shl i20 %zext_ln491_3, i20 %zext_ln491_1" [source/swiftkv_attention.cpp:491]   --->   Operation 365 'shl' 'shl_ln491_1' <Predicate = true> <Delay = 0.59> <CoreInst = "Shifter">   --->   Core 75 'Shifter' <Latency = 0> <II = 1> <Delay = 0.59> <FuncUnit> <Opcode : 'shl' 'lshr' 'ashr'> <InPorts = 2> <OutPorts = 1>
+ST_13 : Operation 366 [1/1] (0.00ns) (grouped into LUT with out node and_ln498)   --->   "%trunc_ln491 = trunc i512 %and_ln491" [source/swiftkv_attention.cpp:491]   --->   Operation 366 'trunc' 'trunc_ln491' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 367 [1/1] (0.00ns) (grouped into LUT with out node and_ln498)   --->   "%or_ln491 = or i20 %trunc_ln491, i20 %shl_ln491_1" [source/swiftkv_attention.cpp:491]   --->   Operation 367 'or' 'or_ln491' <Predicate = true> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.24> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_13 : Operation 368 [1/1] (0.00ns) (grouped into LUT with out node and_ln498)   --->   "%tmp_161 = partselect i492 @_ssdm_op_PartSelect.i492.i512.i32.i32, i512 %and_ln491, i32 20, i32 511" [source/swiftkv_attention.cpp:491]   --->   Operation 368 'partselect' 'tmp_161' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 369 [1/1] (0.00ns) (grouped into LUT with out node and_ln498)   --->   "%metadata_1 = bitconcatenate i512 @_ssdm_op_BitConcatenate.i512.i492.i20, i492 %tmp_161, i20 %or_ln491" [source/swiftkv_attention.cpp:491]   --->   Operation 369 'bitconcatenate' 'metadata_1' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 370 [1/1] (0.70ns)   --->   "%add_ln498 = add i6 %zext_ln491, i6 20" [source/swiftkv_attention.cpp:498]   --->   Operation 370 'add' 'add_ln498' <Predicate = true> <Delay = 0.70> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.70> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_13 : Operation 371 [1/1] (0.00ns)   --->   "%zext_ln498 = zext i6 %add_ln498" [source/swiftkv_attention.cpp:498]   --->   Operation 371 'zext' 'zext_ln498' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 372 [1/1] (0.62ns)   --->   "%shl_ln498 = shl i40 31, i40 %zext_ln498" [source/swiftkv_attention.cpp:498]   --->   Operation 372 'shl' 'shl_ln498' <Predicate = true> <Delay = 0.62> <CoreInst = "Shifter">   --->   Core 75 'Shifter' <Latency = 0> <II = 1> <Delay = 0.62> <FuncUnit> <Opcode : 'shl' 'lshr' 'ashr'> <InPorts = 2> <OutPorts = 1>
+ST_13 : Operation 373 [1/1] (0.00ns) (grouped into LUT with out node and_ln498)   --->   "%zext_ln498_1 = zext i40 %shl_ln498" [source/swiftkv_attention.cpp:498]   --->   Operation 373 'zext' 'zext_ln498_1' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 374 [1/1] (0.00ns) (grouped into LUT with out node and_ln498)   --->   "%xor_ln498 = xor i41 %zext_ln498_1, i41 2199023255551" [source/swiftkv_attention.cpp:498]   --->   Operation 374 'xor' 'xor_ln498' <Predicate = true> <Delay = 0.00> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.30> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_13 : Operation 375 [1/1] (0.00ns) (grouped into LUT with out node and_ln498)   --->   "%sext_ln498 = sext i41 %xor_ln498" [source/swiftkv_attention.cpp:498]   --->   Operation 375 'sext' 'sext_ln498' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 376 [1/1] (0.30ns) (out node of the LUT)   --->   "%and_ln498 = and i512 %metadata_1, i512 %sext_ln498" [source/swiftkv_attention.cpp:498]   --->   Operation 376 'and' 'and_ln498' <Predicate = true> <Delay = 0.30> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.29> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_13 : Operation 377 [1/1] (0.00ns)   --->   "%zext_ln498_2 = zext i5 %shift_v_1" [source/swiftkv_attention.cpp:498]   --->   Operation 377 'zext' 'zext_ln498_2' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 378 [1/1] (0.62ns)   --->   "%shl_ln498_1 = shl i40 %zext_ln498_2, i40 %zext_ln498" [source/swiftkv_attention.cpp:498]   --->   Operation 378 'shl' 'shl_ln498_1' <Predicate = true> <Delay = 0.62> <CoreInst = "Shifter">   --->   Core 75 'Shifter' <Latency = 0> <II = 1> <Delay = 0.62> <FuncUnit> <Opcode : 'shl' 'lshr' 'ashr'> <InPorts = 2> <OutPorts = 1>
+ST_13 : Operation 379 [1/1] (0.00ns)   --->   "%trunc_ln498 = trunc i512 %and_ln498" [source/swiftkv_attention.cpp:498]   --->   Operation 379 'trunc' 'trunc_ln498' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 380 [1/1] (0.30ns)   --->   "%or_ln498 = or i40 %trunc_ln498, i40 %shl_ln498_1" [source/swiftkv_attention.cpp:498]   --->   Operation 380 'or' 'or_ln498' <Predicate = true> <Delay = 0.30> <CoreInst = "LogicGate">   --->   Core 74 'LogicGate' <Latency = 0> <II = 1> <Delay = 0.30> <FuncUnit> <Opcode : 'and' 'or' 'xor'> <InPorts = 2> <OutPorts = 1>
+ST_13 : Operation 381 [1/1] (0.00ns)   --->   "%tmp_162 = partselect i472 @_ssdm_op_PartSelect.i472.i512.i32.i32, i512 %and_ln498, i32 40, i32 511" [source/swiftkv_attention.cpp:498]   --->   Operation 381 'partselect' 'tmp_162' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 382 [1/1] (0.00ns)   --->   "%metadata_2 = bitconcatenate i512 @_ssdm_op_BitConcatenate.i512.i472.i40, i472 %tmp_162, i40 %or_ln498" [source/swiftkv_attention.cpp:498]   --->   Operation 382 'bitconcatenate' 'metadata_2' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 383 [1/1] (0.00ns)   --->   "%packed_k_group = bitconcatenate i256 @_ssdm_op_BitConcatenate.i256.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8, i8 %quantized_k_group_loc_load, i8 %quantized_k_group_1_loc_load, i8 %quantized_k_group_2_loc_load, i8 %quantized_k_group_3_loc_load, i8 %quantized_k_group_4_loc_load, i8 %quantized_k_group_5_loc_load, i8 %quantized_k_group_6_loc_load, i8 %quantized_k_group_7_loc_load, i8 %quantized_k_group_8_loc_load, i8 %quantized_k_group_9_loc_load, i8 %quantized_k_group_10_loc_load, i8 %quantized_k_group_11_loc_load, i8 %quantized_k_group_12_loc_load, i8 %quantized_k_group_13_loc_load, i8 %quantized_k_group_14_loc_load, i8 %quantized_k_group_15_loc_load, i8 %quantized_k_group_16_loc_load, i8 %quantized_k_group_17_loc_load, i8 %quantized_k_group_18_loc_load, i8 %quantized_k_group_19_loc_load, i8 %quantized_k_group_20_loc_load, i8 %quantized_k_group_21_loc_load, i8 %quantized_k_group_22_loc_load, i8 %quantized_k_group_23_loc_load, i8 %quantized_k_group_24_loc_load, i8 %quantized_k_group_25_loc_load, i8 %quantized_k_group_26_loc_load, i8 %quantized_k_group_27_loc_load, i8 %quantized_k_group_28_loc_load, i8 %quantized_k_group_29_loc_load, i8 %quantized_k_group_30_loc_load, i8 %quantized_k_group_31_loc_load" [source/swiftkv_attention.cpp:524]   --->   Operation 383 'bitconcatenate' 'packed_k_group' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 384 [1/1] (0.00ns)   --->   "%packed_v_group = bitconcatenate i256 @_ssdm_op_BitConcatenate.i256.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8.i8, i8 %quantized_v_group_loc_load, i8 %quantized_v_group_1_loc_load, i8 %quantized_v_group_2_loc_load, i8 %quantized_v_group_3_loc_load, i8 %quantized_v_group_4_loc_load, i8 %quantized_v_group_5_loc_load, i8 %quantized_v_group_6_loc_load, i8 %quantized_v_group_7_loc_load, i8 %quantized_v_group_8_loc_load, i8 %quantized_v_group_9_loc_load, i8 %quantized_v_group_10_loc_load, i8 %quantized_v_group_11_loc_load, i8 %quantized_v_group_12_loc_load, i8 %quantized_v_group_13_loc_load, i8 %quantized_v_group_14_loc_load, i8 %quantized_v_group_15_loc_load, i8 %quantized_v_group_16_loc_load, i8 %quantized_v_group_17_loc_load, i8 %quantized_v_group_18_loc_load, i8 %quantized_v_group_19_loc_load, i8 %quantized_v_group_20_loc_load, i8 %quantized_v_group_21_loc_load, i8 %quantized_v_group_22_loc_load, i8 %quantized_v_group_23_loc_load, i8 %quantized_v_group_24_loc_load, i8 %quantized_v_group_25_loc_load, i8 %quantized_v_group_26_loc_load, i8 %quantized_v_group_27_loc_load, i8 %quantized_v_group_28_loc_load, i8 %quantized_v_group_29_loc_load, i8 %quantized_v_group_30_loc_load, i8 %quantized_v_group_31_loc_load" [source/swiftkv_attention.cpp:526]   --->   Operation 384 'bitconcatenate' 'packed_v_group' <Predicate = true> <Delay = 0.00>
+ST_13 : Operation 385 [1/1] (0.66ns)   --->   "%switch_ln530 = switch i2 %trunc_ln413, void %arrayidx198.case.3, i2 0, void %unpack_kv_group_loop.split.arrayidx198.exit_crit_edge, i2 1, void %arrayidx198.case.1, i2 2, void %arrayidx198.case.2" [source/swiftkv_attention.cpp:530]   --->   Operation 385 'switch' 'switch_ln530' <Predicate = true> <Delay = 0.66>
+ST_13 : Operation 386 [1/1] (0.00ns)   --->   "%store_ln526 = store i256 %packed_v_group, i256 %empty_734" [source/swiftkv_attention.cpp:526]   --->   Operation 386 'store' 'store_ln526' <Predicate = (trunc_ln413 == 2)> <Delay = 0.00>
+ST_13 : Operation 387 [1/1] (0.00ns)   --->   "%store_ln524 = store i256 %packed_k_group, i256 %empty_730" [source/swiftkv_attention.cpp:524]   --->   Operation 387 'store' 'store_ln524' <Predicate = (trunc_ln413 == 2)> <Delay = 0.00>
+ST_13 : Operation 388 [1/1] (0.00ns)   --->   "%br_ln531 = br void %arrayidx198.exit" [source/swiftkv_attention.cpp:531]   --->   Operation 388 'br' 'br_ln531' <Predicate = (trunc_ln413 == 2)> <Delay = 0.00>
+ST_13 : Operation 389 [1/1] (0.00ns)   --->   "%store_ln526 = store i256 %packed_v_group, i256 %empty_733" [source/swiftkv_attention.cpp:526]   --->   Operation 389 'store' 'store_ln526' <Predicate = (trunc_ln413 == 1)> <Delay = 0.00>
+ST_13 : Operation 390 [1/1] (0.00ns)   --->   "%store_ln524 = store i256 %packed_k_group, i256 %empty_729" [source/swiftkv_attention.cpp:524]   --->   Operation 390 'store' 'store_ln524' <Predicate = (trunc_ln413 == 1)> <Delay = 0.00>
+ST_13 : Operation 391 [1/1] (0.00ns)   --->   "%br_ln531 = br void %arrayidx198.exit" [source/swiftkv_attention.cpp:531]   --->   Operation 391 'br' 'br_ln531' <Predicate = (trunc_ln413 == 1)> <Delay = 0.00>
+ST_13 : Operation 392 [1/1] (0.00ns)   --->   "%store_ln526 = store i256 %packed_v_group, i256 %empty_732" [source/swiftkv_attention.cpp:526]   --->   Operation 392 'store' 'store_ln526' <Predicate = (trunc_ln413 == 0)> <Delay = 0.00>
+ST_13 : Operation 393 [1/1] (0.00ns)   --->   "%store_ln524 = store i256 %packed_k_group, i256 %empty" [source/swiftkv_attention.cpp:524]   --->   Operation 393 'store' 'store_ln524' <Predicate = (trunc_ln413 == 0)> <Delay = 0.00>
+ST_13 : Operation 394 [1/1] (0.00ns)   --->   "%br_ln530 = br void %arrayidx198.exit" [source/swiftkv_attention.cpp:530]   --->   Operation 394 'br' 'br_ln530' <Predicate = (trunc_ln413 == 0)> <Delay = 0.00>
+ST_13 : Operation 395 [1/1] (0.00ns)   --->   "%store_ln526 = store i256 %packed_v_group, i256 %empty_735" [source/swiftkv_attention.cpp:526]   --->   Operation 395 'store' 'store_ln526' <Predicate = (trunc_ln413 == 3)> <Delay = 0.00>
+ST_13 : Operation 396 [1/1] (0.00ns)   --->   "%store_ln524 = store i256 %packed_k_group, i256 %empty_731" [source/swiftkv_attention.cpp:524]   --->   Operation 396 'store' 'store_ln524' <Predicate = (trunc_ln413 == 3)> <Delay = 0.00>
+ST_13 : Operation 397 [1/1] (0.00ns)   --->   "%br_ln531 = br void %arrayidx198.exit" [source/swiftkv_attention.cpp:531]   --->   Operation 397 'br' 'br_ln531' <Predicate = (trunc_ln413 == 3)> <Delay = 0.00>
+ST_13 : Operation 398 [1/1] (0.38ns)   --->   "%store_ln400 = store i3 %add_ln402, i3 %group" [source/swiftkv_attention.cpp:400]   --->   Operation 398 'store' 'store_ln400' <Predicate = true> <Delay = 0.38>
+ST_13 : Operation 399 [1/1] (0.38ns)   --->   "%store_ln393 = store i512 %metadata_2, i512 %metadata" [source/swiftkv_attention.cpp:393]   --->   Operation 399 'store' 'store_ln393' <Predicate = true> <Delay = 0.38>
+ST_13 : Operation 400 [1/1] (0.00ns)   --->   "%br_ln400 = br void %unpack_kv_group_loop" [source/swiftkv_attention.cpp:400]   --->   Operation 400 'br' 'br_ln400' <Predicate = true> <Delay = 0.00>
+
+
+============================================================
++ Verbose Summary: Timing violations
+============================================================
+Target clock period: 3.333ns, clock uncertainty: 0.900ns.
+
+ <State 1>: 0.387ns
+The critical path consists of the following:
+	'alloca' operation 3 bit ('group', source/swiftkv_attention.cpp:400) [4]  (0.000 ns)
+	'store' operation 0 bit ('store_ln400', source/swiftkv_attention.cpp:400) of constant 0 on local variable 'group', source/swiftkv_attention.cpp:400 [81]  (0.387 ns)
+
+ <State 2>: 1.200ns
+The critical path consists of the following:
+	'load' operation 3 bit ('group', source/swiftkv_attention.cpp:413) on local variable 'group', source/swiftkv_attention.cpp:400 [85]  (0.000 ns)
+	'shl' operation 3 bit ('shl_ln413', source/swiftkv_attention.cpp:413) [94]  (0.000 ns)
+	'getelementptr' operation 3 bit ('k_words_addr', source/swiftkv_attention.cpp:413) [96]  (0.000 ns)
+	'load' operation 512 bit ('k_lower', source/swiftkv_attention.cpp:413) on array 'k_words' [97]  (1.200 ns)
+
+ <State 3>: 1.200ns
+The critical path consists of the following:
+	'load' operation 512 bit ('k_lower', source/swiftkv_attention.cpp:413) on array 'k_words' [97]  (1.200 ns)
+
+ <State 4>: 1.200ns
+The critical path consists of the following:
+	'load' operation 512 bit ('k_upper', source/swiftkv_attention.cpp:414) on array 'k_words' [101]  (1.200 ns)
+
+ <State 5>: 1.691ns
+The critical path consists of the following:
+	'call' operation 0 bit ('call_ln430', source/swiftkv_attention.cpp:430) to 'swiftkv_quantize_kv_record_Pipeline_find_kv_group_max_block_loop' [170]  (1.691 ns)
+
+ <State 6>: 0.000ns
+The critical path consists of the following:
+
+ <State 7>: 2.036ns
+The critical path consists of the following:
+	'load' operation 32 bit ('maximum_k_loc_load') on local variable 'maximum_k_loc' [173]  (0.000 ns)
+	'icmp' operation 1 bit ('icmp_ln329', source/swiftkv_attention.cpp:329->source/swiftkv_attention.cpp:485) [176]  (0.785 ns)
+	'select' operation 16 bit ('probe', source/swiftkv_attention.cpp:329->source/swiftkv_attention.cpp:485) [178]  (0.243 ns)
+	'icmp' operation 1 bit ('icmp_ln333', source/swiftkv_attention.cpp:333->source/swiftkv_attention.cpp:485) [181]  (0.705 ns)
+	'select' operation 8 bit ('probe', source/swiftkv_attention.cpp:333->source/swiftkv_attention.cpp:485) [184]  (0.303 ns)
+
+ <State 8>: 2.051ns
+The critical path consists of the following:
+	'icmp' operation 1 bit ('icmp_ln337', source/swiftkv_attention.cpp:337->source/swiftkv_attention.cpp:485) [187]  (0.708 ns)
+	'select' operation 4 bit ('probe', source/swiftkv_attention.cpp:337->source/swiftkv_attention.cpp:485) [190]  (0.351 ns)
+	'icmp' operation 1 bit ('icmp_ln341', source/swiftkv_attention.cpp:341->source/swiftkv_attention.cpp:485) [192]  (0.436 ns)
+	'select' operation 5 bit ('most_significant_bit', source/swiftkv_attention.cpp:341->source/swiftkv_attention.cpp:485) [194]  (0.278 ns)
+	'select' operation 5 bit ('most_significant_bit', source/swiftkv_attention.cpp:345->source/swiftkv_attention.cpp:485) [199]  (0.278 ns)
+
+ <State 9>: 0.985ns
+The critical path consists of the following:
+	'icmp' operation 1 bit ('icmp_ln348_1', source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485) [201]  (0.707 ns)
+	'and' operation 1 bit ('and_ln348', source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485) [202]  (0.000 ns)
+	'select' operation 5 bit ('shift_k', source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485) [204]  (0.278 ns)
+
+ <State 10>: 1.561ns
+The critical path consists of the following:
+	'sub' operation 6 bit ('sub_i78_i294', source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485) [241]  (0.707 ns)
+	'lshr' operation 32 bit ('shr_i79_i295', source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485) [243]  (0.627 ns)
+	'select' operation 32 bit ('rounding', source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485) [253]  (0.000 ns)
+	'select' operation 32 bit ('rounding_1', source/swiftkv_attention.cpp:348->source/swiftkv_attention.cpp:485) [254]  (0.227 ns)
+
+ <State 11>: 2.344ns
+The critical path consists of the following:
+	'call' operation 0 bit ('call_ln436', source/swiftkv_attention.cpp:436) to 'swiftkv_quantize_kv_record_Pipeline_quantize_kv_group_block_loop' [257]  (2.344 ns)
+
+ <State 12>: 0.000ns
+The critical path consists of the following:
+
+ <State 13>: 2.322ns
+The critical path consists of the following:
+	'add' operation 6 bit ('add_ln498', source/swiftkv_attention.cpp:498) [336]  (0.706 ns)
+	'shl' operation 40 bit ('shl_ln498', source/swiftkv_attention.cpp:498) [338]  (0.627 ns)
+	'xor' operation 41 bit ('xor_ln498', source/swiftkv_attention.cpp:498) [340]  (0.000 ns)
+	'and' operation 512 bit ('and_ln498', source/swiftkv_attention.cpp:498) [342]  (0.301 ns)
+	'or' operation 40 bit ('or_ln498', source/swiftkv_attention.cpp:498) [346]  (0.301 ns)
+	'store' operation 0 bit ('store_ln393', source/swiftkv_attention.cpp:393) of variable 'metadata', source/swiftkv_attention.cpp:498 on local variable 'metadata', source/swiftkv_attention.cpp:393 [370]  (0.387 ns)
+
+
+============================================================
++ Verbose Summary: Binding
+============================================================
+N/A
+* FSMD analyzer results:
+  - Output states:
+ - Input state : 
+  - Chain level:
+	State 1
+	State 2
+	State 3
+	State 4
+	State 5
+	State 6
+	State 7
+	State 8
+	State 9
+	State 10
+	State 11
+	State 12
+	State 13
+
+
+============================================================
++ Verbose Summary: Datapath Resource usage 
+============================================================
+N/A

@@ -1,0 +1,177 @@
+
+
+================================================================
+== Vitis HLS Report for 'int4_rms_sumsq_pe_11_Pipeline_merge_sumsq_lane_loop'
+================================================================
+* Date:           Tue Aug 11 09:18:38 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.470 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+---------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline|
+    |   min   |   max   |    min   |    max   | min | max |   Type  |
+    +---------+---------+----------+----------+-----+-----+---------+
+    |       67|       67|  0.223 us|  0.223 us|   67|   67|       no|
+    +---------+---------+----------+----------+-----+-----+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +-------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |                         |  Latency (cycles) | Iteration|  Initiation Interval  | Trip |          |
+        |        Loop Name        |   min   |   max   |  Latency |  achieved |   target  | Count| Pipelined|
+        +-------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |- merge_sumsq_lane_loop  |       65|       65|         6|          4|          1|    16|       yes|
+        +-------------------------+---------+---------+----------+-----------+-----------+------+----------+
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+------+
+|         Name        | BRAM_18K|  DSP  |    FF   |   LUT   | URAM |
++---------------------+---------+-------+---------+---------+------+
+|DSP                  |        -|      -|        -|        -|     -|
+|Expression           |        -|      -|        0|       27|     -|
+|FIFO                 |        -|      -|        -|        -|     -|
+|Instance             |        -|      -|        0|       65|     -|
+|Memory               |        -|      -|        -|        -|     -|
+|Multiplexer          |        -|      -|        -|       98|     -|
+|Register             |        -|      -|       77|        -|     -|
++---------------------+---------+-------+---------+---------+------+
+|Total                |        0|      0|       77|      190|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available SLR        |     1344|   3072|   864000|   432000|   320|
++---------------------+---------+-------+---------+---------+------+
+|Utilization SLR (%)  |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available            |     5376|  12288|  3456000|  1728000|  1280|
++---------------------+---------+-------+---------+---------+------+
+|Utilization (%)      |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+
++ Detail: 
+    * Instance: 
+    +-----------------------------+-----------------------+---------+----+---+----+-----+
+    |           Instance          |         Module        | BRAM_18K| DSP| FF| LUT| URAM|
+    +-----------------------------+-----------------------+---------+----+---+----+-----+
+    |sparsemux_33_4_32_1_1_U1220  |sparsemux_33_4_32_1_1  |        0|   0|  0|  65|    0|
+    +-----------------------------+-----------------------+---------+----+---+----+-----+
+    |Total                        |                       |        0|   0|  0|  65|    0|
+    +-----------------------------+-----------------------+---------+----+---+----+-----+
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +---------------------+----------+----+---+----+------------+------------+
+    |    Variable Name    | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +---------------------+----------+----+---+----+------------+------------+
+    |add_ln77_fu_232_p2   |         +|   0|  0|  12|           5|           1|
+    |icmp_ln77_fu_226_p2  |      icmp|   0|  0|  13|           5|           6|
+    |ap_enable_pp0        |       xor|   0|  0|   2|           1|           2|
+    +---------------------+----------+----+---+----+------------+------------+
+    |Total                |          |   0|  0|  27|          11|           9|
+    +---------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +---------------------------------+----+-----------+-----+-----------+
+    |               Name              | LUT| Input Size| Bits| Total Bits|
+    +---------------------------------+----+-----------+-----+-----------+
+    |ap_NS_fsm                        |  26|          5|    1|          5|
+    |ap_done_int                      |   9|          2|    1|          2|
+    |ap_enable_reg_pp0_iter0          |   9|          2|    1|          2|
+    |ap_enable_reg_pp0_iter0_reg      |   9|          2|    1|          2|
+    |ap_enable_reg_pp0_iter1          |   9|          2|    1|          2|
+    |ap_sig_allocacmp_lane_9          |   9|          2|    5|         10|
+    |ap_sig_allocacmp_merged_01_load  |   9|          2|   32|         64|
+    |lane_fu_102                      |   9|          2|    5|         10|
+    |merged_01_fu_98                  |   9|          2|   32|         64|
+    +---------------------------------+----+-----------+-----+-----------+
+    |Total                            |  98|         21|   79|        161|
+    +---------------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +-----------------------------+----+----+-----+-----------+
+    |             Name            | FF | LUT| Bits| Const Bits|
+    +-----------------------------+----+----+-----+-----------+
+    |ap_CS_fsm                    |   4|   0|    4|          0|
+    |ap_done_reg                  |   1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter0_reg  |   1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter1      |   1|   0|    1|          0|
+    |icmp_ln77_reg_347            |   1|   0|    1|          0|
+    |lane_fu_102                  |   5|   0|    5|          0|
+    |merged_01_fu_98              |  32|   0|   32|          0|
+    |tmp_reg_351                  |  32|   0|   32|          0|
+    +-----------------------------+----+----+-----+-----------+
+    |Total                        |  77|   0|   77|          0|
+    +-----------------------------+----+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++----------------------+-----+-----+------------+-----------------------------------------------------+--------------+
+|       RTL Ports      | Dir | Bits|  Protocol  |                    Source Object                    |    C Type    |
++----------------------+-----+-----+------------+-----------------------------------------------------+--------------+
+|ap_clk                |   in|    1|  ap_ctrl_hs|  int4_rms_sumsq_pe.11_Pipeline_merge_sumsq_lane_loop|  return value|
+|ap_rst                |   in|    1|  ap_ctrl_hs|  int4_rms_sumsq_pe.11_Pipeline_merge_sumsq_lane_loop|  return value|
+|ap_start              |   in|    1|  ap_ctrl_hs|  int4_rms_sumsq_pe.11_Pipeline_merge_sumsq_lane_loop|  return value|
+|ap_done               |  out|    1|  ap_ctrl_hs|  int4_rms_sumsq_pe.11_Pipeline_merge_sumsq_lane_loop|  return value|
+|ap_idle               |  out|    1|  ap_ctrl_hs|  int4_rms_sumsq_pe.11_Pipeline_merge_sumsq_lane_loop|  return value|
+|ap_ready              |  out|    1|  ap_ctrl_hs|  int4_rms_sumsq_pe.11_Pipeline_merge_sumsq_lane_loop|  return value|
+|grp_fu_370_p_din0     |  out|   32|  ap_ctrl_hs|  int4_rms_sumsq_pe.11_Pipeline_merge_sumsq_lane_loop|  return value|
+|grp_fu_370_p_din1     |  out|   32|  ap_ctrl_hs|  int4_rms_sumsq_pe.11_Pipeline_merge_sumsq_lane_loop|  return value|
+|grp_fu_370_p_opcode   |  out|    2|  ap_ctrl_hs|  int4_rms_sumsq_pe.11_Pipeline_merge_sumsq_lane_loop|  return value|
+|grp_fu_370_p_dout0    |   in|   32|  ap_ctrl_hs|  int4_rms_sumsq_pe.11_Pipeline_merge_sumsq_lane_loop|  return value|
+|grp_fu_370_p_ce       |  out|    1|  ap_ctrl_hs|  int4_rms_sumsq_pe.11_Pipeline_merge_sumsq_lane_loop|  return value|
+|mux_case_02_reload    |   in|   32|     ap_none|                                   mux_case_02_reload|        scalar|
+|mux_case_16_reload    |   in|   32|     ap_none|                                   mux_case_16_reload|        scalar|
+|mux_case_27_reload    |   in|   32|     ap_none|                                   mux_case_27_reload|        scalar|
+|mux_case_38_reload    |   in|   32|     ap_none|                                   mux_case_38_reload|        scalar|
+|mux_case_49_reload    |   in|   32|     ap_none|                                   mux_case_49_reload|        scalar|
+|mux_case_510_reload   |   in|   32|     ap_none|                                  mux_case_510_reload|        scalar|
+|mux_case_611_reload   |   in|   32|     ap_none|                                  mux_case_611_reload|        scalar|
+|mux_case_712_reload   |   in|   32|     ap_none|                                  mux_case_712_reload|        scalar|
+|mux_case_813_reload   |   in|   32|     ap_none|                                  mux_case_813_reload|        scalar|
+|mux_case_914_reload   |   in|   32|     ap_none|                                  mux_case_914_reload|        scalar|
+|mux_case_1015_reload  |   in|   32|     ap_none|                                 mux_case_1015_reload|        scalar|
+|mux_case_1116_reload  |   in|   32|     ap_none|                                 mux_case_1116_reload|        scalar|
+|mux_case_1217_reload  |   in|   32|     ap_none|                                 mux_case_1217_reload|        scalar|
+|mux_case_1318_reload  |   in|   32|     ap_none|                                 mux_case_1318_reload|        scalar|
+|mux_case_1419_reload  |   in|   32|     ap_none|                                 mux_case_1419_reload|        scalar|
+|mux_case_1520_reload  |   in|   32|     ap_none|                                 mux_case_1520_reload|        scalar|
+|merged_01_out         |  out|   32|      ap_vld|                                        merged_01_out|       pointer|
+|merged_01_out_ap_vld  |  out|    1|      ap_vld|                                        merged_01_out|       pointer|
++----------------------+-----+-----+------------+-----------------------------------------------------+--------------+
+

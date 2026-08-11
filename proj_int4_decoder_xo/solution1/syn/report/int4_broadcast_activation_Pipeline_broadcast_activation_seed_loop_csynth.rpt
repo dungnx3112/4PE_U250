@@ -1,0 +1,253 @@
+
+
+================================================================
+== Vitis HLS Report for 'int4_broadcast_activation_Pipeline_broadcast_activation_seed_loop'
+================================================================
+* Date:           Tue Aug 11 09:18:49 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.417 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+---------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline|
+    |   min   |   max   |    min   |    max   | min | max |   Type  |
+    +---------+---------+----------+----------+-----+-----+---------+
+    |      132|      348|  0.440 us|  1.160 us|  132|  348|       no|
+    +---------+---------+----------+----------+-----+-----+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +----------------------------------+---------+---------+----------+-----------+-----------+-----------+----------+
+        |                                  |  Latency (cycles) | Iteration|  Initiation Interval  |    Trip   |          |
+        |             Loop Name            |   min   |   max   |  Latency |  achieved |   target  |   Count   | Pipelined|
+        +----------------------------------+---------+---------+----------+-----------+-----------+-----------+----------+
+        |- broadcast_activation_seed_loop  |      130|      346|         4|          1|          1|  128 ~ 344|       yes|
+        +----------------------------------+---------+---------+----------+-----------+-----------+-----------+----------+
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+------+
+|         Name        | BRAM_18K|  DSP  |    FF   |   LUT   | URAM |
++---------------------+---------+-------+---------+---------+------+
+|DSP                  |        -|      -|        -|        -|     -|
+|Expression           |        -|      -|        0|      504|     -|
+|FIFO                 |        -|      -|        -|        -|     -|
+|Instance             |        -|      -|        -|        -|     -|
+|Memory               |        -|      -|        -|        -|     -|
+|Multiplexer          |        -|      -|        -|      208|     -|
+|Register             |        -|      -|     2619|       32|     -|
++---------------------+---------+-------+---------+---------+------+
+|Total                |        0|      0|     2619|      744|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available SLR        |     1344|   3072|   864000|   432000|   320|
++---------------------+---------+-------+---------+---------+------+
+|Utilization SLR (%)  |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available            |     5376|  12288|  3456000|  1728000|  1280|
++---------------------+---------+-------+---------+---------+------+
+|Utilization (%)      |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+
++ Detail: 
+    * Instance: 
+    N/A
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +----------------------------------+----------+----+---+-----+------------+------------+
+    |           Variable Name          | Operation| DSP| FF| LUT | Bitwidth P0| Bitwidth P1|
+    +----------------------------------+----------+----+---+-----+------------+------------+
+    |add_ln287_fu_341_p2               |         +|   0|  0|   16|           9|           1|
+    |ap_condition_191                  |       and|   0|  0|    2|           1|           1|
+    |ap_condition_269                  |       and|   0|  0|    2|           1|           1|
+    |ap_condition_457                  |       and|   0|  0|    2|           1|           1|
+    |ap_condition_464                  |       and|   0|  0|    2|           1|           1|
+    |ap_predicate_op66_read_state2     |       and|   0|  0|    2|           1|           1|
+    |icmp_ln285_fu_335_p2              |      icmp|   0|  0|   16|           9|           9|
+    |icmp_ln302_fu_393_p2              |      icmp|   0|  0|   12|           4|           2|
+    |icmp_ln309_fu_360_p2              |      icmp|   0|  0|   12|           4|           1|
+    |ap_block_pp0_stage0_01001         |        or|   0|  0|    2|           1|           1|
+    |ap_block_state2_pp0_stage0_iter1  |        or|   0|  0|    2|           1|           1|
+    |ap_block_state4_pp0_stage0_iter3  |        or|   0|  0|    2|           1|           1|
+    |ap_condition_347                  |        or|   0|  0|    2|           1|           1|
+    |cached_scale_word_2_fu_412_p3     |    select|   0|  0|  428|           1|         512|
+    |ap_enable_pp0                     |       xor|   0|  0|    2|           1|           2|
+    +----------------------------------+----------+----+---+-----+------------+------------+
+    |Total                             |          |   0|  0|  504|          37|         536|
+    +----------------------------------+----------+----+---+-----+------------+------------+
+
+    * Multiplexer: 
+    +-------------------------------------+----+-----------+-----+-----------+
+    |                 Name                | LUT| Input Size| Bits| Total Bits|
+    +-------------------------------------+----+-----------+-----+-----------+
+    |activation_group_fu_116              |   9|          2|    9|         18|
+    |activation_scale_pe0_blk_n           |   9|          2|    1|          2|
+    |activation_scale_pe1_blk_n           |   9|          2|    1|          2|
+    |activation_scale_pe2_blk_n           |   9|          2|    1|          2|
+    |activation_scale_pe3_blk_n           |   9|          2|    1|          2|
+    |ap_done_int                          |   9|          2|    1|          2|
+    |ap_enable_reg_pp0_iter1              |   9|          2|    1|          2|
+    |ap_phi_reg_pp0_iter2_p_0_reg_295     |   9|          2|   32|         64|
+    |ap_phi_reg_pp0_iter2_q_2_reg_282     |   9|          2|  480|        960|
+    |ap_phi_reg_pp0_iter3_p_0_reg_295     |   9|          2|   32|         64|
+    |ap_phi_reg_pp0_iter3_q_2_reg_282     |   9|          2|  480|        960|
+    |ap_sig_allocacmp_activation_group_1  |   9|          2|    9|         18|
+    |cached_scale_word_fu_120             |   9|          2|  480|        960|
+    |packed_scales_address0               |  14|          3|    5|         15|
+    |quantized_address0                   |  14|          3|    9|         27|
+    |quantized_pe0_blk_n                  |   9|          2|    1|          2|
+    |quantized_pe1_blk_n                  |   9|          2|    1|          2|
+    |quantized_pe2_blk_n                  |   9|          2|    1|          2|
+    |quantized_pe3_blk_n                  |   9|          2|    1|          2|
+    |quantized_stream_blk_n               |   9|          2|    1|          2|
+    |scale_stream_blk_n                   |   9|          2|    1|          2|
+    |streamed_scale_word_fu_124           |   9|          2|  512|       1024|
+    +-------------------------------------+----+-----------+-----+-----------+
+    |Total                                | 208|         46| 2060|       4134|
+    +-------------------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +----------------------------------+-----+----+-----+-----------+
+    |               Name               |  FF | LUT| Bits| Const Bits|
+    +----------------------------------+-----+----+-----+-----------+
+    |activation_group_1_reg_488        |    9|   0|    9|          0|
+    |activation_group_fu_116           |    9|   0|    9|          0|
+    |ap_CS_fsm                         |    1|   0|    1|          0|
+    |ap_done_reg                       |    1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter1           |    1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter2           |    1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter3           |    1|   0|    1|          0|
+    |ap_loop_exit_ready_pp0_iter1_reg  |    1|   0|    1|          0|
+    |ap_loop_exit_ready_pp0_iter2_reg  |    1|   0|    1|          0|
+    |ap_phi_reg_pp0_iter1_p_0_reg_295  |   32|   0|   32|          0|
+    |ap_phi_reg_pp0_iter1_q_2_reg_282  |  480|   0|  480|          0|
+    |ap_phi_reg_pp0_iter2_p_0_reg_295  |   32|   0|   32|          0|
+    |ap_phi_reg_pp0_iter2_q_2_reg_282  |  480|   0|  480|          0|
+    |ap_phi_reg_pp0_iter3_p_0_reg_295  |   32|   0|   32|          0|
+    |ap_phi_reg_pp0_iter3_q_2_reg_282  |  480|   0|  480|          0|
+    |cached_scale_word_fu_120          |  480|   0|  512|         32|
+    |icmp_ln285_reg_495                |    1|   0|    1|          0|
+    |icmp_ln309_reg_504                |    1|   0|    1|          0|
+    |streamed_scale_word_fu_124        |  512|   0|  512|          0|
+    |icmp_ln285_reg_495                |   64|  32|    1|          0|
+    +----------------------------------+-----+----+-----+-----------+
+    |Total                             | 2619|  32| 2588|         32|
+    +----------------------------------+-----+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++-------------------------------------+-----+-----+------------+-------------------------------------------------------------------+--------------+
+|              RTL Ports              | Dir | Bits|  Protocol  |                           Source Object                           |    C Type    |
++-------------------------------------+-----+-----+------------+-------------------------------------------------------------------+--------------+
+|ap_clk                               |   in|    1|  ap_ctrl_hs|  int4_broadcast_activation_Pipeline_broadcast_activation_seed_loop|  return value|
+|ap_rst                               |   in|    1|  ap_ctrl_hs|  int4_broadcast_activation_Pipeline_broadcast_activation_seed_loop|  return value|
+|ap_start                             |   in|    1|  ap_ctrl_hs|  int4_broadcast_activation_Pipeline_broadcast_activation_seed_loop|  return value|
+|ap_done                              |  out|    1|  ap_ctrl_hs|  int4_broadcast_activation_Pipeline_broadcast_activation_seed_loop|  return value|
+|ap_idle                              |  out|    1|  ap_ctrl_hs|  int4_broadcast_activation_Pipeline_broadcast_activation_seed_loop|  return value|
+|ap_ready                             |  out|    1|  ap_ctrl_hs|  int4_broadcast_activation_Pipeline_broadcast_activation_seed_loop|  return value|
+|quantized_stream_dout                |   in|  480|     ap_fifo|                                                   quantized_stream|       pointer|
+|quantized_stream_num_data_valid      |   in|    3|     ap_fifo|                                                   quantized_stream|       pointer|
+|quantized_stream_fifo_cap            |   in|    3|     ap_fifo|                                                   quantized_stream|       pointer|
+|quantized_stream_empty_n             |   in|    1|     ap_fifo|                                                   quantized_stream|       pointer|
+|quantized_stream_read                |  out|    1|     ap_fifo|                                                   quantized_stream|       pointer|
+|scale_stream_dout                    |   in|   32|     ap_fifo|                                                       scale_stream|       pointer|
+|scale_stream_num_data_valid          |   in|    3|     ap_fifo|                                                       scale_stream|       pointer|
+|scale_stream_fifo_cap                |   in|    3|     ap_fifo|                                                       scale_stream|       pointer|
+|scale_stream_empty_n                 |   in|    1|     ap_fifo|                                                       scale_stream|       pointer|
+|scale_stream_read                    |  out|    1|     ap_fifo|                                                       scale_stream|       pointer|
+|quantized_pe0_din                    |  out|  480|     ap_fifo|                                                      quantized_pe0|       pointer|
+|quantized_pe0_num_data_valid         |   in|    3|     ap_fifo|                                                      quantized_pe0|       pointer|
+|quantized_pe0_fifo_cap               |   in|    3|     ap_fifo|                                                      quantized_pe0|       pointer|
+|quantized_pe0_full_n                 |   in|    1|     ap_fifo|                                                      quantized_pe0|       pointer|
+|quantized_pe0_write                  |  out|    1|     ap_fifo|                                                      quantized_pe0|       pointer|
+|activation_scale_pe0_din             |  out|   32|     ap_fifo|                                               activation_scale_pe0|       pointer|
+|activation_scale_pe0_num_data_valid  |   in|    3|     ap_fifo|                                               activation_scale_pe0|       pointer|
+|activation_scale_pe0_fifo_cap        |   in|    3|     ap_fifo|                                               activation_scale_pe0|       pointer|
+|activation_scale_pe0_full_n          |   in|    1|     ap_fifo|                                               activation_scale_pe0|       pointer|
+|activation_scale_pe0_write           |  out|    1|     ap_fifo|                                               activation_scale_pe0|       pointer|
+|quantized_pe1_din                    |  out|  480|     ap_fifo|                                                      quantized_pe1|       pointer|
+|quantized_pe1_num_data_valid         |   in|    3|     ap_fifo|                                                      quantized_pe1|       pointer|
+|quantized_pe1_fifo_cap               |   in|    3|     ap_fifo|                                                      quantized_pe1|       pointer|
+|quantized_pe1_full_n                 |   in|    1|     ap_fifo|                                                      quantized_pe1|       pointer|
+|quantized_pe1_write                  |  out|    1|     ap_fifo|                                                      quantized_pe1|       pointer|
+|activation_scale_pe1_din             |  out|   32|     ap_fifo|                                               activation_scale_pe1|       pointer|
+|activation_scale_pe1_num_data_valid  |   in|    3|     ap_fifo|                                               activation_scale_pe1|       pointer|
+|activation_scale_pe1_fifo_cap        |   in|    3|     ap_fifo|                                               activation_scale_pe1|       pointer|
+|activation_scale_pe1_full_n          |   in|    1|     ap_fifo|                                               activation_scale_pe1|       pointer|
+|activation_scale_pe1_write           |  out|    1|     ap_fifo|                                               activation_scale_pe1|       pointer|
+|quantized_pe2_din                    |  out|  480|     ap_fifo|                                                      quantized_pe2|       pointer|
+|quantized_pe2_num_data_valid         |   in|    3|     ap_fifo|                                                      quantized_pe2|       pointer|
+|quantized_pe2_fifo_cap               |   in|    3|     ap_fifo|                                                      quantized_pe2|       pointer|
+|quantized_pe2_full_n                 |   in|    1|     ap_fifo|                                                      quantized_pe2|       pointer|
+|quantized_pe2_write                  |  out|    1|     ap_fifo|                                                      quantized_pe2|       pointer|
+|activation_scale_pe2_din             |  out|   32|     ap_fifo|                                               activation_scale_pe2|       pointer|
+|activation_scale_pe2_num_data_valid  |   in|    3|     ap_fifo|                                               activation_scale_pe2|       pointer|
+|activation_scale_pe2_fifo_cap        |   in|    3|     ap_fifo|                                               activation_scale_pe2|       pointer|
+|activation_scale_pe2_full_n          |   in|    1|     ap_fifo|                                               activation_scale_pe2|       pointer|
+|activation_scale_pe2_write           |  out|    1|     ap_fifo|                                               activation_scale_pe2|       pointer|
+|quantized_pe3_din                    |  out|  480|     ap_fifo|                                                      quantized_pe3|       pointer|
+|quantized_pe3_num_data_valid         |   in|    3|     ap_fifo|                                                      quantized_pe3|       pointer|
+|quantized_pe3_fifo_cap               |   in|    3|     ap_fifo|                                                      quantized_pe3|       pointer|
+|quantized_pe3_full_n                 |   in|    1|     ap_fifo|                                                      quantized_pe3|       pointer|
+|quantized_pe3_write                  |  out|    1|     ap_fifo|                                                      quantized_pe3|       pointer|
+|activation_scale_pe3_din             |  out|   32|     ap_fifo|                                               activation_scale_pe3|       pointer|
+|activation_scale_pe3_num_data_valid  |   in|    3|     ap_fifo|                                               activation_scale_pe3|       pointer|
+|activation_scale_pe3_fifo_cap        |   in|    3|     ap_fifo|                                               activation_scale_pe3|       pointer|
+|activation_scale_pe3_full_n          |   in|    1|     ap_fifo|                                               activation_scale_pe3|       pointer|
+|activation_scale_pe3_write           |  out|    1|     ap_fifo|                                               activation_scale_pe3|       pointer|
+|shl_ln                               |   in|    9|     ap_none|                                                             shl_ln|        scalar|
+|active_3                             |   in|    1|     ap_none|                                                           active_3|        scalar|
+|active_2                             |   in|    1|     ap_none|                                                           active_2|        scalar|
+|active_1                             |   in|    1|     ap_none|                                                           active_1|        scalar|
+|active_0                             |   in|    1|     ap_none|                                                           active_0|        scalar|
+|quantized_address0                   |  out|    9|   ap_memory|                                                          quantized|         array|
+|quantized_ce0                        |  out|    1|   ap_memory|                                                          quantized|         array|
+|quantized_we0                        |  out|    1|   ap_memory|                                                          quantized|         array|
+|quantized_d0                         |  out|  480|   ap_memory|                                                          quantized|         array|
+|quantized_q0                         |   in|  480|   ap_memory|                                                          quantized|         array|
+|stream_activation                    |   in|    1|     ap_none|                                                  stream_activation|        scalar|
+|packed_scales_address0               |  out|    5|   ap_memory|                                                      packed_scales|         array|
+|packed_scales_ce0                    |  out|    1|   ap_memory|                                                      packed_scales|         array|
+|packed_scales_we0                    |  out|    1|   ap_memory|                                                      packed_scales|         array|
+|packed_scales_d0                     |  out|  512|   ap_memory|                                                      packed_scales|         array|
+|packed_scales_q0                     |   in|  512|   ap_memory|                                                      packed_scales|         array|
+|streamed_scale_word_out              |  out|  512|      ap_vld|                                            streamed_scale_word_out|       pointer|
+|streamed_scale_word_out_ap_vld       |  out|    1|      ap_vld|                                            streamed_scale_word_out|       pointer|
++-------------------------------------+-----+-----+------------+-------------------------------------------------------------------+--------------+
+

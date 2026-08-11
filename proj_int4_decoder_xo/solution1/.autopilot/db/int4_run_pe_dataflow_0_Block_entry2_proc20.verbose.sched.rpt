@@ -1,0 +1,128 @@
+
+
+================================================================
+== Vitis HLS Report for 'int4_run_pe_dataflow_0_Block_entry2_proc20'
+================================================================
+* Date:           Tue Aug 11 09:17:20 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  1.230 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+---------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline|
+    |   min   |   max   |    min   |    max   | min | max |   Type  |
+    +---------+---------+----------+----------+-----+-----+---------+
+    |        1|        1|  3.333 ns|  3.333 ns|    1|    1|       no|
+    +---------+---------+----------+----------+-----+-----+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        N/A
+
+============================================================
++ Verbose Summary: Synthesis Manager
+============================================================
+InlineROM: 1
+ExposeGlobal: 0
+============================================================
++ Verbose Summary: CDFG Model
+============================================================
+IsTopModel: 0
+ResetActiveHigh: 1
+IsCombinational: 2
+IsDatapathOnly: 0
+HasWiredReturn: 1
+HasMFsm: 0
+HasVarLatency: 1
+IsPipeline: 0
+IsRtlPipelined: 0
+IsInstanceOverlapped: 0
+IsDontTouch: 0
+HasImplIP: 0
+IsGatedGlobalClock: 0
+
+
+============================================================
++ Verbose Summary: Schedule
+============================================================
+* Number of FSM states : 2
+* Pipeline : 0
+* Dataflow Pipeline: 0
+
+* FSM state transitions: 
+1 --> 2 
+2 --> 
+
+* FSM state operations: 
+
+State 1 <SV = 0> <Delay = 1.21>
+ST_1 : Operation 3 [1/1] (1.21ns)   --->   "%command = read i14 @_ssdm_op_Read.ap_fifo.volatile.i14P0A, i14 %linear_command_pe0" [source/int4_linear_controller.cpp:830]   --->   Operation 3 'read' 'command' <Predicate = true> <Delay = 1.21> <CoreInst = "FIFO_SRL">   --->   Core 81 'FIFO_SRL' <Latency = 0> <II = 1> <Delay = 1.34> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 14> <Depth = 2> <FIFO>
+ST_1 : Operation 4 [1/1] (0.00ns)   --->   "%local_tiles = trunc i14 %command" [source/int4_linear_controller.cpp:831]   --->   Operation 4 'trunc' 'local_tiles' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 5 [1/1] (0.00ns)   --->   "%input_tiles = partselect i6 @_ssdm_op_PartSelect.i6.i14.i32.i32, i14 %command, i32 6, i32 11" [source/int4_linear_controller.cpp:832]   --->   Operation 5 'partselect' 'input_tiles' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 6 [1/1] (0.00ns)   --->   "%output_fxp = bitselect i1 @_ssdm_op_BitSelect.i1.i14.i32, i14 %command, i32 12" [source/int4_linear_controller.cpp:833]   --->   Operation 6 'bitselect' 'output_fxp' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 7 [1/1] (0.00ns)   --->   "%fuse_residual = bitselect i1 @_ssdm_op_BitSelect.i1.i14.i32, i14 %command, i32 13" [source/int4_linear_controller.cpp:834]   --->   Operation 7 'bitselect' 'fuse_residual' <Predicate = true> <Delay = 0.00>
+
+State 2 <SV = 1> <Delay = 1.23>
+ST_2 : Operation 8 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i14 %linear_command_pe0, i64 666, i64 10, i64 18446744073709551615"   --->   Operation 8 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 9 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i14 %linear_command_pe0, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 9 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 10 [1/1] (0.00ns)   --->   "%zext_ln867 = zext i6 %local_tiles" [source/int4_linear_controller.cpp:867]   --->   Operation 10 'zext' 'zext_ln867' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 11 [1/1] (0.00ns)   --->   "%zext_ln867_4 = zext i6 %input_tiles" [source/int4_linear_controller.cpp:867]   --->   Operation 11 'zext' 'zext_ln867_4' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 12 [1/1] (1.23ns)   --->   "%tile_count = mul i12 %zext_ln867_4, i12 %zext_ln867" [source/int4_linear_controller.cpp:867]   --->   Operation 12 'mul' 'tile_count' <Predicate = true> <Delay = 1.23> <CoreInst = "Multiplier">   --->   Core 3 'Multiplier' <Latency = 0> <II = 1> <Delay = 1.23> <FuncUnit> <Opcode : 'mul'> <InPorts = 2> <OutPorts = 1>
+ST_2 : Operation 13 [1/1] (0.00ns)   --->   "%mrv = insertvalue i26 <undef>, i12 %tile_count" [source/int4_linear_controller.cpp:867]   --->   Operation 13 'insertvalue' 'mrv' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 14 [1/1] (0.00ns)   --->   "%mrv_1 = insertvalue i26 %mrv, i1 %output_fxp" [source/int4_linear_controller.cpp:867]   --->   Operation 14 'insertvalue' 'mrv_1' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 15 [1/1] (0.00ns)   --->   "%mrv_2 = insertvalue i26 %mrv_1, i1 %fuse_residual" [source/int4_linear_controller.cpp:867]   --->   Operation 15 'insertvalue' 'mrv_2' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 16 [1/1] (0.00ns)   --->   "%mrv_3 = insertvalue i26 %mrv_2, i6 %input_tiles" [source/int4_linear_controller.cpp:867]   --->   Operation 16 'insertvalue' 'mrv_3' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 17 [1/1] (0.00ns)   --->   "%mrv_4 = insertvalue i26 %mrv_3, i6 %local_tiles" [source/int4_linear_controller.cpp:867]   --->   Operation 17 'insertvalue' 'mrv_4' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 18 [1/1] (0.00ns)   --->   "%ret_ln867 = ret i26 %mrv_4" [source/int4_linear_controller.cpp:867]   --->   Operation 18 'ret' 'ret_ln867' <Predicate = true> <Delay = 0.00>
+
+
+============================================================
++ Verbose Summary: Timing violations
+============================================================
+Target clock period: 3.333ns, clock uncertainty: 0.900ns.
+
+ <State 1>: 1.217ns
+The critical path consists of the following:
+	fifo read operation ('command', source/int4_linear_controller.cpp:830) on port 'linear_command_pe0' (source/int4_linear_controller.cpp:830) [4]  (1.217 ns)
+
+ <State 2>: 1.230ns
+The critical path consists of the following:
+	'mul' operation 12 bit ('tile_count', source/int4_linear_controller.cpp:867) [9]  (1.230 ns)
+
+
+============================================================
++ Verbose Summary: Binding
+============================================================
+N/A
+* FSMD analyzer results:
+  - Output states:
+ - Input state : 
+  - Chain level:
+	State 1
+	State 2
+
+
+============================================================
++ Verbose Summary: Datapath Resource usage 
+============================================================
+N/A

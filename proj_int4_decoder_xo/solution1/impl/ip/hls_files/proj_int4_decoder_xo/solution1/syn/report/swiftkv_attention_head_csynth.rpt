@@ -1,0 +1,342 @@
+
+
+================================================================
+== Vitis HLS Report for 'swiftkv_attention_head'
+================================================================
+* Date:           Tue Aug 11 09:18:22 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.616 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-------+----------+
+    |  Latency (cycles) |  Latency (absolute) |   Interval  | Pipeline |
+    |   min   |   max   |    min   |    max   | min |  max  |   Type   |
+    +---------+---------+----------+----------+-----+-------+----------+
+    |      616|    33376|  2.053 us|  0.111 ms|  511|  33271|  dataflow|
+    +---------+---------+----------+----------+-----+-------+----------+
+
+    + Detail: 
+        * Instance: 
+        +---------------------------------------+------------------------------------+---------+---------+-----------+-----------+-----+-------+---------+
+        |                                       |                                    |  Latency (cycles) |   Latency (absolute)  |   Interval  | Pipeline|
+        |                Instance               |               Module               |   min   |   max   |    min    |    max    | min |  max  |   Type  |
+        +---------------------------------------+------------------------------------+---------+---------+-----------+-----------+-----+-------+---------+
+        |entry_proc57_U0                        |entry_proc57                        |        0|        0|       0 ns|       0 ns|    0|      0|       no|
+        |swiftkv_read_compressed_kv_cache_U0    |swiftkv_read_compressed_kv_cache    |       75|    20551|   0.250 us|  68.496 us|   75|  20551|       no|
+        |swiftkv_route_compressed_kv_cache_U0   |swiftkv_route_compressed_kv_cache   |       14|    20489|  46.662 ns|  68.290 us|   14|  20489|       no|
+        |swiftkv_process_compressed_kv_U0       |swiftkv_process_compressed_kv       |       26|    32786|  86.658 ns|   0.109 ms|   26|  32786|       no|
+        |swiftkv_coefficient_producer_U0        |swiftkv_coefficient_producer        |       59|    24629|   0.197 us|  82.088 us|   59|  24629|       no|
+        |swiftkv_update_values_and_quantize_U0  |swiftkv_update_values_and_quantize  |      510|    33270|   1.700 us|   0.111 ms|  510|  33270|       no|
+        +---------------------------------------+------------------------------------+---------+---------+-----------+-----------+-----+-------+---------+
+
+        * Loop: 
+        N/A
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+------+
+|         Name        | BRAM_18K|  DSP  |    FF   |   LUT   | URAM |
++---------------------+---------+-------+---------+---------+------+
+|DSP                  |        -|      -|        -|        -|     -|
+|Expression           |        -|      -|        0|       22|     -|
+|FIFO                 |       15|      -|    13993|     7860|    32|
+|Instance             |       17|     81|    24219|    27397|     -|
+|Memory               |        -|      -|        -|        -|     -|
+|Multiplexer          |        -|      -|        -|       27|     -|
+|Register             |        -|      -|        6|        -|     -|
++---------------------+---------+-------+---------+---------+------+
+|Total                |       32|     81|    38218|    35306|    32|
++---------------------+---------+-------+---------+---------+------+
+|Available SLR        |     1344|   3072|   864000|   432000|   320|
++---------------------+---------+-------+---------+---------+------+
+|Utilization SLR (%)  |        2|      2|        4|        8|    10|
++---------------------+---------+-------+---------+---------+------+
+|Available            |     5376|  12288|  3456000|  1728000|  1280|
++---------------------+---------+-------+---------+---------+------+
+|Utilization (%)      |       ~0|     ~0|        1|        2|     2|
++---------------------+---------+-------+---------+---------+------+
+
++ Detail: 
+    * Instance: 
+    +---------------------------------------+------------------------------------+---------+----+-------+-------+-----+
+    |                Instance               |               Module               | BRAM_18K| DSP|   FF  |  LUT  | URAM|
+    +---------------------------------------+------------------------------------+---------+----+-------+-------+-----+
+    |entry_proc57_U0                        |entry_proc57                        |        0|   0|      2|     56|    0|
+    |swiftkv_coefficient_producer_U0        |swiftkv_coefficient_producer        |        0|   6|   1463|   2906|    0|
+    |swiftkv_process_compressed_kv_U0       |swiftkv_process_compressed_kv       |        0|  34|   5988|   2962|    0|
+    |swiftkv_read_compressed_kv_cache_U0    |swiftkv_read_compressed_kv_cache    |        0|   0|    681|    709|    0|
+    |swiftkv_route_compressed_kv_cache_U0   |swiftkv_route_compressed_kv_cache   |        0|   0|   3153|    889|    0|
+    |swiftkv_update_values_and_quantize_U0  |swiftkv_update_values_and_quantize  |       17|  41|  12932|  19875|    0|
+    +---------------------------------------+------------------------------------+---------+----+-------+-------+-----+
+    |Total                                  |                                    |       17|  81|  24219|  27397|    0|
+    +---------------------------------------+------------------------------------+---------+----+-------+-------+-----+
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    +--------------------------------+---------+------+----+-----+------+-----+---------+
+    |              Name              | BRAM_18K|  FF  | LUT| URAM| Depth| Bits| Size:D*B|
+    +--------------------------------+---------+------+----+-----+------+-----+---------+
+    |cached_kv_word_stream_U         |       15|  1046|   0|    -|    64|  512|    32768|
+    |control_stream_U                |        0|     7|   0|    -|    16|   19|      304|
+    |current_record_0_val1_c_U       |        0|  1547|   0|    -|     3|  512|     1536|
+    |current_record_1_val2_c_U       |        0|  1547|   0|    -|     3|  512|     1536|
+    |current_record_2_val3_c_U       |        0|  1547|   0|    -|     3|  512|     1536|
+    |current_record_3_val4_c_U       |        0|  1547|   0|    -|     3|  512|     1536|
+    |current_record_4_val5_c_U       |        0|  1547|   0|    -|     3|  512|     1536|
+    |inverse_normalization_stream_U  |        0|    68|   0|    -|     2|   32|       64|
+    |key0_stream_U                   |        0|  1192|   8|    -|    32|  512|    16384|
+    |key1_stream_U                   |        0|  1192|   8|    -|    32|  512|    16384|
+    |key_metadata_stream_U           |        0|     8|   0|    -|    32|   40|     1280|
+    |position_val_c13_U              |        0|    36|   0|    -|     2|   12|       24|
+    |position_val_c14_U              |        0|    36|   0|    -|     2|   12|       24|
+    |position_val_c_U                |        0|    36|   0|    -|     2|   12|       24|
+    |score_stream_U                  |        0|     5|   0|    -|     4|   32|      128|
+    |value0_engine0_stream_U         |        0|   328|   2|    -|    32|  128|     4096|
+    |value0_engine1_stream_U         |        0|   328|   2|    -|    32|  128|     4096|
+    |value0_engine2_stream_U         |        0|   328|   2|    -|    32|  128|     4096|
+    |value0_engine3_stream_U         |        0|   328|   2|    -|    32|  128|     4096|
+    |value1_engine0_stream_U         |        0|   328|   2|    -|    32|  128|     4096|
+    |value1_engine1_stream_U         |        0|   328|   2|    -|    32|  128|     4096|
+    |value1_engine2_stream_U         |        0|   328|   2|    -|    32|  128|     4096|
+    |value1_engine3_stream_U         |        0|   328|   2|    -|    32|  128|     4096|
+    |value_metadata_stream_U         |        0|     8|   0|    -|    32|   40|     1280|
+    +--------------------------------+---------+------+----+-----+------+-----+---------+
+    |Total                           |       15| 13993|  32|    0|   491| 5319|   109112|
+    +--------------------------------+---------+------+----+-----+------+-----+---------+
+
+    * Expression: 
+    +------------------------------------------------------+----------+----+---+----+------------+------------+
+    |                     Variable Name                    | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +------------------------------------------------------+----------+----+---+----+------------+------------+
+    |ap_idle                                               |       and|   0|  0|   2|           1|           1|
+    |ap_sync_ready                                         |       and|   0|  0|   2|           1|           1|
+    |entry_proc57_U0_ap_start                              |       and|   0|  0|   2|           1|           1|
+    |swiftkv_process_compressed_kv_U0_ap_start             |       and|   0|  0|   2|           1|           1|
+    |swiftkv_read_compressed_kv_cache_U0_ap_start          |       and|   0|  0|   2|           1|           1|
+    |ap_sync_entry_proc57_U0_ap_ready                      |        or|   0|  0|   2|           1|           1|
+    |ap_sync_swiftkv_process_compressed_kv_U0_ap_ready     |        or|   0|  0|   2|           1|           1|
+    |ap_sync_swiftkv_read_compressed_kv_cache_U0_ap_ready  |        or|   0|  0|   2|           1|           1|
+    |swiftkv_coefficient_producer_U0_ap_start              |        or|   0|  0|   2|           1|           1|
+    |swiftkv_route_compressed_kv_cache_U0_ap_start         |        or|   0|  0|   2|           1|           1|
+    |swiftkv_update_values_and_quantize_U0_ap_start        |        or|   0|  0|   2|           1|           1|
+    +------------------------------------------------------+----------+----+---+----+------------+------------+
+    |Total                                                 |          |   0|  0|  22|          11|          11|
+    +------------------------------------------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +----------------------------------------------------------+----+-----------+-----+-----------+
+    |                           Name                           | LUT| Input Size| Bits| Total Bits|
+    +----------------------------------------------------------+----+-----------+-----+-----------+
+    |ap_sync_reg_entry_proc57_U0_ap_ready                      |   9|          2|    1|          2|
+    |ap_sync_reg_swiftkv_process_compressed_kv_U0_ap_ready     |   9|          2|    1|          2|
+    |ap_sync_reg_swiftkv_read_compressed_kv_cache_U0_ap_ready  |   9|          2|    1|          2|
+    +----------------------------------------------------------+----+-----------+-----+-----------+
+    |Total                                                     |  27|          6|    3|          6|
+    +----------------------------------------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +------------------------------------------------------------+---+----+-----+-----------+
+    |                            Name                            | FF| LUT| Bits| Const Bits|
+    +------------------------------------------------------------+---+----+-----+-----------+
+    |ap_sync_reg_entry_proc57_U0_ap_ready                        |  1|   0|    1|          0|
+    |ap_sync_reg_swiftkv_coefficient_producer_U0_ap_start        |  1|   0|    1|          0|
+    |ap_sync_reg_swiftkv_process_compressed_kv_U0_ap_ready       |  1|   0|    1|          0|
+    |ap_sync_reg_swiftkv_read_compressed_kv_cache_U0_ap_ready    |  1|   0|    1|          0|
+    |ap_sync_reg_swiftkv_route_compressed_kv_cache_U0_ap_start   |  1|   0|    1|          0|
+    |ap_sync_reg_swiftkv_update_values_and_quantize_U0_ap_start  |  1|   0|    1|          0|
+    +------------------------------------------------------------+---+----+-----+-----------+
+    |Total                                                       |  6|   0|    6|          0|
+    +------------------------------------------------------------+---+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++------------------------------+-----+-----+------------+------------------------+--------------+
+|           RTL Ports          | Dir | Bits|  Protocol  |      Source Object     |    C Type    |
++------------------------------+-----+-----+------------+------------------------+--------------+
+|query_0_address0              |  out|    3|   ap_memory|                 query_0|         array|
+|query_0_ce0                   |  out|    1|   ap_memory|                 query_0|         array|
+|query_0_d0                    |  out|   32|   ap_memory|                 query_0|         array|
+|query_0_q0                    |   in|   32|   ap_memory|                 query_0|         array|
+|query_0_we0                   |  out|    1|   ap_memory|                 query_0|         array|
+|query_1_address0              |  out|    3|   ap_memory|                 query_1|         array|
+|query_1_ce0                   |  out|    1|   ap_memory|                 query_1|         array|
+|query_1_d0                    |  out|   32|   ap_memory|                 query_1|         array|
+|query_1_q0                    |   in|   32|   ap_memory|                 query_1|         array|
+|query_1_we0                   |  out|    1|   ap_memory|                 query_1|         array|
+|query_2_address0              |  out|    3|   ap_memory|                 query_2|         array|
+|query_2_ce0                   |  out|    1|   ap_memory|                 query_2|         array|
+|query_2_d0                    |  out|   32|   ap_memory|                 query_2|         array|
+|query_2_q0                    |   in|   32|   ap_memory|                 query_2|         array|
+|query_2_we0                   |  out|    1|   ap_memory|                 query_2|         array|
+|query_3_address0              |  out|    3|   ap_memory|                 query_3|         array|
+|query_3_ce0                   |  out|    1|   ap_memory|                 query_3|         array|
+|query_3_d0                    |  out|   32|   ap_memory|                 query_3|         array|
+|query_3_q0                    |   in|   32|   ap_memory|                 query_3|         array|
+|query_3_we0                   |  out|    1|   ap_memory|                 query_3|         array|
+|query_4_address0              |  out|    3|   ap_memory|                 query_4|         array|
+|query_4_ce0                   |  out|    1|   ap_memory|                 query_4|         array|
+|query_4_d0                    |  out|   32|   ap_memory|                 query_4|         array|
+|query_4_q0                    |   in|   32|   ap_memory|                 query_4|         array|
+|query_4_we0                   |  out|    1|   ap_memory|                 query_4|         array|
+|query_5_address0              |  out|    3|   ap_memory|                 query_5|         array|
+|query_5_ce0                   |  out|    1|   ap_memory|                 query_5|         array|
+|query_5_d0                    |  out|   32|   ap_memory|                 query_5|         array|
+|query_5_q0                    |   in|   32|   ap_memory|                 query_5|         array|
+|query_5_we0                   |  out|    1|   ap_memory|                 query_5|         array|
+|query_6_address0              |  out|    3|   ap_memory|                 query_6|         array|
+|query_6_ce0                   |  out|    1|   ap_memory|                 query_6|         array|
+|query_6_d0                    |  out|   32|   ap_memory|                 query_6|         array|
+|query_6_q0                    |   in|   32|   ap_memory|                 query_6|         array|
+|query_6_we0                   |  out|    1|   ap_memory|                 query_6|         array|
+|query_7_address0              |  out|    3|   ap_memory|                 query_7|         array|
+|query_7_ce0                   |  out|    1|   ap_memory|                 query_7|         array|
+|query_7_d0                    |  out|   32|   ap_memory|                 query_7|         array|
+|query_7_q0                    |   in|   32|   ap_memory|                 query_7|         array|
+|query_7_we0                   |  out|    1|   ap_memory|                 query_7|         array|
+|query_8_address0              |  out|    3|   ap_memory|                 query_8|         array|
+|query_8_ce0                   |  out|    1|   ap_memory|                 query_8|         array|
+|query_8_d0                    |  out|   32|   ap_memory|                 query_8|         array|
+|query_8_q0                    |   in|   32|   ap_memory|                 query_8|         array|
+|query_8_we0                   |  out|    1|   ap_memory|                 query_8|         array|
+|query_9_address0              |  out|    3|   ap_memory|                 query_9|         array|
+|query_9_ce0                   |  out|    1|   ap_memory|                 query_9|         array|
+|query_9_d0                    |  out|   32|   ap_memory|                 query_9|         array|
+|query_9_q0                    |   in|   32|   ap_memory|                 query_9|         array|
+|query_9_we0                   |  out|    1|   ap_memory|                 query_9|         array|
+|query_10_address0             |  out|    3|   ap_memory|                query_10|         array|
+|query_10_ce0                  |  out|    1|   ap_memory|                query_10|         array|
+|query_10_d0                   |  out|   32|   ap_memory|                query_10|         array|
+|query_10_q0                   |   in|   32|   ap_memory|                query_10|         array|
+|query_10_we0                  |  out|    1|   ap_memory|                query_10|         array|
+|query_11_address0             |  out|    3|   ap_memory|                query_11|         array|
+|query_11_ce0                  |  out|    1|   ap_memory|                query_11|         array|
+|query_11_d0                   |  out|   32|   ap_memory|                query_11|         array|
+|query_11_q0                   |   in|   32|   ap_memory|                query_11|         array|
+|query_11_we0                  |  out|    1|   ap_memory|                query_11|         array|
+|query_12_address0             |  out|    3|   ap_memory|                query_12|         array|
+|query_12_ce0                  |  out|    1|   ap_memory|                query_12|         array|
+|query_12_d0                   |  out|   32|   ap_memory|                query_12|         array|
+|query_12_q0                   |   in|   32|   ap_memory|                query_12|         array|
+|query_12_we0                  |  out|    1|   ap_memory|                query_12|         array|
+|query_13_address0             |  out|    3|   ap_memory|                query_13|         array|
+|query_13_ce0                  |  out|    1|   ap_memory|                query_13|         array|
+|query_13_d0                   |  out|   32|   ap_memory|                query_13|         array|
+|query_13_q0                   |   in|   32|   ap_memory|                query_13|         array|
+|query_13_we0                  |  out|    1|   ap_memory|                query_13|         array|
+|query_14_address0             |  out|    3|   ap_memory|                query_14|         array|
+|query_14_ce0                  |  out|    1|   ap_memory|                query_14|         array|
+|query_14_d0                   |  out|   32|   ap_memory|                query_14|         array|
+|query_14_q0                   |   in|   32|   ap_memory|                query_14|         array|
+|query_14_we0                  |  out|    1|   ap_memory|                query_14|         array|
+|query_15_address0             |  out|    3|   ap_memory|                query_15|         array|
+|query_15_ce0                  |  out|    1|   ap_memory|                query_15|         array|
+|query_15_d0                   |  out|   32|   ap_memory|                query_15|         array|
+|query_15_q0                   |   in|   32|   ap_memory|                query_15|         array|
+|query_15_we0                  |  out|    1|   ap_memory|                query_15|         array|
+|m_axi_gmem0_AWVALID           |  out|    1|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_AWREADY           |   in|    1|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_AWADDR            |  out|   64|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_AWID              |  out|    1|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_AWLEN             |  out|   32|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_AWSIZE            |  out|    3|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_AWBURST           |  out|    2|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_AWLOCK            |  out|    2|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_AWCACHE           |  out|    4|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_AWPROT            |  out|    3|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_AWQOS             |  out|    4|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_AWREGION          |  out|    4|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_AWUSER            |  out|    1|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_WVALID            |  out|    1|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_WREADY            |   in|    1|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_WDATA             |  out|  512|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_WSTRB             |  out|   64|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_WLAST             |  out|    1|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_WID               |  out|    1|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_WUSER             |  out|    1|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_ARVALID           |  out|    1|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_ARREADY           |   in|    1|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_ARADDR            |  out|   64|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_ARID              |  out|    1|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_ARLEN             |  out|   32|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_ARSIZE            |  out|    3|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_ARBURST           |  out|    2|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_ARLOCK            |  out|    2|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_ARCACHE           |  out|    4|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_ARPROT            |  out|    3|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_ARQOS             |  out|    4|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_ARREGION          |  out|    4|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_ARUSER            |  out|    1|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_RVALID            |   in|    1|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_RREADY            |  out|    1|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_RDATA             |   in|  512|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_RLAST             |   in|    1|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_RID               |   in|    1|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_RFIFONUM          |   in|   12|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_RUSER             |   in|    1|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_RRESP             |   in|    2|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_BVALID            |   in|    1|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_BREADY            |  out|    1|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_BRESP             |   in|    2|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_BID               |   in|    1|       m_axi|                   gmem3|       pointer|
+|m_axi_gmem0_BUSER             |   in|    1|       m_axi|                   gmem3|       pointer|
+|kv_cache                      |   in|   64|     ap_none|                kv_cache|        scalar|
+|kv_cache_ap_vld               |   in|    1|     ap_none|                kv_cache|        scalar|
+|head_base                     |   in|   24|     ap_none|               head_base|        scalar|
+|head_base_ap_vld              |   in|    1|     ap_none|               head_base|        scalar|
+|current_record_0_val1         |   in|  512|     ap_none|   current_record_0_val1|        scalar|
+|current_record_0_val1_ap_vld  |   in|    1|     ap_none|   current_record_0_val1|        scalar|
+|current_record_1_val2         |   in|  512|     ap_none|   current_record_1_val2|        scalar|
+|current_record_1_val2_ap_vld  |   in|    1|     ap_none|   current_record_1_val2|        scalar|
+|current_record_2_val3         |   in|  512|     ap_none|   current_record_2_val3|        scalar|
+|current_record_2_val3_ap_vld  |   in|    1|     ap_none|   current_record_2_val3|        scalar|
+|current_record_3_val4         |   in|  512|     ap_none|   current_record_3_val4|        scalar|
+|current_record_3_val4_ap_vld  |   in|    1|     ap_none|   current_record_3_val4|        scalar|
+|current_record_4_val5         |   in|  512|     ap_none|   current_record_4_val5|        scalar|
+|current_record_4_val5_ap_vld  |   in|    1|     ap_none|   current_record_4_val5|        scalar|
+|position_val                  |   in|   12|     ap_none|            position_val|        scalar|
+|position_val_ap_vld           |   in|    1|     ap_none|            position_val|        scalar|
+|quantized_pe0_din             |  out|  480|     ap_fifo|           quantized_pe0|       pointer|
+|quantized_pe0_full_n          |   in|    1|     ap_fifo|           quantized_pe0|       pointer|
+|quantized_pe0_write           |  out|    1|     ap_fifo|           quantized_pe0|       pointer|
+|scale_pe0_din                 |  out|   32|     ap_fifo|               scale_pe0|       pointer|
+|scale_pe0_full_n              |   in|    1|     ap_fifo|               scale_pe0|       pointer|
+|scale_pe0_write               |  out|    1|     ap_fifo|               scale_pe0|       pointer|
+|ap_clk                        |   in|    1|  ap_ctrl_hs|  swiftkv_attention_head|  return value|
+|ap_rst                        |   in|    1|  ap_ctrl_hs|  swiftkv_attention_head|  return value|
+|ap_start                      |   in|    1|  ap_ctrl_hs|  swiftkv_attention_head|  return value|
+|ap_done                       |  out|    1|  ap_ctrl_hs|  swiftkv_attention_head|  return value|
+|ap_ready                      |  out|    1|  ap_ctrl_hs|  swiftkv_attention_head|  return value|
+|ap_idle                       |  out|    1|  ap_ctrl_hs|  swiftkv_attention_head|  return value|
+|ap_continue                   |   in|    1|  ap_ctrl_hs|  swiftkv_attention_head|  return value|
++------------------------------+-----+-----+------------+------------------------+--------------+
+

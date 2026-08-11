@@ -1,0 +1,177 @@
+
+
+================================================================
+== Vitis HLS Report for 'swiftkv_coefficient_producer'
+================================================================
+* Date:           Tue Aug 11 09:18:11 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.433 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+-----------+-----+-------+---------+
+    |  Latency (cycles) |  Latency (absolute)  |   Interval  | Pipeline|
+    |   min   |   max   |    min   |    max    | min |  max  |   Type  |
+    +---------+---------+----------+-----------+-----+-------+---------+
+    |       59|    24629|  0.197 us|  82.088 us|   59|  24629|       no|
+    +---------+---------+----------+-----------+-----+-------+---------+
+
+    + Detail: 
+        * Instance: 
+        +------------------------------------------------------------------------+--------------------------------------------------------------+---------+---------+-----------+-----------+-----+-------+---------+
+        |                                                                        |                                                              |  Latency (cycles) |   Latency (absolute)  |   Interval  | Pipeline|
+        |                                Instance                                |                            Module                            |   min   |   max   |    min    |    max    | min |  max  |   Type  |
+        +------------------------------------------------------------------------+--------------------------------------------------------------+---------+---------+-----------+-----------+-----+-------+---------+
+        |grp_swiftkv_coefficient_producer_Pipeline_coefficient_token_loop_fu_81  |swiftkv_coefficient_producer_Pipeline_coefficient_token_loop  |       18|    24588|  59.994 ns|  81.952 us|   18|  24588|       no|
+        |grp_swiftkv_reciprocal_normalization_fu_93                              |swiftkv_reciprocal_normalization                              |       37|       37|   0.123 us|   0.123 us|   37|     37|       no|
+        +------------------------------------------------------------------------+--------------------------------------------------------------+---------+---------+-----------+-----------+-----+-------+---------+
+
+        * Loop: 
+        N/A
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+------+
+|         Name        | BRAM_18K|  DSP  |    FF   |   LUT   | URAM |
++---------------------+---------+-------+---------+---------+------+
+|DSP                  |        -|      -|        -|        -|     -|
+|Expression           |        -|      -|        0|       22|     -|
+|FIFO                 |        -|      -|        -|        -|     -|
+|Instance             |        0|      6|     1430|     2799|     -|
+|Memory               |        -|      -|        -|        -|     -|
+|Multiplexer          |        -|      -|        -|       85|     -|
+|Register             |        -|      -|       33|        -|     -|
++---------------------+---------+-------+---------+---------+------+
+|Total                |        0|      6|     1463|     2906|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available SLR        |     1344|   3072|   864000|   432000|   320|
++---------------------+---------+-------+---------+---------+------+
+|Utilization SLR (%)  |        0|     ~0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available            |     5376|  12288|  3456000|  1728000|  1280|
++---------------------+---------+-------+---------+---------+------+
+|Utilization (%)      |        0|     ~0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+
++ Detail: 
+    * Instance: 
+    +------------------------------------------------------------------------+--------------------------------------------------------------+---------+----+------+------+-----+
+    |                                Instance                                |                            Module                            | BRAM_18K| DSP|  FF  |  LUT | URAM|
+    +------------------------------------------------------------------------+--------------------------------------------------------------+---------+----+------+------+-----+
+    |grp_swiftkv_coefficient_producer_Pipeline_coefficient_token_loop_fu_81  |swiftkv_coefficient_producer_Pipeline_coefficient_token_loop  |        0|   6|  1278|  2582|    0|
+    |grp_swiftkv_reciprocal_normalization_fu_93                              |swiftkv_reciprocal_normalization                              |        0|   0|   152|   217|    0|
+    +------------------------------------------------------------------------+--------------------------------------------------------------+---------+----+------+------+-----+
+    |Total                                                                   |                                                              |        0|   6|  1430|  2799|    0|
+    +------------------------------------------------------------------------+--------------------------------------------------------------+---------+----+------+------+-----+
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +----------------------+----------+----+---+----+------------+------------+
+    |     Variable Name    | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +----------------------+----------+----+---+----+------------+------------+
+    |add_ln1094_fu_101_p2  |         +|   0|  0|  20|          13|           1|
+    |ap_block_state1       |        or|   0|  0|   2|           1|           1|
+    +----------------------+----------+----+---+----+------------+------------+
+    |Total                 |          |   0|  0|  22|          14|           2|
+    +----------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +------------------------------------+----+-----------+-----+-----------+
+    |                Name                | LUT| Input Size| Bits| Total Bits|
+    +------------------------------------+----+-----------+-----+-----------+
+    |ap_NS_fsm                           |  31|          6|    1|          6|
+    |ap_done                             |   9|          2|    1|          2|
+    |control_stream_write                |   9|          2|    1|          2|
+    |inverse_normalization_stream_blk_n  |   9|          2|    1|          2|
+    |position_blk_n                      |   9|          2|    1|          2|
+    |position_val_c_blk_n                |   9|          2|    1|          2|
+    |score_stream_read                   |   9|          2|    1|          2|
+    +------------------------------------+----+-----------+-----+-----------+
+    |Total                               |  85|         18|    7|         18|
+    +------------------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +-------------------------------------------------------------------------------------+----+----+-----+-----------+
+    |                                         Name                                        | FF | LUT| Bits| Const Bits|
+    +-------------------------------------------------------------------------------------+----+----+-----+-----------+
+    |add_ln1094_reg_128                                                                   |  13|   0|   13|          0|
+    |ap_CS_fsm                                                                            |   5|   0|    5|          0|
+    |ap_done_reg                                                                          |   1|   0|    1|          0|
+    |grp_swiftkv_coefficient_producer_Pipeline_coefficient_token_loop_fu_81_ap_start_reg  |   1|   0|    1|          0|
+    |grp_swiftkv_reciprocal_normalization_fu_93_ap_start_reg                              |   1|   0|    1|          0|
+    |position_read_reg_123                                                                |  12|   0|   12|          0|
+    +-------------------------------------------------------------------------------------+----+----+-----+-----------+
+    |Total                                                                                |  33|   0|   33|          0|
+    +-------------------------------------------------------------------------------------+----+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++---------------------------------------------+-----+-----+------------+------------------------------+--------------+
+|                  RTL Ports                  | Dir | Bits|  Protocol  |         Source Object        |    C Type    |
++---------------------------------------------+-----+-----+------------+------------------------------+--------------+
+|ap_clk                                       |   in|    1|  ap_ctrl_hs|  swiftkv_coefficient_producer|  return value|
+|ap_rst                                       |   in|    1|  ap_ctrl_hs|  swiftkv_coefficient_producer|  return value|
+|ap_start                                     |   in|    1|  ap_ctrl_hs|  swiftkv_coefficient_producer|  return value|
+|ap_done                                      |  out|    1|  ap_ctrl_hs|  swiftkv_coefficient_producer|  return value|
+|ap_continue                                  |   in|    1|  ap_ctrl_hs|  swiftkv_coefficient_producer|  return value|
+|ap_idle                                      |  out|    1|  ap_ctrl_hs|  swiftkv_coefficient_producer|  return value|
+|ap_ready                                     |  out|    1|  ap_ctrl_hs|  swiftkv_coefficient_producer|  return value|
+|score_stream_dout                            |   in|   32|     ap_fifo|                  score_stream|       pointer|
+|score_stream_num_data_valid                  |   in|    3|     ap_fifo|                  score_stream|       pointer|
+|score_stream_fifo_cap                        |   in|    3|     ap_fifo|                  score_stream|       pointer|
+|score_stream_empty_n                         |   in|    1|     ap_fifo|                  score_stream|       pointer|
+|score_stream_read                            |  out|    1|     ap_fifo|                  score_stream|       pointer|
+|position_dout                                |   in|   12|     ap_fifo|                      position|       pointer|
+|position_num_data_valid                      |   in|    3|     ap_fifo|                      position|       pointer|
+|position_fifo_cap                            |   in|    3|     ap_fifo|                      position|       pointer|
+|position_empty_n                             |   in|    1|     ap_fifo|                      position|       pointer|
+|position_read                                |  out|    1|     ap_fifo|                      position|       pointer|
+|control_stream_din                           |  out|   19|     ap_fifo|                control_stream|       pointer|
+|control_stream_num_data_valid                |   in|    5|     ap_fifo|                control_stream|       pointer|
+|control_stream_fifo_cap                      |   in|    5|     ap_fifo|                control_stream|       pointer|
+|control_stream_full_n                        |   in|    1|     ap_fifo|                control_stream|       pointer|
+|control_stream_write                         |  out|    1|     ap_fifo|                control_stream|       pointer|
+|inverse_normalization_stream_din             |  out|   32|     ap_fifo|  inverse_normalization_stream|       pointer|
+|inverse_normalization_stream_num_data_valid  |   in|    3|     ap_fifo|  inverse_normalization_stream|       pointer|
+|inverse_normalization_stream_fifo_cap        |   in|    3|     ap_fifo|  inverse_normalization_stream|       pointer|
+|inverse_normalization_stream_full_n          |   in|    1|     ap_fifo|  inverse_normalization_stream|       pointer|
+|inverse_normalization_stream_write           |  out|    1|     ap_fifo|  inverse_normalization_stream|       pointer|
+|position_val_c_din                           |  out|   12|     ap_fifo|                position_val_c|       pointer|
+|position_val_c_num_data_valid                |   in|    3|     ap_fifo|                position_val_c|       pointer|
+|position_val_c_fifo_cap                      |   in|    3|     ap_fifo|                position_val_c|       pointer|
+|position_val_c_full_n                        |   in|    1|     ap_fifo|                position_val_c|       pointer|
+|position_val_c_write                         |  out|    1|     ap_fifo|                position_val_c|       pointer|
++---------------------------------------------+-----+-----+------------+------------------------------+--------------+
+

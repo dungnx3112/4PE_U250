@@ -1,0 +1,48 @@
+<profile>
+
+<section name = "Vitis HLS Report for 'int4_run_preprocess_and_linear'" level="0">
+<item name = "Date">Tue Aug 11 09:17:49 2026
+</item>
+<item name = "Version">2023.2 (Build 4023990 on Oct 11 2023)</item>
+<item name = "Project">proj_int4_decoder_xo</item>
+<item name = "Solution">solution1 (Vitis Kernel Flow Target)</item>
+<item name = "Product family">virtexuplus</item>
+<item name = "Target device">xcu250-figd2104-2L-e</item>
+</section>
+
+<section name = "Performance Estimates" level="0">
+<item name = "Timing">
+<section name = "" level="1">
+<item name = "Summary"><table name="" hasTotal="0">
+<keys size="4">Clock, Target, Estimated, Uncertainty</keys>
+<column name="ap_clk">3.33 ns, 2.608 ns, 0.90 ns</column>
+</table>
+</item>
+</section>
+</item>
+<item name = "Latency">
+<section name = "" level="1">
+<item name = "Summary"><table name="" hasTotal="0">
+<keys size="8">, min, max, min, max, min, max, Type</keys>
+<column name="">6, 693623, 19.998 ns, 2.312 ms, 2, 693619, dataflow</column>
+</table>
+</item>
+<item name = "Detail">
+<section name = "" level="1">
+<item name = "Instance"><table name="" hasTotal="0">
+<keys size="9">Instance, Module, min, max, min, max, min, max, Type</keys>
+<column name="grp_int4_preprocess_activation_stream_fu_290">int4_preprocess_activation_stream, 1, 13203, 3.333 ns, 44.006 us, 1, 13203, no</column>
+<column name="icmp_ln113_loc_i_channel_int4_run_preprocess_and_linear_Block_entry13_proc_fu_338">int4_run_preprocess_and_linear_Block_entry13_proc, 0, 0, 0 ns, 0 ns, 0, 0, no</column>
+<column name="grp_int4_linear_4pe_from_stream_fu_344">int4_linear_4pe_from_stream, 1, 693618, 3.333 ns, 2.312 ms, 1, 693618, no</column>
+</table>
+</item>
+<item name = "Loop"><table name="" hasTotal="0">
+<keys size="8">Loop Name, min, max, Latency, achieved, target, Count, Pipelined</keys>
+</table>
+</item>
+</section>
+</item>
+</section>
+</item>
+</section>
+</profile>

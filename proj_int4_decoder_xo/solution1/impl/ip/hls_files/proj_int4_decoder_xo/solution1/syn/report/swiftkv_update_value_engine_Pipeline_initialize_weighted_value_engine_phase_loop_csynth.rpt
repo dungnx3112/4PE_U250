@@ -1,0 +1,152 @@
+
+
+================================================================
+== Vitis HLS Report for 'swiftkv_update_value_engine_Pipeline_initialize_weighted_value_engine_phase_loop'
+================================================================
+* Date:           Tue Aug 11 09:18:17 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.291 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+-----------+-----------+-----+-----+---------+
+    |  Latency (cycles) |   Latency (absolute)  |  Interval | Pipeline|
+    |   min   |   max   |    min    |    max    | min | max |   Type  |
+    +---------+---------+-----------+-----------+-----+-----+---------+
+    |       10|       10|  33.330 ns|  33.330 ns|   10|   10|       no|
+    +---------+---------+-----------+-----------+-----+-----+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +-----------------------------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |                                               |  Latency (cycles) | Iteration|  Initiation Interval  | Trip |          |
+        |                   Loop Name                   |   min   |   max   |  Latency |  achieved |   target  | Count| Pipelined|
+        +-----------------------------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |- initialize_weighted_value_engine_phase_loop  |        8|        8|         1|          1|          1|     8|       yes|
+        +-----------------------------------------------+---------+---------+----------+-----------+-----------+------+----------+
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+------+
+|         Name        | BRAM_18K|  DSP  |    FF   |   LUT   | URAM |
++---------------------+---------+-------+---------+---------+------+
+|DSP                  |        -|      -|        -|        -|     -|
+|Expression           |        -|      -|        0|       24|     -|
+|FIFO                 |        -|      -|        -|        -|     -|
+|Instance             |        -|      -|        -|        -|     -|
+|Memory               |        -|      -|        -|        -|     -|
+|Multiplexer          |        -|      -|        -|       27|     -|
+|Register             |        -|      -|        6|        -|     -|
++---------------------+---------+-------+---------+---------+------+
+|Total                |        0|      0|        6|       51|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available SLR        |     1344|   3072|   864000|   432000|   320|
++---------------------+---------+-------+---------+---------+------+
+|Utilization SLR (%)  |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available            |     5376|  12288|  3456000|  1728000|  1280|
++---------------------+---------+-------+---------+---------+------+
+|Utilization (%)      |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+
++ Detail: 
+    * Instance: 
+    N/A
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +-----------------------+----------+----+---+----+------------+------------+
+    |     Variable Name     | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +-----------------------+----------+----+---+----+------------+------------+
+    |add_ln1249_fu_130_p2   |         +|   0|  0|  12|           4|           1|
+    |icmp_ln1249_fu_124_p2  |      icmp|   0|  0|  12|           4|           5|
+    +-----------------------+----------+----+---+----+------------+------------+
+    |Total                  |          |   0|  0|  24|           8|           6|
+    +-----------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +--------------------------+----+-----------+-----+-----------+
+    |           Name           | LUT| Input Size| Bits| Total Bits|
+    +--------------------------+----+-----------+-----+-----------+
+    |ap_done_int               |   9|          2|    1|          2|
+    |ap_sig_allocacmp_phase_4  |   9|          2|    4|          8|
+    |phase_fu_40               |   9|          2|    4|          8|
+    +--------------------------+----+-----------+-----+-----------+
+    |Total                     |  27|          6|    9|         18|
+    +--------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +-------------+---+----+-----+-----------+
+    |     Name    | FF| LUT| Bits| Const Bits|
+    +-------------+---+----+-----+-----------+
+    |ap_CS_fsm    |  1|   0|    1|          0|
+    |ap_done_reg  |  1|   0|    1|          0|
+    |phase_fu_40  |  4|   0|    4|          0|
+    +-------------+---+----+-----+-----------+
+    |Total        |  6|   0|    6|          0|
+    +-------------+---+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++---------------------------+-----+-----+------------+----------------------------------------------------------------------------------+--------------+
+|         RTL Ports         | Dir | Bits|  Protocol  |                                   Source Object                                  |    C Type    |
++---------------------------+-----+-----+------------+----------------------------------------------------------------------------------+--------------+
+|ap_clk                     |   in|    1|  ap_ctrl_hs|  swiftkv_update_value_engine_Pipeline_initialize_weighted_value_engine_phase_loop|  return value|
+|ap_rst                     |   in|    1|  ap_ctrl_hs|  swiftkv_update_value_engine_Pipeline_initialize_weighted_value_engine_phase_loop|  return value|
+|ap_start                   |   in|    1|  ap_ctrl_hs|  swiftkv_update_value_engine_Pipeline_initialize_weighted_value_engine_phase_loop|  return value|
+|ap_done                    |  out|    1|  ap_ctrl_hs|  swiftkv_update_value_engine_Pipeline_initialize_weighted_value_engine_phase_loop|  return value|
+|ap_idle                    |  out|    1|  ap_ctrl_hs|  swiftkv_update_value_engine_Pipeline_initialize_weighted_value_engine_phase_loop|  return value|
+|ap_ready                   |  out|    1|  ap_ctrl_hs|  swiftkv_update_value_engine_Pipeline_initialize_weighted_value_engine_phase_loop|  return value|
+|weighted_value_3_address1  |  out|    3|   ap_memory|                                                                  weighted_value_3|         array|
+|weighted_value_3_ce1       |  out|    1|   ap_memory|                                                                  weighted_value_3|         array|
+|weighted_value_3_we1       |  out|    1|   ap_memory|                                                                  weighted_value_3|         array|
+|weighted_value_3_d1        |  out|   32|   ap_memory|                                                                  weighted_value_3|         array|
+|weighted_value_2_address1  |  out|    3|   ap_memory|                                                                  weighted_value_2|         array|
+|weighted_value_2_ce1       |  out|    1|   ap_memory|                                                                  weighted_value_2|         array|
+|weighted_value_2_we1       |  out|    1|   ap_memory|                                                                  weighted_value_2|         array|
+|weighted_value_2_d1        |  out|   32|   ap_memory|                                                                  weighted_value_2|         array|
+|weighted_value_1_address1  |  out|    3|   ap_memory|                                                                  weighted_value_1|         array|
+|weighted_value_1_ce1       |  out|    1|   ap_memory|                                                                  weighted_value_1|         array|
+|weighted_value_1_we1       |  out|    1|   ap_memory|                                                                  weighted_value_1|         array|
+|weighted_value_1_d1        |  out|   32|   ap_memory|                                                                  weighted_value_1|         array|
+|weighted_value_0_address1  |  out|    3|   ap_memory|                                                                  weighted_value_0|         array|
+|weighted_value_0_ce1       |  out|    1|   ap_memory|                                                                  weighted_value_0|         array|
+|weighted_value_0_we1       |  out|    1|   ap_memory|                                                                  weighted_value_0|         array|
+|weighted_value_0_d1        |  out|   32|   ap_memory|                                                                  weighted_value_0|         array|
++---------------------------+-----+-----+------------+----------------------------------------------------------------------------------+--------------+
+

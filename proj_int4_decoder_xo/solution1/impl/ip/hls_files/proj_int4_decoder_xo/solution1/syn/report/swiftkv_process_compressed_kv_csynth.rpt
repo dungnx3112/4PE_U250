@@ -1,0 +1,222 @@
+
+
+================================================================
+== Vitis HLS Report for 'swiftkv_process_compressed_kv'
+================================================================
+* Date:           Tue Aug 11 09:18:10 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.374 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+-----------+----------+-----+-------+---------+
+    |  Latency (cycles) |  Latency (absolute)  |   Interval  | Pipeline|
+    |   min   |   max   |    min    |    max   | min |  max  |   Type  |
+    +---------+---------+-----------+----------+-----+-------+---------+
+    |       26|    32786|  86.658 ns|  0.109 ms|   26|  32786|       no|
+    +---------+---------+-----------+----------+-----+-------+---------+
+
+    + Detail: 
+        * Instance: 
+        +-----------------------------------------------------------------------------+------------------------------------------------------------------+---------+---------+-----------+----------+-----+-------+---------+
+        |                                                                             |                                                                  |  Latency (cycles) |  Latency (absolute)  |   Interval  | Pipeline|
+        |                                   Instance                                  |                              Module                              |   min   |   max   |    min    |    max   | min |  max  |   Type  |
+        +-----------------------------------------------------------------------------+------------------------------------------------------------------+---------+---------+-----------+----------+-----+-------+---------+
+        |grp_swiftkv_process_compressed_kv_Pipeline_compressed_dot_phase_loop_fu_104  |swiftkv_process_compressed_kv_Pipeline_compressed_dot_phase_loop  |       24|    32784|  79.992 ns|  0.109 ms|   24|  32784|       no|
+        +-----------------------------------------------------------------------------+------------------------------------------------------------------+---------+---------+-----------+----------+-----+-------+---------+
+
+        * Loop: 
+        N/A
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+------+
+|         Name        | BRAM_18K|  DSP  |    FF   |   LUT   | URAM |
++---------------------+---------+-------+---------+---------+------+
+|DSP                  |        -|      -|        -|        -|     -|
+|Expression           |        -|      -|        0|       25|     -|
+|FIFO                 |        -|      -|        -|        -|     -|
+|Instance             |        -|     34|     5970|     2863|     -|
+|Memory               |        -|      -|        -|        -|     -|
+|Multiplexer          |        -|      -|        -|       74|     -|
+|Register             |        -|      -|       18|        -|     -|
++---------------------+---------+-------+---------+---------+------+
+|Total                |        0|     34|     5988|     2962|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available SLR        |     1344|   3072|   864000|   432000|   320|
++---------------------+---------+-------+---------+---------+------+
+|Utilization SLR (%)  |        0|      1|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available            |     5376|  12288|  3456000|  1728000|  1280|
++---------------------+---------+-------+---------+---------+------+
+|Utilization (%)      |        0|     ~0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+
++ Detail: 
+    * Instance: 
+    +-----------------------------------------------------------------------------+------------------------------------------------------------------+---------+----+------+------+-----+
+    |                                   Instance                                  |                              Module                              | BRAM_18K| DSP|  FF  |  LUT | URAM|
+    +-----------------------------------------------------------------------------+------------------------------------------------------------------+---------+----+------+------+-----+
+    |grp_swiftkv_process_compressed_kv_Pipeline_compressed_dot_phase_loop_fu_104  |swiftkv_process_compressed_kv_Pipeline_compressed_dot_phase_loop  |        0|  34|  5970|  2863|    0|
+    +-----------------------------------------------------------------------------+------------------------------------------------------------------+---------+----+------+------+-----+
+    |Total                                                                        |                                                                  |        0|  34|  5970|  2863|    0|
+    +-----------------------------------------------------------------------------+------------------------------------------------------------------+---------+----+------+------+-----+
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +------------------------+----------+----+---+----+------------+------------+
+    |      Variable Name     | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +------------------------+----------+----+---+----+------------+------------+
+    |total_phases_fu_160_p2  |         +|   0|  0|  23|          16|           4|
+    |ap_block_state1         |        or|   0|  0|   2|           1|           1|
+    +------------------------+----------+----+---+----+------------+------------+
+    |Total                   |          |   0|  0|  25|          17|           5|
+    +------------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +--------------------------+----+-----------+-----+-----------+
+    |           Name           | LUT| Input Size| Bits| Total Bits|
+    +--------------------------+----+-----------+-----+-----------+
+    |ap_NS_fsm                 |  20|          4|    1|          4|
+    |ap_done                   |   9|          2|    1|          2|
+    |key0_stream_read          |   9|          2|    1|          2|
+    |key1_stream_read          |   9|          2|    1|          2|
+    |key_metadata_stream_read  |   9|          2|    1|          2|
+    |position_val_c13_blk_n    |   9|          2|    1|          2|
+    |score_stream_write        |   9|          2|    1|          2|
+    +--------------------------+----+-----------+-----+-----------+
+    |Total                     |  74|         16|    7|         16|
+    +--------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +------------------------------------------------------------------------------------------+----+----+-----+-----------+
+    |                                           Name                                           | FF | LUT| Bits| Const Bits|
+    +------------------------------------------------------------------------------------------+----+----+-----+-----------+
+    |ap_CS_fsm                                                                                 |   3|   0|    3|          0|
+    |ap_done_reg                                                                               |   1|   0|    1|          0|
+    |grp_swiftkv_process_compressed_kv_Pipeline_compressed_dot_phase_loop_fu_104_ap_start_reg  |   1|   0|    1|          0|
+    |total_phases_reg_172                                                                      |  13|   0|   16|          3|
+    +------------------------------------------------------------------------------------------+----+----+-----+-----------+
+    |Total                                                                                     |  18|   0|   21|          3|
+    +------------------------------------------------------------------------------------------+----+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++------------------------------------+-----+-----+------------+-------------------------------+--------------+
+|              RTL Ports             | Dir | Bits|  Protocol  |         Source Object         |    C Type    |
++------------------------------------+-----+-----+------------+-------------------------------+--------------+
+|ap_clk                              |   in|    1|  ap_ctrl_hs|  swiftkv_process_compressed_kv|  return value|
+|ap_rst                              |   in|    1|  ap_ctrl_hs|  swiftkv_process_compressed_kv|  return value|
+|ap_start                            |   in|    1|  ap_ctrl_hs|  swiftkv_process_compressed_kv|  return value|
+|ap_done                             |  out|    1|  ap_ctrl_hs|  swiftkv_process_compressed_kv|  return value|
+|ap_continue                         |   in|    1|  ap_ctrl_hs|  swiftkv_process_compressed_kv|  return value|
+|ap_idle                             |  out|    1|  ap_ctrl_hs|  swiftkv_process_compressed_kv|  return value|
+|ap_ready                            |  out|    1|  ap_ctrl_hs|  swiftkv_process_compressed_kv|  return value|
+|query_0_address0                    |  out|    3|   ap_memory|                        query_0|         array|
+|query_0_ce0                         |  out|    1|   ap_memory|                        query_0|         array|
+|query_0_q0                          |   in|   32|   ap_memory|                        query_0|         array|
+|query_1_address0                    |  out|    3|   ap_memory|                        query_1|         array|
+|query_1_ce0                         |  out|    1|   ap_memory|                        query_1|         array|
+|query_1_q0                          |   in|   32|   ap_memory|                        query_1|         array|
+|query_2_address0                    |  out|    3|   ap_memory|                        query_2|         array|
+|query_2_ce0                         |  out|    1|   ap_memory|                        query_2|         array|
+|query_2_q0                          |   in|   32|   ap_memory|                        query_2|         array|
+|query_3_address0                    |  out|    3|   ap_memory|                        query_3|         array|
+|query_3_ce0                         |  out|    1|   ap_memory|                        query_3|         array|
+|query_3_q0                          |   in|   32|   ap_memory|                        query_3|         array|
+|query_4_address0                    |  out|    3|   ap_memory|                        query_4|         array|
+|query_4_ce0                         |  out|    1|   ap_memory|                        query_4|         array|
+|query_4_q0                          |   in|   32|   ap_memory|                        query_4|         array|
+|query_5_address0                    |  out|    3|   ap_memory|                        query_5|         array|
+|query_5_ce0                         |  out|    1|   ap_memory|                        query_5|         array|
+|query_5_q0                          |   in|   32|   ap_memory|                        query_5|         array|
+|query_6_address0                    |  out|    3|   ap_memory|                        query_6|         array|
+|query_6_ce0                         |  out|    1|   ap_memory|                        query_6|         array|
+|query_6_q0                          |   in|   32|   ap_memory|                        query_6|         array|
+|query_7_address0                    |  out|    3|   ap_memory|                        query_7|         array|
+|query_7_ce0                         |  out|    1|   ap_memory|                        query_7|         array|
+|query_7_q0                          |   in|   32|   ap_memory|                        query_7|         array|
+|query_8_address0                    |  out|    3|   ap_memory|                        query_8|         array|
+|query_8_ce0                         |  out|    1|   ap_memory|                        query_8|         array|
+|query_8_q0                          |   in|   32|   ap_memory|                        query_8|         array|
+|query_9_address0                    |  out|    3|   ap_memory|                        query_9|         array|
+|query_9_ce0                         |  out|    1|   ap_memory|                        query_9|         array|
+|query_9_q0                          |   in|   32|   ap_memory|                        query_9|         array|
+|query_10_address0                   |  out|    3|   ap_memory|                       query_10|         array|
+|query_10_ce0                        |  out|    1|   ap_memory|                       query_10|         array|
+|query_10_q0                         |   in|   32|   ap_memory|                       query_10|         array|
+|query_11_address0                   |  out|    3|   ap_memory|                       query_11|         array|
+|query_11_ce0                        |  out|    1|   ap_memory|                       query_11|         array|
+|query_11_q0                         |   in|   32|   ap_memory|                       query_11|         array|
+|query_12_address0                   |  out|    3|   ap_memory|                       query_12|         array|
+|query_12_ce0                        |  out|    1|   ap_memory|                       query_12|         array|
+|query_12_q0                         |   in|   32|   ap_memory|                       query_12|         array|
+|query_13_address0                   |  out|    3|   ap_memory|                       query_13|         array|
+|query_13_ce0                        |  out|    1|   ap_memory|                       query_13|         array|
+|query_13_q0                         |   in|   32|   ap_memory|                       query_13|         array|
+|query_14_address0                   |  out|    3|   ap_memory|                       query_14|         array|
+|query_14_ce0                        |  out|    1|   ap_memory|                       query_14|         array|
+|query_14_q0                         |   in|   32|   ap_memory|                       query_14|         array|
+|query_15_address0                   |  out|    3|   ap_memory|                       query_15|         array|
+|query_15_ce0                        |  out|    1|   ap_memory|                       query_15|         array|
+|query_15_q0                         |   in|   32|   ap_memory|                       query_15|         array|
+|key_metadata_stream_dout            |   in|   40|     ap_fifo|            key_metadata_stream|       pointer|
+|key_metadata_stream_num_data_valid  |   in|    6|     ap_fifo|            key_metadata_stream|       pointer|
+|key_metadata_stream_fifo_cap        |   in|    6|     ap_fifo|            key_metadata_stream|       pointer|
+|key_metadata_stream_empty_n         |   in|    1|     ap_fifo|            key_metadata_stream|       pointer|
+|key_metadata_stream_read            |  out|    1|     ap_fifo|            key_metadata_stream|       pointer|
+|key0_stream_dout                    |   in|  512|     ap_fifo|                    key0_stream|       pointer|
+|key0_stream_num_data_valid          |   in|    6|     ap_fifo|                    key0_stream|       pointer|
+|key0_stream_fifo_cap                |   in|    6|     ap_fifo|                    key0_stream|       pointer|
+|key0_stream_empty_n                 |   in|    1|     ap_fifo|                    key0_stream|       pointer|
+|key0_stream_read                    |  out|    1|     ap_fifo|                    key0_stream|       pointer|
+|key1_stream_dout                    |   in|  512|     ap_fifo|                    key1_stream|       pointer|
+|key1_stream_num_data_valid          |   in|    6|     ap_fifo|                    key1_stream|       pointer|
+|key1_stream_fifo_cap                |   in|    6|     ap_fifo|                    key1_stream|       pointer|
+|key1_stream_empty_n                 |   in|    1|     ap_fifo|                    key1_stream|       pointer|
+|key1_stream_read                    |  out|    1|     ap_fifo|                    key1_stream|       pointer|
+|position                            |   in|   12|     ap_none|                       position|        scalar|
+|score_stream_din                    |  out|   32|     ap_fifo|                   score_stream|       pointer|
+|score_stream_num_data_valid         |   in|    3|     ap_fifo|                   score_stream|       pointer|
+|score_stream_fifo_cap               |   in|    3|     ap_fifo|                   score_stream|       pointer|
+|score_stream_full_n                 |   in|    1|     ap_fifo|                   score_stream|       pointer|
+|score_stream_write                  |  out|    1|     ap_fifo|                   score_stream|       pointer|
+|position_val_c13_din                |  out|   12|     ap_fifo|               position_val_c13|       pointer|
+|position_val_c13_num_data_valid     |   in|    3|     ap_fifo|               position_val_c13|       pointer|
+|position_val_c13_fifo_cap           |   in|    3|     ap_fifo|               position_val_c13|       pointer|
+|position_val_c13_full_n             |   in|    1|     ap_fifo|               position_val_c13|       pointer|
+|position_val_c13_write              |  out|    1|     ap_fifo|               position_val_c13|       pointer|
++------------------------------------+-----+-----+------------+-------------------------------+--------------+
+

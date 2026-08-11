@@ -1,0 +1,202 @@
+<profile>
+
+<section name = "Vitis HLS Report for 'int4_write_outputs'" level="0">
+<item name = "Date">Tue Aug 11 09:19:26 2026
+</item>
+<item name = "Version">2023.2 (Build 4023990 on Oct 11 2023)</item>
+<item name = "Project">proj_int4_decoder_xo</item>
+<item name = "Solution">solution1 (Vitis Kernel Flow Target)</item>
+<item name = "Product family">virtexuplus</item>
+<item name = "Target device">xcu250-figd2104-2L-e</item>
+</section>
+
+<section name = "Performance Estimates" level="0">
+<item name = "Timing">
+<section name = "" level="1">
+<item name = "Summary"><table name="" hasTotal="0">
+<keys size="4">Clock, Target, Estimated, Uncertainty</keys>
+<column name="ap_clk">3.33 ns, 2.342 ns, 0.90 ns</column>
+</table>
+</item>
+</section>
+</item>
+<item name = "Latency">
+<section name = "" level="1">
+<item name = "Summary"><table name="" hasTotal="0">
+<keys size="8">, min, max, min, max, min, max, Type</keys>
+<column name="">68, 1857, 0.227 us, 6.189 us, 68, 1857, no</column>
+</table>
+</item>
+<item name = "Detail">
+<section name = "" level="1">
+<item name = "Instance"><table name="" hasTotal="0">
+<keys size="9">Instance, Module, min, max, min, max, min, max, Type</keys>
+<column name="grp_int4_write_outputs_Pipeline_write_output_direct_loop_fu_239">int4_write_outputs_Pipeline_write_output_direct_loop, 67, 507, 0.223 us, 1.690 us, 67, 507, no</column>
+<column name="grp_int4_write_outputs_Pipeline_fused_residual_add_loop_fu_248">int4_write_outputs_Pipeline_fused_residual_add_loop, 24, 24, 79.992 ns, 79.992 ns, 24, 24, no</column>
+</table>
+</item>
+<item name = "Loop"><table name="" hasTotal="0">
+<keys size="8">Loop Name, min, max, Latency, achieved, target, Count, Pipelined</keys>
+<column name="- write_output_fused_loop">1856, 1856, 29, -, -, 64, no</column>
+</table>
+</item>
+</section>
+</item>
+</section>
+</item>
+</section>
+
+<section name = "Utilization Estimates" level="0">
+<item name = "Summary"><table name="" hasTotal="1">
+<keys size="6">Name, BRAM_18K, DSP, FF, LUT, URAM</keys>
+<column name="DSP">-, -, -, -, -</column>
+<column name="Expression">-, -, 0, 38, -</column>
+<column name="FIFO">-, -, -, -, -</column>
+<column name="Instance">-, 2, 1591, 536, -</column>
+<column name="Memory">-, -, -, -, -</column>
+<column name="Multiplexer">-, -, -, 143, -</column>
+<column name="Register">-, -, 1569, -, -</column>
+<specialColumn name="Available SLR">1344, 3072, 864000, 432000, 320</specialColumn>
+<specialColumn name="Utilization SLR (%)">0, ~0, ~0, ~0, 0</specialColumn>
+<specialColumn name="Available">5376, 12288, 3456000, 1728000, 1280</specialColumn>
+<specialColumn name="Utilization (%)">0, ~0, ~0, ~0, 0</specialColumn>
+</table>
+</item>
+<item name = "Detail">
+<section name = "" level="1">
+<item name = "Instance"><table name="" hasTotal="1">
+<keys size="7">Instance, Module, BRAM_18K, DSP, FF, LUT, URAM</keys>
+<column name="grp_int4_write_outputs_Pipeline_fused_residual_add_loop_fu_248">int4_write_outputs_Pipeline_fused_residual_add_loop, 0, 2, 1047, 455, 0</column>
+<column name="grp_int4_write_outputs_Pipeline_write_output_direct_loop_fu_239">int4_write_outputs_Pipeline_write_output_direct_loop, 0, 0, 544, 81, 0</column>
+</table>
+</item>
+<item name = "DSP"><table name="" hasTotal="0">
+<keys size="3">Instance, Module, Expression</keys>
+</table>
+</item>
+<item name = "Memory"><table name="" hasTotal="1">
+<keys size="10">Memory, Module, BRAM_18K, FF, LUT, URAM, Words, Bits, Banks, W*Bits*Banks</keys>
+</table>
+</item>
+<item name = "FIFO"><table name="" hasTotal="1">
+<keys size="8">Name, BRAM_18K, FF, LUT, URAM, Depth, Bits, Size:D*B</keys>
+</table>
+</item>
+<item name = "Expression"><table name="" hasTotal="1">
+<keys size="7">Variable Name, Operation, DSP, FF, LUT, Bitwidth P0, Bitwidth P1</keys>
+<column name="add_ln713_fu_322_p2">+, 0, 0, 16, 9, 1</column>
+<column name="ap_block_state2_on_subcall_done">and, 0, 0, 2, 1, 1</column>
+<column name="ap_condition_769">and, 0, 0, 2, 1, 1</column>
+<column name="icmp_ln713_fu_317_p2">icmp, 0, 0, 16, 9, 9</column>
+<column name="ap_block_state1">or, 0, 0, 2, 1, 1</column>
+</table>
+</item>
+<item name = "Multiplexer"><table name="" hasTotal="1">
+<keys size="5">Name, LUT, Input Size, Bits, Total Bits</keys>
+<column name="ap_NS_fsm">37, 7, 1, 7</column>
+<column name="ap_done">9, 2, 1, 2</column>
+<column name="local_tiles_loc_blk_n">9, 2, 1, 2</column>
+<column name="output_mem_address1">14, 3, 9, 27</column>
+<column name="output_mem_ce1">14, 3, 1, 3</column>
+<column name="output_mem_d1">14, 3, 512, 1536</column>
+<column name="output_mem_we1">14, 3, 1, 3</column>
+<column name="output_stream_blk_n">9, 2, 1, 2</column>
+<column name="output_stream_read">14, 3, 1, 3</column>
+<column name="word_fu_200">9, 2, 9, 18</column>
+</table>
+</item>
+<item name = "Register"><table name="" hasTotal="1">
+<keys size="5">Name, FF, LUT, Bits, Const Bits</keys>
+<column name="ap_CS_fsm">6, 0, 6, 0</column>
+<column name="ap_done_reg">1, 0, 1, 0</column>
+<column name="branch_values_46_reg_1151">32, 0, 32, 0</column>
+<column name="branch_values_47_reg_1161">32, 0, 32, 0</column>
+<column name="branch_values_48_reg_1171">32, 0, 32, 0</column>
+<column name="branch_values_49_reg_1181">32, 0, 32, 0</column>
+<column name="branch_values_50_reg_1191">32, 0, 32, 0</column>
+<column name="branch_values_51_reg_1201">32, 0, 32, 0</column>
+<column name="branch_values_52_reg_1211">32, 0, 32, 0</column>
+<column name="branch_values_53_reg_1221">32, 0, 32, 0</column>
+<column name="branch_values_54_reg_1231">32, 0, 32, 0</column>
+<column name="branch_values_55_reg_1241">32, 0, 32, 0</column>
+<column name="branch_values_56_reg_1251">32, 0, 32, 0</column>
+<column name="branch_values_57_reg_1261">32, 0, 32, 0</column>
+<column name="branch_values_58_reg_1271">32, 0, 32, 0</column>
+<column name="branch_values_59_reg_1281">32, 0, 32, 0</column>
+<column name="branch_values_60_reg_1291">32, 0, 32, 0</column>
+<column name="branch_values_reg_1141">32, 0, 32, 0</column>
+<column name="converter_100_reg_1076">32, 0, 32, 0</column>
+<column name="converter_102_reg_1081">32, 0, 32, 0</column>
+<column name="converter_104_reg_1086">32, 0, 32, 0</column>
+<column name="converter_106_reg_1091">32, 0, 32, 0</column>
+<column name="converter_108_reg_1096">32, 0, 32, 0</column>
+<column name="converter_110_reg_1101">32, 0, 32, 0</column>
+<column name="converter_112_reg_1106">32, 0, 32, 0</column>
+<column name="converter_114_reg_1111">32, 0, 32, 0</column>
+<column name="converter_116_reg_1116">32, 0, 32, 0</column>
+<column name="converter_118_reg_1121">32, 0, 32, 0</column>
+<column name="converter_120_reg_1126">32, 0, 32, 0</column>
+<column name="converter_122_reg_1131">32, 0, 32, 0</column>
+<column name="converter_124_reg_1136">32, 0, 32, 0</column>
+<column name="converter_94_reg_1061">32, 0, 32, 0</column>
+<column name="converter_96_reg_1066">32, 0, 32, 0</column>
+<column name="converter_98_reg_1071">32, 0, 32, 0</column>
+<column name="grp_int4_write_outputs_Pipeline_fused_residual_add_loop_fu_248_ap_start_reg">1, 0, 1, 0</column>
+<column name="grp_int4_write_outputs_Pipeline_write_output_direct_loop_fu_239_ap_start_reg">1, 0, 1, 0</column>
+<column name="output_mem_addr_reg_1055">9, 0, 9, 0</column>
+<column name="residual_values_46_reg_1156">32, 0, 32, 0</column>
+<column name="residual_values_47_reg_1166">32, 0, 32, 0</column>
+<column name="residual_values_48_reg_1176">32, 0, 32, 0</column>
+<column name="residual_values_49_reg_1186">32, 0, 32, 0</column>
+<column name="residual_values_50_reg_1196">32, 0, 32, 0</column>
+<column name="residual_values_51_reg_1206">32, 0, 32, 0</column>
+<column name="residual_values_52_reg_1216">32, 0, 32, 0</column>
+<column name="residual_values_53_reg_1226">32, 0, 32, 0</column>
+<column name="residual_values_54_reg_1236">32, 0, 32, 0</column>
+<column name="residual_values_55_reg_1246">32, 0, 32, 0</column>
+<column name="residual_values_56_reg_1256">32, 0, 32, 0</column>
+<column name="residual_values_57_reg_1266">32, 0, 32, 0</column>
+<column name="residual_values_58_reg_1276">32, 0, 32, 0</column>
+<column name="residual_values_59_reg_1286">32, 0, 32, 0</column>
+<column name="residual_values_60_reg_1296">32, 0, 32, 0</column>
+<column name="residual_values_reg_1146">32, 0, 32, 0</column>
+<column name="shl_ln_reg_1039">6, 0, 9, 3</column>
+<column name="word_fu_200">9, 0, 9, 0</column>
+</table>
+</item>
+</section>
+</item>
+</section>
+
+<section name = "Interface" level="0">
+<item name = "Summary"><table name="" hasTotal="0">
+<keys size="6">RTL Ports, Dir, Bits, Protocol, Source Object, C Type</keys>
+<column name="ap_clk">in, 1, ap_ctrl_hs, int4_write_outputs, return value</column>
+<column name="ap_rst">in, 1, ap_ctrl_hs, int4_write_outputs, return value</column>
+<column name="ap_start">in, 1, ap_ctrl_hs, int4_write_outputs, return value</column>
+<column name="ap_done">out, 1, ap_ctrl_hs, int4_write_outputs, return value</column>
+<column name="ap_continue">in, 1, ap_ctrl_hs, int4_write_outputs, return value</column>
+<column name="ap_idle">out, 1, ap_ctrl_hs, int4_write_outputs, return value</column>
+<column name="ap_ready">out, 1, ap_ctrl_hs, int4_write_outputs, return value</column>
+<column name="output_stream_dout">in, 512, ap_fifo, output_stream, pointer</column>
+<column name="output_stream_num_data_valid">in, 5, ap_fifo, output_stream, pointer</column>
+<column name="output_stream_fifo_cap">in, 5, ap_fifo, output_stream, pointer</column>
+<column name="output_stream_empty_n">in, 1, ap_fifo, output_stream, pointer</column>
+<column name="output_stream_read">out, 1, ap_fifo, output_stream, pointer</column>
+<column name="output_mem_address0">out, 9, ap_memory, output_mem, array</column>
+<column name="output_mem_ce0">out, 1, ap_memory, output_mem, array</column>
+<column name="output_mem_q0">in, 512, ap_memory, output_mem, array</column>
+<column name="output_mem_address1">out, 9, ap_memory, output_mem, array</column>
+<column name="output_mem_ce1">out, 1, ap_memory, output_mem, array</column>
+<column name="output_mem_we1">out, 1, ap_memory, output_mem, array</column>
+<column name="output_mem_d1">out, 512, ap_memory, output_mem, array</column>
+<column name="local_tiles_loc_dout">in, 6, ap_fifo, local_tiles_loc, pointer</column>
+<column name="local_tiles_loc_num_data_valid">in, 3, ap_fifo, local_tiles_loc, pointer</column>
+<column name="local_tiles_loc_fifo_cap">in, 3, ap_fifo, local_tiles_loc, pointer</column>
+<column name="local_tiles_loc_empty_n">in, 1, ap_fifo, local_tiles_loc, pointer</column>
+<column name="local_tiles_loc_read">out, 1, ap_fifo, local_tiles_loc, pointer</column>
+<column name="p_read">in, 1, ap_none, p_read, scalar</column>
+</table>
+</item>
+</section>
+</profile>

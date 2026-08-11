@@ -1,0 +1,238 @@
+
+
+================================================================
+== Vitis HLS Report for 'swiftkv_route_compressed_kv_cache_Pipeline_route_cached_compressed_kv_loop'
+================================================================
+* Date:           Tue Aug 11 09:16:53 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.616 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+-----------+-----+-------+---------+
+    |  Latency (cycles) |  Latency (absolute)  |   Interval  | Pipeline|
+    |   min   |   max   |    min   |    max    | min |  max  |   Type  |
+    +---------+---------+----------+-----------+-----+-------+---------+
+    |        2|    20477|  6.666 ns|  68.250 us|    2|  20477|       no|
+    +---------+---------+----------+-----------+-----+-------+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +-----------------------------------+---------+---------+----------+-----------+-----------+-----------+----------+
+        |                                   |  Latency (cycles) | Iteration|  Initiation Interval  |    Trip   |          |
+        |             Loop Name             |   min   |   max   |  Latency |  achieved |   target  |   Count   | Pipelined|
+        +-----------------------------------+---------+---------+----------+-----------+-----------+-----------+----------+
+        |- route_cached_compressed_kv_loop  |        0|    20475|         2|          1|          1|  0 ~ 20475|       yes|
+        +-----------------------------------+---------+---------+----------+-----------+-----------+-----------+----------+
+
+============================================================
++ Verbose Summary: Synthesis Manager
+============================================================
+InlineROM: 1
+ExposeGlobal: 0
+============================================================
++ Verbose Summary: CDFG Model
+============================================================
+IsTopModel: 0
+ResetActiveHigh: 1
+IsCombinational: 0
+IsDatapathOnly: 0
+HasWiredReturn: 1
+HasMFsm: 2
+HasVarLatency: 1
+IsPipeline: 0
+IsRtlPipelined: 0
+IsInstanceOverlapped: 0
+IsDontTouch: 0
+HasImplIP: 0
+IsGatedGlobalClock: 0
+
++ Individual pipeline summary: 
+  * Pipeline-0: initiation interval (II) = 1, depth = 2
+
+
+============================================================
++ Verbose Summary: Schedule
+============================================================
+* Number of FSM states : 2
+* Pipeline : 1
+  Pipeline-0 : II = 1, D = 2, States = { 1 2 }
+* Dataflow Pipeline: 0
+
+* FSM state transitions: 
+1 --> 2 
+2 --> 
+
+* FSM state operations: 
+
+State 1 <SV = 0> <Delay = 2.61>
+ST_1 : Operation 5 [1/1] (0.00ns)   --->   "%phi_urem = alloca i32 1" [source/swiftkv_attention.cpp:623->source/swiftkv_attention.cpp:717]   --->   Operation 5 'alloca' 'phi_urem' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 6 [1/1] (0.00ns)   --->   "%word = alloca i32 1" [source/swiftkv_attention.cpp:712]   --->   Operation 6 'alloca' 'word' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 7 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %cached_kv_word_stream, i64 666, i64 8, i64 18446744073709551615"   --->   Operation 7 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 8 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i40 %key_metadata_stream, i64 666, i64 10, i64 18446744073709551615"   --->   Operation 8 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 9 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i40 %value_metadata_stream, i64 666, i64 10, i64 18446744073709551615"   --->   Operation 9 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 10 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %key0_stream, i64 666, i64 11, i64 18446744073709551615"   --->   Operation 10 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 11 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %key1_stream, i64 666, i64 11, i64 18446744073709551615"   --->   Operation 11 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 12 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i128 %value0_engine0_stream, i64 666, i64 11, i64 18446744073709551615"   --->   Operation 12 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 13 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i128 %value0_engine1_stream, i64 666, i64 11, i64 18446744073709551615"   --->   Operation 13 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 14 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i128 %value0_engine2_stream, i64 666, i64 11, i64 18446744073709551615"   --->   Operation 14 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 15 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i128 %value0_engine3_stream, i64 666, i64 11, i64 18446744073709551615"   --->   Operation 15 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 16 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i128 %value1_engine0_stream, i64 666, i64 11, i64 18446744073709551615"   --->   Operation 16 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 17 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i128 %value1_engine1_stream, i64 666, i64 11, i64 18446744073709551615"   --->   Operation 17 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 18 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i128 %value1_engine2_stream, i64 666, i64 11, i64 18446744073709551615"   --->   Operation 18 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 19 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i128 %value1_engine3_stream, i64 666, i64 11, i64 18446744073709551615"   --->   Operation 19 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 20 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i512 %cached_kv_word_stream, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 20 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 21 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i40 %key_metadata_stream, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 21 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 22 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i40 %value_metadata_stream, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 22 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 23 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i512 %key0_stream, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 23 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 24 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i512 %key1_stream, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 24 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 25 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i128 %value0_engine0_stream, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 25 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 26 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i128 %value0_engine1_stream, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 26 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 27 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i128 %value0_engine2_stream, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 27 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 28 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i128 %value0_engine3_stream, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 28 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 29 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i128 %value1_engine0_stream, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 29 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 30 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i128 %value1_engine1_stream, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 30 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 31 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i128 %value1_engine2_stream, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 31 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 32 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i128 %value1_engine3_stream, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 32 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 33 [1/1] (0.00ns)   --->   "%add_ln712_read = read i15 @_ssdm_op_Read.ap_auto.i15, i15 %add_ln712" [source/swiftkv_attention.cpp:707]   --->   Operation 33 'read' 'add_ln712_read' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 34 [1/1] (0.38ns)   --->   "%store_ln712 = store i15 0, i15 %word" [source/swiftkv_attention.cpp:712]   --->   Operation 34 'store' 'store_ln712' <Predicate = true> <Delay = 0.38>
+ST_1 : Operation 35 [1/1] (0.38ns)   --->   "%store_ln623 = store i15 0, i15 %phi_urem" [source/swiftkv_attention.cpp:623->source/swiftkv_attention.cpp:717]   --->   Operation 35 'store' 'store_ln623' <Predicate = true> <Delay = 0.38>
+ST_1 : Operation 36 [1/1] (0.00ns)   --->   "%br_ln0 = br void %for.body"   --->   Operation 36 'br' 'br_ln0' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 37 [1/1] (0.00ns)   --->   "%phi_urem_load = load i15 %phi_urem" [source/swiftkv_attention.cpp:624->source/swiftkv_attention.cpp:717]   --->   Operation 37 'load' 'phi_urem_load' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 38 [1/1] (0.00ns)   --->   "%word_4 = load i15 %word" [source/swiftkv_attention.cpp:712]   --->   Operation 38 'load' 'word_4' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 39 [1/1] (0.77ns)   --->   "%icmp_ln712 = icmp_eq  i15 %word_4, i15 %add_ln712_read" [source/swiftkv_attention.cpp:712]   --->   Operation 39 'icmp' 'icmp_ln712' <Predicate = true> <Delay = 0.77> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.77> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_1 : Operation 40 [1/1] (0.77ns)   --->   "%word_5 = add i15 %word_4, i15 1" [source/swiftkv_attention.cpp:712]   --->   Operation 40 'add' 'word_5' <Predicate = true> <Delay = 0.77> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.77> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_1 : Operation 41 [1/1] (0.00ns)   --->   "%br_ln712 = br i1 %icmp_ln712, void %for.body.split, void %for.body5.preheader.exitStub" [source/swiftkv_attention.cpp:712]   --->   Operation 41 'br' 'br_ln712' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 42 [1/1] (0.00ns)   --->   "%trunc_ln624 = trunc i15 %phi_urem_load" [source/swiftkv_attention.cpp:624->source/swiftkv_attention.cpp:717]   --->   Operation 42 'trunc' 'trunc_ln624' <Predicate = (!icmp_ln712)> <Delay = 0.00>
+ST_1 : Operation 43 [1/1] (0.67ns)   --->   "%switch_ln639 = switch i3 %trunc_ln624, void %for.body4.i.i.i236, i3 0, void %if.then.i59, i3 1, void %if.then2.i63, i3 2, void %if.then5.i67, i3 3, void %for.body4.i.i57.i108" [source/swiftkv_attention.cpp:639->source/swiftkv_attention.cpp:717]   --->   Operation 43 'switch' 'switch_ln639' <Predicate = (!icmp_ln712)> <Delay = 0.67>
+ST_1 : Operation 44 [1/1] (0.00ns)   --->   "%br_ln0 = br void %if.end11.i327"   --->   Operation 44 'br' 'br_ln0' <Predicate = (!icmp_ln712 & trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2)> <Delay = 0.00>
+ST_1 : Operation 45 [1/1] (0.00ns)   --->   "%br_ln0 = br void %if.end12.i328"   --->   Operation 45 'br' 'br_ln0' <Predicate = (!icmp_ln712 & trunc_ln624 != 0 & trunc_ln624 != 1)> <Delay = 0.00>
+ST_1 : Operation 46 [1/1] (0.00ns)   --->   "%br_ln0 = br void %for.inc"   --->   Operation 46 'br' 'br_ln0' <Predicate = (!icmp_ln712 & trunc_ln624 != 0)> <Delay = 0.00>
+ST_1 : Operation 47 [1/1] (0.77ns)   --->   "%add_ln712_2 = add i15 %phi_urem_load, i15 1" [source/swiftkv_attention.cpp:712]   --->   Operation 47 'add' 'add_ln712_2' <Predicate = (!icmp_ln712)> <Delay = 0.77> <CoreInst = "Adder">   --->   Core 1 'Adder' <Latency = 0> <II = 1> <Delay = 0.77> <FuncUnit> <Opcode : 'add' 'sub'> <InPorts = 2> <OutPorts = 1>
+ST_1 : Operation 48 [1/1] (0.77ns)   --->   "%icmp_ln712_1 = icmp_ult  i15 %add_ln712_2, i15 5" [source/swiftkv_attention.cpp:712]   --->   Operation 48 'icmp' 'icmp_ln712_1' <Predicate = (!icmp_ln712)> <Delay = 0.77> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.77> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_1 : Operation 49 [1/1] (0.29ns)   --->   "%select_ln712 = select i1 %icmp_ln712_1, i15 %add_ln712_2, i15 0" [source/swiftkv_attention.cpp:712]   --->   Operation 49 'select' 'select_ln712' <Predicate = (!icmp_ln712)> <Delay = 0.29> <CoreInst = "Sel">   --->   Core 73 'Sel' <Latency = 0> <II = 1> <Delay = 0.29> <FuncUnit> <Opcode : 'select'> <InPorts = 3> <OutPorts = 1>
+ST_1 : Operation 50 [1/1] (0.38ns)   --->   "%store_ln712 = store i15 %word_5, i15 %word" [source/swiftkv_attention.cpp:712]   --->   Operation 50 'store' 'store_ln712' <Predicate = (!icmp_ln712)> <Delay = 0.38>
+ST_1 : Operation 51 [1/1] (0.38ns)   --->   "%store_ln623 = store i15 %select_ln712, i15 %phi_urem" [source/swiftkv_attention.cpp:623->source/swiftkv_attention.cpp:717]   --->   Operation 51 'store' 'store_ln623' <Predicate = (!icmp_ln712)> <Delay = 0.38>
+ST_1 : Operation 52 [1/1] (0.00ns)   --->   "%br_ln712 = br void %for.body" [source/swiftkv_attention.cpp:712]   --->   Operation 52 'br' 'br_ln712' <Predicate = (!icmp_ln712)> <Delay = 0.00>
+ST_1 : Operation 115 [1/1] (0.00ns)   --->   "%ret_ln0 = ret"   --->   Operation 115 'ret' 'ret_ln0' <Predicate = (icmp_ln712)> <Delay = 0.00>
+
+State 2 <SV = 1> <Delay = 2.43>
+ST_2 : Operation 53 [1/1] (0.00ns)   --->   "%specpipeline_ln713 = specpipeline void @_ssdm_op_SpecPipeline, i32 1, i32 0, i32 0, i32 0, void @empty_418" [source/swiftkv_attention.cpp:713]   --->   Operation 53 'specpipeline' 'specpipeline_ln713' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 54 [1/1] (0.00ns)   --->   "%speclooptripcount_ln714 = speclooptripcount void @_ssdm_op_SpecLoopTripCount, i64 0, i64 20475, i64 10237" [source/swiftkv_attention.cpp:714]   --->   Operation 54 'speclooptripcount' 'speclooptripcount_ln714' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 55 [1/1] (0.00ns)   --->   "%specloopname_ln712 = specloopname void @_ssdm_op_SpecLoopName, void @empty_466" [source/swiftkv_attention.cpp:712]   --->   Operation 55 'specloopname' 'specloopname_ln712' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 56 [1/1] (1.21ns)   --->   "%value = read i512 @_ssdm_op_Read.ap_fifo.volatile.i512P0A, i512 %cached_kv_word_stream" [source/swiftkv_attention.cpp:716]   --->   Operation 56 'read' 'value' <Predicate = true> <Delay = 1.21> <CoreInst = "FIFO_BRAM">   --->   Core 79 'FIFO_BRAM' <Latency = 0> <II = 1> <Delay = 1.34> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 512> <Depth = 64> <FIFO>
+ST_2 : Operation 57 [1/1] (0.00ns)   --->   "%slice_47 = trunc i512 %value" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 57 'trunc' 'slice_47' <Predicate = (trunc_ln624 == 3)> <Delay = 0.00>
+ST_2 : Operation 58 [1/1] (0.00ns)   --->   "%slice_48 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 32, i32 63" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 58 'partselect' 'slice_48' <Predicate = (trunc_ln624 == 3)> <Delay = 0.00>
+ST_2 : Operation 59 [1/1] (0.00ns)   --->   "%slice_49 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 64, i32 95" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 59 'partselect' 'slice_49' <Predicate = (trunc_ln624 == 3)> <Delay = 0.00>
+ST_2 : Operation 60 [1/1] (0.00ns)   --->   "%slice_50 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 96, i32 127" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 60 'partselect' 'slice_50' <Predicate = (trunc_ln624 == 3)> <Delay = 0.00>
+ST_2 : Operation 61 [1/1] (0.00ns)   --->   "%slice_51 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 128, i32 159" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 61 'partselect' 'slice_51' <Predicate = (trunc_ln624 == 3)> <Delay = 0.00>
+ST_2 : Operation 62 [1/1] (0.00ns)   --->   "%slice_52 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 160, i32 191" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 62 'partselect' 'slice_52' <Predicate = (trunc_ln624 == 3)> <Delay = 0.00>
+ST_2 : Operation 63 [1/1] (0.00ns)   --->   "%slice_53 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 192, i32 223" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 63 'partselect' 'slice_53' <Predicate = (trunc_ln624 == 3)> <Delay = 0.00>
+ST_2 : Operation 64 [1/1] (0.00ns)   --->   "%slice_54 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 224, i32 255" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 64 'partselect' 'slice_54' <Predicate = (trunc_ln624 == 3)> <Delay = 0.00>
+ST_2 : Operation 65 [1/1] (0.00ns)   --->   "%slice_55 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 256, i32 287" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 65 'partselect' 'slice_55' <Predicate = (trunc_ln624 == 3)> <Delay = 0.00>
+ST_2 : Operation 66 [1/1] (0.00ns)   --->   "%slice_56 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 288, i32 319" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 66 'partselect' 'slice_56' <Predicate = (trunc_ln624 == 3)> <Delay = 0.00>
+ST_2 : Operation 67 [1/1] (0.00ns)   --->   "%slice_57 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 320, i32 351" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 67 'partselect' 'slice_57' <Predicate = (trunc_ln624 == 3)> <Delay = 0.00>
+ST_2 : Operation 68 [1/1] (0.00ns)   --->   "%slice_58 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 352, i32 383" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 68 'partselect' 'slice_58' <Predicate = (trunc_ln624 == 3)> <Delay = 0.00>
+ST_2 : Operation 69 [1/1] (0.00ns)   --->   "%slice_59 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 384, i32 415" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 69 'partselect' 'slice_59' <Predicate = (trunc_ln624 == 3)> <Delay = 0.00>
+ST_2 : Operation 70 [1/1] (0.00ns)   --->   "%engine0_2 = bitconcatenate i128 @_ssdm_op_BitConcatenate.i128.i32.i32.i32.i32, i32 %slice_59, i32 %slice_55, i32 %slice_51, i32 %slice_47" [source/swiftkv_attention.cpp:581->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 70 'bitconcatenate' 'engine0_2' <Predicate = (trunc_ln624 == 3)> <Delay = 0.00>
+ST_2 : Operation 71 [1/1] (0.00ns)   --->   "%slice_60 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 416, i32 447" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 71 'partselect' 'slice_60' <Predicate = (trunc_ln624 == 3)> <Delay = 0.00>
+ST_2 : Operation 72 [1/1] (0.00ns)   --->   "%engine1_2 = bitconcatenate i128 @_ssdm_op_BitConcatenate.i128.i32.i32.i32.i32, i32 %slice_60, i32 %slice_56, i32 %slice_52, i32 %slice_48" [source/swiftkv_attention.cpp:586->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 72 'bitconcatenate' 'engine1_2' <Predicate = (trunc_ln624 == 3)> <Delay = 0.00>
+ST_2 : Operation 73 [1/1] (0.00ns)   --->   "%slice_61 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 448, i32 479" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 73 'partselect' 'slice_61' <Predicate = (trunc_ln624 == 3)> <Delay = 0.00>
+ST_2 : Operation 74 [1/1] (0.00ns)   --->   "%engine2_2 = bitconcatenate i128 @_ssdm_op_BitConcatenate.i128.i32.i32.i32.i32, i32 %slice_61, i32 %slice_57, i32 %slice_53, i32 %slice_49" [source/swiftkv_attention.cpp:591->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 74 'bitconcatenate' 'engine2_2' <Predicate = (trunc_ln624 == 3)> <Delay = 0.00>
+ST_2 : Operation 75 [1/1] (0.00ns)   --->   "%slice_62 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 480, i32 511" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 75 'partselect' 'slice_62' <Predicate = (trunc_ln624 == 3)> <Delay = 0.00>
+ST_2 : Operation 76 [1/1] (0.00ns)   --->   "%engine3_2 = bitconcatenate i128 @_ssdm_op_BitConcatenate.i128.i32.i32.i32.i32, i32 %slice_62, i32 %slice_58, i32 %slice_54, i32 %slice_50" [source/swiftkv_attention.cpp:596->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 76 'bitconcatenate' 'engine3_2' <Predicate = (trunc_ln624 == 3)> <Delay = 0.00>
+ST_2 : Operation 77 [1/1] (1.21ns)   --->   "%write_ln616 = write void @_ssdm_op_Write.ap_fifo.volatile.i128P0A, i128 %value0_engine0_stream, i128 %engine0_2" [source/swiftkv_attention.cpp:616->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 77 'write' 'write_ln616' <Predicate = (trunc_ln624 == 3)> <Delay = 1.21> <CoreInst = "FIFO_URAM">   --->   Core 82 'FIFO_URAM' <Latency = 0> <II = 1> <Delay = 1.67> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 128> <Depth = 32> <FIFO>
+ST_2 : Operation 78 [1/1] (1.21ns)   --->   "%write_ln617 = write void @_ssdm_op_Write.ap_fifo.volatile.i128P0A, i128 %value0_engine1_stream, i128 %engine1_2" [source/swiftkv_attention.cpp:617->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 78 'write' 'write_ln617' <Predicate = (trunc_ln624 == 3)> <Delay = 1.21> <CoreInst = "FIFO_URAM">   --->   Core 82 'FIFO_URAM' <Latency = 0> <II = 1> <Delay = 1.67> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 128> <Depth = 32> <FIFO>
+ST_2 : Operation 79 [1/1] (1.21ns)   --->   "%write_ln618 = write void @_ssdm_op_Write.ap_fifo.volatile.i128P0A, i128 %value0_engine2_stream, i128 %engine2_2" [source/swiftkv_attention.cpp:618->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 79 'write' 'write_ln618' <Predicate = (trunc_ln624 == 3)> <Delay = 1.21> <CoreInst = "FIFO_URAM">   --->   Core 82 'FIFO_URAM' <Latency = 0> <II = 1> <Delay = 1.67> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 128> <Depth = 32> <FIFO>
+ST_2 : Operation 80 [1/1] (1.21ns)   --->   "%write_ln619 = write void @_ssdm_op_Write.ap_fifo.volatile.i128P0A, i128 %value0_engine3_stream, i128 %engine3_2" [source/swiftkv_attention.cpp:619->source/swiftkv_attention.cpp:648->source/swiftkv_attention.cpp:717]   --->   Operation 80 'write' 'write_ln619' <Predicate = (trunc_ln624 == 3)> <Delay = 1.21> <CoreInst = "FIFO_URAM">   --->   Core 82 'FIFO_URAM' <Latency = 0> <II = 1> <Delay = 1.67> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 128> <Depth = 32> <FIFO>
+ST_2 : Operation 81 [1/1] (0.00ns)   --->   "%br_ln652 = br void %if.end.i326" [source/swiftkv_attention.cpp:652->source/swiftkv_attention.cpp:717]   --->   Operation 81 'br' 'br_ln652' <Predicate = (trunc_ln624 == 3)> <Delay = 0.00>
+ST_2 : Operation 82 [1/1] (1.21ns)   --->   "%write_ln646 = write void @_ssdm_op_Write.ap_fifo.volatile.i512P0A, i512 %key1_stream, i512 %value" [source/swiftkv_attention.cpp:646->source/swiftkv_attention.cpp:717]   --->   Operation 82 'write' 'write_ln646' <Predicate = (trunc_ln624 == 2)> <Delay = 1.21> <CoreInst = "FIFO_URAM">   --->   Core 82 'FIFO_URAM' <Latency = 0> <II = 1> <Delay = 1.67> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 512> <Depth = 32> <FIFO>
+ST_2 : Operation 83 [1/1] (0.00ns)   --->   "%br_ln647 = br void %if.end11.i327" [source/swiftkv_attention.cpp:647->source/swiftkv_attention.cpp:717]   --->   Operation 83 'br' 'br_ln647' <Predicate = (trunc_ln624 == 2)> <Delay = 0.00>
+ST_2 : Operation 84 [1/1] (1.21ns)   --->   "%write_ln644 = write void @_ssdm_op_Write.ap_fifo.volatile.i512P0A, i512 %key0_stream, i512 %value" [source/swiftkv_attention.cpp:644->source/swiftkv_attention.cpp:717]   --->   Operation 84 'write' 'write_ln644' <Predicate = (trunc_ln624 == 1)> <Delay = 1.21> <CoreInst = "FIFO_URAM">   --->   Core 82 'FIFO_URAM' <Latency = 0> <II = 1> <Delay = 1.67> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 512> <Depth = 32> <FIFO>
+ST_2 : Operation 85 [1/1] (0.00ns)   --->   "%br_ln645 = br void %if.end12.i328" [source/swiftkv_attention.cpp:645->source/swiftkv_attention.cpp:717]   --->   Operation 85 'br' 'br_ln645' <Predicate = (trunc_ln624 == 1)> <Delay = 0.00>
+ST_2 : Operation 86 [1/1] (0.00ns)   --->   "%metadata = trunc i512 %value" [source/swiftkv_attention.cpp:640->source/swiftkv_attention.cpp:717]   --->   Operation 86 'trunc' 'metadata' <Predicate = (trunc_ln624 == 0)> <Delay = 0.00>
+ST_2 : Operation 87 [1/1] (1.21ns)   --->   "%write_ln641 = write void @_ssdm_op_Write.ap_fifo.volatile.i40P0A, i40 %key_metadata_stream, i40 %metadata" [source/swiftkv_attention.cpp:641->source/swiftkv_attention.cpp:717]   --->   Operation 87 'write' 'write_ln641' <Predicate = (trunc_ln624 == 0)> <Delay = 1.21> <CoreInst = "FIFO_SRL">   --->   Core 81 'FIFO_SRL' <Latency = 0> <II = 1> <Delay = 1.47> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 40> <Depth = 32> <FIFO>
+ST_2 : Operation 88 [1/1] (1.21ns)   --->   "%write_ln642 = write void @_ssdm_op_Write.ap_fifo.volatile.i40P0A, i40 %value_metadata_stream, i40 %metadata" [source/swiftkv_attention.cpp:642->source/swiftkv_attention.cpp:717]   --->   Operation 88 'write' 'write_ln642' <Predicate = (trunc_ln624 == 0)> <Delay = 1.21> <CoreInst = "FIFO_SRL">   --->   Core 81 'FIFO_SRL' <Latency = 0> <II = 1> <Delay = 1.47> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 40> <Depth = 32> <FIFO>
+ST_2 : Operation 89 [1/1] (0.00ns)   --->   "%br_ln643 = br void %for.inc" [source/swiftkv_attention.cpp:643->source/swiftkv_attention.cpp:717]   --->   Operation 89 'br' 'br_ln643' <Predicate = (trunc_ln624 == 0)> <Delay = 0.00>
+ST_2 : Operation 90 [1/1] (0.00ns)   --->   "%slice = trunc i512 %value" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 90 'trunc' 'slice' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 0.00>
+ST_2 : Operation 91 [1/1] (0.00ns)   --->   "%slice_32 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 32, i32 63" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 91 'partselect' 'slice_32' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 0.00>
+ST_2 : Operation 92 [1/1] (0.00ns)   --->   "%slice_33 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 64, i32 95" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 92 'partselect' 'slice_33' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 0.00>
+ST_2 : Operation 93 [1/1] (0.00ns)   --->   "%slice_34 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 96, i32 127" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 93 'partselect' 'slice_34' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 0.00>
+ST_2 : Operation 94 [1/1] (0.00ns)   --->   "%slice_35 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 128, i32 159" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 94 'partselect' 'slice_35' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 0.00>
+ST_2 : Operation 95 [1/1] (0.00ns)   --->   "%slice_36 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 160, i32 191" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 95 'partselect' 'slice_36' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 0.00>
+ST_2 : Operation 96 [1/1] (0.00ns)   --->   "%slice_37 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 192, i32 223" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 96 'partselect' 'slice_37' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 0.00>
+ST_2 : Operation 97 [1/1] (0.00ns)   --->   "%slice_38 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 224, i32 255" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 97 'partselect' 'slice_38' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 0.00>
+ST_2 : Operation 98 [1/1] (0.00ns)   --->   "%slice_39 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 256, i32 287" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 98 'partselect' 'slice_39' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 0.00>
+ST_2 : Operation 99 [1/1] (0.00ns)   --->   "%slice_40 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 288, i32 319" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 99 'partselect' 'slice_40' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 0.00>
+ST_2 : Operation 100 [1/1] (0.00ns)   --->   "%slice_41 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 320, i32 351" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 100 'partselect' 'slice_41' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 0.00>
+ST_2 : Operation 101 [1/1] (0.00ns)   --->   "%slice_42 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 352, i32 383" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 101 'partselect' 'slice_42' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 0.00>
+ST_2 : Operation 102 [1/1] (0.00ns)   --->   "%slice_43 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 384, i32 415" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 102 'partselect' 'slice_43' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 0.00>
+ST_2 : Operation 103 [1/1] (0.00ns)   --->   "%engine0 = bitconcatenate i128 @_ssdm_op_BitConcatenate.i128.i32.i32.i32.i32, i32 %slice_43, i32 %slice_39, i32 %slice_35, i32 %slice" [source/swiftkv_attention.cpp:581->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 103 'bitconcatenate' 'engine0' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 0.00>
+ST_2 : Operation 104 [1/1] (0.00ns)   --->   "%slice_44 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 416, i32 447" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 104 'partselect' 'slice_44' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 0.00>
+ST_2 : Operation 105 [1/1] (0.00ns)   --->   "%engine1 = bitconcatenate i128 @_ssdm_op_BitConcatenate.i128.i32.i32.i32.i32, i32 %slice_44, i32 %slice_40, i32 %slice_36, i32 %slice_32" [source/swiftkv_attention.cpp:586->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 105 'bitconcatenate' 'engine1' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 0.00>
+ST_2 : Operation 106 [1/1] (0.00ns)   --->   "%slice_45 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 448, i32 479" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 106 'partselect' 'slice_45' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 0.00>
+ST_2 : Operation 107 [1/1] (0.00ns)   --->   "%engine2 = bitconcatenate i128 @_ssdm_op_BitConcatenate.i128.i32.i32.i32.i32, i32 %slice_45, i32 %slice_41, i32 %slice_37, i32 %slice_33" [source/swiftkv_attention.cpp:591->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 107 'bitconcatenate' 'engine2' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 0.00>
+ST_2 : Operation 108 [1/1] (0.00ns)   --->   "%slice_46 = partselect i32 @_ssdm_op_PartSelect.i32.i512.i32.i32, i512 %value, i32 480, i32 511" [source/swiftkv_attention.cpp:573->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 108 'partselect' 'slice_46' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 0.00>
+ST_2 : Operation 109 [1/1] (0.00ns)   --->   "%engine3 = bitconcatenate i128 @_ssdm_op_BitConcatenate.i128.i32.i32.i32.i32, i32 %slice_46, i32 %slice_42, i32 %slice_38, i32 %slice_34" [source/swiftkv_attention.cpp:596->source/swiftkv_attention.cpp:614->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 109 'bitconcatenate' 'engine3' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 0.00>
+ST_2 : Operation 110 [1/1] (1.21ns)   --->   "%write_ln616 = write void @_ssdm_op_Write.ap_fifo.volatile.i128P0A, i128 %value1_engine0_stream, i128 %engine0" [source/swiftkv_attention.cpp:616->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 110 'write' 'write_ln616' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 1.21> <CoreInst = "FIFO_URAM">   --->   Core 82 'FIFO_URAM' <Latency = 0> <II = 1> <Delay = 1.67> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 128> <Depth = 32> <FIFO>
+ST_2 : Operation 111 [1/1] (1.21ns)   --->   "%write_ln617 = write void @_ssdm_op_Write.ap_fifo.volatile.i128P0A, i128 %value1_engine1_stream, i128 %engine1" [source/swiftkv_attention.cpp:617->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 111 'write' 'write_ln617' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 1.21> <CoreInst = "FIFO_URAM">   --->   Core 82 'FIFO_URAM' <Latency = 0> <II = 1> <Delay = 1.67> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 128> <Depth = 32> <FIFO>
+ST_2 : Operation 112 [1/1] (1.21ns)   --->   "%write_ln618 = write void @_ssdm_op_Write.ap_fifo.volatile.i128P0A, i128 %value1_engine2_stream, i128 %engine2" [source/swiftkv_attention.cpp:618->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 112 'write' 'write_ln618' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 1.21> <CoreInst = "FIFO_URAM">   --->   Core 82 'FIFO_URAM' <Latency = 0> <II = 1> <Delay = 1.67> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 128> <Depth = 32> <FIFO>
+ST_2 : Operation 113 [1/1] (1.21ns)   --->   "%write_ln619 = write void @_ssdm_op_Write.ap_fifo.volatile.i128P0A, i128 %value1_engine3_stream, i128 %engine3" [source/swiftkv_attention.cpp:619->source/swiftkv_attention.cpp:653->source/swiftkv_attention.cpp:717]   --->   Operation 113 'write' 'write_ln619' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 1.21> <CoreInst = "FIFO_URAM">   --->   Core 82 'FIFO_URAM' <Latency = 0> <II = 1> <Delay = 1.67> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 128> <Depth = 32> <FIFO>
+ST_2 : Operation 114 [1/1] (0.00ns)   --->   "%br_ln0 = br void %if.end.i326"   --->   Operation 114 'br' 'br_ln0' <Predicate = (trunc_ln624 != 0 & trunc_ln624 != 1 & trunc_ln624 != 2 & trunc_ln624 != 3)> <Delay = 0.00>
+
+
+============================================================
++ Verbose Summary: Timing violations
+============================================================
+Target clock period: 3.333ns, clock uncertainty: 0.900ns.
+
+ <State 1>: 2.616ns
+The critical path consists of the following:
+	'store' operation 0 bit ('store_ln623', source/swiftkv_attention.cpp:623->source/swiftkv_attention.cpp:717) of constant 0 on local variable 'record_word', source/swiftkv_attention.cpp:623->source/swiftkv_attention.cpp:717 [45]  (0.387 ns)
+	'load' operation 15 bit ('record_word', source/swiftkv_attention.cpp:624->source/swiftkv_attention.cpp:717) on local variable 'record_word', source/swiftkv_attention.cpp:623->source/swiftkv_attention.cpp:717 [48]  (0.000 ns)
+	'add' operation 15 bit ('add_ln712_2', source/swiftkv_attention.cpp:712) [130]  (0.775 ns)
+	'icmp' operation 1 bit ('icmp_ln712_1', source/swiftkv_attention.cpp:712) [131]  (0.775 ns)
+	'select' operation 15 bit ('select_ln712', source/swiftkv_attention.cpp:712) [132]  (0.292 ns)
+	'store' operation 0 bit ('store_ln623', source/swiftkv_attention.cpp:623->source/swiftkv_attention.cpp:717) of variable 'select_ln712', source/swiftkv_attention.cpp:712 on local variable 'record_word', source/swiftkv_attention.cpp:623->source/swiftkv_attention.cpp:717 [134]  (0.387 ns)
+
+ <State 2>: 2.433ns
+The critical path consists of the following:
+	fifo read operation ('value', source/swiftkv_attention.cpp:716) on port 'cached_kv_word_stream' (source/swiftkv_attention.cpp:716) [57]  (1.217 ns)
+	fifo write operation ('write_ln646', source/swiftkv_attention.cpp:646->source/swiftkv_attention.cpp:717) on port 'key1_stream' (source/swiftkv_attention.cpp:646->source/swiftkv_attention.cpp:717) [87]  (1.217 ns)
+
+
+============================================================
++ Verbose Summary: Binding
+============================================================
+N/A
+* FSMD analyzer results:
+  - Output states:
+ - Input state : 
+  - Chain level:
+	State 1
+	State 2
+
+
+============================================================
++ Verbose Summary: Datapath Resource usage 
+============================================================
+N/A

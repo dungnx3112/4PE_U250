@@ -1,0 +1,178 @@
+
+
+================================================================
+== Vitis HLS Report for 'swiftkv_broadcast_update_controls_Pipeline_broadcast_update_control_loop'
+================================================================
+* Date:           Tue Aug 11 09:18:11 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.433 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+-----------+-----+------+---------+
+    |  Latency (cycles) |  Latency (absolute)  |  Interval  | Pipeline|
+    |   min   |   max   |    min   |    max    | min |  max |   Type  |
+    +---------+---------+----------+-----------+-----+------+---------+
+    |        3|     4098|  9.999 ns|  13.659 us|    3|  4098|       no|
+    +---------+---------+----------+-----------+-----+------+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +---------------------------------+---------+---------+----------+-----------+-----------+----------+----------+
+        |                                 |  Latency (cycles) | Iteration|  Initiation Interval  |   Trip   |          |
+        |            Loop Name            |   min   |   max   |  Latency |  achieved |   target  |   Count  | Pipelined|
+        +---------------------------------+---------+---------+----------+-----------+-----------+----------+----------+
+        |- broadcast_update_control_loop  |        1|     4096|         2|          1|          1|  1 ~ 4096|       yes|
+        +---------------------------------+---------+---------+----------+-----------+-----------+----------+----------+
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+------+
+|         Name        | BRAM_18K|  DSP  |    FF   |   LUT   | URAM |
++---------------------+---------+-------+---------+---------+------+
+|DSP                  |        -|      -|        -|        -|     -|
+|Expression           |        -|      -|        0|       46|     -|
+|FIFO                 |        -|      -|        -|        -|     -|
+|Instance             |        -|      -|        -|        -|     -|
+|Memory               |        -|      -|        -|        -|     -|
+|Multiplexer          |        -|      -|        -|       90|     -|
+|Register             |        -|      -|       16|        -|     -|
++---------------------+---------+-------+---------+---------+------+
+|Total                |        0|      0|       16|      136|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available SLR        |     1344|   3072|   864000|   432000|   320|
++---------------------+---------+-------+---------+---------+------+
+|Utilization SLR (%)  |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available            |     5376|  12288|  3456000|  1728000|  1280|
++---------------------+---------+-------+---------+---------+------+
+|Utilization (%)      |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+
++ Detail: 
+    * Instance: 
+    N/A
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +----------------------------------+----------+----+---+----+------------+------------+
+    |           Variable Name          | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +----------------------------------+----------+----+---+----+------------+------------+
+    |token_4_fu_126_p2                 |         +|   0|  0|  20|          13|           1|
+    |ap_block_pp0_stage0_01001         |       and|   0|  0|   2|           1|           1|
+    |icmp_ln1149_fu_120_p2             |      icmp|   0|  0|  20|          13|          13|
+    |ap_block_state2_pp0_stage0_iter1  |        or|   0|  0|   2|           1|           1|
+    |ap_enable_pp0                     |       xor|   0|  0|   2|           1|           2|
+    +----------------------------------+----------+----+---+----+------------+------------+
+    |Total                             |          |   0|  0|  46|          29|          18|
+    +----------------------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +------------------------------+----+-----------+-----+-----------+
+    |             Name             | LUT| Input Size| Bits| Total Bits|
+    +------------------------------+----+-----------+-----+-----------+
+    |ap_done_int                   |   9|          2|    1|          2|
+    |ap_enable_reg_pp0_iter1       |   9|          2|    1|          2|
+    |ap_sig_allocacmp_token_3      |   9|          2|   13|         26|
+    |control_stream_blk_n          |   9|          2|    1|          2|
+    |engine0_control_stream_blk_n  |   9|          2|    1|          2|
+    |engine1_control_stream_blk_n  |   9|          2|    1|          2|
+    |engine2_control_stream_blk_n  |   9|          2|    1|          2|
+    |engine3_control_stream_blk_n  |   9|          2|    1|          2|
+    |token_fu_62                   |   9|          2|   13|         26|
+    |value_metadata_stream_blk_n   |   9|          2|    1|          2|
+    +------------------------------+----+-----------+-----+-----------+
+    |Total                         |  90|         20|   34|         68|
+    +------------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +-------------------------+----+----+-----+-----------+
+    |           Name          | FF | LUT| Bits| Const Bits|
+    +-------------------------+----+----+-----+-----------+
+    |ap_CS_fsm                |   1|   0|    1|          0|
+    |ap_done_reg              |   1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter1  |   1|   0|    1|          0|
+    |token_fu_62              |  13|   0|   13|          0|
+    +-------------------------+----+----+-----+-----------+
+    |Total                    |  16|   0|   16|          0|
+    +-------------------------+----+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++---------------------------------------+-----+-----+------------+--------------------------------------------------------------------------+--------------+
+|               RTL Ports               | Dir | Bits|  Protocol  |                               Source Object                              |    C Type    |
++---------------------------------------+-----+-----+------------+--------------------------------------------------------------------------+--------------+
+|ap_clk                                 |   in|    1|  ap_ctrl_hs|  swiftkv_broadcast_update_controls_Pipeline_broadcast_update_control_loop|  return value|
+|ap_rst                                 |   in|    1|  ap_ctrl_hs|  swiftkv_broadcast_update_controls_Pipeline_broadcast_update_control_loop|  return value|
+|ap_start                               |   in|    1|  ap_ctrl_hs|  swiftkv_broadcast_update_controls_Pipeline_broadcast_update_control_loop|  return value|
+|ap_done                                |  out|    1|  ap_ctrl_hs|  swiftkv_broadcast_update_controls_Pipeline_broadcast_update_control_loop|  return value|
+|ap_idle                                |  out|    1|  ap_ctrl_hs|  swiftkv_broadcast_update_controls_Pipeline_broadcast_update_control_loop|  return value|
+|ap_ready                               |  out|    1|  ap_ctrl_hs|  swiftkv_broadcast_update_controls_Pipeline_broadcast_update_control_loop|  return value|
+|value_metadata_stream_dout             |   in|   40|     ap_fifo|                                                     value_metadata_stream|       pointer|
+|value_metadata_stream_num_data_valid   |   in|    6|     ap_fifo|                                                     value_metadata_stream|       pointer|
+|value_metadata_stream_fifo_cap         |   in|    6|     ap_fifo|                                                     value_metadata_stream|       pointer|
+|value_metadata_stream_empty_n          |   in|    1|     ap_fifo|                                                     value_metadata_stream|       pointer|
+|value_metadata_stream_read             |  out|    1|     ap_fifo|                                                     value_metadata_stream|       pointer|
+|control_stream_dout                    |   in|   19|     ap_fifo|                                                            control_stream|       pointer|
+|control_stream_num_data_valid          |   in|    5|     ap_fifo|                                                            control_stream|       pointer|
+|control_stream_fifo_cap                |   in|    5|     ap_fifo|                                                            control_stream|       pointer|
+|control_stream_empty_n                 |   in|    1|     ap_fifo|                                                            control_stream|       pointer|
+|control_stream_read                    |  out|    1|     ap_fifo|                                                            control_stream|       pointer|
+|engine0_control_stream_din             |  out|   59|     ap_fifo|                                                    engine0_control_stream|       pointer|
+|engine0_control_stream_num_data_valid  |   in|    3|     ap_fifo|                                                    engine0_control_stream|       pointer|
+|engine0_control_stream_fifo_cap        |   in|    3|     ap_fifo|                                                    engine0_control_stream|       pointer|
+|engine0_control_stream_full_n          |   in|    1|     ap_fifo|                                                    engine0_control_stream|       pointer|
+|engine0_control_stream_write           |  out|    1|     ap_fifo|                                                    engine0_control_stream|       pointer|
+|engine1_control_stream_din             |  out|   59|     ap_fifo|                                                    engine1_control_stream|       pointer|
+|engine1_control_stream_num_data_valid  |   in|    3|     ap_fifo|                                                    engine1_control_stream|       pointer|
+|engine1_control_stream_fifo_cap        |   in|    3|     ap_fifo|                                                    engine1_control_stream|       pointer|
+|engine1_control_stream_full_n          |   in|    1|     ap_fifo|                                                    engine1_control_stream|       pointer|
+|engine1_control_stream_write           |  out|    1|     ap_fifo|                                                    engine1_control_stream|       pointer|
+|engine2_control_stream_din             |  out|   59|     ap_fifo|                                                    engine2_control_stream|       pointer|
+|engine2_control_stream_num_data_valid  |   in|    3|     ap_fifo|                                                    engine2_control_stream|       pointer|
+|engine2_control_stream_fifo_cap        |   in|    3|     ap_fifo|                                                    engine2_control_stream|       pointer|
+|engine2_control_stream_full_n          |   in|    1|     ap_fifo|                                                    engine2_control_stream|       pointer|
+|engine2_control_stream_write           |  out|    1|     ap_fifo|                                                    engine2_control_stream|       pointer|
+|engine3_control_stream_din             |  out|   59|     ap_fifo|                                                    engine3_control_stream|       pointer|
+|engine3_control_stream_num_data_valid  |   in|    3|     ap_fifo|                                                    engine3_control_stream|       pointer|
+|engine3_control_stream_fifo_cap        |   in|    3|     ap_fifo|                                                    engine3_control_stream|       pointer|
+|engine3_control_stream_full_n          |   in|    1|     ap_fifo|                                                    engine3_control_stream|       pointer|
+|engine3_control_stream_write           |  out|    1|     ap_fifo|                                                    engine3_control_stream|       pointer|
+|add_ln1149                             |   in|   13|     ap_none|                                                                add_ln1149|        scalar|
++---------------------------------------+-----+-----+------------+--------------------------------------------------------------------------+--------------+
+

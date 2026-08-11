@@ -1,0 +1,108 @@
+
+
+================================================================
+== Vitis HLS Report for 'int4_run_preprocess_and_linear_Block_entry13_proc'
+================================================================
+* Date:           Tue Aug 11 09:17:18 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  0.436 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+---------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline|
+    |   min   |   max   |    min   |    max   | min | max |   Type  |
+    +---------+---------+----------+----------+-----+-----+---------+
+    |        0|        0|      0 ns|      0 ns|    0|    0|       no|
+    +---------+---------+----------+----------+-----+-----+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        N/A
+
+============================================================
++ Verbose Summary: Synthesis Manager
+============================================================
+InlineROM: 1
+ExposeGlobal: 0
+============================================================
++ Verbose Summary: CDFG Model
+============================================================
+IsTopModel: 0
+ResetActiveHigh: 1
+IsCombinational: 2
+IsDatapathOnly: 0
+HasWiredReturn: 1
+HasMFsm: 0
+HasVarLatency: 0
+IsPipeline: 0
+IsRtlPipelined: 0
+IsInstanceOverlapped: 0
+IsDontTouch: 0
+HasImplIP: 0
+IsGatedGlobalClock: 0
+
+
+============================================================
++ Verbose Summary: Schedule
+============================================================
+* Number of FSM states : 1
+* Pipeline : 0
+* Dataflow Pipeline: 0
+
+* FSM state transitions: 
+1 --> 
+
+* FSM state operations: 
+
+State 1 <SV = 0> <Delay = 0.43>
+ST_1 : Operation 2 [1/1] (0.00ns)   --->   "%preprocess_mode_read = read i2 @_ssdm_op_Read.ap_auto.i2, i2 %preprocess_mode" [source/int4_decoder_controller.cpp:113]   --->   Operation 2 'read' 'preprocess_mode_read' <Predicate = true> <Delay = 0.00>
+ST_1 : Operation 3 [1/1] (0.43ns)   --->   "%icmp_ln113 = icmp_ne  i2 %preprocess_mode_read, i2 0" [source/int4_decoder_controller.cpp:113]   --->   Operation 3 'icmp' 'icmp_ln113' <Predicate = true> <Delay = 0.43> <CoreInst = "Cmp">   --->   Core 9 'Cmp' <Latency = 0> <II = 1> <Delay = 0.43> <FuncUnit> <Opcode : 'icmp'> <InPorts = 2> <OutPorts = 1>
+ST_1 : Operation 4 [1/1] (0.00ns)   --->   "%ret_ln113 = ret i1 %icmp_ln113" [source/int4_decoder_controller.cpp:113]   --->   Operation 4 'ret' 'ret_ln113' <Predicate = true> <Delay = 0.00>
+
+
+============================================================
++ Verbose Summary: Timing violations
+============================================================
+Target clock period: 3.333ns, clock uncertainty: 0.900ns.
+
+ <State 1>: 0.436ns
+The critical path consists of the following:
+	wire read operation ('preprocess_mode_read', source/int4_decoder_controller.cpp:113) on port 'preprocess_mode' (source/int4_decoder_controller.cpp:113) [2]  (0.000 ns)
+	'icmp' operation 1 bit ('icmp_ln113', source/int4_decoder_controller.cpp:113) [3]  (0.436 ns)
+
+
+============================================================
++ Verbose Summary: Binding
+============================================================
+N/A
+* FSMD analyzer results:
+  - Output states:
+ - Input state : 
+  - Chain level:
+	State 1
+
+
+============================================================
++ Verbose Summary: Datapath Resource usage 
+============================================================
+N/A

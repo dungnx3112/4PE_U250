@@ -1,0 +1,559 @@
+
+
+================================================================
+== Vitis HLS Report for 'int4_rms_merge_and_rsqrt'
+================================================================
+* Date:           Tue Aug 11 09:17:12 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.342 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+---------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline|
+    |   min   |   max   |    min   |    max   | min | max |   Type  |
+    +---------+---------+----------+----------+-----+-----+---------+
+    |       49|       49|  0.163 us|  0.163 us|   49|   49|       no|
+    +---------+---------+----------+----------+-----+-----+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        N/A
+
+============================================================
++ Verbose Summary: Synthesis Manager
+============================================================
+InlineROM: 1
+ExposeGlobal: 0
+============================================================
++ Verbose Summary: CDFG Model
+============================================================
+IsTopModel: 0
+ResetActiveHigh: 1
+IsCombinational: 2
+IsDatapathOnly: 0
+HasWiredReturn: 1
+HasMFsm: 0
+HasVarLatency: 1
+IsPipeline: 0
+IsRtlPipelined: 0
+IsInstanceOverlapped: 0
+IsDontTouch: 0
+HasImplIP: 0
+IsGatedGlobalClock: 0
+
+
+============================================================
++ Verbose Summary: Schedule
+============================================================
+* Number of FSM states : 50
+* Pipeline : 0
+* Dataflow Pipeline: 0
+
+* FSM state transitions: 
+1 --> 2 
+2 --> 3 
+3 --> 4 
+4 --> 5 
+5 --> 6 
+6 --> 7 
+7 --> 8 
+8 --> 9 
+9 --> 10 
+10 --> 11 
+11 --> 12 
+12 --> 13 
+13 --> 14 
+14 --> 15 
+15 --> 16 
+16 --> 17 
+17 --> 18 
+18 --> 19 
+19 --> 20 
+20 --> 21 
+21 --> 22 
+22 --> 23 
+23 --> 24 
+24 --> 25 
+25 --> 26 
+26 --> 27 
+27 --> 28 
+28 --> 29 
+29 --> 30 
+30 --> 31 
+31 --> 32 
+32 --> 33 
+33 --> 34 
+34 --> 35 
+35 --> 36 
+36 --> 37 
+37 --> 38 
+38 --> 39 
+39 --> 40 
+40 --> 41 
+41 --> 42 
+42 --> 43 
+43 --> 44 
+44 --> 45 
+45 --> 46 
+46 --> 47 
+47 --> 48 
+48 --> 49 
+49 --> 50 
+50 --> 
+
+* FSM state operations: 
+
+State 1 <SV = 0> <Delay = 1.21>
+ST_1 : Operation 51 [1/1] (1.21ns)   --->   "%partial_0_read = read i32 @_ssdm_op_Read.ap_fifo.volatile.i32P0A, i32 %partial_0" [source/int4_decoder_blocks.cpp:93]   --->   Operation 51 'read' 'partial_0_read' <Predicate = true> <Delay = 1.21> <CoreInst = "FIFO_SRL">   --->   Core 81 'FIFO_SRL' <Latency = 0> <II = 1> <Delay = 1.39> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 32> <Depth = 2> <FIFO>
+ST_1 : Operation 52 [1/1] (1.21ns)   --->   "%partial_1_read = read i32 @_ssdm_op_Read.ap_fifo.volatile.i32P0A, i32 %partial_1" [source/int4_decoder_blocks.cpp:93]   --->   Operation 52 'read' 'partial_1_read' <Predicate = true> <Delay = 1.21> <CoreInst = "FIFO_SRL">   --->   Core 81 'FIFO_SRL' <Latency = 0> <II = 1> <Delay = 1.39> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 32> <Depth = 2> <FIFO>
+ST_1 : Operation 53 [1/1] (1.21ns)   --->   "%partial_2_read = read i32 @_ssdm_op_Read.ap_fifo.volatile.i32P0A, i32 %partial_2" [source/int4_decoder_blocks.cpp:94]   --->   Operation 53 'read' 'partial_2_read' <Predicate = true> <Delay = 1.21> <CoreInst = "FIFO_SRL">   --->   Core 81 'FIFO_SRL' <Latency = 0> <II = 1> <Delay = 1.39> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 32> <Depth = 2> <FIFO>
+ST_1 : Operation 54 [1/1] (1.21ns)   --->   "%partial_3_read = read i32 @_ssdm_op_Read.ap_fifo.volatile.i32P0A, i32 %partial_3" [source/int4_decoder_blocks.cpp:94]   --->   Operation 54 'read' 'partial_3_read' <Predicate = true> <Delay = 1.21> <CoreInst = "FIFO_SRL">   --->   Core 81 'FIFO_SRL' <Latency = 0> <II = 1> <Delay = 1.39> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 32> <Depth = 2> <FIFO>
+
+State 2 <SV = 1> <Delay = 2.34>
+ST_2 : Operation 55 [1/1] (0.00ns)   --->   "%bitcast_ln93 = bitcast i32 %partial_0_read" [source/int4_decoder_blocks.cpp:93]   --->   Operation 55 'bitcast' 'bitcast_ln93' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 56 [1/1] (0.00ns)   --->   "%bitcast_ln93_1 = bitcast i32 %partial_1_read" [source/int4_decoder_blocks.cpp:93]   --->   Operation 56 'bitcast' 'bitcast_ln93_1' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 57 [7/7] (2.34ns)   --->   "%add = fadd i32 %bitcast_ln93, i32 %bitcast_ln93_1" [source/int4_decoder_blocks.cpp:93]   --->   Operation 57 'fadd' 'add' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 3 <SV = 2> <Delay = 2.34>
+ST_3 : Operation 58 [6/7] (2.34ns)   --->   "%add = fadd i32 %bitcast_ln93, i32 %bitcast_ln93_1" [source/int4_decoder_blocks.cpp:93]   --->   Operation 58 'fadd' 'add' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 4 <SV = 3> <Delay = 2.34>
+ST_4 : Operation 59 [5/7] (2.34ns)   --->   "%add = fadd i32 %bitcast_ln93, i32 %bitcast_ln93_1" [source/int4_decoder_blocks.cpp:93]   --->   Operation 59 'fadd' 'add' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 5 <SV = 4> <Delay = 2.34>
+ST_5 : Operation 60 [4/7] (2.34ns)   --->   "%add = fadd i32 %bitcast_ln93, i32 %bitcast_ln93_1" [source/int4_decoder_blocks.cpp:93]   --->   Operation 60 'fadd' 'add' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 6 <SV = 5> <Delay = 2.34>
+ST_6 : Operation 61 [3/7] (2.34ns)   --->   "%add = fadd i32 %bitcast_ln93, i32 %bitcast_ln93_1" [source/int4_decoder_blocks.cpp:93]   --->   Operation 61 'fadd' 'add' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 7 <SV = 6> <Delay = 2.34>
+ST_7 : Operation 62 [2/7] (2.34ns)   --->   "%add = fadd i32 %bitcast_ln93, i32 %bitcast_ln93_1" [source/int4_decoder_blocks.cpp:93]   --->   Operation 62 'fadd' 'add' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 8 <SV = 7> <Delay = 2.34>
+ST_8 : Operation 63 [1/7] (2.34ns)   --->   "%add = fadd i32 %bitcast_ln93, i32 %bitcast_ln93_1" [source/int4_decoder_blocks.cpp:93]   --->   Operation 63 'fadd' 'add' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 9 <SV = 8> <Delay = 2.34>
+ST_9 : Operation 64 [1/1] (0.00ns)   --->   "%bitcast_ln94 = bitcast i32 %partial_2_read" [source/int4_decoder_blocks.cpp:94]   --->   Operation 64 'bitcast' 'bitcast_ln94' <Predicate = true> <Delay = 0.00>
+ST_9 : Operation 65 [7/7] (2.34ns)   --->   "%add3 = fadd i32 %add, i32 %bitcast_ln94" [source/int4_decoder_blocks.cpp:93]   --->   Operation 65 'fadd' 'add3' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 10 <SV = 9> <Delay = 2.34>
+ST_10 : Operation 66 [6/7] (2.34ns)   --->   "%add3 = fadd i32 %add, i32 %bitcast_ln94" [source/int4_decoder_blocks.cpp:93]   --->   Operation 66 'fadd' 'add3' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 11 <SV = 10> <Delay = 2.34>
+ST_11 : Operation 67 [5/7] (2.34ns)   --->   "%add3 = fadd i32 %add, i32 %bitcast_ln94" [source/int4_decoder_blocks.cpp:93]   --->   Operation 67 'fadd' 'add3' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 12 <SV = 11> <Delay = 2.34>
+ST_12 : Operation 68 [4/7] (2.34ns)   --->   "%add3 = fadd i32 %add, i32 %bitcast_ln94" [source/int4_decoder_blocks.cpp:93]   --->   Operation 68 'fadd' 'add3' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 13 <SV = 12> <Delay = 2.34>
+ST_13 : Operation 69 [3/7] (2.34ns)   --->   "%add3 = fadd i32 %add, i32 %bitcast_ln94" [source/int4_decoder_blocks.cpp:93]   --->   Operation 69 'fadd' 'add3' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 14 <SV = 13> <Delay = 2.34>
+ST_14 : Operation 70 [2/7] (2.34ns)   --->   "%add3 = fadd i32 %add, i32 %bitcast_ln94" [source/int4_decoder_blocks.cpp:93]   --->   Operation 70 'fadd' 'add3' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 15 <SV = 14> <Delay = 2.34>
+ST_15 : Operation 71 [1/7] (2.34ns)   --->   "%add3 = fadd i32 %add, i32 %bitcast_ln94" [source/int4_decoder_blocks.cpp:93]   --->   Operation 71 'fadd' 'add3' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 16 <SV = 15> <Delay = 2.34>
+ST_16 : Operation 72 [1/1] (0.00ns)   --->   "%bitcast_ln94_1 = bitcast i32 %partial_3_read" [source/int4_decoder_blocks.cpp:94]   --->   Operation 72 'bitcast' 'bitcast_ln94_1' <Predicate = true> <Delay = 0.00>
+ST_16 : Operation 73 [7/7] (2.34ns)   --->   "%total = fadd i32 %add3, i32 %bitcast_ln94_1" [source/int4_decoder_blocks.cpp:94]   --->   Operation 73 'fadd' 'total' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 17 <SV = 16> <Delay = 2.34>
+ST_17 : Operation 74 [6/7] (2.34ns)   --->   "%total = fadd i32 %add3, i32 %bitcast_ln94_1" [source/int4_decoder_blocks.cpp:94]   --->   Operation 74 'fadd' 'total' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 18 <SV = 17> <Delay = 2.34>
+ST_18 : Operation 75 [5/7] (2.34ns)   --->   "%total = fadd i32 %add3, i32 %bitcast_ln94_1" [source/int4_decoder_blocks.cpp:94]   --->   Operation 75 'fadd' 'total' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 19 <SV = 18> <Delay = 2.34>
+ST_19 : Operation 76 [4/7] (2.34ns)   --->   "%total = fadd i32 %add3, i32 %bitcast_ln94_1" [source/int4_decoder_blocks.cpp:94]   --->   Operation 76 'fadd' 'total' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 20 <SV = 19> <Delay = 2.34>
+ST_20 : Operation 77 [3/7] (2.34ns)   --->   "%total = fadd i32 %add3, i32 %bitcast_ln94_1" [source/int4_decoder_blocks.cpp:94]   --->   Operation 77 'fadd' 'total' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 21 <SV = 20> <Delay = 2.34>
+ST_21 : Operation 78 [2/7] (2.34ns)   --->   "%total = fadd i32 %add3, i32 %bitcast_ln94_1" [source/int4_decoder_blocks.cpp:94]   --->   Operation 78 'fadd' 'total' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 22 <SV = 21> <Delay = 2.34>
+ST_22 : Operation 79 [1/7] (2.34ns)   --->   "%total = fadd i32 %add3, i32 %bitcast_ln94_1" [source/int4_decoder_blocks.cpp:94]   --->   Operation 79 'fadd' 'total' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 23 <SV = 22> <Delay = 2.32>
+ST_23 : Operation 80 [4/4] (2.32ns)   --->   "%mul = fmul i32 %total, i32 0.000244141" [source/int4_decoder_blocks.cpp:96]   --->   Operation 80 'fmul' 'mul' <Predicate = true> <Delay = 2.32> <CoreInst = "FMul_maxdsp">   --->   Core 30 'FMul_maxdsp' <Latency = 3> <II = 1> <Delay = 2.32> <FuncUnit> <Opcode : 'fmul'> <InPorts = 2> <OutPorts = 1>
+
+State 24 <SV = 23> <Delay = 2.32>
+ST_24 : Operation 81 [3/4] (2.32ns)   --->   "%mul = fmul i32 %total, i32 0.000244141" [source/int4_decoder_blocks.cpp:96]   --->   Operation 81 'fmul' 'mul' <Predicate = true> <Delay = 2.32> <CoreInst = "FMul_maxdsp">   --->   Core 30 'FMul_maxdsp' <Latency = 3> <II = 1> <Delay = 2.32> <FuncUnit> <Opcode : 'fmul'> <InPorts = 2> <OutPorts = 1>
+
+State 25 <SV = 24> <Delay = 2.32>
+ST_25 : Operation 82 [2/4] (2.32ns)   --->   "%mul = fmul i32 %total, i32 0.000244141" [source/int4_decoder_blocks.cpp:96]   --->   Operation 82 'fmul' 'mul' <Predicate = true> <Delay = 2.32> <CoreInst = "FMul_maxdsp">   --->   Core 30 'FMul_maxdsp' <Latency = 3> <II = 1> <Delay = 2.32> <FuncUnit> <Opcode : 'fmul'> <InPorts = 2> <OutPorts = 1>
+
+State 26 <SV = 25> <Delay = 2.32>
+ST_26 : Operation 83 [1/4] (2.32ns)   --->   "%mul = fmul i32 %total, i32 0.000244141" [source/int4_decoder_blocks.cpp:96]   --->   Operation 83 'fmul' 'mul' <Predicate = true> <Delay = 2.32> <CoreInst = "FMul_maxdsp">   --->   Core 30 'FMul_maxdsp' <Latency = 3> <II = 1> <Delay = 2.32> <FuncUnit> <Opcode : 'fmul'> <InPorts = 2> <OutPorts = 1>
+
+State 27 <SV = 26> <Delay = 2.34>
+ST_27 : Operation 84 [7/7] (2.34ns)   --->   "%mean_square = fadd i32 %mul, i32 1e-05" [source/int4_decoder_blocks.cpp:96]   --->   Operation 84 'fadd' 'mean_square' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 28 <SV = 27> <Delay = 2.34>
+ST_28 : Operation 85 [6/7] (2.34ns)   --->   "%mean_square = fadd i32 %mul, i32 1e-05" [source/int4_decoder_blocks.cpp:96]   --->   Operation 85 'fadd' 'mean_square' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 29 <SV = 28> <Delay = 2.34>
+ST_29 : Operation 86 [5/7] (2.34ns)   --->   "%mean_square = fadd i32 %mul, i32 1e-05" [source/int4_decoder_blocks.cpp:96]   --->   Operation 86 'fadd' 'mean_square' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 30 <SV = 29> <Delay = 2.34>
+ST_30 : Operation 87 [4/7] (2.34ns)   --->   "%mean_square = fadd i32 %mul, i32 1e-05" [source/int4_decoder_blocks.cpp:96]   --->   Operation 87 'fadd' 'mean_square' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 31 <SV = 30> <Delay = 2.34>
+ST_31 : Operation 88 [3/7] (2.34ns)   --->   "%mean_square = fadd i32 %mul, i32 1e-05" [source/int4_decoder_blocks.cpp:96]   --->   Operation 88 'fadd' 'mean_square' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 32 <SV = 31> <Delay = 2.34>
+ST_32 : Operation 89 [2/7] (2.34ns)   --->   "%mean_square = fadd i32 %mul, i32 1e-05" [source/int4_decoder_blocks.cpp:96]   --->   Operation 89 'fadd' 'mean_square' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 33 <SV = 32> <Delay = 2.34>
+ST_33 : Operation 90 [1/7] (2.34ns)   --->   "%mean_square = fadd i32 %mul, i32 1e-05" [source/int4_decoder_blocks.cpp:96]   --->   Operation 90 'fadd' 'mean_square' <Predicate = true> <Delay = 2.34> <CoreInst = "FAddSub_fulldsp">   --->   Core 18 'FAddSub_fulldsp' <Latency = 6> <II = 1> <Delay = 2.34> <FuncUnit> <Opcode : 'fadd' 'fsub'> <InPorts = 2> <OutPorts = 1>
+
+State 34 <SV = 33> <Delay = 2.30>
+ST_34 : Operation 91 [17/17] (2.30ns)   --->   "%tmp = frsqrt i32 @_ssdm_op_FRSqrt, i32 %mean_square" [C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97]   --->   Operation 91 'frsqrt' 'tmp' <Predicate = true> <Delay = 2.30> <CoreInst = "FRSqrt_fulldsp">   --->   Core 32 'FRSqrt_fulldsp' <Latency = 16> <II = 1> <Delay = 2.30> <FuncUnit> <Opcode : 'frsqrt'> <InPorts = 1> <OutPorts = 1>
+
+State 35 <SV = 34> <Delay = 2.30>
+ST_35 : Operation 92 [16/17] (2.30ns)   --->   "%tmp = frsqrt i32 @_ssdm_op_FRSqrt, i32 %mean_square" [C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97]   --->   Operation 92 'frsqrt' 'tmp' <Predicate = true> <Delay = 2.30> <CoreInst = "FRSqrt_fulldsp">   --->   Core 32 'FRSqrt_fulldsp' <Latency = 16> <II = 1> <Delay = 2.30> <FuncUnit> <Opcode : 'frsqrt'> <InPorts = 1> <OutPorts = 1>
+
+State 36 <SV = 35> <Delay = 2.30>
+ST_36 : Operation 93 [15/17] (2.30ns)   --->   "%tmp = frsqrt i32 @_ssdm_op_FRSqrt, i32 %mean_square" [C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97]   --->   Operation 93 'frsqrt' 'tmp' <Predicate = true> <Delay = 2.30> <CoreInst = "FRSqrt_fulldsp">   --->   Core 32 'FRSqrt_fulldsp' <Latency = 16> <II = 1> <Delay = 2.30> <FuncUnit> <Opcode : 'frsqrt'> <InPorts = 1> <OutPorts = 1>
+
+State 37 <SV = 36> <Delay = 2.30>
+ST_37 : Operation 94 [14/17] (2.30ns)   --->   "%tmp = frsqrt i32 @_ssdm_op_FRSqrt, i32 %mean_square" [C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97]   --->   Operation 94 'frsqrt' 'tmp' <Predicate = true> <Delay = 2.30> <CoreInst = "FRSqrt_fulldsp">   --->   Core 32 'FRSqrt_fulldsp' <Latency = 16> <II = 1> <Delay = 2.30> <FuncUnit> <Opcode : 'frsqrt'> <InPorts = 1> <OutPorts = 1>
+
+State 38 <SV = 37> <Delay = 2.30>
+ST_38 : Operation 95 [13/17] (2.30ns)   --->   "%tmp = frsqrt i32 @_ssdm_op_FRSqrt, i32 %mean_square" [C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97]   --->   Operation 95 'frsqrt' 'tmp' <Predicate = true> <Delay = 2.30> <CoreInst = "FRSqrt_fulldsp">   --->   Core 32 'FRSqrt_fulldsp' <Latency = 16> <II = 1> <Delay = 2.30> <FuncUnit> <Opcode : 'frsqrt'> <InPorts = 1> <OutPorts = 1>
+
+State 39 <SV = 38> <Delay = 2.30>
+ST_39 : Operation 96 [12/17] (2.30ns)   --->   "%tmp = frsqrt i32 @_ssdm_op_FRSqrt, i32 %mean_square" [C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97]   --->   Operation 96 'frsqrt' 'tmp' <Predicate = true> <Delay = 2.30> <CoreInst = "FRSqrt_fulldsp">   --->   Core 32 'FRSqrt_fulldsp' <Latency = 16> <II = 1> <Delay = 2.30> <FuncUnit> <Opcode : 'frsqrt'> <InPorts = 1> <OutPorts = 1>
+
+State 40 <SV = 39> <Delay = 2.30>
+ST_40 : Operation 97 [11/17] (2.30ns)   --->   "%tmp = frsqrt i32 @_ssdm_op_FRSqrt, i32 %mean_square" [C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97]   --->   Operation 97 'frsqrt' 'tmp' <Predicate = true> <Delay = 2.30> <CoreInst = "FRSqrt_fulldsp">   --->   Core 32 'FRSqrt_fulldsp' <Latency = 16> <II = 1> <Delay = 2.30> <FuncUnit> <Opcode : 'frsqrt'> <InPorts = 1> <OutPorts = 1>
+
+State 41 <SV = 40> <Delay = 2.30>
+ST_41 : Operation 98 [10/17] (2.30ns)   --->   "%tmp = frsqrt i32 @_ssdm_op_FRSqrt, i32 %mean_square" [C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97]   --->   Operation 98 'frsqrt' 'tmp' <Predicate = true> <Delay = 2.30> <CoreInst = "FRSqrt_fulldsp">   --->   Core 32 'FRSqrt_fulldsp' <Latency = 16> <II = 1> <Delay = 2.30> <FuncUnit> <Opcode : 'frsqrt'> <InPorts = 1> <OutPorts = 1>
+
+State 42 <SV = 41> <Delay = 2.30>
+ST_42 : Operation 99 [9/17] (2.30ns)   --->   "%tmp = frsqrt i32 @_ssdm_op_FRSqrt, i32 %mean_square" [C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97]   --->   Operation 99 'frsqrt' 'tmp' <Predicate = true> <Delay = 2.30> <CoreInst = "FRSqrt_fulldsp">   --->   Core 32 'FRSqrt_fulldsp' <Latency = 16> <II = 1> <Delay = 2.30> <FuncUnit> <Opcode : 'frsqrt'> <InPorts = 1> <OutPorts = 1>
+
+State 43 <SV = 42> <Delay = 2.30>
+ST_43 : Operation 100 [8/17] (2.30ns)   --->   "%tmp = frsqrt i32 @_ssdm_op_FRSqrt, i32 %mean_square" [C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97]   --->   Operation 100 'frsqrt' 'tmp' <Predicate = true> <Delay = 2.30> <CoreInst = "FRSqrt_fulldsp">   --->   Core 32 'FRSqrt_fulldsp' <Latency = 16> <II = 1> <Delay = 2.30> <FuncUnit> <Opcode : 'frsqrt'> <InPorts = 1> <OutPorts = 1>
+
+State 44 <SV = 43> <Delay = 2.30>
+ST_44 : Operation 101 [7/17] (2.30ns)   --->   "%tmp = frsqrt i32 @_ssdm_op_FRSqrt, i32 %mean_square" [C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97]   --->   Operation 101 'frsqrt' 'tmp' <Predicate = true> <Delay = 2.30> <CoreInst = "FRSqrt_fulldsp">   --->   Core 32 'FRSqrt_fulldsp' <Latency = 16> <II = 1> <Delay = 2.30> <FuncUnit> <Opcode : 'frsqrt'> <InPorts = 1> <OutPorts = 1>
+
+State 45 <SV = 44> <Delay = 2.30>
+ST_45 : Operation 102 [6/17] (2.30ns)   --->   "%tmp = frsqrt i32 @_ssdm_op_FRSqrt, i32 %mean_square" [C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97]   --->   Operation 102 'frsqrt' 'tmp' <Predicate = true> <Delay = 2.30> <CoreInst = "FRSqrt_fulldsp">   --->   Core 32 'FRSqrt_fulldsp' <Latency = 16> <II = 1> <Delay = 2.30> <FuncUnit> <Opcode : 'frsqrt'> <InPorts = 1> <OutPorts = 1>
+
+State 46 <SV = 45> <Delay = 2.30>
+ST_46 : Operation 103 [5/17] (2.30ns)   --->   "%tmp = frsqrt i32 @_ssdm_op_FRSqrt, i32 %mean_square" [C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97]   --->   Operation 103 'frsqrt' 'tmp' <Predicate = true> <Delay = 2.30> <CoreInst = "FRSqrt_fulldsp">   --->   Core 32 'FRSqrt_fulldsp' <Latency = 16> <II = 1> <Delay = 2.30> <FuncUnit> <Opcode : 'frsqrt'> <InPorts = 1> <OutPorts = 1>
+
+State 47 <SV = 46> <Delay = 2.30>
+ST_47 : Operation 104 [4/17] (2.30ns)   --->   "%tmp = frsqrt i32 @_ssdm_op_FRSqrt, i32 %mean_square" [C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97]   --->   Operation 104 'frsqrt' 'tmp' <Predicate = true> <Delay = 2.30> <CoreInst = "FRSqrt_fulldsp">   --->   Core 32 'FRSqrt_fulldsp' <Latency = 16> <II = 1> <Delay = 2.30> <FuncUnit> <Opcode : 'frsqrt'> <InPorts = 1> <OutPorts = 1>
+
+State 48 <SV = 47> <Delay = 2.30>
+ST_48 : Operation 105 [3/17] (2.30ns)   --->   "%tmp = frsqrt i32 @_ssdm_op_FRSqrt, i32 %mean_square" [C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97]   --->   Operation 105 'frsqrt' 'tmp' <Predicate = true> <Delay = 2.30> <CoreInst = "FRSqrt_fulldsp">   --->   Core 32 'FRSqrt_fulldsp' <Latency = 16> <II = 1> <Delay = 2.30> <FuncUnit> <Opcode : 'frsqrt'> <InPorts = 1> <OutPorts = 1>
+
+State 49 <SV = 48> <Delay = 2.30>
+ST_49 : Operation 106 [2/17] (2.30ns)   --->   "%tmp = frsqrt i32 @_ssdm_op_FRSqrt, i32 %mean_square" [C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97]   --->   Operation 106 'frsqrt' 'tmp' <Predicate = true> <Delay = 2.30> <CoreInst = "FRSqrt_fulldsp">   --->   Core 32 'FRSqrt_fulldsp' <Latency = 16> <II = 1> <Delay = 2.30> <FuncUnit> <Opcode : 'frsqrt'> <InPorts = 1> <OutPorts = 1>
+
+State 50 <SV = 49> <Delay = 2.30>
+ST_50 : Operation 107 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i32 %partial_3, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 107 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_50 : Operation 108 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i32 %partial_2, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 108 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_50 : Operation 109 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i32 %partial_1, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 109 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_50 : Operation 110 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i32 %partial_0, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 110 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_50 : Operation 111 [1/17] (2.30ns)   --->   "%tmp = frsqrt i32 @_ssdm_op_FRSqrt, i32 %mean_square" [C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97]   --->   Operation 111 'frsqrt' 'tmp' <Predicate = true> <Delay = 2.30> <CoreInst = "FRSqrt_fulldsp">   --->   Core 32 'FRSqrt_fulldsp' <Latency = 16> <II = 1> <Delay = 2.30> <FuncUnit> <Opcode : 'frsqrt'> <InPorts = 1> <OutPorts = 1>
+ST_50 : Operation 112 [1/1] (0.00ns)   --->   "%write_ln97 = write void @_ssdm_op_Write.ap_auto.floatP0A, i32 %reciprocal_rms, i32 %tmp" [source/int4_decoder_blocks.cpp:97]   --->   Operation 112 'write' 'write_ln97' <Predicate = true> <Delay = 0.00>
+ST_50 : Operation 113 [1/1] (0.00ns)   --->   "%ret_ln98 = ret" [source/int4_decoder_blocks.cpp:98]   --->   Operation 113 'ret' 'ret_ln98' <Predicate = true> <Delay = 0.00>
+
+
+============================================================
++ Verbose Summary: Timing violations
+============================================================
+Target clock period: 3.333ns, clock uncertainty: 0.900ns.
+
+ <State 1>: 1.217ns
+The critical path consists of the following:
+	fifo read operation ('partial_0_read', source/int4_decoder_blocks.cpp:93) on port 'partial_0' (source/int4_decoder_blocks.cpp:93) [10]  (1.217 ns)
+
+ <State 2>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('add', source/int4_decoder_blocks.cpp:93) [14]  (2.342 ns)
+
+ <State 3>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('add', source/int4_decoder_blocks.cpp:93) [14]  (2.342 ns)
+
+ <State 4>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('add', source/int4_decoder_blocks.cpp:93) [14]  (2.342 ns)
+
+ <State 5>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('add', source/int4_decoder_blocks.cpp:93) [14]  (2.342 ns)
+
+ <State 6>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('add', source/int4_decoder_blocks.cpp:93) [14]  (2.342 ns)
+
+ <State 7>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('add', source/int4_decoder_blocks.cpp:93) [14]  (2.342 ns)
+
+ <State 8>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('add', source/int4_decoder_blocks.cpp:93) [14]  (2.342 ns)
+
+ <State 9>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('add3', source/int4_decoder_blocks.cpp:93) [17]  (2.342 ns)
+
+ <State 10>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('add3', source/int4_decoder_blocks.cpp:93) [17]  (2.342 ns)
+
+ <State 11>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('add3', source/int4_decoder_blocks.cpp:93) [17]  (2.342 ns)
+
+ <State 12>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('add3', source/int4_decoder_blocks.cpp:93) [17]  (2.342 ns)
+
+ <State 13>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('add3', source/int4_decoder_blocks.cpp:93) [17]  (2.342 ns)
+
+ <State 14>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('add3', source/int4_decoder_blocks.cpp:93) [17]  (2.342 ns)
+
+ <State 15>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('add3', source/int4_decoder_blocks.cpp:93) [17]  (2.342 ns)
+
+ <State 16>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('total', source/int4_decoder_blocks.cpp:94) [20]  (2.342 ns)
+
+ <State 17>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('total', source/int4_decoder_blocks.cpp:94) [20]  (2.342 ns)
+
+ <State 18>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('total', source/int4_decoder_blocks.cpp:94) [20]  (2.342 ns)
+
+ <State 19>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('total', source/int4_decoder_blocks.cpp:94) [20]  (2.342 ns)
+
+ <State 20>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('total', source/int4_decoder_blocks.cpp:94) [20]  (2.342 ns)
+
+ <State 21>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('total', source/int4_decoder_blocks.cpp:94) [20]  (2.342 ns)
+
+ <State 22>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('total', source/int4_decoder_blocks.cpp:94) [20]  (2.342 ns)
+
+ <State 23>: 2.322ns
+The critical path consists of the following:
+	'fmul' operation 32 bit ('mul', source/int4_decoder_blocks.cpp:96) [21]  (2.322 ns)
+
+ <State 24>: 2.322ns
+The critical path consists of the following:
+	'fmul' operation 32 bit ('mul', source/int4_decoder_blocks.cpp:96) [21]  (2.322 ns)
+
+ <State 25>: 2.322ns
+The critical path consists of the following:
+	'fmul' operation 32 bit ('mul', source/int4_decoder_blocks.cpp:96) [21]  (2.322 ns)
+
+ <State 26>: 2.322ns
+The critical path consists of the following:
+	'fmul' operation 32 bit ('mul', source/int4_decoder_blocks.cpp:96) [21]  (2.322 ns)
+
+ <State 27>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('mean_square', source/int4_decoder_blocks.cpp:96) [22]  (2.342 ns)
+
+ <State 28>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('mean_square', source/int4_decoder_blocks.cpp:96) [22]  (2.342 ns)
+
+ <State 29>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('mean_square', source/int4_decoder_blocks.cpp:96) [22]  (2.342 ns)
+
+ <State 30>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('mean_square', source/int4_decoder_blocks.cpp:96) [22]  (2.342 ns)
+
+ <State 31>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('mean_square', source/int4_decoder_blocks.cpp:96) [22]  (2.342 ns)
+
+ <State 32>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('mean_square', source/int4_decoder_blocks.cpp:96) [22]  (2.342 ns)
+
+ <State 33>: 2.342ns
+The critical path consists of the following:
+	'fadd' operation 32 bit ('mean_square', source/int4_decoder_blocks.cpp:96) [22]  (2.342 ns)
+
+ <State 34>: 2.307ns
+The critical path consists of the following:
+	'frsqrt' operation 32 bit ('tmp', C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97) [23]  (2.307 ns)
+
+ <State 35>: 2.307ns
+The critical path consists of the following:
+	'frsqrt' operation 32 bit ('tmp', C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97) [23]  (2.307 ns)
+
+ <State 36>: 2.307ns
+The critical path consists of the following:
+	'frsqrt' operation 32 bit ('tmp', C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97) [23]  (2.307 ns)
+
+ <State 37>: 2.307ns
+The critical path consists of the following:
+	'frsqrt' operation 32 bit ('tmp', C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97) [23]  (2.307 ns)
+
+ <State 38>: 2.307ns
+The critical path consists of the following:
+	'frsqrt' operation 32 bit ('tmp', C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97) [23]  (2.307 ns)
+
+ <State 39>: 2.307ns
+The critical path consists of the following:
+	'frsqrt' operation 32 bit ('tmp', C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97) [23]  (2.307 ns)
+
+ <State 40>: 2.307ns
+The critical path consists of the following:
+	'frsqrt' operation 32 bit ('tmp', C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97) [23]  (2.307 ns)
+
+ <State 41>: 2.307ns
+The critical path consists of the following:
+	'frsqrt' operation 32 bit ('tmp', C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97) [23]  (2.307 ns)
+
+ <State 42>: 2.307ns
+The critical path consists of the following:
+	'frsqrt' operation 32 bit ('tmp', C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97) [23]  (2.307 ns)
+
+ <State 43>: 2.307ns
+The critical path consists of the following:
+	'frsqrt' operation 32 bit ('tmp', C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97) [23]  (2.307 ns)
+
+ <State 44>: 2.307ns
+The critical path consists of the following:
+	'frsqrt' operation 32 bit ('tmp', C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97) [23]  (2.307 ns)
+
+ <State 45>: 2.307ns
+The critical path consists of the following:
+	'frsqrt' operation 32 bit ('tmp', C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97) [23]  (2.307 ns)
+
+ <State 46>: 2.307ns
+The critical path consists of the following:
+	'frsqrt' operation 32 bit ('tmp', C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97) [23]  (2.307 ns)
+
+ <State 47>: 2.307ns
+The critical path consists of the following:
+	'frsqrt' operation 32 bit ('tmp', C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97) [23]  (2.307 ns)
+
+ <State 48>: 2.307ns
+The critical path consists of the following:
+	'frsqrt' operation 32 bit ('tmp', C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97) [23]  (2.307 ns)
+
+ <State 49>: 2.307ns
+The critical path consists of the following:
+	'frsqrt' operation 32 bit ('tmp', C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97) [23]  (2.307 ns)
+
+ <State 50>: 2.307ns
+The critical path consists of the following:
+	'frsqrt' operation 32 bit ('tmp', C:\scratch\2023.2\hls_product\689\2023.2\src\shared\hls\clib\hlsmath\src\c++\rsqrtfloat.cpp:22->source/int4_decoder_blocks.cpp:97) [23]  (2.307 ns)
+
+
+============================================================
++ Verbose Summary: Binding
+============================================================
+N/A
+* FSMD analyzer results:
+  - Output states:
+ - Input state : 
+  - Chain level:
+	State 1
+	State 2
+	State 3
+	State 4
+	State 5
+	State 6
+	State 7
+	State 8
+	State 9
+	State 10
+	State 11
+	State 12
+	State 13
+	State 14
+	State 15
+	State 16
+	State 17
+	State 18
+	State 19
+	State 20
+	State 21
+	State 22
+	State 23
+	State 24
+	State 25
+	State 26
+	State 27
+	State 28
+	State 29
+	State 30
+	State 31
+	State 32
+	State 33
+	State 34
+	State 35
+	State 36
+	State 37
+	State 38
+	State 39
+	State 40
+	State 41
+	State 42
+	State 43
+	State 44
+	State 45
+	State 46
+	State 47
+	State 48
+	State 49
+	State 50
+
+
+============================================================
++ Verbose Summary: Datapath Resource usage 
+============================================================
+N/A

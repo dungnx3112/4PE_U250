@@ -1,0 +1,294 @@
+
+
+================================================================
+== Vitis HLS Report for 'int4_run_pe_dataflow_3_s'
+================================================================
+* Date:           Tue Aug 11 09:19:29 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.605 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-------+--------+----------+
+    |  Latency (cycles) |  Latency (absolute) |    Interval    | Pipeline |
+    |   min   |   max   |    min   |    max   |  min  |   max  |   Type   |
+    +---------+---------+----------+----------+-------+--------+----------+
+    |    32878|   693614|  0.110 ms|  2.312 ms|  32843|  693532|  dataflow|
+    +---------+---------+----------+----------+-------+--------+----------+
+
+    + Detail: 
+        * Instance: 
+        +-----------------------------------------------+--------------------------------------------+---------+---------+----------+-----------+-------+--------+---------+
+        |                                               |                                            |  Latency (cycles) |  Latency (absolute)  |    Interval    | Pipeline|
+        |                    Instance                   |                   Module                   |   min   |   max   |    min   |    max    |  min  |   max  |   Type  |
+        +-----------------------------------------------+--------------------------------------------+---------+---------+----------+-----------+-------+--------+---------+
+        |entry_proc_U0                                  |entry_proc                                  |        0|        0|      0 ns|       0 ns|      0|       0|       no|
+        |int4_run_pe_dataflow_3_Block_entry2_proc23_U0  |int4_run_pe_dataflow_3_Block_entry2_proc23  |        1|        1|  3.333 ns|   3.333 ns|      1|       1|       no|
+        |int4_stream_pe_inputs_20_U0                    |int4_stream_pe_inputs_20                    |    32842|   258122|  0.109 ms|   0.860 ms|  32842|  258122|       no|
+        |int4_cache_and_replay_activation_3_U0          |int4_cache_and_replay_activation_3_s        |     1161|    22025|  3.870 us|  73.409 us|   1161|   22025|       no|
+        |int4_stream_integer_blocks_1_U0                |int4_stream_integer_blocks_1                |    32789|   693525|  0.109 ms|   2.312 ms|  32789|  693525|       no|
+        |int4_dequantize_final_blocks_21_U0             |int4_dequantize_final_blocks_21             |    32795|   693531|  0.109 ms|   2.312 ms|  32795|  693531|       no|
+        |int4_pack_dequantized_outputs_2_U0             |int4_pack_dequantized_outputs_2             |     1031|     8071|  3.436 us|  26.901 us|   1031|    8071|       no|
+        |int4_write_outputs_U0                          |int4_write_outputs                          |       68|     1857|  0.227 us|   6.189 us|     68|    1857|       no|
+        +-----------------------------------------------+--------------------------------------------+---------+---------+----------+-----------+-------+--------+---------+
+
+        * Loop: 
+        N/A
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+------+
+|         Name        | BRAM_18K|  DSP  |    FF   |   LUT   | URAM |
++---------------------+---------+-------+---------+---------+------+
+|DSP                  |        -|      -|        -|        -|     -|
+|Expression           |        -|      -|        0|       50|     -|
+|FIFO                 |       34|      -|     3836|     2365|    32|
+|Instance             |       11|     91|    18965|    14117|     0|
+|Memory               |        -|      -|        -|        -|     -|
+|Multiplexer          |        -|      -|        -|       90|     -|
+|Register             |        -|      -|       11|        -|     -|
++---------------------+---------+-------+---------+---------+------+
+|Total                |       45|     91|    22812|    16622|    32|
++---------------------+---------+-------+---------+---------+------+
+|Available SLR        |     1344|   3072|   864000|   432000|   320|
++---------------------+---------+-------+---------+---------+------+
+|Utilization SLR (%)  |        3|      2|        2|        3|    10|
++---------------------+---------+-------+---------+---------+------+
+|Available            |     5376|  12288|  3456000|  1728000|  1280|
++---------------------+---------+-------+---------+---------+------+
+|Utilization (%)      |       ~0|     ~0|       ~0|       ~0|     2|
++---------------------+---------+-------+---------+---------+------+
+
++ Detail: 
+    * Instance: 
+    +-----------------------------------------------+--------------------------------------------+---------+----+------+------+-----+
+    |                    Instance                   |                   Module                   | BRAM_18K| DSP|  FF  |  LUT | URAM|
+    +-----------------------------------------------+--------------------------------------------+---------+----+------+------+-----+
+    |entry_proc_U0                                  |entry_proc                                  |        0|   0|     2|    20|    0|
+    |int4_cache_and_replay_activation_3_U0          |int4_cache_and_replay_activation_3_s        |       11|   0|    78|   480|    0|
+    |int4_dequantize_final_blocks_21_U0             |int4_dequantize_final_blocks_21             |        0|  24|  5422|  4168|    0|
+    |int4_pack_dequantized_outputs_2_U0             |int4_pack_dequantized_outputs_2             |        0|   0|  1250|  1303|    0|
+    |int4_run_pe_dataflow_3_Block_entry2_proc23_U0  |int4_run_pe_dataflow_3_Block_entry2_proc23  |        0|   0|    17|    57|    0|
+    |int4_stream_integer_blocks_1_U0                |int4_stream_integer_blocks_1                |        0|  65|  8221|  7136|    0|
+    |int4_stream_pe_inputs_20_U0                    |int4_stream_pe_inputs_20                    |        0|   0|   815|   236|    0|
+    |int4_write_outputs_U0                          |int4_write_outputs                          |        0|   2|  3160|   717|    0|
+    +-----------------------------------------------+--------------------------------------------+---------+----+------+------+-----+
+    |Total                                          |                                            |       11|  91| 18965| 14117|    0|
+    +-----------------------------------------------+--------------------------------------------+---------+----+------+------+-----+
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    +-------------------------------+---------+------+----+-----+-------+-----+---------+
+    |              Name             | BRAM_18K|  FF  | LUT| URAM| Depth | Bits| Size:D*B|
+    +-------------------------------+---------+------+----+-----+-------+-----+---------+
+    |final_block_stream_U           |        4|   276|   0|    -|     32|  128|     4096|
+    |fuse_residual_loc_channel_U    |        0|     6|   0|    -|      6|    1|        6|
+    |group_stream_U                 |        0|     9|   0|    -|     64|   92|     5888|
+    |idx1_c_U                       |        0|     6|   0|    -|      5|   11|       55|
+    |input_tiles_loc_c16_U          |        0|    20|   0|    -|      2|    6|       12|
+    |input_tiles_loc_c17_channel_U  |        0|    20|   0|    -|      2|    6|       12|
+    |input_tiles_loc_c_U            |        0|    20|   0|    -|      2|    6|       12|
+    |local_tiles_loc_c18_U          |        0|    20|   0|    -|      2|    6|       12|
+    |local_tiles_loc_c19_U          |        0|    20|   0|    -|      2|    6|       12|
+    |local_tiles_loc_c20_U          |        0|    20|   0|    -|      2|    6|       12|
+    |local_tiles_loc_c21_channel_U  |        0|    20|   0|    -|      2|    6|       12|
+    |local_tiles_loc_c_U            |        0|    20|   0|    -|      2|    6|       12|
+    |mul_ln867_loc_channel_U        |        0|    36|   0|    -|      2|   12|       24|
+    |output_fxp_loc_channel_U       |        0|     6|   0|    -|      5|    1|        5|
+    |output_stream_U                |       15|  1040|   0|    -|     16|  512|     8192|
+    |replay_activation_stream_U     |       15|  1031|   0|    -|      2|  480|      960|
+    |replay_scale_stream_U          |        0|    68|   0|    -|      2|   32|       64|
+    |weight_stream_U                |        0|  1198|  32|    -|  16384|  512|  8388608|
+    +-------------------------------+---------+------+----+-----+-------+-----+---------+
+    |Total                          |       34|  3836|  32|    0|  16534| 1829|  8407994|
+    +-------------------------------+---------+------+----+-----+-------+-----+---------+
+
+    * Expression: 
+    +----------------------------------------------------------------+----------+----+---+----+------------+------------+
+    |                          Variable Name                         | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +----------------------------------------------------------------+----------+----+---+----+------------+------------+
+    |ap_channel_done_fuse_residual_loc_channel                       |       and|   0|  0|   2|           1|           1|
+    |ap_channel_done_input_tiles_loc_c17_channel                     |       and|   0|  0|   2|           1|           1|
+    |ap_channel_done_local_tiles_loc_c21_channel                     |       and|   0|  0|   2|           1|           1|
+    |ap_channel_done_mul_ln867_loc_channel                           |       and|   0|  0|   2|           1|           1|
+    |ap_channel_done_output_fxp_loc_channel                          |       and|   0|  0|   2|           1|           1|
+    |ap_idle                                                         |       and|   0|  0|   2|           1|           1|
+    |ap_sync_ready                                                   |       and|   0|  0|   2|           1|           1|
+    |entry_proc_U0_ap_start                                          |       and|   0|  0|   2|           1|           1|
+    |int4_cache_and_replay_activation_3_U0_ap_start                  |       and|   0|  0|   2|           1|           1|
+    |int4_dequantize_final_blocks_21_U0_ap_start                     |       and|   0|  0|   2|           1|           1|
+    |int4_run_pe_dataflow_3_Block_entry2_proc23_U0_ap_continue       |       and|   0|  0|   2|           1|           1|
+    |int4_run_pe_dataflow_3_Block_entry2_proc23_U0_ap_start          |       and|   0|  0|   2|           1|           1|
+    |int4_stream_pe_inputs_20_U0_ap_start                            |       and|   0|  0|   2|           1|           1|
+    |int4_write_outputs_U0_ap_start                                  |       and|   0|  0|   2|           1|           1|
+    |ap_sync_channel_write_fuse_residual_loc_channel                 |        or|   0|  0|   2|           1|           1|
+    |ap_sync_channel_write_input_tiles_loc_c17_channel               |        or|   0|  0|   2|           1|           1|
+    |ap_sync_channel_write_local_tiles_loc_c21_channel               |        or|   0|  0|   2|           1|           1|
+    |ap_sync_channel_write_mul_ln867_loc_channel                     |        or|   0|  0|   2|           1|           1|
+    |ap_sync_channel_write_output_fxp_loc_channel                    |        or|   0|  0|   2|           1|           1|
+    |ap_sync_entry_proc_U0_ap_ready                                  |        or|   0|  0|   2|           1|           1|
+    |ap_sync_int4_dequantize_final_blocks_21_U0_ap_ready             |        or|   0|  0|   2|           1|           1|
+    |ap_sync_int4_run_pe_dataflow_3_Block_entry2_proc23_U0_ap_ready  |        or|   0|  0|   2|           1|           1|
+    |ap_sync_int4_stream_pe_inputs_20_U0_ap_ready                    |        or|   0|  0|   2|           1|           1|
+    |ap_sync_int4_write_outputs_U0_ap_ready                          |        or|   0|  0|   2|           1|           1|
+    |int4_stream_integer_blocks_1_U0_ap_start                        |        or|   0|  0|   2|           1|           1|
+    +----------------------------------------------------------------+----------+----+---+----+------------+------------+
+    |Total                                                           |          |   0|  0|  50|          25|          25|
+    +----------------------------------------------------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +--------------------------------------------------------------------+----+-----------+-----+-----------+
+    |                                Name                                | LUT| Input Size| Bits| Total Bits|
+    +--------------------------------------------------------------------+----+-----------+-----+-----------+
+    |ap_sync_reg_channel_write_fuse_residual_loc_channel                 |   9|          2|    1|          2|
+    |ap_sync_reg_channel_write_input_tiles_loc_c17_channel               |   9|          2|    1|          2|
+    |ap_sync_reg_channel_write_local_tiles_loc_c21_channel               |   9|          2|    1|          2|
+    |ap_sync_reg_channel_write_mul_ln867_loc_channel                     |   9|          2|    1|          2|
+    |ap_sync_reg_channel_write_output_fxp_loc_channel                    |   9|          2|    1|          2|
+    |ap_sync_reg_entry_proc_U0_ap_ready                                  |   9|          2|    1|          2|
+    |ap_sync_reg_int4_dequantize_final_blocks_21_U0_ap_ready             |   9|          2|    1|          2|
+    |ap_sync_reg_int4_run_pe_dataflow_3_Block_entry2_proc23_U0_ap_ready  |   9|          2|    1|          2|
+    |ap_sync_reg_int4_stream_pe_inputs_20_U0_ap_ready                    |   9|          2|    1|          2|
+    |ap_sync_reg_int4_write_outputs_U0_ap_ready                          |   9|          2|    1|          2|
+    +--------------------------------------------------------------------+----+-----------+-----+-----------+
+    |Total                                                               |  90|         20|   10|         20|
+    +--------------------------------------------------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +--------------------------------------------------------------------+---+----+-----+-----------+
+    |                                Name                                | FF| LUT| Bits| Const Bits|
+    +--------------------------------------------------------------------+---+----+-----+-----------+
+    |ap_sync_reg_channel_write_fuse_residual_loc_channel                 |  1|   0|    1|          0|
+    |ap_sync_reg_channel_write_input_tiles_loc_c17_channel               |  1|   0|    1|          0|
+    |ap_sync_reg_channel_write_local_tiles_loc_c21_channel               |  1|   0|    1|          0|
+    |ap_sync_reg_channel_write_mul_ln867_loc_channel                     |  1|   0|    1|          0|
+    |ap_sync_reg_channel_write_output_fxp_loc_channel                    |  1|   0|    1|          0|
+    |ap_sync_reg_entry_proc_U0_ap_ready                                  |  1|   0|    1|          0|
+    |ap_sync_reg_int4_dequantize_final_blocks_21_U0_ap_ready             |  1|   0|    1|          0|
+    |ap_sync_reg_int4_run_pe_dataflow_3_Block_entry2_proc23_U0_ap_ready  |  1|   0|    1|          0|
+    |ap_sync_reg_int4_stream_integer_blocks_1_U0_ap_start                |  1|   0|    1|          0|
+    |ap_sync_reg_int4_stream_pe_inputs_20_U0_ap_ready                    |  1|   0|    1|          0|
+    |ap_sync_reg_int4_write_outputs_U0_ap_ready                          |  1|   0|    1|          0|
+    +--------------------------------------------------------------------+---+----+-----+-----------+
+    |Total                                                               | 11|   0|   11|          0|
+    +--------------------------------------------------------------------+---+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++------------------------------+-----+-----+------------+-------------------------+--------------+
+|           RTL Ports          | Dir | Bits|  Protocol  |      Source Object      |    C Type    |
++------------------------------+-----+-----+------------+-------------------------+--------------+
+|m_axi_gmem3_AWVALID           |  out|    1|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_AWREADY           |   in|    1|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_AWADDR            |  out|   64|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_AWID              |  out|    1|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_AWLEN             |  out|   32|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_AWSIZE            |  out|    3|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_AWBURST           |  out|    2|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_AWLOCK            |  out|    2|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_AWCACHE           |  out|    4|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_AWPROT            |  out|    3|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_AWQOS             |  out|    4|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_AWREGION          |  out|    4|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_AWUSER            |  out|    1|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_WVALID            |  out|    1|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_WREADY            |   in|    1|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_WDATA             |  out|  512|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_WSTRB             |  out|   64|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_WLAST             |  out|    1|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_WID               |  out|    1|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_WUSER             |  out|    1|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_ARVALID           |  out|    1|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_ARREADY           |   in|    1|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_ARADDR            |  out|   64|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_ARID              |  out|    1|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_ARLEN             |  out|   32|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_ARSIZE            |  out|    3|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_ARBURST           |  out|    2|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_ARLOCK            |  out|    2|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_ARCACHE           |  out|    4|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_ARPROT            |  out|    3|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_ARQOS             |  out|    4|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_ARREGION          |  out|    4|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_ARUSER            |  out|    1|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_RVALID            |   in|    1|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_RREADY            |  out|    1|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_RDATA             |   in|  512|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_RLAST             |   in|    1|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_RID               |   in|    1|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_RFIFONUM          |   in|   12|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_RUSER             |   in|    1|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_RRESP             |   in|    2|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_BVALID            |   in|    1|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_BREADY            |  out|    1|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_BRESP             |   in|    2|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_BID               |   in|    1|       m_axi|                    gmem3|       pointer|
+|m_axi_gmem3_BUSER             |   in|    1|       m_axi|                    gmem3|       pointer|
+|weight_mem                    |   in|   64|     ap_none|               weight_mem|        scalar|
+|weight_mem_ap_vld             |   in|    1|     ap_none|               weight_mem|        scalar|
+|quantized_pe3_dout            |   in|  480|     ap_fifo|            quantized_pe3|       pointer|
+|quantized_pe3_empty_n         |   in|    1|     ap_fifo|            quantized_pe3|       pointer|
+|quantized_pe3_read            |  out|    1|     ap_fifo|            quantized_pe3|       pointer|
+|activation_scale_pe3_dout     |   in|   32|     ap_fifo|     activation_scale_pe3|       pointer|
+|activation_scale_pe3_empty_n  |   in|    1|     ap_fifo|     activation_scale_pe3|       pointer|
+|activation_scale_pe3_read     |  out|    1|     ap_fifo|     activation_scale_pe3|       pointer|
+|linear_command_pe3_dout       |   in|   14|     ap_fifo|       linear_command_pe3|       pointer|
+|linear_command_pe3_empty_n    |   in|    1|     ap_fifo|       linear_command_pe3|       pointer|
+|linear_command_pe3_read       |  out|    1|     ap_fifo|       linear_command_pe3|       pointer|
+|output_mem_address0           |  out|    9|   ap_memory|               output_mem|         array|
+|output_mem_ce0                |  out|    1|   ap_memory|               output_mem|         array|
+|output_mem_d0                 |  out|  512|   ap_memory|               output_mem|         array|
+|output_mem_q0                 |   in|  512|   ap_memory|               output_mem|         array|
+|output_mem_we0                |  out|    1|   ap_memory|               output_mem|         array|
+|output_mem_address1           |  out|    9|   ap_memory|               output_mem|         array|
+|output_mem_ce1                |  out|    1|   ap_memory|               output_mem|         array|
+|output_mem_d1                 |  out|  512|   ap_memory|               output_mem|         array|
+|output_mem_q1                 |   in|  512|   ap_memory|               output_mem|         array|
+|output_mem_we1                |  out|    1|   ap_memory|               output_mem|         array|
+|idx                           |   in|   25|     ap_none|                      idx|        scalar|
+|idx_ap_vld                    |   in|    1|     ap_none|                      idx|        scalar|
+|idx1                          |   in|   11|     ap_none|                     idx1|        scalar|
+|idx1_ap_vld                   |   in|    1|     ap_none|                     idx1|        scalar|
+|model_scale_cache3_address0   |  out|   11|   ap_memory|       model_scale_cache3|         array|
+|model_scale_cache3_ce0        |  out|    1|   ap_memory|       model_scale_cache3|         array|
+|model_scale_cache3_d0         |  out|  512|   ap_memory|       model_scale_cache3|         array|
+|model_scale_cache3_q0         |   in|  512|   ap_memory|       model_scale_cache3|         array|
+|model_scale_cache3_we0        |  out|    1|   ap_memory|       model_scale_cache3|         array|
+|ap_clk                        |   in|    1|  ap_ctrl_hs|  int4_run_pe_dataflow<3>|  return value|
+|ap_rst                        |   in|    1|  ap_ctrl_hs|  int4_run_pe_dataflow<3>|  return value|
+|ap_start                      |   in|    1|  ap_ctrl_hs|  int4_run_pe_dataflow<3>|  return value|
+|ap_done                       |  out|    1|  ap_ctrl_hs|  int4_run_pe_dataflow<3>|  return value|
+|ap_ready                      |  out|    1|  ap_ctrl_hs|  int4_run_pe_dataflow<3>|  return value|
+|ap_idle                       |  out|    1|  ap_ctrl_hs|  int4_run_pe_dataflow<3>|  return value|
+|ap_continue                   |   in|    1|  ap_ctrl_hs|  int4_run_pe_dataflow<3>|  return value|
++------------------------------+-----+-----+------------+-------------------------+--------------+
+

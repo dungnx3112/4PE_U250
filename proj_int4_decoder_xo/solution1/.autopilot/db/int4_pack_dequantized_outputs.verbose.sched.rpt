@@ -1,0 +1,134 @@
+
+
+================================================================
+== Vitis HLS Report for 'int4_pack_dequantized_outputs'
+================================================================
+* Date:           Tue Aug 11 09:17:24 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.433 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+-----------+------+------+---------+
+    |  Latency (cycles) |  Latency (absolute)  |   Interval  | Pipeline|
+    |   min   |   max   |    min   |    max    |  min |  max |   Type  |
+    +---------+---------+----------+-----------+------+------+---------+
+    |     1031|     8071|  3.436 us|  26.901 us|  1031|  8071|       no|
+    +---------+---------+----------+-----------+------+------+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        N/A
+
+============================================================
++ Verbose Summary: Synthesis Manager
+============================================================
+InlineROM: 1
+ExposeGlobal: 0
+============================================================
++ Verbose Summary: CDFG Model
+============================================================
+IsTopModel: 0
+ResetActiveHigh: 1
+IsCombinational: 2
+IsDatapathOnly: 0
+HasWiredReturn: 1
+HasMFsm: 0
+HasVarLatency: 1
+IsPipeline: 0
+IsRtlPipelined: 0
+IsInstanceOverlapped: 0
+IsDontTouch: 0
+HasImplIP: 0
+IsGatedGlobalClock: 0
+
+
+============================================================
++ Verbose Summary: Schedule
+============================================================
+* Number of FSM states : 3
+* Pipeline : 0
+* Dataflow Pipeline: 0
+
+* FSM state transitions: 
+1 --> 2 
+2 --> 3 
+3 --> 
+
+* FSM state operations: 
+
+State 1 <SV = 0> <Delay = 2.43>
+ST_1 : Operation 4 [1/1] (1.21ns)   --->   "%p_read_13 = read i1 @_ssdm_op_Read.ap_auto.i1, i1 %p_read"   --->   Operation 4 'read' 'p_read_13' <Predicate = true> <Delay = 1.21> <CoreInst = "FIFO_SRL">   --->   Core 81 'FIFO_SRL' <Latency = 0> <II = 1> <Delay = 1.42> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = -1> <Depth = -1> <FIFO>
+ST_1 : Operation 5 [1/1] (1.21ns)   --->   "%local_tiles = read i6 @_ssdm_op_Read.ap_fifo.i6P0A, i6 %local_tiles_loc"   --->   Operation 5 'read' 'local_tiles' <Predicate = true> <Delay = 1.21> <CoreInst = "FIFO_SRL">   --->   Core 81 'FIFO_SRL' <Latency = 0> <II = 1> <Delay = 1.36> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 6> <Depth = 2> <FIFO>
+ST_1 : Operation 6 [1/1] (1.21ns)   --->   "%write_ln654 = write void @_ssdm_op_Write.ap_fifo.i6P0A, i6 %local_tiles_loc_c, i6 %local_tiles" [source/int4_linear_controller.cpp:654->source/int4_linear_controller.cpp:914]   --->   Operation 6 'write' 'write_ln654' <Predicate = true> <Delay = 1.21> <CoreInst = "FIFO_SRL">   --->   Core 81 'FIFO_SRL' <Latency = 0> <II = 1> <Delay = 1.36> <Storage> <Opcode : 'read' 'write' 'nbread' 'nbwrite'> <Ports = 0> <Width = 6> <Depth = 2> <FIFO>
+
+State 2 <SV = 1> <Delay = 1.14>
+ST_2 : Operation 7 [1/1] (0.00ns)   --->   "%shl_ln = bitconcatenate i13 @_ssdm_op_BitConcatenate.i13.i6.i7, i6 %local_tiles, i7 0" [source/int4_linear_controller.cpp:666->source/int4_linear_controller.cpp:914]   --->   Operation 7 'bitconcatenate' 'shl_ln' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 8 [1/1] (0.00ns)   --->   "%empty = wait i32 @_ssdm_op_Wait"   --->   Operation 8 'wait' 'empty' <Predicate = true> <Delay = 0.00>
+ST_2 : Operation 9 [2/2] (1.14ns)   --->   "%call_ln666 = call void @int4_pack_dequantized_outputs_Pipeline_pack_dequantized_value_loop, i13 %shl_ln, i1 %p_read_13, i128 %final_block_stream, i512 %output_stream" [source/int4_linear_controller.cpp:666->source/int4_linear_controller.cpp:914]   --->   Operation 9 'call' 'call_ln666' <Predicate = true> <Delay = 1.14> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+
+State 3 <SV = 2> <Delay = 0.00>
+ST_3 : Operation 10 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i6 %local_tiles_loc, void @ap_fifo_str, i32 0, i32 0, void @p_str, i32 0, i32 0, void @p_str, void @p_str, void @p_str, i32 2, i32 2, i32 16, i32 16, void @p_str, void @ScalarProp_str, i32 4294967295, i32 0"   --->   Operation 10 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 11 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i6 %local_tiles_loc_c, void @ap_fifo_str, i32 0, i32 0, void @p_str, i32 0, i32 0, void @p_str, void @p_str, void @p_str, i32 2, i32 2, i32 16, i32 16, void @p_str, void @ScalarProp_str, i32 4294967295, i32 0"   --->   Operation 11 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 12 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i512 %output_stream, i64 666, i64 8, i64 18446744073709551615"   --->   Operation 12 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 13 [1/1] (0.00ns)   --->   "%specmemcore_ln0 = specmemcore void @_ssdm_op_SpecMemCore, i128 %final_block_stream, i64 666, i64 8, i64 18446744073709551615"   --->   Operation 13 'specmemcore' 'specmemcore_ln0' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 14 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i512 %output_stream, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 14 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 15 [1/1] (0.00ns)   --->   "%specinterface_ln0 = specinterface void @_ssdm_op_SpecInterface, i128 %final_block_stream, void @empty_447, i32 0, i32 0, void @empty_418, i32 0, i32 0, void @empty_418, void @empty_418, void @empty_418, i32 0, i32 0, i32 0, i32 0, void @empty_418, void @empty_418, i32 4294967295, i32 0"   --->   Operation 15 'specinterface' 'specinterface_ln0' <Predicate = true> <Delay = 0.00>
+ST_3 : Operation 16 [1/2] (0.00ns)   --->   "%call_ln666 = call void @int4_pack_dequantized_outputs_Pipeline_pack_dequantized_value_loop, i13 %shl_ln, i1 %p_read_13, i128 %final_block_stream, i512 %output_stream" [source/int4_linear_controller.cpp:666->source/int4_linear_controller.cpp:914]   --->   Operation 16 'call' 'call_ln666' <Predicate = true> <Delay = 0.00> <CoreType = "Generic">   --->   Core 0 '' <Latency = 0> <II = 1> <Delay = 1.00> <Generic> <Opcode : >
+ST_3 : Operation 17 [1/1] (0.00ns)   --->   "%ret_ln914 = ret" [source/int4_linear_controller.cpp:914]   --->   Operation 17 'ret' 'ret_ln914' <Predicate = true> <Delay = 0.00>
+
+
+============================================================
++ Verbose Summary: Timing violations
+============================================================
+Target clock period: 3.333ns, clock uncertainty: 0.900ns.
+
+ <State 1>: 2.433ns
+The critical path consists of the following:
+	fifo read operation ('local_tiles') on port 'local_tiles_loc' [8]  (1.217 ns)
+	fifo write operation ('write_ln654', source/int4_linear_controller.cpp:654->source/int4_linear_controller.cpp:914) on port 'local_tiles_loc_c' (source/int4_linear_controller.cpp:654->source/int4_linear_controller.cpp:914) [10]  (1.217 ns)
+
+ <State 2>: 1.142ns
+The critical path consists of the following:
+	'call' operation 0 bit ('call_ln666', source/int4_linear_controller.cpp:666->source/int4_linear_controller.cpp:914) to 'int4_pack_dequantized_outputs_Pipeline_pack_dequantized_value_loop' [17]  (1.142 ns)
+
+ <State 3>: 0.000ns
+The critical path consists of the following:
+
+
+============================================================
++ Verbose Summary: Binding
+============================================================
+N/A
+* FSMD analyzer results:
+  - Output states:
+ - Input state : 
+  - Chain level:
+	State 1
+	State 2
+	State 3
+
+
+============================================================
++ Verbose Summary: Datapath Resource usage 
+============================================================
+N/A

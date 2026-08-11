@@ -1,0 +1,249 @@
+<profile>
+
+<section name = "Vitis HLS Report for 'swiftkv_quantize_kv_record_Pipeline_find_kv_group_max_block_loop'" level="0">
+<item name = "Date">Tue Aug 11 09:18:05 2026
+</item>
+<item name = "Version">2023.2 (Build 4023990 on Oct 11 2023)</item>
+<item name = "Project">proj_int4_decoder_xo</item>
+<item name = "Solution">solution1 (Vitis Kernel Flow Target)</item>
+<item name = "Product family">virtexuplus</item>
+<item name = "Target device">xcu250-figd2104-2L-e</item>
+</section>
+
+<section name = "Performance Estimates" level="0">
+<item name = "Timing">
+<section name = "" level="1">
+<item name = "Summary"><table name="" hasTotal="0">
+<keys size="4">Clock, Target, Estimated, Uncertainty</keys>
+<column name="ap_clk">3.33 ns, 2.214 ns, 0.90 ns</column>
+</table>
+</item>
+</section>
+</item>
+<item name = "Latency">
+<section name = "" level="1">
+<item name = "Summary"><table name="" hasTotal="0">
+<keys size="8">, min, max, min, max, min, max, Type</keys>
+<column name="">11, 11, 36.663 ns, 36.663 ns, 11, 11, no</column>
+</table>
+</item>
+<item name = "Detail">
+<section name = "" level="1">
+<item name = "Instance"><table name="" hasTotal="0">
+<keys size="9">Instance, Module, min, max, min, max, min, max, Type</keys>
+</table>
+</item>
+<item name = "Loop"><table name="" hasTotal="0">
+<keys size="8">Loop Name, min, max, Latency, achieved, target, Count, Pipelined</keys>
+<column name="- find_kv_group_max_block_loop">9, 9, 3, 1, 1, 8, yes</column>
+</table>
+</item>
+</section>
+</item>
+</section>
+</item>
+</section>
+
+<section name = "Utilization Estimates" level="0">
+<item name = "Summary"><table name="" hasTotal="1">
+<keys size="6">Name, BRAM_18K, DSP, FF, LUT, URAM</keys>
+<column name="DSP">-, -, -, -, -</column>
+<column name="Expression">-, -, 0, 1170, -</column>
+<column name="FIFO">-, -, -, -, -</column>
+<column name="Instance">-, -, 0, 344, -</column>
+<column name="Memory">-, -, -, -, -</column>
+<column name="Multiplexer">-, -, -, 54, -</column>
+<column name="Register">-, -, 394, -, -</column>
+<specialColumn name="Available SLR">1344, 3072, 864000, 432000, 320</specialColumn>
+<specialColumn name="Utilization SLR (%)">0, 0, ~0, ~0, 0</specialColumn>
+<specialColumn name="Available">5376, 12288, 3456000, 1728000, 1280</specialColumn>
+<specialColumn name="Utilization (%)">0, 0, ~0, ~0, 0</specialColumn>
+</table>
+</item>
+<item name = "Detail">
+<section name = "" level="1">
+<item name = "Instance"><table name="" hasTotal="1">
+<keys size="7">Instance, Module, BRAM_18K, DSP, FF, LUT, URAM</keys>
+<column name="sparsemux_17_3_32_1_1_U122">sparsemux_17_3_32_1_1, 0, 0, 0, 43, 0</column>
+<column name="sparsemux_17_3_32_1_1_U123">sparsemux_17_3_32_1_1, 0, 0, 0, 43, 0</column>
+<column name="sparsemux_17_3_32_1_1_U124">sparsemux_17_3_32_1_1, 0, 0, 0, 43, 0</column>
+<column name="sparsemux_17_3_32_1_1_U125">sparsemux_17_3_32_1_1, 0, 0, 0, 43, 0</column>
+<column name="sparsemux_17_3_32_1_1_U126">sparsemux_17_3_32_1_1, 0, 0, 0, 43, 0</column>
+<column name="sparsemux_17_3_32_1_1_U127">sparsemux_17_3_32_1_1, 0, 0, 0, 43, 0</column>
+<column name="sparsemux_17_3_32_1_1_U128">sparsemux_17_3_32_1_1, 0, 0, 0, 43, 0</column>
+<column name="sparsemux_17_3_32_1_1_U129">sparsemux_17_3_32_1_1, 0, 0, 0, 43, 0</column>
+</table>
+</item>
+<item name = "DSP"><table name="" hasTotal="0">
+<keys size="3">Instance, Module, Expression</keys>
+</table>
+</item>
+<item name = "Memory"><table name="" hasTotal="1">
+<keys size="10">Memory, Module, BRAM_18K, FF, LUT, URAM, Words, Bits, Banks, W*Bits*Banks</keys>
+</table>
+</item>
+<item name = "FIFO"><table name="" hasTotal="1">
+<keys size="8">Name, BRAM_18K, FF, LUT, URAM, Depth, Bits, Size:D*B</keys>
+</table>
+</item>
+<item name = "Expression"><table name="" hasTotal="1">
+<keys size="7">Variable Name, Operation, DSP, FF, LUT, Bitwidth P0, Bitwidth P1</keys>
+<column name="add_ln445_fu_618_p2">+, 0, 0, 12, 4, 1</column>
+<column name="sub_ln316_1_fu_738_p2">-, 0, 0, 39, 1, 32</column>
+<column name="sub_ln316_2_fu_800_p2">-, 0, 0, 39, 1, 32</column>
+<column name="sub_ln316_3_fu_862_p2">-, 0, 0, 39, 1, 32</column>
+<column name="sub_ln316_4_fu_924_p2">-, 0, 0, 39, 1, 32</column>
+<column name="sub_ln316_5_fu_986_p2">-, 0, 0, 39, 1, 32</column>
+<column name="sub_ln316_6_fu_1048_p2">-, 0, 0, 39, 1, 32</column>
+<column name="sub_ln316_7_fu_1110_p2">-, 0, 0, 39, 1, 32</column>
+<column name="sub_ln316_fu_676_p2">-, 0, 0, 39, 1, 32</column>
+<column name="icmp_ln444_fu_612_p2">icmp, 0, 0, 12, 4, 5</column>
+<column name="icmp_ln461_fu_1129_p2">icmp, 0, 0, 39, 32, 32</column>
+<column name="icmp_ln464_fu_1145_p2">icmp, 0, 0, 39, 32, 32</column>
+<column name="icmp_ln467_fu_1161_p2">icmp, 0, 0, 39, 32, 32</column>
+<column name="icmp_ln469_fu_1175_p2">icmp, 0, 0, 39, 32, 32</column>
+<column name="icmp_ln472_fu_1191_p2">icmp, 0, 0, 39, 32, 32</column>
+<column name="icmp_ln475_fu_1207_p2">icmp, 0, 0, 39, 32, 32</column>
+<column name="icmp_ln476_fu_1227_p2">icmp, 0, 0, 39, 32, 32</column>
+<column name="icmp_ln479_fu_1239_p2">icmp, 0, 0, 39, 32, 32</column>
+<column name="block_max_k_fu_1167_p3">select, 0, 0, 32, 1, 32</column>
+<column name="block_max_v_fu_1213_p3">select, 0, 0, 32, 1, 32</column>
+<column name="magnitude_k_1_fu_744_p3">select, 0, 0, 32, 1, 32</column>
+<column name="magnitude_k_2_fu_806_p3">select, 0, 0, 32, 1, 32</column>
+<column name="magnitude_k_3_fu_868_p3">select, 0, 0, 32, 1, 32</column>
+<column name="magnitude_k_fu_682_p3">select, 0, 0, 32, 1, 32</column>
+<column name="magnitude_v_1_fu_992_p3">select, 0, 0, 32, 1, 32</column>
+<column name="magnitude_v_2_fu_1054_p3">select, 0, 0, 32, 1, 32</column>
+<column name="magnitude_v_3_fu_1116_p3">select, 0, 0, 32, 1, 32</column>
+<column name="magnitude_v_fu_930_p3">select, 0, 0, 32, 1, 32</column>
+<column name="max_k_01_fu_1139_p3">select, 0, 0, 32, 1, 32</column>
+<column name="max_k_23_fu_1155_p3">select, 0, 0, 32, 1, 32</column>
+<column name="max_v_01_fu_1185_p3">select, 0, 0, 32, 1, 32</column>
+<column name="max_v_23_fu_1201_p3">select, 0, 0, 32, 1, 32</column>
+<column name="maximum_k_1_fu_1232_p3">select, 0, 0, 32, 1, 32</column>
+<column name="maximum_v_2_fu_1244_p3">select, 0, 0, 32, 1, 32</column>
+<column name="ap_enable_pp0">xor, 0, 0, 2, 1, 2</column>
+<column name="xor_ln461_fu_1133_p2">xor, 0, 0, 2, 1, 2</column>
+<column name="xor_ln464_fu_1149_p2">xor, 0, 0, 2, 1, 2</column>
+<column name="xor_ln469_fu_1179_p2">xor, 0, 0, 2, 1, 2</column>
+<column name="xor_ln472_fu_1195_p2">xor, 0, 0, 2, 1, 2</column>
+</table>
+</item>
+<item name = "Multiplexer"><table name="" hasTotal="1">
+<keys size="5">Name, LUT, Input Size, Bits, Total Bits</keys>
+<column name="ap_done_int">9, 2, 1, 2</column>
+<column name="ap_enable_reg_pp0_iter1">9, 2, 1, 2</column>
+<column name="ap_sig_allocacmp_block_2">9, 2, 4, 8</column>
+<column name="block_fu_192">9, 2, 4, 8</column>
+<column name="maximum_k_fu_184">9, 2, 32, 64</column>
+<column name="maximum_v_fu_188">9, 2, 32, 64</column>
+</table>
+</item>
+<item name = "Register"><table name="" hasTotal="1">
+<keys size="5">Name, FF, LUT, Bits, Const Bits</keys>
+<column name="ap_CS_fsm">1, 0, 1, 0</column>
+<column name="ap_done_reg">1, 0, 1, 0</column>
+<column name="ap_enable_reg_pp0_iter1">1, 0, 1, 0</column>
+<column name="ap_enable_reg_pp0_iter2">1, 0, 1, 0</column>
+<column name="ap_loop_exit_ready_pp0_iter1_reg">1, 0, 1, 0</column>
+<column name="block_fu_192">4, 0, 4, 0</column>
+<column name="block_max_k_reg_1344">32, 0, 32, 0</column>
+<column name="block_max_v_reg_1350">32, 0, 32, 0</column>
+<column name="icmp_ln444_reg_1292">1, 0, 1, 0</column>
+<column name="magnitude_k_1_reg_1302">32, 0, 32, 0</column>
+<column name="magnitude_k_2_reg_1308">32, 0, 32, 0</column>
+<column name="magnitude_k_3_reg_1314">32, 0, 32, 0</column>
+<column name="magnitude_k_reg_1296">32, 0, 32, 0</column>
+<column name="magnitude_v_1_reg_1326">32, 0, 32, 0</column>
+<column name="magnitude_v_2_reg_1332">32, 0, 32, 0</column>
+<column name="magnitude_v_3_reg_1338">32, 0, 32, 0</column>
+<column name="magnitude_v_reg_1320">32, 0, 32, 0</column>
+<column name="maximum_k_fu_184">32, 0, 32, 0</column>
+<column name="maximum_v_fu_188">32, 0, 32, 0</column>
+</table>
+</item>
+</section>
+</item>
+</section>
+
+<section name = "Interface" level="0">
+<item name = "Summary"><table name="" hasTotal="0">
+<keys size="6">RTL Ports, Dir, Bits, Protocol, Source Object, C Type</keys>
+<column name="ap_clk">in, 1, ap_ctrl_hs, swiftkv_quantize_kv_record_Pipeline_find_kv_group_max_block_loop, return value</column>
+<column name="ap_rst">in, 1, ap_ctrl_hs, swiftkv_quantize_kv_record_Pipeline_find_kv_group_max_block_loop, return value</column>
+<column name="ap_start">in, 1, ap_ctrl_hs, swiftkv_quantize_kv_record_Pipeline_find_kv_group_max_block_loop, return value</column>
+<column name="ap_done">out, 1, ap_ctrl_hs, swiftkv_quantize_kv_record_Pipeline_find_kv_group_max_block_loop, return value</column>
+<column name="ap_idle">out, 1, ap_ctrl_hs, swiftkv_quantize_kv_record_Pipeline_find_kv_group_max_block_loop, return value</column>
+<column name="ap_ready">out, 1, ap_ctrl_hs, swiftkv_quantize_kv_record_Pipeline_find_kv_group_max_block_loop, return value</column>
+<column name="empty_612">in, 32, ap_none, empty_612, scalar</column>
+<column name="k_raw_3534">in, 32, ap_none, k_raw_3534, scalar</column>
+<column name="k_raw_3942">in, 32, ap_none, k_raw_3942, scalar</column>
+<column name="k_raw_4350">in, 32, ap_none, k_raw_4350, scalar</column>
+<column name="empty_613">in, 32, ap_none, empty_613, scalar</column>
+<column name="k_raw_5164">in, 32, ap_none, k_raw_5164, scalar</column>
+<column name="k_raw_5572">in, 32, ap_none, k_raw_5572, scalar</column>
+<column name="k_raw_5980">in, 32, ap_none, k_raw_5980, scalar</column>
+<column name="k_raw_3228">in, 32, ap_none, k_raw_3228, scalar</column>
+<column name="k_raw_3636">in, 32, ap_none, k_raw_3636, scalar</column>
+<column name="k_raw_4044">in, 32, ap_none, k_raw_4044, scalar</column>
+<column name="k_raw_4452">in, 32, ap_none, k_raw_4452, scalar</column>
+<column name="k_raw_4858">in, 32, ap_none, k_raw_4858, scalar</column>
+<column name="k_raw_5266">in, 32, ap_none, k_raw_5266, scalar</column>
+<column name="k_raw_5674">in, 32, ap_none, k_raw_5674, scalar</column>
+<column name="k_raw_6082">in, 32, ap_none, k_raw_6082, scalar</column>
+<column name="k_raw_3330">in, 32, ap_none, k_raw_3330, scalar</column>
+<column name="k_raw_3738">in, 32, ap_none, k_raw_3738, scalar</column>
+<column name="k_raw_4146">in, 32, ap_none, k_raw_4146, scalar</column>
+<column name="k_raw_4554">in, 32, ap_none, k_raw_4554, scalar</column>
+<column name="k_raw_4960">in, 32, ap_none, k_raw_4960, scalar</column>
+<column name="k_raw_5368">in, 32, ap_none, k_raw_5368, scalar</column>
+<column name="k_raw_5776">in, 32, ap_none, k_raw_5776, scalar</column>
+<column name="k_raw_6184">in, 32, ap_none, k_raw_6184, scalar</column>
+<column name="k_raw_3432">in, 32, ap_none, k_raw_3432, scalar</column>
+<column name="k_raw_3840">in, 32, ap_none, k_raw_3840, scalar</column>
+<column name="k_raw_4248">in, 32, ap_none, k_raw_4248, scalar</column>
+<column name="k_raw_4656">in, 32, ap_none, k_raw_4656, scalar</column>
+<column name="k_raw_5062">in, 32, ap_none, k_raw_5062, scalar</column>
+<column name="k_raw_5470">in, 32, ap_none, k_raw_5470, scalar</column>
+<column name="k_raw_5878">in, 32, ap_none, k_raw_5878, scalar</column>
+<column name="k_raw_6286">in, 32, ap_none, k_raw_6286, scalar</column>
+<column name="empty_614">in, 32, ap_none, empty_614, scalar</column>
+<column name="v_raw_3535">in, 32, ap_none, v_raw_3535, scalar</column>
+<column name="v_raw_3943">in, 32, ap_none, v_raw_3943, scalar</column>
+<column name="v_raw_4351">in, 32, ap_none, v_raw_4351, scalar</column>
+<column name="empty">in, 32, ap_none, empty, scalar</column>
+<column name="v_raw_5165">in, 32, ap_none, v_raw_5165, scalar</column>
+<column name="v_raw_5573">in, 32, ap_none, v_raw_5573, scalar</column>
+<column name="v_raw_5981">in, 32, ap_none, v_raw_5981, scalar</column>
+<column name="v_raw_3229">in, 32, ap_none, v_raw_3229, scalar</column>
+<column name="v_raw_3637">in, 32, ap_none, v_raw_3637, scalar</column>
+<column name="v_raw_4045">in, 32, ap_none, v_raw_4045, scalar</column>
+<column name="v_raw_4453">in, 32, ap_none, v_raw_4453, scalar</column>
+<column name="v_raw_4859">in, 32, ap_none, v_raw_4859, scalar</column>
+<column name="v_raw_5267">in, 32, ap_none, v_raw_5267, scalar</column>
+<column name="v_raw_5675">in, 32, ap_none, v_raw_5675, scalar</column>
+<column name="v_raw_6083">in, 32, ap_none, v_raw_6083, scalar</column>
+<column name="v_raw_3331">in, 32, ap_none, v_raw_3331, scalar</column>
+<column name="v_raw_3739">in, 32, ap_none, v_raw_3739, scalar</column>
+<column name="v_raw_4147">in, 32, ap_none, v_raw_4147, scalar</column>
+<column name="v_raw_4555">in, 32, ap_none, v_raw_4555, scalar</column>
+<column name="v_raw_4961">in, 32, ap_none, v_raw_4961, scalar</column>
+<column name="v_raw_5369">in, 32, ap_none, v_raw_5369, scalar</column>
+<column name="v_raw_5777">in, 32, ap_none, v_raw_5777, scalar</column>
+<column name="v_raw_6185">in, 32, ap_none, v_raw_6185, scalar</column>
+<column name="v_raw_3433">in, 32, ap_none, v_raw_3433, scalar</column>
+<column name="v_raw_3841">in, 32, ap_none, v_raw_3841, scalar</column>
+<column name="v_raw_4249">in, 32, ap_none, v_raw_4249, scalar</column>
+<column name="v_raw_4657">in, 32, ap_none, v_raw_4657, scalar</column>
+<column name="v_raw_5063">in, 32, ap_none, v_raw_5063, scalar</column>
+<column name="v_raw_5471">in, 32, ap_none, v_raw_5471, scalar</column>
+<column name="v_raw_5879">in, 32, ap_none, v_raw_5879, scalar</column>
+<column name="v_raw_6287">in, 32, ap_none, v_raw_6287, scalar</column>
+<column name="maximum_v_out">out, 32, ap_vld, maximum_v_out, pointer</column>
+<column name="maximum_v_out_ap_vld">out, 1, ap_vld, maximum_v_out, pointer</column>
+<column name="maximum_k_out">out, 32, ap_vld, maximum_k_out, pointer</column>
+<column name="maximum_k_out_ap_vld">out, 1, ap_vld, maximum_k_out, pointer</column>
+</table>
+</item>
+</section>
+</profile>

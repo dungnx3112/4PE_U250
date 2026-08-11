@@ -1,0 +1,233 @@
+
+
+================================================================
+== Vitis HLS Report for 'int4_broadcast_activation'
+================================================================
+* Date:           Tue Aug 11 09:18:49 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.417 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+---------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline|
+    |   min   |   max   |    min   |    max   | min | max |   Type  |
+    +---------+---------+----------+----------+-----+-----+---------+
+    |      135|      351|  0.450 us|  1.170 us|  135|  351|       no|
+    +---------+---------+----------+----------+-----+-----+---------+
+
+    + Detail: 
+        * Instance: 
+        +------------------------------------------------------------------------------+-------------------------------------------------------------------+---------+---------+----------+----------+-----+-----+---------+
+        |                                                                              |                                                                   |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline|
+        |                                   Instance                                   |                               Module                              |   min   |   max   |    min   |    max   | min | max |   Type  |
+        +------------------------------------------------------------------------------+-------------------------------------------------------------------+---------+---------+----------+----------+-----+-----+---------+
+        |grp_int4_broadcast_activation_Pipeline_broadcast_activation_seed_loop_fu_141  |int4_broadcast_activation_Pipeline_broadcast_activation_seed_loop  |      132|      348|  0.440 us|  1.160 us|  132|  348|       no|
+        +------------------------------------------------------------------------------+-------------------------------------------------------------------+---------+---------+----------+----------+-----+-----+---------+
+
+        * Loop: 
+        N/A
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+------+
+|         Name        | BRAM_18K|  DSP  |    FF   |   LUT   | URAM |
++---------------------+---------+-------+---------+---------+------+
+|DSP                  |        -|      -|        -|        -|     -|
+|Expression           |        -|      -|        0|       56|     -|
+|FIFO                 |        -|      -|        -|        -|     -|
+|Instance             |        -|      -|     2619|      744|     -|
+|Memory               |        -|      -|        -|        -|     -|
+|Multiplexer          |        -|      -|        -|      181|     -|
+|Register             |        -|      -|       18|        -|     -|
++---------------------+---------+-------+---------+---------+------+
+|Total                |        0|      0|     2637|      981|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available SLR        |     1344|   3072|   864000|   432000|   320|
++---------------------+---------+-------+---------+---------+------+
+|Utilization SLR (%)  |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available            |     5376|  12288|  3456000|  1728000|  1280|
++---------------------+---------+-------+---------+---------+------+
+|Utilization (%)      |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+
++ Detail: 
+    * Instance: 
+    +------------------------------------------------------------------------------+-------------------------------------------------------------------+---------+----+------+-----+-----+
+    |                                   Instance                                   |                               Module                              | BRAM_18K| DSP|  FF  | LUT | URAM|
+    +------------------------------------------------------------------------------+-------------------------------------------------------------------+---------+----+------+-----+-----+
+    |grp_int4_broadcast_activation_Pipeline_broadcast_activation_seed_loop_fu_141  |int4_broadcast_activation_Pipeline_broadcast_activation_seed_loop  |        0|   0|  2619|  744|    0|
+    +------------------------------------------------------------------------------+-------------------------------------------------------------------+---------+----+------+-----+-----+
+    |Total                                                                         |                                                                   |        0|   0|  2619|  744|    0|
+    +------------------------------------------------------------------------------+-------------------------------------------------------------------+---------+----+------+-----+-----+
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +---------------------+----------+----+---+----+------------+------------+
+    |    Variable Name    | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +---------------------+----------+----+---+----+------------+------------+
+    |and_ln345_fu_212_p2  |       and|   0|  0|   2|           1|           1|
+    |active_0_fu_180_p2   |      icmp|   0|  0|  13|           6|           1|
+    |active_1_fu_186_p2   |      icmp|   0|  0|  13|           6|           1|
+    |active_2_fu_192_p2   |      icmp|   0|  0|  13|           6|           1|
+    |active_3_fu_198_p2   |      icmp|   0|  0|  13|           6|           1|
+    |ap_block_state1      |        or|   0|  0|   2|           1|           1|
+    +---------------------+----------+----+---+----+------------+------------+
+    |Total                |          |   0|  0|  56|          26|           6|
+    +---------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +----------------------------+----+-----------+-----+-----------+
+    |            Name            | LUT| Input Size| Bits| Total Bits|
+    +----------------------------+----+-----------+-----+-----------+
+    |activation_scale_pe0_write  |   9|          2|    1|          2|
+    |activation_scale_pe1_write  |   9|          2|    1|          2|
+    |activation_scale_pe2_write  |   9|          2|    1|          2|
+    |activation_scale_pe3_write  |   9|          2|    1|          2|
+    |ap_NS_fsm                   |  26|          5|    1|          5|
+    |ap_done                     |   9|          2|    1|          2|
+    |packed_scales_address0      |  14|          3|    5|         15|
+    |packed_scales_ce0           |  14|          3|    1|          3|
+    |packed_scales_d0            |  14|          3|  512|       1536|
+    |packed_scales_we0           |  14|          3|    1|          3|
+    |quantized_pe0_write         |   9|          2|    1|          2|
+    |quantized_pe1_write         |   9|          2|    1|          2|
+    |quantized_pe2_write         |   9|          2|    1|          2|
+    |quantized_pe3_write         |   9|          2|    1|          2|
+    |quantized_stream_read       |   9|          2|    1|          2|
+    |scale_stream_read           |   9|          2|    1|          2|
+    +----------------------------+----+-----------+-----+-----------+
+    |Total                       | 181|         39|  531|       1584|
+    +----------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +-------------------------------------------------------------------------------------------+---+----+-----+-----------+
+    |                                            Name                                           | FF| LUT| Bits| Const Bits|
+    +-------------------------------------------------------------------------------------------+---+----+-----+-----------+
+    |active_0_reg_271                                                                           |  1|   0|    1|          0|
+    |active_1_reg_276                                                                           |  1|   0|    1|          0|
+    |active_2_reg_281                                                                           |  1|   0|    1|          0|
+    |active_3_reg_286                                                                           |  1|   0|    1|          0|
+    |and_ln345_reg_296                                                                          |  1|   0|    1|          0|
+    |ap_CS_fsm                                                                                  |  4|   0|    4|          0|
+    |ap_done_reg                                                                                |  1|   0|    1|          0|
+    |grp_int4_broadcast_activation_Pipeline_broadcast_activation_seed_loop_fu_141_ap_start_reg  |  1|   0|    1|          0|
+    |shl_ln_reg_291                                                                             |  6|   0|    9|          3|
+    |trunc_ln282_reg_266                                                                        |  1|   0|    1|          0|
+    +-------------------------------------------------------------------------------------------+---+----+-----+-----------+
+    |Total                                                                                      | 18|   0|   21|          3|
+    +-------------------------------------------------------------------------------------------+---+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++-------------------------------------+-----+-----+------------+---------------------------+--------------+
+|              RTL Ports              | Dir | Bits|  Protocol  |       Source Object       |    C Type    |
++-------------------------------------+-----+-----+------------+---------------------------+--------------+
+|ap_clk                               |   in|    1|  ap_ctrl_hs|  int4_broadcast_activation|  return value|
+|ap_rst                               |   in|    1|  ap_ctrl_hs|  int4_broadcast_activation|  return value|
+|ap_start                             |   in|    1|  ap_ctrl_hs|  int4_broadcast_activation|  return value|
+|ap_done                              |  out|    1|  ap_ctrl_hs|  int4_broadcast_activation|  return value|
+|ap_continue                          |   in|    1|  ap_ctrl_hs|  int4_broadcast_activation|  return value|
+|ap_idle                              |  out|    1|  ap_ctrl_hs|  int4_broadcast_activation|  return value|
+|ap_ready                             |  out|    1|  ap_ctrl_hs|  int4_broadcast_activation|  return value|
+|quantized_address0                   |  out|    9|   ap_memory|                  quantized|         array|
+|quantized_ce0                        |  out|    1|   ap_memory|                  quantized|         array|
+|quantized_we0                        |  out|    1|   ap_memory|                  quantized|         array|
+|quantized_d0                         |  out|  480|   ap_memory|                  quantized|         array|
+|quantized_q0                         |   in|  480|   ap_memory|                  quantized|         array|
+|packed_scales_address0               |  out|    5|   ap_memory|              packed_scales|         array|
+|packed_scales_ce0                    |  out|    1|   ap_memory|              packed_scales|         array|
+|packed_scales_we0                    |  out|    1|   ap_memory|              packed_scales|         array|
+|packed_scales_d0                     |  out|  512|   ap_memory|              packed_scales|         array|
+|packed_scales_q0                     |   in|  512|   ap_memory|              packed_scales|         array|
+|quantized_stream_dout                |   in|  480|     ap_fifo|           quantized_stream|       pointer|
+|quantized_stream_num_data_valid      |   in|    3|     ap_fifo|           quantized_stream|       pointer|
+|quantized_stream_fifo_cap            |   in|    3|     ap_fifo|           quantized_stream|       pointer|
+|quantized_stream_empty_n             |   in|    1|     ap_fifo|           quantized_stream|       pointer|
+|quantized_stream_read                |  out|    1|     ap_fifo|           quantized_stream|       pointer|
+|scale_stream_dout                    |   in|   32|     ap_fifo|               scale_stream|       pointer|
+|scale_stream_num_data_valid          |   in|    3|     ap_fifo|               scale_stream|       pointer|
+|scale_stream_fifo_cap                |   in|    3|     ap_fifo|               scale_stream|       pointer|
+|scale_stream_empty_n                 |   in|    1|     ap_fifo|               scale_stream|       pointer|
+|scale_stream_read                    |  out|    1|     ap_fifo|               scale_stream|       pointer|
+|stream_activation                    |   in|    1|     ap_none|          stream_activation|        scalar|
+|quantized_pe0_din                    |  out|  480|     ap_fifo|              quantized_pe0|       pointer|
+|quantized_pe0_num_data_valid         |   in|    3|     ap_fifo|              quantized_pe0|       pointer|
+|quantized_pe0_fifo_cap               |   in|    3|     ap_fifo|              quantized_pe0|       pointer|
+|quantized_pe0_full_n                 |   in|    1|     ap_fifo|              quantized_pe0|       pointer|
+|quantized_pe0_write                  |  out|    1|     ap_fifo|              quantized_pe0|       pointer|
+|quantized_pe1_din                    |  out|  480|     ap_fifo|              quantized_pe1|       pointer|
+|quantized_pe1_num_data_valid         |   in|    3|     ap_fifo|              quantized_pe1|       pointer|
+|quantized_pe1_fifo_cap               |   in|    3|     ap_fifo|              quantized_pe1|       pointer|
+|quantized_pe1_full_n                 |   in|    1|     ap_fifo|              quantized_pe1|       pointer|
+|quantized_pe1_write                  |  out|    1|     ap_fifo|              quantized_pe1|       pointer|
+|quantized_pe2_din                    |  out|  480|     ap_fifo|              quantized_pe2|       pointer|
+|quantized_pe2_num_data_valid         |   in|    3|     ap_fifo|              quantized_pe2|       pointer|
+|quantized_pe2_fifo_cap               |   in|    3|     ap_fifo|              quantized_pe2|       pointer|
+|quantized_pe2_full_n                 |   in|    1|     ap_fifo|              quantized_pe2|       pointer|
+|quantized_pe2_write                  |  out|    1|     ap_fifo|              quantized_pe2|       pointer|
+|quantized_pe3_din                    |  out|  480|     ap_fifo|              quantized_pe3|       pointer|
+|quantized_pe3_num_data_valid         |   in|    3|     ap_fifo|              quantized_pe3|       pointer|
+|quantized_pe3_fifo_cap               |   in|    3|     ap_fifo|              quantized_pe3|       pointer|
+|quantized_pe3_full_n                 |   in|    1|     ap_fifo|              quantized_pe3|       pointer|
+|quantized_pe3_write                  |  out|    1|     ap_fifo|              quantized_pe3|       pointer|
+|activation_scale_pe0_din             |  out|   32|     ap_fifo|       activation_scale_pe0|       pointer|
+|activation_scale_pe0_num_data_valid  |   in|    3|     ap_fifo|       activation_scale_pe0|       pointer|
+|activation_scale_pe0_fifo_cap        |   in|    3|     ap_fifo|       activation_scale_pe0|       pointer|
+|activation_scale_pe0_full_n          |   in|    1|     ap_fifo|       activation_scale_pe0|       pointer|
+|activation_scale_pe0_write           |  out|    1|     ap_fifo|       activation_scale_pe0|       pointer|
+|activation_scale_pe1_din             |  out|   32|     ap_fifo|       activation_scale_pe1|       pointer|
+|activation_scale_pe1_num_data_valid  |   in|    3|     ap_fifo|       activation_scale_pe1|       pointer|
+|activation_scale_pe1_fifo_cap        |   in|    3|     ap_fifo|       activation_scale_pe1|       pointer|
+|activation_scale_pe1_full_n          |   in|    1|     ap_fifo|       activation_scale_pe1|       pointer|
+|activation_scale_pe1_write           |  out|    1|     ap_fifo|       activation_scale_pe1|       pointer|
+|activation_scale_pe2_din             |  out|   32|     ap_fifo|       activation_scale_pe2|       pointer|
+|activation_scale_pe2_num_data_valid  |   in|    3|     ap_fifo|       activation_scale_pe2|       pointer|
+|activation_scale_pe2_fifo_cap        |   in|    3|     ap_fifo|       activation_scale_pe2|       pointer|
+|activation_scale_pe2_full_n          |   in|    1|     ap_fifo|       activation_scale_pe2|       pointer|
+|activation_scale_pe2_write           |  out|    1|     ap_fifo|       activation_scale_pe2|       pointer|
+|activation_scale_pe3_din             |  out|   32|     ap_fifo|       activation_scale_pe3|       pointer|
+|activation_scale_pe3_num_data_valid  |   in|    3|     ap_fifo|       activation_scale_pe3|       pointer|
+|activation_scale_pe3_fifo_cap        |   in|    3|     ap_fifo|       activation_scale_pe3|       pointer|
+|activation_scale_pe3_full_n          |   in|    1|     ap_fifo|       activation_scale_pe3|       pointer|
+|activation_scale_pe3_write           |  out|    1|     ap_fifo|       activation_scale_pe3|       pointer|
+|local_tiles_0                        |   in|    6|     ap_none|              local_tiles_0|        scalar|
+|local_tiles_1                        |   in|    6|     ap_none|              local_tiles_1|        scalar|
+|local_tiles_2                        |   in|    6|     ap_none|              local_tiles_2|        scalar|
+|local_tiles_3                        |   in|    6|     ap_none|              local_tiles_3|        scalar|
+|input_tiles                          |   in|    6|     ap_none|                input_tiles|        scalar|
++-------------------------------------+-----+-----+------------+---------------------------+--------------+
+

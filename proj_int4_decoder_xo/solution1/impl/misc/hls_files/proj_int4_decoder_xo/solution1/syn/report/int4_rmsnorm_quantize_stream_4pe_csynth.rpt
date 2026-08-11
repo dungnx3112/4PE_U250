@@ -1,0 +1,198 @@
+
+
+================================================================
+== Vitis HLS Report for 'int4_rmsnorm_quantize_stream_4pe'
+================================================================
+* Date:           Tue Aug 11 09:18:47 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.608 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+-----------+-----------+------+------+---------+
+    |  Latency (cycles) |   Latency (absolute)  |   Interval  | Pipeline|
+    |   min   |   max   |    min    |    max    |  min |  max |   Type  |
+    +---------+---------+-----------+-----------+------+------+---------+
+    |     7892|     7892|  26.304 us|  26.304 us|  7892|  7892|       no|
+    +---------+---------+-----------+-----------+------+------+---------+
+
+    + Detail: 
+        * Instance: 
+        +--------------------------------------------------------+---------------------------------------------+---------+---------+-----------+-----------+------+------+----------+
+        |                                                        |                                             |  Latency (cycles) |   Latency (absolute)  |   Interval  | Pipeline |
+        |                        Instance                        |                    Module                   |   min   |   max   |    min    |    max    |  min |  max |   Type   |
+        +--------------------------------------------------------+---------------------------------------------+---------+---------+-----------+-----------+------+------+----------+
+        |grp_int4_rms_sumsq_four_pes_fu_88                       |int4_rms_sumsq_four_pes                      |     4175|     4175|  13.915 us|  13.915 us|  4176|  4176|  dataflow|
+        |grp_int4_rms_normalize_quantize_four_pes_stream_fu_101  |int4_rms_normalize_quantize_four_pes_stream  |     3713|     3713|  12.375 us|  12.375 us|  3714|  3714|  dataflow|
+        +--------------------------------------------------------+---------------------------------------------+---------+---------+-----------+-----------+------+------+----------+
+
+        * Loop: 
+        N/A
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+------+
+|         Name        | BRAM_18K|  DSP  |    FF   |   LUT   | URAM |
++---------------------+---------+-------+---------+---------+------+
+|DSP                  |        -|      -|        -|        -|     -|
+|Expression           |        -|      -|        0|        8|     -|
+|FIFO                 |        -|      -|        -|        -|     -|
+|Instance             |       64|     58|    21805|    18093|     -|
+|Memory               |        -|      -|        -|        -|     -|
+|Multiplexer          |        -|      -|        -|      170|     -|
+|Register             |        -|      -|       43|        -|     -|
++---------------------+---------+-------+---------+---------+------+
+|Total                |       64|     58|    21848|    18271|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available SLR        |     1344|   3072|   864000|   432000|   320|
++---------------------+---------+-------+---------+---------+------+
+|Utilization SLR (%)  |        4|      1|        2|        4|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available            |     5376|  12288|  3456000|  1728000|  1280|
++---------------------+---------+-------+---------+---------+------+
+|Utilization (%)      |        1|     ~0|       ~0|        1|     0|
++---------------------+---------+-------+---------+---------+------+
+
++ Detail: 
+    * Instance: 
+    +--------------------------------------------------------+---------------------------------------------+---------+----+-------+-------+-----+
+    |                        Instance                        |                    Module                   | BRAM_18K| DSP|   FF  |  LUT  | URAM|
+    +--------------------------------------------------------+---------------------------------------------+---------+----+-------+-------+-----+
+    |grp_int4_rms_normalize_quantize_four_pes_stream_fu_101  |int4_rms_normalize_quantize_four_pes_stream  |       64|  32|  15734|  11484|    0|
+    |grp_int4_rms_sumsq_four_pes_fu_88                       |int4_rms_sumsq_four_pes                      |        0|  26|   6071|   6609|    0|
+    +--------------------------------------------------------+---------------------------------------------+---------+----+-------+-------+-----+
+    |Total                                                   |                                             |       64|  58|  21805|  18093|    0|
+    +--------------------------------------------------------+---------------------------------------------+---------+----+-------+-------+-----+
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +-------------------------------------------------------------------------+----------+----+---+----+------------+------------+
+    |                              Variable Name                              | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +-------------------------------------------------------------------------+----------+----+---+----+------------+------------+
+    |ap_sync_grp_int4_rms_normalize_quantize_four_pes_stream_fu_101_ap_done   |        or|   0|  0|   2|           1|           1|
+    |ap_sync_grp_int4_rms_normalize_quantize_four_pes_stream_fu_101_ap_ready  |        or|   0|  0|   2|           1|           1|
+    |ap_sync_grp_int4_rms_sumsq_four_pes_fu_88_ap_done                        |        or|   0|  0|   2|           1|           1|
+    |ap_sync_grp_int4_rms_sumsq_four_pes_fu_88_ap_ready                       |        or|   0|  0|   2|           1|           1|
+    +-------------------------------------------------------------------------+----------+----+---+----+------------+------------+
+    |Total                                                                    |          |   0|  0|   8|           4|           4|
+    +-------------------------------------------------------------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +------------------------+----+-----------+-----+-----------+
+    |          Name          | LUT| Input Size| Bits| Total Bits|
+    +------------------------+----+-----------+-----+-----------+
+    |ap_NS_fsm               |  31|          6|    1|          6|
+    |input_pe0_address0      |  14|          3|    6|         18|
+    |input_pe0_ce0           |  14|          3|    1|          3|
+    |input_pe1_address0      |  14|          3|    6|         18|
+    |input_pe1_ce0           |  14|          3|    1|          3|
+    |input_pe2_address0      |  14|          3|    6|         18|
+    |input_pe2_ce0           |  14|          3|    1|          3|
+    |input_pe3_address0      |  14|          3|    6|         18|
+    |input_pe3_ce0           |  14|          3|    1|          3|
+    |quantized_stream_write  |   9|          2|    1|          2|
+    |reciprocal_rms_fu_60    |   9|          2|   32|         64|
+    |scale_stream_write      |   9|          2|    1|          2|
+    +------------------------+----+-----------+-----+-----------+
+    |Total                   | 170|         36|   63|        158|
+    +------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +-----------------------------------------------------------------------------+----+----+-----+-----------+
+    |                                     Name                                    | FF | LUT| Bits| Const Bits|
+    +-----------------------------------------------------------------------------+----+----+-----+-----------+
+    |ap_CS_fsm                                                                    |   5|   0|    5|          0|
+    |ap_sync_reg_grp_int4_rms_normalize_quantize_four_pes_stream_fu_101_ap_done   |   1|   0|    1|          0|
+    |ap_sync_reg_grp_int4_rms_normalize_quantize_four_pes_stream_fu_101_ap_ready  |   1|   0|    1|          0|
+    |ap_sync_reg_grp_int4_rms_sumsq_four_pes_fu_88_ap_done                        |   1|   0|    1|          0|
+    |ap_sync_reg_grp_int4_rms_sumsq_four_pes_fu_88_ap_ready                       |   1|   0|    1|          0|
+    |grp_int4_rms_normalize_quantize_four_pes_stream_fu_101_ap_start_reg          |   1|   0|    1|          0|
+    |grp_int4_rms_sumsq_four_pes_fu_88_ap_start_reg                               |   1|   0|    1|          0|
+    |reciprocal_rms_fu_60                                                         |  32|   0|   32|          0|
+    +-----------------------------------------------------------------------------+----+----+-----+-----------+
+    |Total                                                                        |  43|   0|   43|          0|
+    +-----------------------------------------------------------------------------+----+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++---------------------------------+-----+-----+------------+----------------------------------+--------------+
+|            RTL Ports            | Dir | Bits|  Protocol  |           Source Object          |    C Type    |
++---------------------------------+-----+-----+------------+----------------------------------+--------------+
+|ap_clk                           |   in|    1|  ap_ctrl_hs|  int4_rmsnorm_quantize_stream_4pe|  return value|
+|ap_rst                           |   in|    1|  ap_ctrl_hs|  int4_rmsnorm_quantize_stream_4pe|  return value|
+|ap_start                         |   in|    1|  ap_ctrl_hs|  int4_rmsnorm_quantize_stream_4pe|  return value|
+|ap_done                          |  out|    1|  ap_ctrl_hs|  int4_rmsnorm_quantize_stream_4pe|  return value|
+|ap_idle                          |  out|    1|  ap_ctrl_hs|  int4_rmsnorm_quantize_stream_4pe|  return value|
+|ap_ready                         |  out|    1|  ap_ctrl_hs|  int4_rmsnorm_quantize_stream_4pe|  return value|
+|input_pe0_address0               |  out|    6|   ap_memory|                         input_pe0|         array|
+|input_pe0_ce0                    |  out|    1|   ap_memory|                         input_pe0|         array|
+|input_pe0_q0                     |   in|  512|   ap_memory|                         input_pe0|         array|
+|input_pe1_address0               |  out|    6|   ap_memory|                         input_pe1|         array|
+|input_pe1_ce0                    |  out|    1|   ap_memory|                         input_pe1|         array|
+|input_pe1_q0                     |   in|  512|   ap_memory|                         input_pe1|         array|
+|input_pe2_address0               |  out|    6|   ap_memory|                         input_pe2|         array|
+|input_pe2_ce0                    |  out|    1|   ap_memory|                         input_pe2|         array|
+|input_pe2_q0                     |   in|  512|   ap_memory|                         input_pe2|         array|
+|input_pe3_address0               |  out|    6|   ap_memory|                         input_pe3|         array|
+|input_pe3_ce0                    |  out|    1|   ap_memory|                         input_pe3|         array|
+|input_pe3_q0                     |   in|  512|   ap_memory|                         input_pe3|         array|
+|quantized_stream_din             |  out|  480|     ap_fifo|                  quantized_stream|       pointer|
+|quantized_stream_num_data_valid  |   in|    3|     ap_fifo|                  quantized_stream|       pointer|
+|quantized_stream_fifo_cap        |   in|    3|     ap_fifo|                  quantized_stream|       pointer|
+|quantized_stream_full_n          |   in|    1|     ap_fifo|                  quantized_stream|       pointer|
+|quantized_stream_write           |  out|    1|     ap_fifo|                  quantized_stream|       pointer|
+|scale_stream_din                 |  out|   32|     ap_fifo|                      scale_stream|       pointer|
+|scale_stream_num_data_valid      |   in|    3|     ap_fifo|                      scale_stream|       pointer|
+|scale_stream_fifo_cap            |   in|    3|     ap_fifo|                      scale_stream|       pointer|
+|scale_stream_full_n              |   in|    1|     ap_fifo|                      scale_stream|       pointer|
+|scale_stream_write               |  out|    1|     ap_fifo|                      scale_stream|       pointer|
+|idx                              |   in|   13|     ap_none|                               idx|        scalar|
+|idx1                             |   in|   13|     ap_none|                              idx1|        scalar|
+|idx2                             |   in|   13|     ap_none|                              idx2|        scalar|
+|idx3                             |   in|   13|     ap_none|                              idx3|        scalar|
+|model_norm_cache0_address0       |  out|   13|   ap_memory|                 model_norm_cache0|         array|
+|model_norm_cache0_ce0            |  out|    1|   ap_memory|                 model_norm_cache0|         array|
+|model_norm_cache0_q0             |   in|  512|   ap_memory|                 model_norm_cache0|         array|
+|model_norm_cache1_address0       |  out|   13|   ap_memory|                 model_norm_cache1|         array|
+|model_norm_cache1_ce0            |  out|    1|   ap_memory|                 model_norm_cache1|         array|
+|model_norm_cache1_q0             |   in|  512|   ap_memory|                 model_norm_cache1|         array|
+|model_norm_cache2_address0       |  out|   13|   ap_memory|                 model_norm_cache2|         array|
+|model_norm_cache2_ce0            |  out|    1|   ap_memory|                 model_norm_cache2|         array|
+|model_norm_cache2_q0             |   in|  512|   ap_memory|                 model_norm_cache2|         array|
+|model_norm_cache3_address0       |  out|   13|   ap_memory|                 model_norm_cache3|         array|
+|model_norm_cache3_ce0            |  out|    1|   ap_memory|                 model_norm_cache3|         array|
+|model_norm_cache3_q0             |   in|  512|   ap_memory|                 model_norm_cache3|         array|
++---------------------------------+-----+-----+------------+----------------------------------+--------------+
+

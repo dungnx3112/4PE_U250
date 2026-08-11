@@ -1,0 +1,162 @@
+
+
+================================================================
+== Vitis HLS Report for 'swiftkv_run_bank_Pipeline_pe_cache_rope_pair_loop'
+================================================================
+* Date:           Tue Aug 11 09:18:03 2026
+
+* Version:        2023.2 (Build 4023990 on Oct 11 2023)
+* Project:        proj_int4_decoder_xo
+* Solution:       solution1 (Vitis Kernel Flow Target)
+* Product family: virtexuplus
+* Target device:  xcu250-figd2104-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  1.916 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+---------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline|
+    |   min   |   max   |    min   |    max   | min | max |   Type  |
+    +---------+---------+----------+----------+-----+-----+---------+
+    |       66|       66|  0.220 us|  0.220 us|   66|   66|       no|
+    +---------+---------+----------+----------+-----+-----+---------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +---------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |                           |  Latency (cycles) | Iteration|  Initiation Interval  | Trip |          |
+        |         Loop Name         |   min   |   max   |  Latency |  achieved |   target  | Count| Pipelined|
+        +---------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |- pe_cache_rope_pair_loop  |       64|       64|         2|          1|          1|    64|       yes|
+        +---------------------------+---------+---------+----------+-----------+-----------+------+----------+
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+-------+---------+---------+------+
+|         Name        | BRAM_18K|  DSP  |    FF   |   LUT   | URAM |
++---------------------+---------+-------+---------+---------+------+
+|DSP                  |        -|      -|        -|        -|     -|
+|Expression           |        -|      -|        0|       35|     -|
+|FIFO                 |        -|      -|        -|        -|     -|
+|Instance             |        -|      -|        -|        -|     -|
+|Memory               |        -|      -|        -|        -|     -|
+|Multiplexer          |        -|      -|        -|       54|     -|
+|Register             |        -|      -|       17|        -|     -|
++---------------------+---------+-------+---------+---------+------+
+|Total                |        0|      0|       17|       89|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available SLR        |     1344|   3072|   864000|   432000|   320|
++---------------------+---------+-------+---------+---------+------+
+|Utilization SLR (%)  |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+|Available            |     5376|  12288|  3456000|  1728000|  1280|
++---------------------+---------+-------+---------+---------+------+
+|Utilization (%)      |        0|      0|       ~0|       ~0|     0|
++---------------------+---------+-------+---------+---------+------+
+
++ Detail: 
+    * Instance: 
+    N/A
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +----------------------------------+----------+----+---+----+------------+------------+
+    |           Variable Name          | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +----------------------------------+----------+----+---+----+------------+------------+
+    |add_ln1818_fu_110_p2              |         +|   0|  0|  14|           7|           1|
+    |ap_block_pp0_stage0_11001         |       and|   0|  0|   2|           1|           1|
+    |icmp_ln1818_fu_104_p2             |      icmp|   0|  0|  15|           7|           8|
+    |ap_block_state2_pp0_stage0_iter1  |        or|   0|  0|   2|           1|           1|
+    |ap_enable_pp0                     |       xor|   0|  0|   2|           1|           2|
+    +----------------------------------+----------+----+---+----+------------+------------+
+    |Total                             |          |   0|  0|  35|          17|          13|
+    +----------------------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +-------------------------+----+-----------+-----+-----------+
+    |           Name          | LUT| Input Size| Bits| Total Bits|
+    +-------------------------+----+-----------+-----+-----------+
+    |ap_done_int              |   9|          2|    1|          2|
+    |ap_enable_reg_pp0_iter1  |   9|          2|    1|          2|
+    |ap_sig_allocacmp_pair_1  |   9|          2|    7|         14|
+    |cos_pe3_blk_n            |   9|          2|    1|          2|
+    |pair_fu_52               |   9|          2|    7|         14|
+    |sin_pe3_blk_n            |   9|          2|    1|          2|
+    +-------------------------+----+-----------+-----+-----------+
+    |Total                    |  54|         12|   18|         36|
+    +-------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +-------------------------+---+----+-----+-----------+
+    |           Name          | FF| LUT| Bits| Const Bits|
+    +-------------------------+---+----+-----+-----------+
+    |ap_CS_fsm                |  1|   0|    1|          0|
+    |ap_done_reg              |  1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter1  |  1|   0|    1|          0|
+    |pair_1_reg_133           |  7|   0|    7|          0|
+    |pair_fu_52               |  7|   0|    7|          0|
+    +-------------------------+---+----+-----+-----------+
+    |Total                    | 17|   0|   17|          0|
+    +-------------------------+---+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++------------------------+-----+-----+------------+---------------------------------------------------+--------------+
+|        RTL Ports       | Dir | Bits|  Protocol  |                   Source Object                   |    C Type    |
++------------------------+-----+-----+------------+---------------------------------------------------+--------------+
+|ap_clk                  |   in|    1|  ap_ctrl_hs|  swiftkv_run_bank_Pipeline_pe_cache_rope_pair_loop|  return value|
+|ap_rst                  |   in|    1|  ap_ctrl_hs|  swiftkv_run_bank_Pipeline_pe_cache_rope_pair_loop|  return value|
+|ap_start                |   in|    1|  ap_ctrl_hs|  swiftkv_run_bank_Pipeline_pe_cache_rope_pair_loop|  return value|
+|ap_done                 |  out|    1|  ap_ctrl_hs|  swiftkv_run_bank_Pipeline_pe_cache_rope_pair_loop|  return value|
+|ap_idle                 |  out|    1|  ap_ctrl_hs|  swiftkv_run_bank_Pipeline_pe_cache_rope_pair_loop|  return value|
+|ap_ready                |  out|    1|  ap_ctrl_hs|  swiftkv_run_bank_Pipeline_pe_cache_rope_pair_loop|  return value|
+|cos_pe3_dout            |   in|   19|     ap_fifo|                                            cos_pe3|       pointer|
+|cos_pe3_num_data_valid  |   in|    3|     ap_fifo|                                            cos_pe3|       pointer|
+|cos_pe3_fifo_cap        |   in|    3|     ap_fifo|                                            cos_pe3|       pointer|
+|cos_pe3_empty_n         |   in|    1|     ap_fifo|                                            cos_pe3|       pointer|
+|cos_pe3_read            |  out|    1|     ap_fifo|                                            cos_pe3|       pointer|
+|sin_pe3_dout            |   in|   19|     ap_fifo|                                            sin_pe3|       pointer|
+|sin_pe3_num_data_valid  |   in|    3|     ap_fifo|                                            sin_pe3|       pointer|
+|sin_pe3_fifo_cap        |   in|    3|     ap_fifo|                                            sin_pe3|       pointer|
+|sin_pe3_empty_n         |   in|    1|     ap_fifo|                                            sin_pe3|       pointer|
+|sin_pe3_read            |  out|    1|     ap_fifo|                                            sin_pe3|       pointer|
+|local_cosine_address0   |  out|    6|   ap_memory|                                       local_cosine|         array|
+|local_cosine_ce0        |  out|    1|   ap_memory|                                       local_cosine|         array|
+|local_cosine_we0        |  out|    1|   ap_memory|                                       local_cosine|         array|
+|local_cosine_d0         |  out|   19|   ap_memory|                                       local_cosine|         array|
+|local_sine_address0     |  out|    6|   ap_memory|                                         local_sine|         array|
+|local_sine_ce0          |  out|    1|   ap_memory|                                         local_sine|         array|
+|local_sine_we0          |  out|    1|   ap_memory|                                         local_sine|         array|
+|local_sine_d0           |  out|   19|   ap_memory|                                         local_sine|         array|
++------------------------+-----+-----+------------+---------------------------------------------------+--------------+
+
