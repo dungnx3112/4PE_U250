@@ -120,15 +120,15 @@ static ap_uint<32> int4_float_to_fxp_bits(float value) {
     return signed_raw.range(31, 0);
 }
 
-Int4LinearShape int4_linear_shape_from_controller(
-    const Int4Controller& controller
+static Int4LinearShape int4_linear_shape_from_mode(
+    ap_uint<3> linear_mode
 ) {
 #pragma HLS INLINE
     Int4LinearShape shape;
     shape.output_rows = 0;
     shape.input_cols = 0;
 
-    switch ((int)controller.linear_mode) {
+    switch ((int)linear_mode) {
     case INT4_LINEAR_Q:
     case INT4_LINEAR_O:
         shape.output_rows = INT4_DIM;
@@ -164,6 +164,14 @@ Int4LinearShape int4_linear_shape_from_controller(
     shape.input_tiles =
         (shape.input_cols + INT4_TILE_COLS - 1) / INT4_TILE_COLS;
     return shape;
+}
+
+Int4LinearShape int4_linear_shape_from_controller(
+    const Int4Controller& controller
+) {
+#pragma HLS INLINE
+    return int4_linear_shape_from_mode(
+        (ap_uint<3>)controller.linear_mode);
 }
 
 int int4_local_tile_count(int output_tiles, int pe_id) {
@@ -245,25 +253,22 @@ load_activation_quant_loop:
 // turning a small shared input vector into the widest repeated inter-SLR
 // traffic in the kernel.  Each destination PE now caches this seed stream and
 // performs the tile replay locally.
-static void int4_broadcast_activation(
+static void int4_distribute_activation_pairs(
 #ifdef INT4_INTEGRATED_TOP
     int4_quant_word_t* quantized,
     int4_scale_word_t* packed_scales,
     hls::stream<int4_quant_word_t>& input_quantized_stream,
     hls::stream<float>& input_scale_stream,
     bool stream_activation,
+    bool cache_stream_activation,
 #else
     const int4_quant_word_t* quantized,
     const float* scales,
 #endif
-    hls::stream<int4_quant_word_t>& quantized_pe0,
-    hls::stream<int4_quant_word_t>& quantized_pe1,
-    hls::stream<int4_quant_word_t>& quantized_pe2,
-    hls::stream<int4_quant_word_t>& quantized_pe3,
-    hls::stream<float>& scale_pe0,
-    hls::stream<float>& scale_pe1,
-    hls::stream<float>& scale_pe2,
-    hls::stream<float>& scale_pe3,
+    hls::stream<int4_quant_word_t>& quantized_pair01,
+    hls::stream<int4_quant_word_t>& quantized_pair23,
+    hls::stream<float>& scale_pair01,
+    hls::stream<float>& scale_pair23,
     int local_tiles_0,
     int local_tiles_1,
     int local_tiles_2,
@@ -275,10 +280,8 @@ static void int4_broadcast_activation(
     int4_scale_word_t streamed_scale_word = 0;
     int4_scale_word_t cached_scale_word = 0;
 #endif
-    const bool active_0 = local_tiles_0 > 0;
-    const bool active_1 = local_tiles_1 > 0;
-    const bool active_2 = local_tiles_2 > 0;
-    const bool active_3 = local_tiles_3 > 0;
+    const bool active_01 = local_tiles_0 > 0 || local_tiles_1 > 0;
+    const bool active_23 = local_tiles_2 > 0 || local_tiles_3 > 0;
     const int input_groups = input_tiles * INT4_GROUPS_PER_TILE;
 
 broadcast_activation_seed_loop:
@@ -295,14 +298,16 @@ broadcast_activation_seed_loop:
         if (stream_activation) {
             q = input_quantized_stream.read();
             sx = input_scale_stream.read();
-            quantized[activation_group] = q;
-            streamed_scale_word >>= 32;
-            streamed_scale_word.range(511, 480) =
-                int4_float_to_bits(sx);
-            if (scale_lane == INT4_OUTPUTS_PER_WORD - 1) {
-                packed_scales[
-                    activation_group / INT4_OUTPUTS_PER_WORD] =
-                        streamed_scale_word;
+            if (cache_stream_activation) {
+                quantized[activation_group] = q;
+                streamed_scale_word >>= 32;
+                streamed_scale_word.range(511, 480) =
+                    int4_float_to_bits(sx);
+                if (scale_lane == INT4_OUTPUTS_PER_WORD - 1) {
+                    packed_scales[
+                        activation_group / INT4_OUTPUTS_PER_WORD] =
+                            streamed_scale_word;
+                }
             }
         } else {
             q = quantized[activation_group];
@@ -311,7 +316,7 @@ broadcast_activation_seed_loop:
                     packed_scales[
                         activation_group / INT4_OUTPUTS_PER_WORD];
             }
-            sx = int4_bits_to_float(
+            const float sx = int4_bits_to_float(
                 cached_scale_word.range(31, 0));
             cached_scale_word >>= 32;
         }
@@ -319,21 +324,13 @@ broadcast_activation_seed_loop:
         q = quantized[activation_group];
         const float sx = scales[activation_group];
 #endif
-        if (active_0) {
-            quantized_pe0.write(q);
-            scale_pe0.write(sx);
+        if (active_01) {
+            quantized_pair01.write(q);
+            scale_pair01.write(sx);
         }
-        if (active_1) {
-            quantized_pe1.write(q);
-            scale_pe1.write(sx);
-        }
-        if (active_2) {
-            quantized_pe2.write(q);
-            scale_pe2.write(sx);
-        }
-        if (active_3) {
-            quantized_pe3.write(q);
-            scale_pe3.write(sx);
+        if (active_23) {
+            quantized_pair23.write(q);
+            scale_pair23.write(sx);
         }
     }
 #ifdef INT4_INTEGRATED_TOP
@@ -342,7 +339,8 @@ broadcast_activation_seed_loop:
     // consumer that shifts right by 32 expects.
     const int remaining_scale_lanes =
         input_groups & (INT4_OUTPUTS_PER_WORD - 1);
-    if (stream_activation && remaining_scale_lanes != 0) {
+    if (stream_activation && cache_stream_activation &&
+        remaining_scale_lanes != 0) {
         streamed_scale_word >>=
             32 * (INT4_OUTPUTS_PER_WORD - remaining_scale_lanes);
         packed_scales[input_groups / INT4_OUTPUTS_PER_WORD] =
@@ -351,8 +349,302 @@ broadcast_activation_seed_loop:
 #endif
 }
 
+#ifdef INT4_INTEGRATED_TOP
+// Terminate one complete activation stream at each pair.  Both replay caches
+// are local copies, so Q->K/V and GATE->UP no longer return to a shared BRAM
+// island.  For streamed activations each pair consumes only its own already
+// assembled stream; there is no 480-bit central distributor.
+template <int FIRST_PE>
+static void int4_prepare_activation_pair_body(
+    int4_quant_word_t quantized_cache[INT4_MAX_INPUT_GROUPS],
+    int4_scale_word_t
+        scale_cache[INT4_MAX_ACTIVATION_SCALE_WORDS],
+    hls::stream<int4_quant_word_t>& input_quantized_stream,
+    hls::stream<float>& input_scale_stream,
+    bool stream_activation,
+    bool cache_stream_activation,
+    hls::stream<int4_quant_word_t>& quantized_pair,
+    hls::stream<float>& scale_pair,
+    int local_tiles_first,
+    int local_tiles_second,
+    int input_tiles
+) {
+#pragma HLS INLINE
+    const bool active =
+        local_tiles_first > 0 || local_tiles_second > 0;
+    const int input_groups = input_tiles * INT4_GROUPS_PER_TILE;
+
+    // Hoist the stream/cache selection outside the pipelined body.  In the
+    // routed checkpoint the old per-iteration mux generated a sequential-init
+    // control with 984 sinks (two 480-bit data cones).  Each loop below now
+    // has one unconditional source and one pair-local destination.
+    if (stream_activation) {
+        int4_scale_word_t streamed_scale_word = 0;
+    prepare_activation_pair_stream_loop:
+        for (int activation_group = 0;
+             activation_group < input_groups;
+             ++activation_group) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=128 max=344
+            const int scale_lane =
+                activation_group & (INT4_OUTPUTS_PER_WORD - 1);
+            const int4_quant_word_t q = input_quantized_stream.read();
+            const float sx = input_scale_stream.read();
+            if (cache_stream_activation) {
+                quantized_cache[activation_group] = q;
+                streamed_scale_word >>= 32;
+                streamed_scale_word.range(511, 480) =
+                    int4_float_to_bits(sx);
+                if (scale_lane == INT4_OUTPUTS_PER_WORD - 1) {
+                    scale_cache[
+                        activation_group / INT4_OUTPUTS_PER_WORD] =
+                            streamed_scale_word;
+                }
+            }
+            if (active) {
+                quantized_pair.write(q);
+                scale_pair.write(sx);
+            }
+        }
+
+        const int remaining_scale_lanes =
+            input_groups & (INT4_OUTPUTS_PER_WORD - 1);
+        if (cache_stream_activation && remaining_scale_lanes != 0) {
+            streamed_scale_word >>= 32 *
+                (INT4_OUTPUTS_PER_WORD - remaining_scale_lanes);
+            scale_cache[input_groups / INT4_OUTPUTS_PER_WORD] =
+                streamed_scale_word;
+        }
+    } else if (active) {
+        int4_scale_word_t cached_scale_word = 0;
+    prepare_activation_pair_cache_loop:
+        for (int activation_group = 0;
+             activation_group < input_groups;
+             ++activation_group) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=128 max=344
+            const int scale_lane =
+                activation_group & (INT4_OUTPUTS_PER_WORD - 1);
+            const int4_quant_word_t q =
+                quantized_cache[activation_group];
+            if (scale_lane == 0) {
+                cached_scale_word =
+                    scale_cache[
+                        activation_group / INT4_OUTPUTS_PER_WORD];
+            }
+            const float sx = int4_bits_to_float(
+                cached_scale_word.range(31, 0));
+            cached_scale_word >>= 32;
+            quantized_pair.write(q);
+            scale_pair.write(sx);
+        }
+    }
+}
+
+static void int4_prepare_activation_pair01(
+    int4_quant_word_t quantized_cache[INT4_MAX_INPUT_GROUPS],
+    int4_scale_word_t scale_cache[INT4_MAX_ACTIVATION_SCALE_WORDS],
+    hls::stream<int4_quant_word_t>& input_quantized_stream,
+    hls::stream<float>& input_scale_stream,
+    bool stream_activation,
+    bool cache_stream_activation,
+    hls::stream<int4_quant_word_t>& quantized_pair,
+    hls::stream<float>& scale_pair,
+    int local_tiles_0,
+    int local_tiles_1,
+    int input_tiles
+) {
+#pragma HLS INLINE off
+    int4_prepare_activation_pair_body<0>(
+        quantized_cache, scale_cache,
+        input_quantized_stream, input_scale_stream,
+        stream_activation, cache_stream_activation,
+        quantized_pair, scale_pair,
+        local_tiles_0, local_tiles_1, input_tiles);
+}
+
+static void int4_prepare_activation_pair23(
+    int4_quant_word_t quantized_cache[INT4_MAX_INPUT_GROUPS],
+    int4_scale_word_t scale_cache[INT4_MAX_ACTIVATION_SCALE_WORDS],
+    hls::stream<int4_quant_word_t>& input_quantized_stream,
+    hls::stream<float>& input_scale_stream,
+    bool stream_activation,
+    bool cache_stream_activation,
+    hls::stream<int4_quant_word_t>& quantized_pair,
+    hls::stream<float>& scale_pair,
+    int local_tiles_2,
+    int local_tiles_3,
+    int input_tiles
+) {
+#pragma HLS INLINE off
+    int4_prepare_activation_pair_body<2>(
+        quantized_cache, scale_cache,
+        input_quantized_stream, input_scale_stream,
+        stream_activation, cache_stream_activation,
+        quantized_pair, scale_pair,
+        local_tiles_2, local_tiles_3, input_tiles);
+}
+#endif
+
+// Keep the architectural 480-bit word inside the pair island and the local
+// PE.  The edge PE is reached through sixteen 30-bit registered beats, so the
+// pair01->PE0 and pair23->PE3 links do not consume a 480-wire SLL bundle.
+template <int EDGE_PE>
+static void int4_broadcast_activation_pair_body(
+    hls::stream<int4_quant_word_t>& quantized_pair,
+    hls::stream<float>& scale_pair,
+    hls::stream<int4_quant_word_t>& quantized_local,
+    hls::stream<int4_activation_beat_t>& quantized_edge,
+    hls::stream<float>& scale_local,
+    hls::stream<float>& scale_edge,
+    int local_tiles_local,
+    int local_tiles_edge,
+    int input_tiles
+) {
+#pragma HLS INLINE
+    const bool active_local = local_tiles_local > 0;
+    const bool active_edge = local_tiles_edge > 0;
+    const int input_groups = input_tiles * INT4_GROUPS_PER_TILE;
+
+broadcast_activation_pair_loop:
+    for (int activation_group = 0;
+         activation_group < input_groups;
+         ++activation_group) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=128 max=344
+        int4_quant_word_t q = 0;
+        float sx = 0.0f;
+        if (active_local || active_edge) {
+            q = quantized_pair.read();
+            sx = scale_pair.read();
+        }
+        if (active_local) {
+            quantized_local.write(q);
+            scale_local.write(sx);
+        }
+        if (active_edge) {
+            scale_edge.write(sx);
+            int4_quant_word_t remaining = q;
+        broadcast_activation_edge_beat_loop:
+            for (int beat = 0;
+                 beat < INT4_ACTIVATION_BEATS_PER_WORD;
+                 ++beat) {
+#pragma HLS PIPELINE II=1
+                quantized_edge.write(
+                    (int4_activation_beat_t)remaining.range(
+                        INT4_ACTIVATION_BEAT_BITS - 1, 0));
+                remaining >>= INT4_ACTIVATION_BEAT_BITS;
+            }
+        }
+    }
+}
+
+static void int4_broadcast_activation_pair01(
+    hls::stream<int4_quant_word_t>& quantized_pair,
+    hls::stream<float>& scale_pair,
+    hls::stream<int4_activation_beat_t>& quantized_pair01_to_pe0,
+    hls::stream<int4_quant_word_t>& quantized_pe1,
+    hls::stream<float>& scale_pair01_to_pe0,
+    hls::stream<float>& scale_pe1,
+    int local_tiles_0,
+    int local_tiles_1,
+    int input_tiles
+) {
+#pragma HLS INLINE off
+    int4_broadcast_activation_pair_body<0>(
+        quantized_pair, scale_pair,
+        quantized_pe1, quantized_pair01_to_pe0,
+        scale_pe1, scale_pair01_to_pe0,
+        local_tiles_1, local_tiles_0, input_tiles);
+}
+
+static void int4_broadcast_activation_pair23(
+    hls::stream<int4_quant_word_t>& quantized_pair,
+    hls::stream<float>& scale_pair,
+    hls::stream<int4_quant_word_t>& quantized_pe2,
+    hls::stream<int4_activation_beat_t>& quantized_pair23_to_pe3,
+    hls::stream<float>& scale_pe2,
+    hls::stream<float>& scale_pair23_to_pe3,
+    int local_tiles_2,
+    int local_tiles_3,
+    int input_tiles
+) {
+#pragma HLS INLINE off
+    int4_broadcast_activation_pair_body<3>(
+        quantized_pair, scale_pair,
+        quantized_pe2, quantized_pair23_to_pe3,
+        scale_pe2, scale_pair23_to_pe3,
+        local_tiles_2, local_tiles_3, input_tiles);
+}
+
 template <int PE_ID>
-static void int4_cache_and_replay_activation(
+static void int4_deserialize_activation_edge_body(
+    hls::stream<int4_activation_beat_t>& quantized_edge,
+    hls::stream<float>& scale_edge,
+    hls::stream<int4_quant_word_t>& quantized_local,
+    hls::stream<float>& scale_local,
+    int local_tiles,
+    int input_tiles
+) {
+#pragma HLS INLINE
+    if (local_tiles <= 0) {
+        return;
+    }
+    const int input_groups = input_tiles * INT4_GROUPS_PER_TILE;
+deserialize_activation_edge_group_loop:
+    for (int group = 0; group < input_groups; ++group) {
+        const float sx = scale_edge.read();
+        int4_quant_word_t q = 0;
+    deserialize_activation_edge_beat_loop:
+        for (int beat = 0;
+             beat < INT4_ACTIVATION_BEATS_PER_WORD;
+             ++beat) {
+#pragma HLS PIPELINE II=1
+            const int4_activation_beat_t beat_value =
+                quantized_edge.read();
+            q >>= INT4_ACTIVATION_BEAT_BITS;
+            q.range(
+                INT4_QUANT_WORD_BITS - 1,
+                INT4_QUANT_WORD_BITS - INT4_ACTIVATION_BEAT_BITS) =
+                    beat_value;
+        }
+        quantized_local.write(q);
+        scale_local.write(sx);
+    }
+}
+
+static void int4_deserialize_activation_pe0(
+    hls::stream<int4_activation_beat_t>& quantized_pair01_to_pe0,
+    hls::stream<float>& scale_pair01_to_pe0,
+    hls::stream<int4_quant_word_t>& quantized_pe0,
+    hls::stream<float>& scale_pe0,
+    int local_tiles_0,
+    int input_tiles
+) {
+#pragma HLS INLINE off
+    int4_deserialize_activation_edge_body<0>(
+        quantized_pair01_to_pe0, scale_pair01_to_pe0,
+        quantized_pe0, scale_pe0,
+        local_tiles_0, input_tiles);
+}
+
+static void int4_deserialize_activation_pe3(
+    hls::stream<int4_activation_beat_t>& quantized_pair23_to_pe3,
+    hls::stream<float>& scale_pair23_to_pe3,
+    hls::stream<int4_quant_word_t>& quantized_pe3,
+    hls::stream<float>& scale_pe3,
+    int local_tiles_3,
+    int input_tiles
+) {
+#pragma HLS INLINE off
+    int4_deserialize_activation_edge_body<3>(
+        quantized_pair23_to_pe3, scale_pair23_to_pe3,
+        quantized_pe3, scale_pe3,
+        local_tiles_3, input_tiles);
+}
+
+template <int PE_ID>
+static void int4_pe_activation_slice(
     hls::stream<int4_quant_word_t>& seed_activation_stream,
     hls::stream<float>& seed_scale_stream,
     hls::stream<int4_quant_word_t>& replay_activation_stream,
@@ -363,8 +655,8 @@ static void int4_cache_and_replay_activation(
 #pragma HLS INLINE off
     int4_quant_word_t activation_cache[INT4_MAX_INPUT_GROUPS];
     float scale_cache[INT4_MAX_INPUT_GROUPS];
-#pragma HLS BIND_STORAGE variable=activation_cache type=ram_1p impl=bram latency=1
-#pragma HLS BIND_STORAGE variable=scale_cache type=ram_1p impl=bram latency=1
+#pragma HLS BIND_STORAGE variable=activation_cache type=ram_1p impl=bram latency=2
+#pragma HLS BIND_STORAGE variable=scale_cache type=ram_1p impl=bram latency=2
 
     const int input_groups = input_tiles * INT4_GROUPS_PER_TILE;
 
@@ -381,6 +673,7 @@ replay_local_activation_tile_loop:
 #pragma HLS LOOP_TRIPCOUNT min=8 max=63
     replay_local_activation_group_loop:
         for (int group = 0; group < input_groups; ++group) {
+#pragma HLS LOOP_FLATTEN off
 #pragma HLS PIPELINE II=1
 #pragma HLS LOOP_TRIPCOUNT min=128 max=344
             replay_activation_stream.write(activation_cache[group]);
@@ -389,7 +682,8 @@ replay_local_activation_tile_loop:
     }
 }
 
-static void int4_stream_pe_inputs(
+template <int PE_ID>
+static void int4_pe_weight_slice(
     const int4_weight_word_t* weight_mem,
 #ifndef INT4_INTEGRATED_TOP
     const int4_weight_scale_word_t* scale_mem,
@@ -438,13 +732,250 @@ stream_scale_word_loop:
 // exactly 256 consecutive 512-bit words, matching max_read_burst_length=256.
 stream_weight_word_loop:
     for (int word = 0; word < total_words; ++word) {
-#pragma HLS PIPELINE II=1
+// The routed design showed ap_block_pp0_stage0_subdone driving more than
+// 640 loads in every PE.  This process is a DATAFLOW child with blocking
+// stream I/O, so an FRP pipeline removes the distributed stall-enable tree.
+#pragma HLS PIPELINE II=1 style=frp
 #pragma HLS LOOP_TRIPCOUNT min=32768 max=258048
         weight_stream.write(weight_mem[word]);
     }
 }
 
-static void int4_stream_integer_blocks(
+// The old monolithic MAC pipeline put all 64 packed multipliers and the
+// complete reduction tree behind one stall/enable net.  Vitis HLS estimated
+// more than five thousand loads on that net.  Four independent eight-lane
+// engines preserve the same 64-way arithmetic and one-row-block-per-cycle
+// throughput, but each controller is now local to one quarter of the cone.
+static constexpr int INT4_MAC_ENGINES = 4;
+static constexpr int INT4_MAC_LANES_PER_ENGINE =
+    INT4_GROUP_SIZE / INT4_MAC_ENGINES;
+static constexpr int INT4_MAC_ENGINE_ACTIVATION_BITS =
+    INT4_MAC_LANES_PER_ENGINE * 15;
+static constexpr int INT4_MAC_ENGINE_WEIGHT_BITS =
+    INT4_MAC_LANES_PER_ENGINE * 16;
+using int4_mac_engine_packet_t = ap_uint<
+    INT4_MAC_ENGINE_ACTIVATION_BITS + INT4_MAC_ENGINE_WEIGHT_BITS>;
+using int4_mac_engine_partial_t = ap_uint<2 * 46>;
+
+static_assert(INT4_GROUP_SIZE % INT4_MAC_ENGINES == 0,
+              "INT4 MAC lanes must partition evenly across local engines");
+
+template <int ENGINE_ID>
+static int4_mac_engine_packet_t int4_make_mac_engine_packet(
+    int4_quant_word_t activation_word,
+    int4_weight_word_t weight_word
+) {
+#pragma HLS INLINE
+    int4_mac_engine_packet_t packet = 0;
+    packet.range(INT4_MAC_ENGINE_ACTIVATION_BITS - 1, 0) =
+        activation_word.range(
+            (ENGINE_ID + 1) * INT4_MAC_ENGINE_ACTIVATION_BITS - 1,
+            ENGINE_ID * INT4_MAC_ENGINE_ACTIVATION_BITS);
+    packet.range(
+        INT4_MAC_ENGINE_ACTIVATION_BITS +
+            INT4_MAC_ENGINE_WEIGHT_BITS - 1,
+        INT4_MAC_ENGINE_ACTIVATION_BITS) =
+        weight_word.range(
+            (ENGINE_ID + 1) * INT4_MAC_ENGINE_WEIGHT_BITS - 1,
+            ENGINE_ID * INT4_MAC_ENGINE_WEIGHT_BITS);
+    return packet;
+}
+
+static void int4_dispatch_mac_engines(
+    hls::stream<int4_weight_word_t>& weight_stream,
+    hls::stream<int4_quant_word_t>& activation_stream,
+    hls::stream<int4_mac_engine_packet_t>& engine0_stream,
+    hls::stream<int4_mac_engine_packet_t>& engine1_stream,
+    hls::stream<int4_mac_engine_packet_t>& engine2_stream,
+    hls::stream<int4_mac_engine_packet_t>& engine3_stream,
+    int local_tiles,
+    int input_tiles
+) {
+#pragma HLS INLINE off
+
+dispatch_mac_local_tile_loop:
+    for (int local_tile = 0; local_tile < local_tiles; ++local_tile) {
+#pragma HLS LOOP_TRIPCOUNT min=8 max=63
+    dispatch_mac_col_tile_loop:
+        for (int col_tile = 0; col_tile < input_tiles; ++col_tile) {
+#pragma HLS LOOP_TRIPCOUNT min=16 max=43
+        dispatch_mac_group_loop:
+            for (int group = 0; group < INT4_GROUPS_PER_TILE; ++group) {
+                const int4_quant_word_t activation_word =
+                    activation_stream.read();
+            dispatch_mac_row_block_loop:
+                for (int row_block = 0;
+                     row_block < INT4_ROW_BLOCKS;
+                     ++row_block) {
+#pragma HLS PIPELINE II=1
+                    const int4_weight_word_t weight_word =
+                        weight_stream.read();
+                    engine0_stream.write(
+                        int4_make_mac_engine_packet<0>(
+                            activation_word, weight_word));
+                    engine1_stream.write(
+                        int4_make_mac_engine_packet<1>(
+                            activation_word, weight_word));
+                    engine2_stream.write(
+                        int4_make_mac_engine_packet<2>(
+                            activation_word, weight_word));
+                    engine3_stream.write(
+                        int4_make_mac_engine_packet<3>(
+                            activation_word, weight_word));
+                }
+            }
+        }
+    }
+}
+
+template <int ENGINE_ID>
+static void int4_mac_engine(
+    hls::stream<int4_mac_engine_packet_t>& packet_stream,
+    hls::stream<int4_mac_engine_partial_t>& partial_stream,
+    int block_count
+) {
+#pragma HLS INLINE off
+
+mac_engine_block_loop:
+    for (int block = 0; block < block_count; ++block) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=32768 max=258048
+        const int4_mac_engine_packet_t packet = packet_stream.read();
+        const ap_uint<INT4_MAC_ENGINE_ACTIVATION_BITS> activation_bits =
+            packet.range(INT4_MAC_ENGINE_ACTIVATION_BITS - 1, 0);
+        const ap_uint<INT4_MAC_ENGINE_WEIGHT_BITS> weight_bits =
+            packet.range(
+                INT4_MAC_ENGINE_ACTIVATION_BITS +
+                    INT4_MAC_ENGINE_WEIGHT_BITS - 1,
+                INT4_MAC_ENGINE_ACTIVATION_BITS);
+
+        int4_packed_acc_t products[2][INT4_MAC_LANES_PER_ENGINE];
+        int4_packed_acc_t reduce_l1[2][4];
+        int4_packed_acc_t reduce_l2[2][2];
+#pragma HLS ARRAY_PARTITION variable=products complete
+#pragma HLS ARRAY_PARTITION variable=reduce_l1 complete
+#pragma HLS ARRAY_PARTITION variable=reduce_l2 complete
+
+    mac_engine_lane_loop:
+        for (int lane = 0;
+             lane < INT4_MAC_LANES_PER_ENGINE;
+             ++lane) {
+#pragma HLS UNROLL
+            const int4_activation_t activation =
+                (int4_activation_t)activation_bits.range(
+                    15 * lane + 14, 15 * lane);
+        mac_engine_pair_loop:
+            for (int pair = 0; pair < 2; ++pair) {
+#pragma HLS UNROLL
+                const ap_uint<8> pair_bits = weight_bits.range(
+                    16 * lane + 8 * pair + 7,
+                    16 * lane + 8 * pair);
+                const int4_weight_t high =
+                    (int4_weight_t)pair_bits.range(7, 4);
+                const int4_weight_t low =
+                    (int4_weight_t)pair_bits.range(3, 0);
+                const int4_packed_product_t packed_product =
+                    int4_pack_two_weights(high, low) * activation;
+#pragma HLS BIND_OP variable=packed_product op=mul impl=dsp latency=4
+                products[pair][lane] = packed_product;
+            }
+        }
+
+    mac_engine_reduce_l1_pair_loop:
+        for (int pair = 0; pair < 2; ++pair) {
+#pragma HLS UNROLL
+        mac_engine_reduce_l1_lane_loop:
+            for (int lane = 0; lane < 4; ++lane) {
+#pragma HLS UNROLL
+                reduce_l1[pair][lane] =
+                    products[pair][2 * lane] +
+                    products[pair][2 * lane + 1];
+            }
+        }
+    mac_engine_reduce_l2_pair_loop:
+        for (int pair = 0; pair < 2; ++pair) {
+#pragma HLS UNROLL
+        mac_engine_reduce_l2_lane_loop:
+            for (int lane = 0; lane < 2; ++lane) {
+#pragma HLS UNROLL
+                reduce_l2[pair][lane] =
+                    reduce_l1[pair][2 * lane] +
+                    reduce_l1[pair][2 * lane + 1];
+            }
+        }
+
+        const int4_packed_acc_t pair_sum0 =
+            reduce_l2[0][0] + reduce_l2[0][1];
+        const int4_packed_acc_t pair_sum1 =
+            reduce_l2[1][0] + reduce_l2[1][1];
+        int4_mac_engine_partial_t partial = 0;
+        partial.range(45, 0) = (ap_uint<46>)pair_sum0;
+        partial.range(91, 46) = (ap_uint<46>)pair_sum1;
+        partial_stream.write(partial);
+    }
+}
+
+template <int PAIR>
+static int4_packed_acc_t int4_get_mac_engine_partial(
+    int4_mac_engine_partial_t partial
+) {
+#pragma HLS INLINE
+    int4_packed_acc_t value = 0;
+    value.range(45, 0) = partial.range(46 * PAIR + 45, 46 * PAIR);
+    return value;
+}
+
+static void int4_gather_mac_engines(
+    hls::stream<int4_mac_engine_partial_t>& engine0_stream,
+    hls::stream<int4_mac_engine_partial_t>& engine1_stream,
+    hls::stream<int4_mac_engine_partial_t>& engine2_stream,
+    hls::stream<int4_mac_engine_partial_t>& engine3_stream,
+    hls::stream<int4_group_block_t>& group_stream,
+    int block_count
+) {
+#pragma HLS INLINE off
+
+gather_mac_block_loop:
+    for (int block = 0; block < block_count; ++block) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=32768 max=258048
+        const int4_mac_engine_partial_t engine0 = engine0_stream.read();
+        const int4_mac_engine_partial_t engine1 = engine1_stream.read();
+        const int4_mac_engine_partial_t engine2 = engine2_stream.read();
+        const int4_mac_engine_partial_t engine3 = engine3_stream.read();
+
+        const int4_packed_acc_t pair0_left =
+            int4_get_mac_engine_partial<0>(engine0) +
+            int4_get_mac_engine_partial<0>(engine1);
+        const int4_packed_acc_t pair0_right =
+            int4_get_mac_engine_partial<0>(engine2) +
+            int4_get_mac_engine_partial<0>(engine3);
+        const int4_packed_acc_t pair1_left =
+            int4_get_mac_engine_partial<1>(engine0) +
+            int4_get_mac_engine_partial<1>(engine1);
+        const int4_packed_acc_t pair1_right =
+            int4_get_mac_engine_partial<1>(engine2) +
+            int4_get_mac_engine_partial<1>(engine3);
+        const int4_packed_acc_t pair_sum0 = pair0_left + pair0_right;
+        const int4_packed_acc_t pair_sum1 = pair1_left + pair1_right;
+#pragma HLS BIND_OP variable=pair_sum0 op=add impl=dsp latency=1
+#pragma HLS BIND_OP variable=pair_sum1 op=add impl=dsp latency=1
+
+        int4_group_acc_t r0, r1, r2, r3;
+        int4_unpack_pair_sum(pair_sum0, r0, r1);
+        int4_unpack_pair_sum(pair_sum1, r2, r3);
+
+        int4_group_block_t result = 0;
+        result.range(22, 0) = (ap_uint<23>)r0;
+        result.range(45, 23) = (ap_uint<23>)r1;
+        result.range(68, 46) = (ap_uint<23>)r2;
+        result.range(91, 69) = (ap_uint<23>)r3;
+        group_stream.write(result);
+    }
+}
+
+template <int PE_ID>
+static void int4_pe_mac_slice(
     hls::stream<int4_weight_word_t>& weight_stream,
     hls::stream<int4_quant_word_t>& activation_stream,
     hls::stream<int4_group_block_t>& group_stream,
@@ -452,88 +983,60 @@ static void int4_stream_integer_blocks(
     int input_tiles
 ) {
 #pragma HLS INLINE off
+#pragma HLS DATAFLOW disable_start_propagation
 
-integer_local_tile_loop:
-    for (int local_tile = 0; local_tile < local_tiles; ++local_tile) {
-#pragma HLS LOOP_TRIPCOUNT min=8 max=63
-        integer_col_tile_loop:
-            for (int col_tile = 0;
-                 col_tile < input_tiles;
-                 ++col_tile) {
-#pragma HLS LOOP_TRIPCOUNT min=16 max=43
-                integer_group_loop:
-                    for (int group = 0;
-                         group < INT4_GROUPS_PER_TILE;
-                         ++group) {
-                        const int activation_group =
-                            col_tile * INT4_GROUPS_PER_TILE + group;
-                        int4_quant_word_t act_word =
-                            activation_stream.read();
+    hls::stream<int4_mac_engine_packet_t> engine0_packet_stream;
+    hls::stream<int4_mac_engine_packet_t> engine1_packet_stream;
+    hls::stream<int4_mac_engine_packet_t> engine2_packet_stream;
+    hls::stream<int4_mac_engine_packet_t> engine3_packet_stream;
+    hls::stream<int4_mac_engine_partial_t> engine0_partial_stream;
+    hls::stream<int4_mac_engine_partial_t> engine1_partial_stream;
+    hls::stream<int4_mac_engine_partial_t> engine2_partial_stream;
+    hls::stream<int4_mac_engine_partial_t> engine3_partial_stream;
+#pragma HLS STREAM variable=engine0_packet_stream depth=4
+#pragma HLS STREAM variable=engine1_packet_stream depth=4
+#pragma HLS STREAM variable=engine2_packet_stream depth=4
+#pragma HLS STREAM variable=engine3_packet_stream depth=4
+#pragma HLS STREAM variable=engine0_partial_stream depth=4
+#pragma HLS STREAM variable=engine1_partial_stream depth=4
+#pragma HLS STREAM variable=engine2_partial_stream depth=4
+#pragma HLS STREAM variable=engine3_partial_stream depth=4
+#pragma HLS BIND_STORAGE variable=engine0_packet_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=engine1_packet_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=engine2_packet_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=engine3_packet_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=engine0_partial_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=engine1_partial_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=engine2_partial_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=engine3_partial_stream type=fifo impl=srl
 
-                    integer_row_block_loop:
-                        for (int row_block = 0;
-                             row_block < INT4_ROW_BLOCKS;
-                             ++row_block) {
-#pragma HLS PIPELINE II=1
-                            int4_weight_word_t weight_word =
-                                weight_stream.read();
-                            int4_packed_acc_t pair_sum[2];
-#pragma HLS ARRAY_PARTITION variable=pair_sum complete
-                            pair_sum[0] = 0;
-                            pair_sum[1] = 0;
+    const int block_count =
+        local_tiles * input_tiles *
+        INT4_GROUPS_PER_TILE * INT4_ROW_BLOCKS;
 
-                        integer_mac_lane_loop:
-                            for (int lane = 0;
-                                 lane < INT4_GROUP_SIZE;
-                                 ++lane) {
-#pragma HLS UNROLL
-                                int4_activation_t activation =
-                                    (int4_activation_t)act_word.range(
-                                        15 * lane + 14,
-                                        15 * lane);
-
-                            integer_mac_pair_loop:
-                                for (int pair = 0; pair < 2; ++pair) {
-#pragma HLS UNROLL
-                                    ap_uint<8> pair_bits =
-                                        weight_word.range(
-                                            16 * lane + 8 * pair + 7,
-                                            16 * lane + 8 * pair);
-                                    int4_weight_t high =
-                                        (int4_weight_t)pair_bits.range(7, 4);
-                                    int4_weight_t low =
-                                        (int4_weight_t)pair_bits.range(3, 0);
-                                    int4_packed_product_t packed_product =
-                                        int4_pack_two_weights(high, low) *
-                                        activation;
-#pragma HLS BIND_OP variable=packed_product op=mul impl=dsp latency=4
-                                    pair_sum[pair] += packed_product;
-                                }
-                            }
-
-                            int4_group_acc_t r0, r1, r2, r3;
-                            int4_unpack_pair_sum(pair_sum[0], r0, r1);
-                            int4_unpack_pair_sum(pair_sum[1], r2, r3);
-
-                            int4_group_block_t result = 0;
-                            result.range(22, 0) =
-                                (ap_uint<23>)r0;
-                            result.range(45, 23) =
-                                (ap_uint<23>)r1;
-                            result.range(68, 46) =
-                                (ap_uint<23>)r2;
-                            result.range(91, 69) =
-                                (ap_uint<23>)r3;
-                            group_stream.write(result);
-                        }
-                    }
-            }
-    }
+    int4_dispatch_mac_engines(
+        weight_stream, activation_stream,
+        engine0_packet_stream, engine1_packet_stream,
+        engine2_packet_stream, engine3_packet_stream,
+        local_tiles, input_tiles);
+    int4_mac_engine<0>(
+        engine0_packet_stream, engine0_partial_stream, block_count);
+    int4_mac_engine<1>(
+        engine1_packet_stream, engine1_partial_stream, block_count);
+    int4_mac_engine<2>(
+        engine2_packet_stream, engine2_partial_stream, block_count);
+    int4_mac_engine<3>(
+        engine3_packet_stream, engine3_partial_stream, block_count);
+    int4_gather_mac_engines(
+        engine0_partial_stream, engine1_partial_stream,
+        engine2_partial_stream, engine3_partial_stream,
+        group_stream, block_count);
 }
 
 using int4_final_row_block_t = ap_uint<128>;
 
-static void int4_dequantize_final_blocks(
+template <int PE_ID>
+static void int4_pe_dequant_slice(
     hls::stream<int4_group_block_t>& group_stream,
     hls::stream<float>& activation_scale_stream,
     hls::stream<int4_final_row_block_t>& final_block_stream,
@@ -551,7 +1054,7 @@ static void int4_dequantize_final_blocks(
     float partial[INT4_TILE_ROWS];
 #pragma HLS ARRAY_PARTITION variable=partial cyclic factor=4
     int4_weight_scale_word_t packed_scale_word = 0;
-    ap_uint<6> scale_lane = 0;
+    ap_uint<5> scale_lane = 0;
 #ifdef INT4_INTEGRATED_TOP
     int scale_word_index = 0;
 #endif
@@ -571,9 +1074,13 @@ dequant_local_tile_loop:
         for (int block_index = 0;
              block_index < block_count;
              ++block_index) {
+#pragma HLS LOOP_FLATTEN off
 #pragma HLS LOOP_TRIPCOUNT min=4096 max=11008
 #pragma HLS BIND_OP variable=combined_scale op=mul impl=dsp
-#pragma HLS PIPELINE II=1
+// Automatic FRP raises the estimated global control fanout to 5,515 loads in
+// every PE.  Force a stallable II=1 pipeline: its group/scale FIFO stalls stay
+// within this PE and Vivado can replicate the per-stage enables locally.
+#pragma HLS PIPELINE II=1 style=stp
             const int row_block =
                 block_index & (INT4_ROW_BLOCKS - 1);
             const int group =
@@ -597,11 +1104,10 @@ dequant_local_tile_loop:
                         int4_half_bits_to_float(
                             packed_scale_word.range(15, 0));
                     packed_scale_word >>= INT4_WEIGHT_SCALE_BITS;
-                    scale_lane =
-                        (scale_lane ==
-                         INT4_WEIGHT_SCALES_PER_WORD - 1)
-                            ? (ap_uint<6>)0
-                            : (ap_uint<6>)(scale_lane + 1);
+                    // There are exactly 32 FP16 scales per packed word, so a
+                    // five-bit counter wraps naturally without a compare/mux
+                    // on the II=1 dequantization path.
+                    ++scale_lane;
                 }
                 const float sx =
                     activation_scale_stream.read();
@@ -650,9 +1156,10 @@ dequant_local_tile_loop:
     }
 }
 
-static void int4_pack_dequantized_outputs(
+template <int PE_ID>
+static void int4_pe_pack_slice(
     hls::stream<int4_final_row_block_t>& final_block_stream,
-    hls::stream<int4_output_word_t>& output_stream,
+    hls::stream<int4_output_value_t>& output_value_stream,
     int local_tiles,
     bool output_fxp
 ) {
@@ -660,7 +1167,6 @@ static void int4_pack_dequantized_outputs(
 
     const int output_values = local_tiles * INT4_TILE_ROWS;
     int4_final_row_block_t final_block = 0;
-    int4_output_word_t packed = 0;
 
 pack_dequantized_value_loop:
     for (int value_index = 0;
@@ -673,21 +1179,18 @@ pack_dequantized_value_loop:
         }
         const ap_uint<32> fp32_bits = final_block.range(31, 0);
         final_block >>= 32;
-        packed >>= 32;
-        packed.range(511, 480) =
+        const int4_output_value_t output_value =
             output_fxp
                 ? int4_float_to_fxp_bits(
                       int4_bits_to_float(fp32_bits))
                 : fp32_bits;
-        if ((value_index & (INT4_OUTPUTS_PER_WORD - 1)) ==
-            INT4_OUTPUTS_PER_WORD - 1) {
-            output_stream.write(packed);
-        }
+        output_value_stream.write(output_value);
     }
 }
 
-static void int4_write_outputs(
-    hls::stream<int4_output_word_t>& output_stream,
+template <int PE_ID>
+static void int4_pe_output_slice(
+    hls::stream<int4_output_value_t>& output_value_stream,
 #ifndef INT4_INTEGRATED_TOP
     hls::stream<int4_output_word_t>& residual_stream,
 #endif
@@ -702,114 +1205,362 @@ static void int4_write_outputs(
     if (!fuse_residual) {
     write_output_direct_loop:
         for (int word = 0; word < output_words; ++word) {
-#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_FLATTEN off
 #pragma HLS LOOP_TRIPCOUNT min=64 max=504
-            const int4_output_word_t branch_word =
-                output_stream.read();
-            output_mem[word] = branch_word;
+            int4_output_word_t packed = 0;
+        write_output_direct_lane_loop:
+            for (int lane = 0;
+                 lane < INT4_OUTPUTS_PER_WORD;
+                 ++lane) {
+#pragma HLS PIPELINE II=1
+                packed >>= 32;
+                packed.range(511, 480) =
+                    output_value_stream.read();
+            }
+            output_mem[word] = packed;
         }
     } else {
     write_output_fused_loop:
         for (int word = 0; word < output_words; ++word) {
 #pragma HLS LOOP_FLATTEN off
 #pragma HLS LOOP_TRIPCOUNT min=64 max=64
-            const int4_output_word_t branch_word =
-                output_stream.read();
-            const int4_output_word_t residual_word =
+            int4_output_word_t residual_word =
 #ifdef INT4_INTEGRATED_TOP
                 output_mem[word];
 #else
                 residual_stream.read();
 #endif
-            float branch_values[INT4_OUTPUTS_PER_WORD];
-            float residual_values[INT4_OUTPUTS_PER_WORD];
-            float sums[INT4_OUTPUTS_PER_WORD];
-#pragma HLS ARRAY_PARTITION variable=branch_values complete
-#pragma HLS ARRAY_PARTITION variable=residual_values complete
-#pragma HLS ARRAY_PARTITION variable=sums complete
-
-        fused_residual_unpack_loop:
-            for (int lane = 0;
-                 lane < INT4_OUTPUTS_PER_WORD;
-                 ++lane) {
-#pragma HLS UNROLL
-                branch_values[lane] =
-                    int4_bits_to_float(
-                        branch_word.range(
-                            32 * lane + 31, 32 * lane));
-                residual_values[lane] =
-                    int4_bits_to_float(
-                        residual_word.range(
-                            32 * lane + 31, 32 * lane));
-            }
-
-        fused_residual_add_loop:
-            for (int lane = 0;
-                 lane < INT4_OUTPUTS_PER_WORD;
-                 ++lane) {
-#pragma HLS PIPELINE II=1
-                sums[lane] =
-                    residual_values[lane] + branch_values[lane];
-            }
-
             int4_output_word_t sum_word = 0;
-        fused_residual_pack_loop:
+        fused_residual_lane_loop:
             for (int lane = 0;
                  lane < INT4_OUTPUTS_PER_WORD;
                  ++lane) {
-#pragma HLS UNROLL
-                sum_word.range(32 * lane + 31, 32 * lane) =
-                    int4_float_to_bits(sums[lane]);
+// HLS otherwise promotes this fixed loop to FRP and reports a 7,678-load
+// control net.  A stallable controller preserves one FP add per cycle and
+// keeps residual/output backpressure local to this packer.
+#pragma HLS PIPELINE II=1 style=stp
+                const float branch_value = int4_bits_to_float(
+                    output_value_stream.read());
+                const float residual_value = int4_bits_to_float(
+                    residual_word.range(31, 0));
+                const float sum = residual_value + branch_value;
+                residual_word >>= 32;
+                sum_word >>= 32;
+                sum_word.range(511, 480) = int4_float_to_bits(sum);
             }
             output_mem[word] = sum_word;
         }
     }
 }
 
+
 // Only this compact, registered command is allowed to cross from the shared
-// controller island into a linear PE.  Passing four C integers/booleans
-// directly to every PE lets HLS create one high-fanout control cone spanning
-// all SLRs.  The per-PE command FIFOs below make the crossing point explicit
-// in both generated RTL and the post-synthesis floorplan.
-typedef ap_uint<14> int4_linear_pe_command_t;
+// controller island into a linear PE.  Passing C integers/booleans or a
+// controller-computed address directly to every PE lets HLS create one
+// high-fanout control cone spanning all SLRs.  The per-PE command FIFOs below
+// make the crossing point explicit in both generated RTL and the
+// post-synthesis floorplan.  Matrix shape and output policy are decoded from
+// the three-bit mode after that boundary; the two model offsets are also
+// registered there, so each PE forms its own gmem/scale address locally.
+typedef ap_uint<38> int4_linear_pe_command_t;
+
+static void int4_decode_linear_pe_mode(
+    ap_uint<3> linear_mode,
+    ap_uint<6>& local_tiles,
+    ap_uint<6>& input_tiles,
+    bool& output_fxp,
+    bool& fuse_residual
+) {
+#pragma HLS INLINE
+    local_tiles = 0;
+    input_tiles = 0;
+    output_fxp = false;
+    fuse_residual = false;
+
+    switch ((int)linear_mode) {
+    case INT4_LINEAR_Q:
+    case INT4_LINEAR_K:
+    case INT4_LINEAR_V:
+        local_tiles =
+            INT4_DIM / (INT4_PE_COUNT * INT4_TILE_ROWS);
+        input_tiles = INT4_DIM / INT4_TILE_COLS;
+        output_fxp = true;
+        break;
+    case INT4_LINEAR_O:
+        local_tiles =
+            INT4_DIM / (INT4_PE_COUNT * INT4_TILE_ROWS);
+        input_tiles = INT4_DIM / INT4_TILE_COLS;
+        fuse_residual = true;
+        break;
+    case INT4_LINEAR_GATE:
+    case INT4_LINEAR_UP:
+        local_tiles =
+            (INT4_HIDDEN_DIM +
+             INT4_PE_COUNT * INT4_TILE_ROWS - 1) /
+            (INT4_PE_COUNT * INT4_TILE_ROWS);
+        input_tiles = INT4_DIM / INT4_TILE_COLS;
+        break;
+    case INT4_LINEAR_DOWN:
+        local_tiles =
+            INT4_DIM / (INT4_PE_COUNT * INT4_TILE_ROWS);
+        input_tiles = INT4_HIDDEN_DIM / INT4_TILE_COLS;
+        fuse_residual = true;
+        break;
+    case INT4_LINEAR_LOGITS:
+        local_tiles =
+            (INT4_VOCAB_SIZE +
+             INT4_PE_COUNT * INT4_TILE_ROWS - 1) /
+            (INT4_PE_COUNT * INT4_TILE_ROWS);
+        input_tiles = INT4_DIM / INT4_TILE_COLS;
+        break;
+    default:
+        break;
+    }
+}
 
 static int4_linear_pe_command_t int4_pack_linear_pe_command(
-    int local_tiles,
-    int input_tiles,
-    bool output_fxp,
-    bool fuse_residual
+    ap_uint<3> linear_mode,
+    ap_uint<24> weight_word_offset,
+    ap_uint<11> weight_scale_word_offset
 ) {
 #pragma HLS INLINE
     int4_linear_pe_command_t command = 0;
-    command.range(5, 0) = (ap_uint<6>)local_tiles;
-    command.range(11, 6) = (ap_uint<6>)input_tiles;
-    command[12] = output_fxp;
-    command[13] = fuse_residual;
+    command.range(2, 0) = linear_mode;
+    command.range(26, 3) = weight_word_offset;
+    command.range(37, 27) = weight_scale_word_offset;
     return command;
 }
 
-static void int4_broadcast_linear_commands(
+static void int4_broadcast_linear_commands_pair01(
     hls::stream<int4_linear_pe_command_t>& linear_command_pe0,
     hls::stream<int4_linear_pe_command_t>& linear_command_pe1,
-    hls::stream<int4_linear_pe_command_t>& linear_command_pe2,
-    hls::stream<int4_linear_pe_command_t>& linear_command_pe3,
-    int local_tiles_0,
-    int local_tiles_1,
-    int local_tiles_2,
-    int local_tiles_3,
-    int input_tiles,
-    bool output_fxp,
-    bool fuse_residual
+    ap_uint<3> linear_mode,
+    ap_uint<24> weight_word_offset,
+    ap_uint<11> weight_scale_word_offset
 ) {
 #pragma HLS INLINE off
-    linear_command_pe0.write(int4_pack_linear_pe_command(
-        local_tiles_0, input_tiles, output_fxp, fuse_residual));
-    linear_command_pe1.write(int4_pack_linear_pe_command(
-        local_tiles_1, input_tiles, output_fxp, fuse_residual));
-    linear_command_pe2.write(int4_pack_linear_pe_command(
-        local_tiles_2, input_tiles, output_fxp, fuse_residual));
-    linear_command_pe3.write(int4_pack_linear_pe_command(
-        local_tiles_3, input_tiles, output_fxp, fuse_residual));
+    const int4_linear_pe_command_t command =
+        int4_pack_linear_pe_command(
+            linear_mode,
+            weight_word_offset,
+            weight_scale_word_offset);
+    linear_command_pe0.write(command);
+    linear_command_pe1.write(command);
+}
+
+static void int4_broadcast_linear_commands_pair23(
+    hls::stream<int4_linear_pe_command_t>& linear_command_pe2,
+    hls::stream<int4_linear_pe_command_t>& linear_command_pe3,
+    ap_uint<3> linear_mode,
+    ap_uint<24> weight_word_offset,
+    ap_uint<11> weight_scale_word_offset
+) {
+#pragma HLS INLINE off
+    const int4_linear_pe_command_t command =
+        int4_pack_linear_pe_command(
+            linear_mode,
+            weight_word_offset,
+            weight_scale_word_offset);
+    linear_command_pe2.write(command);
+    linear_command_pe3.write(command);
+}
+
+// Once a command reaches a PE, give every DATAFLOW child its own registered
+// copy.  Decoding one shared set of loop bounds in int4_run_pe_dataflow made
+// local_tiles/input_tiles feed several independently placed controllers.  It
+// also violates the canonical DATAFLOW form because those local scalars are
+// consumed by multiple processes.  Six tiny PE-local channels cost far less
+// routing than one shared control cone and do not change any datapath II.
+template <int PE_ID>
+static void int4_broadcast_pe_stage_commands(
+    hls::stream<int4_linear_pe_command_t>& command_stream,
+    hls::stream<int4_linear_pe_command_t>& weight_command_stream,
+    hls::stream<int4_linear_pe_command_t>& activation_command_stream,
+    hls::stream<int4_linear_pe_command_t>& mac_command_stream,
+    hls::stream<int4_linear_pe_command_t>& dequant_command_stream,
+    hls::stream<int4_linear_pe_command_t>& pack_command_stream,
+    hls::stream<int4_linear_pe_command_t>& output_command_stream
+) {
+#pragma HLS INLINE off
+    const int4_linear_pe_command_t command = command_stream.read();
+    weight_command_stream.write(command);
+    activation_command_stream.write(command);
+    mac_command_stream.write(command);
+    dequant_command_stream.write(command);
+    pack_command_stream.write(command);
+    output_command_stream.write(command);
+}
+
+template <int PE_ID>
+static void int4_pe_weight_commanded(
+    const int4_weight_word_t* weight_mem,
+#ifndef INT4_INTEGRATED_TOP
+    const int4_weight_scale_word_t* scale_mem,
+    const int4_output_word_t* output_mem,
+#endif
+    hls::stream<int4_weight_word_t>& weight_stream,
+#ifndef INT4_INTEGRATED_TOP
+    hls::stream<int4_weight_scale_word_t>& packed_scale_stream,
+    hls::stream<int4_output_word_t>& residual_stream,
+#endif
+    hls::stream<int4_linear_pe_command_t>& stage_command_stream
+) {
+#pragma HLS INLINE off
+    const int4_linear_pe_command_t command = stage_command_stream.read();
+    ap_uint<6> local_tiles;
+    ap_uint<6> input_tiles;
+    bool output_fxp;
+    bool fuse_residual;
+    int4_decode_linear_pe_mode(
+        command.range(2, 0),
+        local_tiles, input_tiles,
+        output_fxp, fuse_residual);
+
+    const int tile_count = (int)local_tiles * (int)input_tiles;
+    const int4_weight_word_t* local_weight_mem =
+        weight_mem + (int)command.range(26, 3);
+#ifndef INT4_INTEGRATED_TOP
+    const int output_words =
+        (int)local_tiles * INT4_OUTPUT_WORDS_PER_TILE;
+    const int4_weight_scale_word_t* local_scale_mem =
+        scale_mem + (int)command.range(37, 27);
+    int4_pe_weight_slice<PE_ID>(
+        local_weight_mem, local_scale_mem, output_mem,
+        weight_stream, packed_scale_stream, residual_stream,
+        tile_count, output_words, fuse_residual);
+#else
+    int4_pe_weight_slice<PE_ID>(
+        local_weight_mem, weight_stream, tile_count);
+#endif
+}
+
+template <int PE_ID>
+static void int4_pe_activation_commanded(
+    hls::stream<int4_quant_word_t>& seed_activation_stream,
+    hls::stream<float>& seed_scale_stream,
+    hls::stream<int4_quant_word_t>& replay_activation_stream,
+    hls::stream<float>& replay_scale_stream,
+    hls::stream<int4_linear_pe_command_t>& stage_command_stream
+) {
+#pragma HLS INLINE off
+    const int4_linear_pe_command_t command = stage_command_stream.read();
+    ap_uint<6> local_tiles;
+    ap_uint<6> input_tiles;
+    bool output_fxp;
+    bool fuse_residual;
+    int4_decode_linear_pe_mode(
+        command.range(2, 0),
+        local_tiles, input_tiles,
+        output_fxp, fuse_residual);
+    int4_pe_activation_slice<PE_ID>(
+        seed_activation_stream, seed_scale_stream,
+        replay_activation_stream, replay_scale_stream,
+        (int)local_tiles, (int)input_tiles);
+}
+
+template <int PE_ID>
+static void int4_pe_mac_commanded(
+    hls::stream<int4_weight_word_t>& weight_stream,
+    hls::stream<int4_quant_word_t>& activation_stream,
+    hls::stream<int4_group_block_t>& group_stream,
+    hls::stream<int4_linear_pe_command_t>& stage_command_stream
+) {
+#pragma HLS INLINE off
+    const int4_linear_pe_command_t command = stage_command_stream.read();
+    ap_uint<6> local_tiles;
+    ap_uint<6> input_tiles;
+    bool output_fxp;
+    bool fuse_residual;
+    int4_decode_linear_pe_mode(
+        command.range(2, 0),
+        local_tiles, input_tiles,
+        output_fxp, fuse_residual);
+    int4_pe_mac_slice<PE_ID>(
+        weight_stream, activation_stream, group_stream,
+        (int)local_tiles, (int)input_tiles);
+}
+
+template <int PE_ID>
+static void int4_pe_dequant_commanded(
+    hls::stream<int4_group_block_t>& group_stream,
+    hls::stream<float>& activation_scale_stream,
+    hls::stream<int4_final_row_block_t>& final_block_stream,
+#ifdef INT4_INTEGRATED_TOP
+    const int4_weight_scale_word_t* scale_mem,
+#else
+    hls::stream<int4_weight_scale_word_t>& packed_scale_stream,
+#endif
+    hls::stream<int4_linear_pe_command_t>& stage_command_stream
+) {
+#pragma HLS INLINE off
+    const int4_linear_pe_command_t command = stage_command_stream.read();
+    ap_uint<6> local_tiles;
+    ap_uint<6> input_tiles;
+    bool output_fxp;
+    bool fuse_residual;
+    int4_decode_linear_pe_mode(
+        command.range(2, 0),
+        local_tiles, input_tiles,
+        output_fxp, fuse_residual);
+#ifdef INT4_INTEGRATED_TOP
+    const int4_weight_scale_word_t* local_scale_mem =
+        scale_mem + (int)command.range(37, 27);
+    int4_pe_dequant_slice<PE_ID>(
+        group_stream, activation_scale_stream, final_block_stream,
+        local_scale_mem, (int)local_tiles, (int)input_tiles);
+#else
+    int4_pe_dequant_slice<PE_ID>(
+        group_stream, activation_scale_stream, final_block_stream,
+        packed_scale_stream, (int)local_tiles, (int)input_tiles);
+#endif
+}
+
+template <int PE_ID>
+static void int4_pe_pack_commanded(
+    hls::stream<int4_final_row_block_t>& final_block_stream,
+    hls::stream<int4_output_value_t>& output_value_stream,
+    hls::stream<int4_linear_pe_command_t>& stage_command_stream
+) {
+#pragma HLS INLINE off
+    const int4_linear_pe_command_t command = stage_command_stream.read();
+    ap_uint<6> local_tiles;
+    ap_uint<6> input_tiles;
+    bool output_fxp;
+    bool fuse_residual;
+    int4_decode_linear_pe_mode(
+        command.range(2, 0),
+        local_tiles, input_tiles,
+        output_fxp, fuse_residual);
+    int4_pe_pack_slice<PE_ID>(
+        final_block_stream, output_value_stream,
+        (int)local_tiles, output_fxp);
+}
+
+template <int PE_ID>
+static void int4_pe_output_commanded(
+    hls::stream<int4_output_value_t>& output_value_stream,
+#ifndef INT4_INTEGRATED_TOP
+    hls::stream<int4_output_word_t>& residual_stream,
+#endif
+    int4_output_word_t* output_mem,
+    hls::stream<int4_linear_pe_command_t>& stage_command_stream
+) {
+#pragma HLS INLINE off
+    const int4_linear_pe_command_t command = stage_command_stream.read();
+    ap_uint<6> local_tiles;
+    ap_uint<6> input_tiles;
+    bool output_fxp;
+    bool fuse_residual;
+    int4_decode_linear_pe_mode(
+        command.range(2, 0),
+        local_tiles, input_tiles,
+        output_fxp, fuse_residual);
+    int4_pe_output_slice<PE_ID>(
+        output_value_stream,
+#ifndef INT4_INTEGRATED_TOP
+        residual_stream,
+#endif
+        output_mem, (int)local_tiles, fuse_residual);
 }
 
 template <int PE_ID>
@@ -824,15 +1575,6 @@ static void int4_run_pe_dataflow(
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW disable_start_propagation
 
-    // The command FIFO is consumed by this PE's dataflow entry process.  This
-    // preserves a registered SLR boundary without the extra ap_ctrl_hs
-    // wrapper whose call path was estimated at 4.190 ns.
-    const int4_linear_pe_command_t command = command_stream.read();
-    const ap_uint<6> local_tiles = command.range(5, 0);
-    const ap_uint<6> input_tiles = command.range(11, 6);
-    const bool output_fxp = command[12];
-    const bool fuse_residual = command[13];
-
     hls::stream<int4_weight_word_t> weight_stream;
 #ifndef INT4_INTEGRATED_TOP
     hls::stream<int4_weight_scale_word_t>
@@ -843,17 +1585,33 @@ static void int4_run_pe_dataflow(
     hls::stream<int4_quant_word_t> replay_activation_stream;
     hls::stream<float> replay_scale_stream;
     hls::stream<int4_final_row_block_t> final_block_stream;
-    hls::stream<int4_output_word_t> output_stream;
-#pragma HLS STREAM variable=weight_stream depth=16384
+    hls::stream<int4_output_value_t> output_value_stream;
+    hls::stream<int4_linear_pe_command_t> weight_command_stream;
+    hls::stream<int4_linear_pe_command_t> activation_command_stream;
+    hls::stream<int4_linear_pe_command_t> mac_command_stream;
+    hls::stream<int4_linear_pe_command_t> dequant_command_stream;
+    hls::stream<int4_linear_pe_command_t> pack_command_stream;
+    hls::stream<int4_linear_pe_command_t> output_command_stream;
+    // Two complete 256-word AXI bursts are enough to hide activation-cache
+    // warm-up and normal consumer backpressure.  The former depth 16384
+    // allocated roughly 32 URAM per PE although this acyclic channel may
+    // safely block.
+#pragma HLS STREAM variable=weight_stream depth=512
 #ifndef INT4_INTEGRATED_TOP
 #pragma HLS STREAM variable=packed_scale_stream depth=32
 #pragma HLS STREAM variable=residual_stream depth=64
 #endif
 #pragma HLS STREAM variable=group_stream depth=64
 #pragma HLS STREAM variable=replay_activation_stream depth=2
-#pragma HLS STREAM variable=replay_scale_stream depth=2
+#pragma HLS STREAM variable=replay_scale_stream depth=3
 #pragma HLS STREAM variable=final_block_stream depth=32
-#pragma HLS STREAM variable=output_stream depth=16
+#pragma HLS STREAM variable=output_value_stream depth=64
+#pragma HLS STREAM variable=weight_command_stream depth=2
+#pragma HLS STREAM variable=activation_command_stream depth=2
+#pragma HLS STREAM variable=mac_command_stream depth=3
+#pragma HLS STREAM variable=dequant_command_stream depth=4
+#pragma HLS STREAM variable=pack_command_stream depth=5
+#pragma HLS STREAM variable=output_command_stream depth=6
 #pragma HLS BIND_STORAGE variable=weight_stream type=fifo impl=uram
 #ifndef INT4_INTEGRATED_TOP
 #pragma HLS BIND_STORAGE variable=packed_scale_stream type=fifo impl=bram
@@ -863,14 +1621,23 @@ static void int4_run_pe_dataflow(
 #pragma HLS BIND_STORAGE variable=replay_activation_stream type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=replay_scale_stream type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=final_block_stream type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=output_stream type=fifo impl=bram
-    const int tile_count = local_tiles * input_tiles;
-#ifndef INT4_INTEGRATED_TOP
-    const int output_words =
-        local_tiles * INT4_OUTPUT_WORDS_PER_TILE;
-#endif
+    // The routed DCP showed output_stream.dout_vld driving 1,024 loads.
+    // Packing already emits one FP32 lane/cycle, so a 32-bit FIFO preserves
+    // throughput and moves the only 512-bit assembly next to output_mem.
+#pragma HLS BIND_STORAGE variable=output_value_stream type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=weight_command_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=activation_command_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=mac_command_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=dequant_command_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=pack_command_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=output_command_stream type=fifo impl=srl
 
-    int4_stream_pe_inputs(
+    int4_broadcast_pe_stage_commands<PE_ID>(
+        command_stream,
+        weight_command_stream, activation_command_stream,
+        mac_command_stream, dequant_command_stream,
+        pack_command_stream, output_command_stream);
+    int4_pe_weight_commanded<PE_ID>(
         weight_mem,
 #ifndef INT4_INTEGRATED_TOP
         scale_mem,
@@ -881,26 +1648,19 @@ static void int4_run_pe_dataflow(
         packed_scale_stream,
         residual_stream,
 #endif
-        tile_count
-#ifndef INT4_INTEGRATED_TOP
-        ,
-        output_words, fuse_residual
-#endif
-    );
-    int4_cache_and_replay_activation<PE_ID>(
+        weight_command_stream);
+    int4_pe_activation_commanded<PE_ID>(
         activation_stream,
         activation_scale_stream,
         replay_activation_stream,
         replay_scale_stream,
-        local_tiles,
-        input_tiles);
-    int4_stream_integer_blocks(
+        activation_command_stream);
+    int4_pe_mac_commanded<PE_ID>(
         weight_stream,
         replay_activation_stream,
         group_stream,
-        local_tiles,
-        input_tiles);
-    int4_dequantize_final_blocks(
+        mac_command_stream);
+    int4_pe_dequant_commanded<PE_ID>(
         group_stream,
         replay_scale_stream,
         final_block_stream,
@@ -909,21 +1669,20 @@ static void int4_run_pe_dataflow(
 #else
         packed_scale_stream,
 #endif
-        local_tiles,
-        input_tiles);
-    int4_pack_dequantized_outputs(
+        dequant_command_stream);
+    int4_pe_pack_commanded<PE_ID>(
         final_block_stream,
-        output_stream,
-        local_tiles,
-        output_fxp);
-    int4_write_outputs(
-        output_stream,
+        output_value_stream,
+        pack_command_stream);
+    int4_pe_output_commanded<PE_ID>(
+        output_value_stream,
 #ifndef INT4_INTEGRATED_TOP
         residual_stream,
 #endif
         output_mem,
-        (int)local_tiles, fuse_residual);
+        output_command_stream);
 }
+
 
 static void int4_run_four_pes(
     const int4_weight_word_t* weight_pe0,
@@ -941,6 +1700,7 @@ static void int4_run_four_pes(
     hls::stream<int4_quant_word_t>& input_quantized_stream,
     hls::stream<float>& input_scale_stream,
     bool stream_activation,
+    bool cache_stream_activation,
 #else
     const int4_quant_word_t quantized[INT4_MAX_INPUT_GROUPS],
     const float scales[INT4_MAX_INPUT_GROUPS],
@@ -954,8 +1714,9 @@ static void int4_run_four_pes(
     int local_tiles_2,
     int local_tiles_3,
     int input_tiles,
-    bool output_fxp,
-    bool fuse_residual
+    ap_uint<3> linear_mode,
+    ap_uint<24> weight_word_offset,
+    ap_uint<11> weight_scale_word_offset
 ) {
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW disable_start_propagation
@@ -964,10 +1725,18 @@ static void int4_run_four_pes(
     hls::stream<int4_quant_word_t> quantized_pe1;
     hls::stream<int4_quant_word_t> quantized_pe2;
     hls::stream<int4_quant_word_t> quantized_pe3;
+    hls::stream<int4_activation_beat_t> quantized_pair01_to_pe0;
+    hls::stream<int4_activation_beat_t> quantized_pair23_to_pe3;
     hls::stream<float> activation_scale_pe0;
     hls::stream<float> activation_scale_pe1;
     hls::stream<float> activation_scale_pe2;
     hls::stream<float> activation_scale_pe3;
+    hls::stream<float> activation_scale_pair01_to_pe0;
+    hls::stream<float> activation_scale_pair23_to_pe3;
+    hls::stream<int4_quant_word_t> quantized_pair01;
+    hls::stream<int4_quant_word_t> quantized_pair23;
+    hls::stream<float> activation_scale_pair01;
+    hls::stream<float> activation_scale_pair23;
     hls::stream<int4_linear_pe_command_t> linear_command_pe0;
     hls::stream<int4_linear_pe_command_t> linear_command_pe1;
     hls::stream<int4_linear_pe_command_t> linear_command_pe2;
@@ -976,51 +1745,91 @@ static void int4_run_four_pes(
 #pragma HLS STREAM variable=quantized_pe1 depth=2
 #pragma HLS STREAM variable=quantized_pe2 depth=2
 #pragma HLS STREAM variable=quantized_pe3 depth=2
+#pragma HLS STREAM variable=quantized_pair01_to_pe0 depth=32
+#pragma HLS STREAM variable=quantized_pair23_to_pe3 depth=32
 #pragma HLS STREAM variable=activation_scale_pe0 depth=2
 #pragma HLS STREAM variable=activation_scale_pe1 depth=2
 #pragma HLS STREAM variable=activation_scale_pe2 depth=2
 #pragma HLS STREAM variable=activation_scale_pe3 depth=2
-#pragma HLS STREAM variable=linear_command_pe0 depth=2
-#pragma HLS STREAM variable=linear_command_pe1 depth=2
-#pragma HLS STREAM variable=linear_command_pe2 depth=2
-#pragma HLS STREAM variable=linear_command_pe3 depth=2
-#pragma HLS BIND_STORAGE variable=quantized_pe0 type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=quantized_pe1 type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=quantized_pe2 type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=quantized_pe3 type=fifo impl=bram
+#pragma HLS STREAM variable=activation_scale_pair01_to_pe0 depth=2
+#pragma HLS STREAM variable=activation_scale_pair23_to_pe3 depth=2
+#pragma HLS STREAM variable=quantized_pair01 depth=2
+#pragma HLS STREAM variable=quantized_pair23 depth=2
+#pragma HLS STREAM variable=activation_scale_pair01 depth=2
+#pragma HLS STREAM variable=activation_scale_pair23 depth=2
+#pragma HLS STREAM variable=linear_command_pe0 depth=4
+#pragma HLS STREAM variable=linear_command_pe1 depth=3
+#pragma HLS STREAM variable=linear_command_pe2 depth=3
+#pragma HLS STREAM variable=linear_command_pe3 depth=4
+    // A four-entry, 480-bit FIFO is cheaper and much more placeable in LUTRAM;
+    // BRAM banking created fixed-site, routing-dominated paths in the DCP.
+#pragma HLS BIND_STORAGE variable=quantized_pe0 type=fifo impl=lutram
+#pragma HLS BIND_STORAGE variable=quantized_pe1 type=fifo impl=lutram
+#pragma HLS BIND_STORAGE variable=quantized_pe2 type=fifo impl=lutram
+#pragma HLS BIND_STORAGE variable=quantized_pe3 type=fifo impl=lutram
+#pragma HLS BIND_STORAGE variable=quantized_pair01_to_pe0 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=quantized_pair23_to_pe3 type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=activation_scale_pe0 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=activation_scale_pe1 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=activation_scale_pe2 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=activation_scale_pe3 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=activation_scale_pair01_to_pe0 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=activation_scale_pair23_to_pe3 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=quantized_pair01 type=fifo impl=lutram
+#pragma HLS BIND_STORAGE variable=quantized_pair23 type=fifo impl=lutram
+#pragma HLS BIND_STORAGE variable=activation_scale_pair01 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=activation_scale_pair23 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=linear_command_pe0 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=linear_command_pe1 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=linear_command_pe2 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=linear_command_pe3 type=fifo impl=srl
 
-    int4_broadcast_linear_commands(
+    // Keep command fanout inside the same two pair-local islands used by the
+    // 480-bit activation tree.  No generated control node drives four SLRs.
+    int4_broadcast_linear_commands_pair01(
         linear_command_pe0, linear_command_pe1,
+        linear_mode,
+        weight_word_offset, weight_scale_word_offset);
+    int4_broadcast_linear_commands_pair23(
         linear_command_pe2, linear_command_pe3,
-        local_tiles_0, local_tiles_1,
-        local_tiles_2, local_tiles_3,
-        input_tiles, output_fxp, fuse_residual);
+        linear_mode,
+        weight_word_offset, weight_scale_word_offset);
 
-    int4_broadcast_activation(
+    int4_distribute_activation_pairs(
 #ifdef INT4_INTEGRATED_TOP
         quantized,
         packed_scales,
         input_quantized_stream, input_scale_stream,
-        stream_activation,
+        stream_activation, cache_stream_activation,
 #else
         quantized,
         scales,
 #endif
-        quantized_pe0, quantized_pe1,
-        quantized_pe2, quantized_pe3,
-        activation_scale_pe0, activation_scale_pe1,
-        activation_scale_pe2, activation_scale_pe3,
+        quantized_pair01, quantized_pair23,
+        activation_scale_pair01, activation_scale_pair23,
         local_tiles_0, local_tiles_1,
         local_tiles_2, local_tiles_3,
         input_tiles);
+
+    int4_broadcast_activation_pair01(
+        quantized_pair01, activation_scale_pair01,
+        quantized_pair01_to_pe0, quantized_pe1,
+        activation_scale_pair01_to_pe0, activation_scale_pe1,
+        local_tiles_0, local_tiles_1, input_tiles);
+    int4_broadcast_activation_pair23(
+        quantized_pair23, activation_scale_pair23,
+        quantized_pe2, quantized_pair23_to_pe3,
+        activation_scale_pe2, activation_scale_pair23_to_pe3,
+        local_tiles_2, local_tiles_3, input_tiles);
+
+    int4_deserialize_activation_pe0(
+        quantized_pair01_to_pe0, activation_scale_pair01_to_pe0,
+        quantized_pe0, activation_scale_pe0,
+        local_tiles_0, input_tiles);
+    int4_deserialize_activation_pe3(
+        quantized_pair23_to_pe3, activation_scale_pair23_to_pe3,
+        quantized_pe3, activation_scale_pe3,
+        local_tiles_3, input_tiles);
 
     int4_run_pe_dataflow<0>(
         weight_pe0, scale_pe0,
@@ -1039,6 +1848,161 @@ static void int4_run_four_pes(
         quantized_pe3, activation_scale_pe3,
         linear_command_pe3, output_pe3);
 }
+
+#ifdef INT4_INTEGRATED_TOP
+static void int4_run_four_pes_pair_streams(
+    const int4_weight_word_t* weight_pe0,
+    const int4_weight_word_t* weight_pe1,
+    const int4_weight_word_t* weight_pe2,
+    const int4_weight_word_t* weight_pe3,
+    const int4_weight_scale_word_t* scale_pe0,
+    const int4_weight_scale_word_t* scale_pe1,
+    const int4_weight_scale_word_t* scale_pe2,
+    const int4_weight_scale_word_t* scale_pe3,
+    int4_quant_word_t activation_q_pair01[INT4_MAX_INPUT_GROUPS],
+    int4_scale_word_t
+        activation_scale_pair01[INT4_MAX_ACTIVATION_SCALE_WORDS],
+    int4_quant_word_t activation_q_pair23[INT4_MAX_INPUT_GROUPS],
+    int4_scale_word_t
+        activation_scale_pair23[INT4_MAX_ACTIVATION_SCALE_WORDS],
+    hls::stream<int4_quant_word_t>& input_quantized_pair01_stream,
+    hls::stream<float>& input_scale_pair01_stream,
+    hls::stream<int4_quant_word_t>& input_quantized_pair23_stream,
+    hls::stream<float>& input_scale_pair23_stream,
+    bool stream_activation,
+    bool cache_stream_activation,
+    int4_output_word_t* output_pe0,
+    int4_output_word_t* output_pe1,
+    int4_output_word_t* output_pe2,
+    int4_output_word_t* output_pe3,
+    int local_tiles_0,
+    int local_tiles_1,
+    int local_tiles_2,
+    int local_tiles_3,
+    int input_tiles,
+    ap_uint<3> linear_mode,
+    ap_uint<24> weight_word_offset,
+    ap_uint<11> weight_scale_word_offset
+) {
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW disable_start_propagation
+
+    hls::stream<int4_quant_word_t>
+        quantized_pe0, quantized_pe1, quantized_pe2, quantized_pe3;
+    hls::stream<int4_activation_beat_t>
+        quantized_pair01_to_pe0, quantized_pair23_to_pe3;
+    hls::stream<float>
+        activation_scale_pe0, activation_scale_pe1,
+        activation_scale_pe2, activation_scale_pe3;
+    hls::stream<float>
+        activation_scale_pair01_to_pe0,
+        activation_scale_pair23_to_pe3;
+    hls::stream<int4_quant_word_t> quantized_pair01;
+    hls::stream<int4_quant_word_t> quantized_pair23;
+    hls::stream<float> activation_scale_pair01_stream;
+    hls::stream<float> activation_scale_pair23_stream;
+    hls::stream<int4_linear_pe_command_t>
+        linear_command_pe0, linear_command_pe1,
+        linear_command_pe2, linear_command_pe3;
+#pragma HLS STREAM variable=quantized_pe0 depth=2
+#pragma HLS STREAM variable=quantized_pe1 depth=2
+#pragma HLS STREAM variable=quantized_pe2 depth=2
+#pragma HLS STREAM variable=quantized_pe3 depth=2
+#pragma HLS STREAM variable=quantized_pair01_to_pe0 depth=32
+#pragma HLS STREAM variable=quantized_pair23_to_pe3 depth=32
+#pragma HLS STREAM variable=activation_scale_pe0 depth=2
+#pragma HLS STREAM variable=activation_scale_pe1 depth=2
+#pragma HLS STREAM variable=activation_scale_pe2 depth=2
+#pragma HLS STREAM variable=activation_scale_pe3 depth=2
+#pragma HLS STREAM variable=activation_scale_pair01_to_pe0 depth=2
+#pragma HLS STREAM variable=activation_scale_pair23_to_pe3 depth=2
+#pragma HLS STREAM variable=quantized_pair01 depth=2
+#pragma HLS STREAM variable=quantized_pair23 depth=2
+#pragma HLS STREAM variable=activation_scale_pair01_stream depth=2
+#pragma HLS STREAM variable=activation_scale_pair23_stream depth=2
+#pragma HLS STREAM variable=linear_command_pe0 depth=4
+#pragma HLS STREAM variable=linear_command_pe1 depth=3
+#pragma HLS STREAM variable=linear_command_pe2 depth=3
+#pragma HLS STREAM variable=linear_command_pe3 depth=4
+#pragma HLS BIND_STORAGE variable=quantized_pe0 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=quantized_pe1 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=quantized_pe2 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=quantized_pe3 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=quantized_pair01_to_pe0 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=quantized_pair23_to_pe3 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=activation_scale_pe0 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=activation_scale_pe1 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=activation_scale_pe2 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=activation_scale_pe3 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=activation_scale_pair01_to_pe0 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=activation_scale_pair23_to_pe3 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=quantized_pair01 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=quantized_pair23 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=activation_scale_pair01_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=activation_scale_pair23_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=linear_command_pe0 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=linear_command_pe1 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=linear_command_pe2 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=linear_command_pe3 type=fifo impl=srl
+
+    int4_broadcast_linear_commands_pair01(
+        linear_command_pe0, linear_command_pe1,
+        linear_mode, weight_word_offset, weight_scale_word_offset);
+    int4_broadcast_linear_commands_pair23(
+        linear_command_pe2, linear_command_pe3,
+        linear_mode, weight_word_offset, weight_scale_word_offset);
+
+    int4_prepare_activation_pair01(
+        activation_q_pair01, activation_scale_pair01,
+        input_quantized_pair01_stream, input_scale_pair01_stream,
+        stream_activation, cache_stream_activation,
+        quantized_pair01, activation_scale_pair01_stream,
+        local_tiles_0, local_tiles_1, input_tiles);
+    int4_prepare_activation_pair23(
+        activation_q_pair23, activation_scale_pair23,
+        input_quantized_pair23_stream, input_scale_pair23_stream,
+        stream_activation, cache_stream_activation,
+        quantized_pair23, activation_scale_pair23_stream,
+        local_tiles_2, local_tiles_3, input_tiles);
+
+    int4_broadcast_activation_pair01(
+        quantized_pair01, activation_scale_pair01_stream,
+        quantized_pair01_to_pe0, quantized_pe1,
+        activation_scale_pair01_to_pe0, activation_scale_pe1,
+        local_tiles_0, local_tiles_1, input_tiles);
+    int4_broadcast_activation_pair23(
+        quantized_pair23, activation_scale_pair23_stream,
+        quantized_pe2, quantized_pair23_to_pe3,
+        activation_scale_pe2, activation_scale_pair23_to_pe3,
+        local_tiles_2, local_tiles_3, input_tiles);
+
+    int4_deserialize_activation_pe0(
+        quantized_pair01_to_pe0, activation_scale_pair01_to_pe0,
+        quantized_pe0, activation_scale_pe0,
+        local_tiles_0, input_tiles);
+    int4_deserialize_activation_pe3(
+        quantized_pair23_to_pe3, activation_scale_pair23_to_pe3,
+        quantized_pe3, activation_scale_pe3,
+        local_tiles_3, input_tiles);
+
+    int4_run_pe_dataflow<0>(
+        weight_pe0, scale_pe0,
+        quantized_pe0, activation_scale_pe0,
+        linear_command_pe0, output_pe0);
+    int4_run_pe_dataflow<1>(
+        weight_pe1, scale_pe1,
+        quantized_pe1, activation_scale_pe1,
+        linear_command_pe1, output_pe1);
+    int4_run_pe_dataflow<2>(
+        weight_pe2, scale_pe2,
+        quantized_pe2, activation_scale_pe2,
+        linear_command_pe2, output_pe2);
+    int4_run_pe_dataflow<3>(
+        weight_pe3, scale_pe3,
+        quantized_pe3, activation_scale_pe3,
+        linear_command_pe3, output_pe3);
+}
+#endif
 
 static void int4_advance_controller_after_linear(
     Int4Controller& controller
@@ -1127,6 +2091,12 @@ static void int4_advance_model_offsets_after_linear(
 
     controller.weight_word_offset += weight_words;
     controller.weight_scale_word_offset += scale_words;
+}
+
+void int4_complete_linear_dispatch(Int4Controller& controller) {
+#pragma HLS INLINE
+    int4_advance_model_offsets_after_linear(controller);
+    int4_advance_controller_after_linear(controller);
 }
 
 void int4_linear_4pe(
@@ -1234,13 +2204,6 @@ void int4_linear_4pe(
         return;
     }
 
-    const bool output_fxp =
-        controller.linear_mode == INT4_LINEAR_Q ||
-        controller.linear_mode == INT4_LINEAR_K ||
-        controller.linear_mode == INT4_LINEAR_V;
-    const bool fuse_residual =
-        controller.linear_mode == INT4_LINEAR_O ||
-        controller.linear_mode == INT4_LINEAR_DOWN;
     const int local_tiles_0 =
         int4_local_tile_count(shape.output_tiles, 0);
     const int local_tiles_1 =
@@ -1282,7 +2245,8 @@ void int4_linear_4pe(
 #ifdef INT4_INTEGRATED_TOP
         const_cast<int4_quant_word_t*>(activation_q),
         const_cast<int4_scale_word_t*>(activation_scale),
-        unused_quantized_stream, unused_scale_stream, false,
+        unused_quantized_stream, unused_scale_stream,
+        false, false,
 #else
         quantized, scales,
 #endif
@@ -1290,11 +2254,11 @@ void int4_linear_4pe(
         local_tiles_0, local_tiles_1,
         local_tiles_2, local_tiles_3,
         shape.input_tiles,
-        output_fxp,
-        fuse_residual);
+        (ap_uint<3>)controller.linear_mode,
+        (ap_uint<24>)0,
+        (ap_uint<11>)0);
 
-    int4_advance_model_offsets_after_linear(controller);
-    int4_advance_controller_after_linear(controller);
+    int4_complete_linear_dispatch(controller);
 }
 
 #ifdef INT4_INTEGRATED_TOP
@@ -1328,8 +2292,7 @@ static void int4_run_four_pes_optional_rms(
     int local_tiles_2,
     int local_tiles_3,
     int input_tiles,
-    bool output_fxp,
-    bool fuse_residual
+    ap_uint<3> linear_mode
 ) {
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW disable_start_propagation
@@ -1351,10 +2314,15 @@ static void int4_run_four_pes_optional_rms(
         scale_pe0, scale_pe1, scale_pe2, scale_pe3,
         activation_q, activation_scale,
         rms_quantized_stream, rms_scale_stream, fuse_rms,
+        fuse_rms &&
+            (linear_mode == INT4_LINEAR_Q ||
+             linear_mode == INT4_LINEAR_GATE),
         output_pe0, output_pe1, output_pe2, output_pe3,
         local_tiles_0, local_tiles_1,
         local_tiles_2, local_tiles_3,
-        input_tiles, output_fxp, fuse_residual);
+        input_tiles, linear_mode,
+        (ap_uint<24>)0,
+        (ap_uint<11>)0);
 }
 
 void int4_linear_4pe_optional_rms(
@@ -1395,13 +2363,6 @@ void int4_linear_4pe_optional_rms(
         return;
     }
 
-    const bool output_fxp =
-        controller.linear_mode == INT4_LINEAR_Q ||
-        controller.linear_mode == INT4_LINEAR_K ||
-        controller.linear_mode == INT4_LINEAR_V;
-    const bool fuse_residual =
-        controller.linear_mode == INT4_LINEAR_O ||
-        controller.linear_mode == INT4_LINEAR_DOWN;
     const int local_tiles_0 =
         int4_local_tile_count(shape.output_tiles, 0);
     const int local_tiles_1 =
@@ -1422,10 +2383,122 @@ void int4_linear_4pe_optional_rms(
         output_pe0, output_pe1, output_pe2, output_pe3,
         local_tiles_0, local_tiles_1,
         local_tiles_2, local_tiles_3,
-        shape.input_tiles, output_fxp, fuse_residual);
+        shape.input_tiles,
+        (ap_uint<3>)controller.linear_mode);
 
-    int4_advance_model_offsets_after_linear(controller);
-    int4_advance_controller_after_linear(controller);
+    int4_complete_linear_dispatch(controller);
+}
+
+void int4_linear_4pe_from_stream_command(
+    const int4_weight_word_t* weight_pe0,
+    const int4_weight_word_t* weight_pe1,
+    const int4_weight_word_t* weight_pe2,
+    const int4_weight_word_t* weight_pe3,
+    const int4_weight_scale_word_t* scale_pe0,
+    const int4_weight_scale_word_t* scale_pe1,
+    const int4_weight_scale_word_t* scale_pe2,
+    const int4_weight_scale_word_t* scale_pe3,
+    int4_quant_word_t* activation_q,
+    int4_scale_word_t* activation_scale,
+    hls::stream<int4_quant_word_t>& input_quantized_stream,
+    hls::stream<float>& input_scale_stream,
+    bool stream_activation,
+    bool cache_stream_activation,
+    int4_output_word_t* output_pe0,
+    int4_output_word_t* output_pe1,
+    int4_output_word_t* output_pe2,
+    int4_output_word_t* output_pe3,
+    ap_uint<3> linear_mode,
+    ap_uint<24> weight_word_offset,
+    ap_uint<11> weight_scale_word_offset
+) {
+#pragma HLS INLINE off
+    const Int4LinearShape shape =
+        int4_linear_shape_from_mode(linear_mode);
+    if (shape.output_tiles <= 0 || shape.input_tiles <= 0) {
+        return;
+    }
+
+    const int local_tiles_0 =
+        int4_local_tile_count(shape.output_tiles, 0);
+    const int local_tiles_1 =
+        int4_local_tile_count(shape.output_tiles, 1);
+    const int local_tiles_2 =
+        int4_local_tile_count(shape.output_tiles, 2);
+    const int local_tiles_3 =
+        int4_local_tile_count(shape.output_tiles, 3);
+
+    int4_run_four_pes(
+        weight_pe0, weight_pe1, weight_pe2, weight_pe3,
+        scale_pe0, scale_pe1, scale_pe2, scale_pe3,
+        activation_q, activation_scale,
+        input_quantized_stream, input_scale_stream,
+        stream_activation, cache_stream_activation,
+        output_pe0, output_pe1, output_pe2, output_pe3,
+        local_tiles_0, local_tiles_1,
+        local_tiles_2, local_tiles_3,
+        shape.input_tiles,
+        linear_mode,
+        weight_word_offset,
+        weight_scale_word_offset);
+}
+
+void int4_linear_4pe_from_pair_streams_command(
+    const int4_weight_word_t* weight_pe0,
+    const int4_weight_word_t* weight_pe1,
+    const int4_weight_word_t* weight_pe2,
+    const int4_weight_word_t* weight_pe3,
+    const int4_weight_scale_word_t* scale_pe0,
+    const int4_weight_scale_word_t* scale_pe1,
+    const int4_weight_scale_word_t* scale_pe2,
+    const int4_weight_scale_word_t* scale_pe3,
+    int4_quant_word_t* activation_q_pair01,
+    int4_scale_word_t* activation_scale_pair01,
+    int4_quant_word_t* activation_q_pair23,
+    int4_scale_word_t* activation_scale_pair23,
+    hls::stream<int4_quant_word_t>& input_quantized_pair01_stream,
+    hls::stream<float>& input_scale_pair01_stream,
+    hls::stream<int4_quant_word_t>& input_quantized_pair23_stream,
+    hls::stream<float>& input_scale_pair23_stream,
+    bool stream_activation,
+    bool cache_stream_activation,
+    int4_output_word_t* output_pe0,
+    int4_output_word_t* output_pe1,
+    int4_output_word_t* output_pe2,
+    int4_output_word_t* output_pe3,
+    ap_uint<3> linear_mode,
+    ap_uint<24> weight_word_offset,
+    ap_uint<11> weight_scale_word_offset
+) {
+#pragma HLS INLINE off
+    const Int4LinearShape shape =
+        int4_linear_shape_from_mode(linear_mode);
+    if (shape.output_tiles <= 0 || shape.input_tiles <= 0) {
+        return;
+    }
+
+    const int local_tiles_0 =
+        int4_local_tile_count(shape.output_tiles, 0);
+    const int local_tiles_1 =
+        int4_local_tile_count(shape.output_tiles, 1);
+    const int local_tiles_2 =
+        int4_local_tile_count(shape.output_tiles, 2);
+    const int local_tiles_3 =
+        int4_local_tile_count(shape.output_tiles, 3);
+
+    int4_run_four_pes_pair_streams(
+        weight_pe0, weight_pe1, weight_pe2, weight_pe3,
+        scale_pe0, scale_pe1, scale_pe2, scale_pe3,
+        activation_q_pair01, activation_scale_pair01,
+        activation_q_pair23, activation_scale_pair23,
+        input_quantized_pair01_stream, input_scale_pair01_stream,
+        input_quantized_pair23_stream, input_scale_pair23_stream,
+        stream_activation, cache_stream_activation,
+        output_pe0, output_pe1, output_pe2, output_pe3,
+        local_tiles_0, local_tiles_1,
+        local_tiles_2, local_tiles_3,
+        shape.input_tiles, linear_mode,
+        weight_word_offset, weight_scale_word_offset);
 }
 
 void int4_linear_4pe_from_stream(
@@ -1453,41 +2526,17 @@ void int4_linear_4pe_from_stream(
         return;
     }
 
-    const Int4LinearShape shape =
-        int4_linear_shape_from_controller(controller);
-    if (shape.output_tiles <= 0 || shape.input_tiles <= 0) {
-        controller.run_linear = INT4_LAZY;
-        return;
-    }
-
-    const bool output_fxp =
-        controller.linear_mode == INT4_LINEAR_Q ||
-        controller.linear_mode == INT4_LINEAR_K ||
-        controller.linear_mode == INT4_LINEAR_V;
-    const bool fuse_residual =
-        controller.linear_mode == INT4_LINEAR_O ||
-        controller.linear_mode == INT4_LINEAR_DOWN;
-    const int local_tiles_0 =
-        int4_local_tile_count(shape.output_tiles, 0);
-    const int local_tiles_1 =
-        int4_local_tile_count(shape.output_tiles, 1);
-    const int local_tiles_2 =
-        int4_local_tile_count(shape.output_tiles, 2);
-    const int local_tiles_3 =
-        int4_local_tile_count(shape.output_tiles, 3);
-
-    int4_run_four_pes(
+    int4_linear_4pe_from_stream_command(
         weight_pe0, weight_pe1, weight_pe2, weight_pe3,
         scale_pe0, scale_pe1, scale_pe2, scale_pe3,
         activation_q, activation_scale,
         input_quantized_stream, input_scale_stream,
-        stream_activation,
+        stream_activation, true,
         output_pe0, output_pe1, output_pe2, output_pe3,
-        local_tiles_0, local_tiles_1,
-        local_tiles_2, local_tiles_3,
-        shape.input_tiles, output_fxp, fuse_residual);
+        (ap_uint<3>)controller.linear_mode,
+        controller.weight_word_offset,
+        controller.weight_scale_word_offset);
 
-    int4_advance_model_offsets_after_linear(controller);
-    int4_advance_controller_after_linear(controller);
+    int4_complete_linear_dispatch(controller);
 }
 #endif

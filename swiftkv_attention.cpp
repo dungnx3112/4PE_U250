@@ -67,6 +67,50 @@ static ap_int<32> swiftkv_q17_mul_add_rope_raw(
     return (ap_int<32>)shifted;
 }
 
+// Rotate one complete 512-bit Q or K word through a compact eight-phase
+// engine.  The previous sixteen-phase loop multiplexed Q and K state under
+// one phase bit; its loop-init/reset net drove roughly 1,463 loads in the
+// routed checkpoint.  Reusing this child function for two sequential calls
+// keeps the same multiplier count and sixteen issued pair operations per
+// word; only a small pipeline-drain latency is added while Q and K gain the
+// same branch-free local controller.
+static int4_output_word_t swiftkv_rotate_rope_word(
+    int4_output_word_t input_word,
+    const swiftkv_rope_raw_t cosine[SWIFTKV_ROPE_PAIRS],
+    const swiftkv_rope_raw_t sine[SWIFTKV_ROPE_PAIRS],
+    int word
+) {
+#pragma HLS INLINE off
+    int4_output_word_t rotated_word = 0;
+
+rotate_rope_word_pair_loop:
+    for (int pair = 0; pair < 8; ++pair) {
+#pragma HLS PIPELINE II=1 style=stp
+#pragma HLS LOOP_TRIPCOUNT min=8 max=8
+        const int index = word * 16 + pair * 2;
+        const swiftkv_rope_raw_t pair_cosine = cosine[index >> 1];
+        const swiftkv_rope_raw_t pair_sine = sine[index >> 1];
+        const ap_int<32> input_0 =
+            (ap_int<32>)input_word.range(31, 0);
+        const ap_int<32> input_1 =
+            (ap_int<32>)input_word.range(63, 32);
+        int4_fxp32_t rotated_0;
+        int4_fxp32_t rotated_1;
+        rotated_0.range(31, 0) = swiftkv_q17_mul_add_rope_raw(
+            input_0, pair_cosine, input_1, pair_sine, true);
+        rotated_1.range(31, 0) = swiftkv_q17_mul_add_rope_raw(
+            input_0, pair_sine, input_1, pair_cosine, false);
+
+        ap_uint<64> rotated_pair = 0;
+        rotated_pair.range(31, 0) = swiftkv_fxp_to_bits(rotated_0);
+        rotated_pair.range(63, 32) = swiftkv_fxp_to_bits(rotated_1);
+        input_word >>= 64;
+        rotated_word >>= 64;
+        rotated_word.range(511, 448) = rotated_pair;
+    }
+    return rotated_word;
+}
+
 using swiftkv_log2_t =
     ap_fixed<24, 7, AP_RND_CONV, AP_WRAP>;
 using swiftkv_log2_coeff_t =
@@ -360,8 +404,10 @@ static ap_int<8> swiftkv_quantize_kv_raw(
         shift == 0
             ? (ap_uint<32>)0
             : (ap_uint<32>)1 << ((int)shift - 1);
+    const ap_uint<32> rounded_magnitude = magnitude + rounding;
+#pragma HLS BIND_OP variable=rounded_magnitude op=add impl=fabric latency=1
     ap_uint<32> quantized_magnitude =
-        (magnitude + rounding) >> (int)shift;
+        rounded_magnitude >> (int)shift;
     if (quantized_magnitude > 127) {
         quantized_magnitude = 127;
     }
@@ -685,11 +731,30 @@ read_compressed_kv_loop:
     }
 }
 
+// Convert the five scalar words into a local FIFO inside the attention
+// DATAFLOW region.  Passing the complete-partitioned array through the
+// function boundary created a PIPO whose ap_ready/val_read controls drove
+// roughly 1.8k loads per PE after placement.
+static void swiftkv_emit_current_record(
+    int4_output_word_t metadata,
+    int4_output_word_t key0,
+    int4_output_word_t key1,
+    int4_output_word_t value0,
+    int4_output_word_t value1,
+    hls::stream<int4_output_word_t>& current_record_stream
+) {
+#pragma HLS INLINE off
+    current_record_stream.write(metadata);
+    current_record_stream.write(key0);
+    current_record_stream.write(key1);
+    current_record_stream.write(value0);
+    current_record_stream.write(value1);
+}
+
 static void swiftkv_route_compressed_kv_cache(
     ap_uint<12> position,
-    const int4_output_word_t
-        current_record[SWIFTKV_KV_WORDS_PER_TOKEN_HEAD],
     hls::stream<int4_output_word_t>& cached_kv_word_stream,
+    hls::stream<int4_output_word_t>& current_record_stream,
     hls::stream<ap_uint<40> >& key_metadata_stream,
     hls::stream<ap_uint<40> >& value_metadata_stream,
     hls::stream<int4_output_word_t>& key0_stream,
@@ -708,36 +773,103 @@ static void swiftkv_route_compressed_kv_cache(
     const int cached_words =
         cached_tokens *
         SWIFTKV_KV_WORDS_PER_TOKEN_HEAD;
-route_cached_compressed_kv_loop:
-    for (int word = 0; word < cached_words; ++word) {
-#pragma HLS PIPELINE II=1
-#pragma HLS LOOP_TRIPCOUNT min=0 max=20475
-        const int4_output_word_t value =
-            cached_kv_word_stream.read();
-        swiftkv_route_compressed_kv_word(
-            word % SWIFTKV_KV_WORDS_PER_TOKEN_HEAD, value,
-            key_metadata_stream, value_metadata_stream,
-            key0_stream, key1_stream,
-            value0_engine0_stream, value0_engine1_stream,
-            value0_engine2_stream, value0_engine3_stream,
-            value1_engine0_stream, value1_engine1_stream,
-            value1_engine2_stream, value1_engine3_stream);
-    }
+    const int total_words =
+        cached_words + SWIFTKV_KV_WORDS_PER_TOKEN_HEAD;
+    ap_uint<3> record_word = 0;
 
-stream_current_compressed_kv_loop:
-    for (int word = 0;
-         word < SWIFTKV_KV_WORDS_PER_TOKEN_HEAD;
-         ++word) {
+// Keep one word/cycle, but use the normal stallable pipeline.  The former FRP
+// implementation generated a 4,702-load initialization/control cone; its
+// replicated ap_loop_init/ap_start registers became routed critical paths in
+// PE3.  This loop has natural FIFO back-pressure, so FRP adds control without
+// adding useful throughput.
+route_all_compressed_kv_loop:
+    for (int word = 0; word < total_words; ++word) {
 #pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=5 max=20480
+        const bool is_cached = word < cached_words;
+        const int4_output_word_t value = is_cached
+            ? cached_kv_word_stream.read()
+            : current_record_stream.read();
         swiftkv_route_compressed_kv_word(
-            word, current_record[word],
+            (int)record_word, value,
             key_metadata_stream, value_metadata_stream,
             key0_stream, key1_stream,
             value0_engine0_stream, value0_engine1_stream,
             value0_engine2_stream, value0_engine3_stream,
             value1_engine0_stream, value1_engine1_stream,
             value1_engine2_stream, value1_engine3_stream);
+        record_word =
+            record_word == SWIFTKV_KV_WORDS_PER_TOKEN_HEAD - 1
+                ? (ap_uint<3>)0
+                : (ap_uint<3>)(record_word + 1);
     }
+}
+
+static void swiftkv_split_packed_key_word(
+    const int4_output_word_t packed_key,
+    hls::stream<swiftkv_update_engine_word_t>& chunk0_stream,
+    hls::stream<swiftkv_update_engine_word_t>& chunk1_stream,
+    hls::stream<swiftkv_update_engine_word_t>& chunk2_stream,
+    hls::stream<swiftkv_update_engine_word_t>& chunk3_stream
+) {
+#pragma HLS INLINE
+    chunk0_stream.write(packed_key.range(127, 0));
+    chunk1_stream.write(packed_key.range(255, 128));
+    chunk2_stream.write(packed_key.range(383, 256));
+    chunk3_stream.write(packed_key.range(511, 384));
+}
+
+template <int KEY_WORD>
+static void swiftkv_split_packed_key_stream_body(
+    hls::stream<int4_output_word_t>& packed_key_stream,
+    hls::stream<swiftkv_update_engine_word_t>& chunk0_stream,
+    hls::stream<swiftkv_update_engine_word_t>& chunk1_stream,
+    hls::stream<swiftkv_update_engine_word_t>& chunk2_stream,
+    hls::stream<swiftkv_update_engine_word_t>& chunk3_stream,
+    ap_uint<12> position
+) {
+#pragma HLS INLINE
+split_packed_key_token_loop:
+    for (int token = 0; token <= (int)position; ++token) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=1 max=SWIFTKV_MAX_SEQ_LEN
+        swiftkv_split_packed_key_word(
+            packed_key_stream.read(),
+            chunk0_stream, chunk1_stream,
+            chunk2_stream, chunk3_stream);
+    }
+}
+
+static void swiftkv_split_packed_key0_stream(
+    hls::stream<int4_output_word_t>& packed_key0_stream,
+    hls::stream<swiftkv_update_engine_word_t>& key0_chunk0_stream,
+    hls::stream<swiftkv_update_engine_word_t>& key0_chunk1_stream,
+    hls::stream<swiftkv_update_engine_word_t>& key0_chunk2_stream,
+    hls::stream<swiftkv_update_engine_word_t>& key0_chunk3_stream,
+    ap_uint<12> position
+) {
+#pragma HLS INLINE off
+    swiftkv_split_packed_key_stream_body<0>(
+        packed_key0_stream,
+        key0_chunk0_stream, key0_chunk1_stream,
+        key0_chunk2_stream, key0_chunk3_stream,
+        position);
+}
+
+static void swiftkv_split_packed_key1_stream(
+    hls::stream<int4_output_word_t>& packed_key1_stream,
+    hls::stream<swiftkv_update_engine_word_t>& key1_chunk0_stream,
+    hls::stream<swiftkv_update_engine_word_t>& key1_chunk1_stream,
+    hls::stream<swiftkv_update_engine_word_t>& key1_chunk2_stream,
+    hls::stream<swiftkv_update_engine_word_t>& key1_chunk3_stream,
+    ap_uint<12> position
+) {
+#pragma HLS INLINE off
+    swiftkv_split_packed_key_stream_body<1>(
+        packed_key1_stream,
+        key1_chunk0_stream, key1_chunk1_stream,
+        key1_chunk2_stream, key1_chunk3_stream,
+        position);
 }
 
 static int4_output_word_t swiftkv_expand_kv_chunk(
@@ -834,87 +966,92 @@ dot_int8_reduce_2_loop:
 static void swiftkv_process_compressed_kv(
     const int4_fxp32_t query[SWIFTKV_HEAD_SIZE],
     hls::stream<ap_uint<40> >& key_metadata_stream,
-    hls::stream<int4_output_word_t>& key0_stream,
-    hls::stream<int4_output_word_t>& key1_stream,
+    hls::stream<swiftkv_update_engine_word_t>& key0_chunk0_stream,
+    hls::stream<swiftkv_update_engine_word_t>& key0_chunk1_stream,
+    hls::stream<swiftkv_update_engine_word_t>& key0_chunk2_stream,
+    hls::stream<swiftkv_update_engine_word_t>& key0_chunk3_stream,
+    hls::stream<swiftkv_update_engine_word_t>& key1_chunk0_stream,
+    hls::stream<swiftkv_update_engine_word_t>& key1_chunk1_stream,
+    hls::stream<swiftkv_update_engine_word_t>& key1_chunk2_stream,
+    hls::stream<swiftkv_update_engine_word_t>& key1_chunk3_stream,
     ap_uint<12> position,
     hls::stream<int4_fxp32_t>& score_stream
 ) {
 #pragma HLS INLINE off
     const int4_fxp32_t score_scale =
         (int4_fxp32_t)0.08838834764831845;
-    const int total_phases = ((int)position + 1) * 8;
-    ap_uint<128> key_chunk[8];
-    swiftkv_kv_shift_t key_shift[4];
+    // The old single phase loop performed three blocking FIFO reads in phase
+    // zero.  Its stall enable was consequently replicated into 1,044--1,097
+    // arithmetic registers per PE in the routed DCP.  Read one complete key
+    // record before starting a fixed, free-running eight-phase dot pipeline;
+    // only the narrow record boundary can now stall.
+compressed_dot_token_loop:
+    for (int token = 0; token <= (int)position; ++token) {
+#pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min=1 max=SWIFTKV_MAX_SEQ_LEN
+        const ap_uint<40> metadata = key_metadata_stream.read();
+        ap_uint<128> key_chunk[8];
+        swiftkv_kv_shift_t key_shift[4];
 #pragma HLS ARRAY_PARTITION variable=key_chunk complete
 #pragma HLS ARRAY_PARTITION variable=key_shift complete
-    swiftkv_dot_t group_first_half = 0;
-    swiftkv_dot_t token_dot = 0;
-
-compressed_dot_phase_loop:
-    for (int dot_phase = 0;
-         dot_phase < total_phases;
-         ++dot_phase) {
-#pragma HLS PIPELINE II=1
-#pragma HLS LOOP_TRIPCOUNT min=8 max=32768
-        const int phase = dot_phase & 7;
-        if (phase == 0) {
-            const ap_uint<40> metadata =
-                key_metadata_stream.read();
-            const int4_output_word_t packed_k0 =
-                key0_stream.read();
-            const int4_output_word_t packed_k1 =
-                key1_stream.read();
-    split_compressed_key_loop:
-            for (int chunk = 0; chunk < 4; ++chunk) {
-#pragma HLS UNROLL
-                key_chunk[chunk] =
-                    packed_k0.range(
-                        128 * chunk + 127, 128 * chunk);
-                key_chunk[chunk + 4] =
-                    packed_k1.range(
-                        128 * chunk + 127, 128 * chunk);
-            }
+        key_chunk[0] = key0_chunk0_stream.read();
+        key_chunk[1] = key0_chunk1_stream.read();
+        key_chunk[2] = key0_chunk2_stream.read();
+        key_chunk[3] = key0_chunk3_stream.read();
+        key_chunk[4] = key1_chunk0_stream.read();
+        key_chunk[5] = key1_chunk1_stream.read();
+        key_chunk[6] = key1_chunk2_stream.read();
+        key_chunk[7] = key1_chunk3_stream.read();
     extract_key_shift_loop:
-            for (int group = 0;
-                 group < SWIFTKV_KV_GROUPS_PER_HEAD;
-                 ++group) {
+        for (int group = 0;
+             group < SWIFTKV_KV_GROUPS_PER_HEAD;
+             ++group) {
 #pragma HLS UNROLL
-                key_shift[group] = metadata.range(
-                    group * SWIFTKV_KV_SCALE_SHIFT_BITS +
-                        SWIFTKV_KV_SCALE_SHIFT_BITS - 1,
-                    group * SWIFTKV_KV_SCALE_SHIFT_BITS);
-            }
+            key_shift[group] = metadata.range(
+                group * SWIFTKV_KV_SCALE_SHIFT_BITS +
+                    SWIFTKV_KV_SCALE_SHIFT_BITS - 1,
+                group * SWIFTKV_KV_SCALE_SHIFT_BITS);
         }
 
-        const int group = phase >> 1;
-        const int half = phase & 1;
-        int4_fxp32_t query_lanes[16];
+        swiftkv_dot_t group_first_half = 0;
+        swiftkv_dot_t token_dot = 0;
+    compressed_dot_phase_loop:
+        for (int phase = 0; phase < 8; ++phase) {
+// The record reads already sit outside this fixed phase loop.  FRP therefore
+// adds no useful decoupling here, but HLS estimates a 7,360-load global
+// control net for it.  The standard II=1 controller keeps backpressure local
+// to score_stream and lets RTL synthesis replicate the small stage enables.
+#pragma HLS PIPELINE II=1 style=stp
+#pragma HLS LOOP_TRIPCOUNT min=8 max=8
+            const int group = phase >> 1;
+            const int half = phase & 1;
+            int4_fxp32_t query_lanes[16];
 #pragma HLS ARRAY_PARTITION variable=query_lanes complete
-    load_compressed_dot_query_loop:
-        for (int lane = 0; lane < 16; ++lane) {
+        load_compressed_dot_query_loop:
+            for (int lane = 0; lane < 16; ++lane) {
 #pragma HLS UNROLL
-            query_lanes[lane] =
-                query[group * SWIFTKV_KV_GROUP_SIZE +
-                      half * 16 + lane];
-        }
-        const swiftkv_dot_t partial =
-            swiftkv_dot16_int8(
+                query_lanes[lane] = query[
+                    group * SWIFTKV_KV_GROUP_SIZE +
+                    half * 16 + lane];
+            }
+            const swiftkv_dot_t partial = swiftkv_dot16_int8(
                 query_lanes, key_chunk[phase], key_shift[group]);
-        if (half == 0) {
-            group_first_half = partial;
-        } else {
-            const swiftkv_dot_t group_dot =
-                (swiftkv_dot_t)(group_first_half + partial);
-            const swiftkv_dot_t next_dot =
-                group == 0
-                    ? group_dot
-                    : (swiftkv_dot_t)(token_dot + group_dot);
-            token_dot = next_dot;
-            if (group == SWIFTKV_KV_GROUPS_PER_HEAD - 1) {
-                const int4_fxp32_t score =
-                    (int4_fxp32_t)(next_dot * score_scale);
+            if (half == 0) {
+                group_first_half = partial;
+            } else {
+                const swiftkv_dot_t group_dot =
+                    (swiftkv_dot_t)(group_first_half + partial);
+                const swiftkv_dot_t next_dot =
+                    group == 0
+                        ? group_dot
+                        : (swiftkv_dot_t)(token_dot + group_dot);
+                token_dot = next_dot;
+                if (group == SWIFTKV_KV_GROUPS_PER_HEAD - 1) {
+                    const int4_fxp32_t score =
+                        (int4_fxp32_t)(next_dot * score_scale);
 #pragma HLS BIND_OP variable=score op=mul impl=dsp latency=4
-                score_stream.write(score);
+                    score_stream.write(score);
+                }
             }
         }
     }
@@ -1567,8 +1704,11 @@ static void swiftkv_attention_head(
     const int4_fxp32_t query[SWIFTKV_HEAD_SIZE],
     const int4_output_word_t* kv_cache,
     int head_base,
-    const int4_output_word_t
-        current_record[SWIFTKV_KV_WORDS_PER_TOKEN_HEAD],
+    int4_output_word_t current_metadata,
+    int4_output_word_t current_key0,
+    int4_output_word_t current_key1,
+    int4_output_word_t current_value0,
+    int4_output_word_t current_value1,
     ap_uint<12> position,
     hls::stream<int4_quant_word_t>& quantized_stream,
     hls::stream<float>& scale_stream
@@ -1578,10 +1718,19 @@ static void swiftkv_attention_head(
 
     hls::stream<int4_fxp32_t> score_stream;
     hls::stream<int4_output_word_t> cached_kv_word_stream;
+    hls::stream<int4_output_word_t> current_record_stream;
     hls::stream<ap_uint<40> > key_metadata_stream;
     hls::stream<ap_uint<40> > value_metadata_stream;
-    hls::stream<int4_output_word_t> key0_stream;
-    hls::stream<int4_output_word_t> key1_stream;
+    hls::stream<int4_output_word_t> packed_key0_stream;
+    hls::stream<int4_output_word_t> packed_key1_stream;
+    hls::stream<swiftkv_update_engine_word_t> key0_chunk0_stream;
+    hls::stream<swiftkv_update_engine_word_t> key0_chunk1_stream;
+    hls::stream<swiftkv_update_engine_word_t> key0_chunk2_stream;
+    hls::stream<swiftkv_update_engine_word_t> key0_chunk3_stream;
+    hls::stream<swiftkv_update_engine_word_t> key1_chunk0_stream;
+    hls::stream<swiftkv_update_engine_word_t> key1_chunk1_stream;
+    hls::stream<swiftkv_update_engine_word_t> key1_chunk2_stream;
+    hls::stream<swiftkv_update_engine_word_t> key1_chunk3_stream;
     hls::stream<swiftkv_update_engine_word_t> value0_engine0_stream;
     hls::stream<swiftkv_update_engine_word_t> value0_engine1_stream;
     hls::stream<swiftkv_update_engine_word_t> value0_engine2_stream;
@@ -1597,10 +1746,19 @@ static void swiftkv_attention_head(
     // five-word record router.  BRAM is deliberate: an SRL FIFO this wide
     // would recreate the high-fanout LUT/FF control path seen after routing.
 #pragma HLS STREAM variable=cached_kv_word_stream depth=64
+#pragma HLS STREAM variable=current_record_stream depth=8
 #pragma HLS STREAM variable=key_metadata_stream depth=SWIFTKV_KV_TILE_TOKENS
 #pragma HLS STREAM variable=value_metadata_stream depth=SWIFTKV_KV_TILE_TOKENS
-#pragma HLS STREAM variable=key0_stream depth=SWIFTKV_KV_TILE_TOKENS
-#pragma HLS STREAM variable=key1_stream depth=SWIFTKV_KV_TILE_TOKENS
+#pragma HLS STREAM variable=packed_key0_stream depth=2
+#pragma HLS STREAM variable=packed_key1_stream depth=2
+#pragma HLS STREAM variable=key0_chunk0_stream depth=SWIFTKV_KV_TILE_TOKENS
+#pragma HLS STREAM variable=key0_chunk1_stream depth=SWIFTKV_KV_TILE_TOKENS
+#pragma HLS STREAM variable=key0_chunk2_stream depth=SWIFTKV_KV_TILE_TOKENS
+#pragma HLS STREAM variable=key0_chunk3_stream depth=SWIFTKV_KV_TILE_TOKENS
+#pragma HLS STREAM variable=key1_chunk0_stream depth=SWIFTKV_KV_TILE_TOKENS
+#pragma HLS STREAM variable=key1_chunk1_stream depth=SWIFTKV_KV_TILE_TOKENS
+#pragma HLS STREAM variable=key1_chunk2_stream depth=SWIFTKV_KV_TILE_TOKENS
+#pragma HLS STREAM variable=key1_chunk3_stream depth=SWIFTKV_KV_TILE_TOKENS
 #pragma HLS STREAM variable=value0_engine0_stream depth=SWIFTKV_KV_TILE_TOKENS
 #pragma HLS STREAM variable=value0_engine1_stream depth=SWIFTKV_KV_TILE_TOKENS
 #pragma HLS STREAM variable=value0_engine2_stream depth=SWIFTKV_KV_TILE_TOKENS
@@ -1613,13 +1771,28 @@ static void swiftkv_attention_head(
 #pragma HLS STREAM variable=inverse_normalization_stream depth=2
 #pragma HLS BIND_STORAGE variable=score_stream type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=cached_kv_word_stream type=fifo impl=bram
+    // The routed checkpoint measured 605 sinks on each emitter push net and
+    // -1.527 ns worst slack.  A 512-bit distributed FIFO replicates its
+    // write-enable into hundreds of LUTRAM slices; BRAM terminates that cone
+    // at a hard-block port while preserving the five-word record protocol.
+#pragma HLS BIND_STORAGE variable=current_record_stream type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=key_metadata_stream type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=value_metadata_stream type=fifo impl=srl
-    // The V path is physically split by update-engine ownership.  Eight
-    // 128-bit FIFOs preserve the total buffered bit capacity of two 512-bit
-    // V streams while terminating each path at its four-lane local engine.
-#pragma HLS BIND_STORAGE variable=key0_stream type=fifo impl=uram
-#pragma HLS BIND_STORAGE variable=key1_stream type=fifo impl=uram
+    // Terminate each packed K word at a two-entry local register boundary,
+    // then split it into four 128-bit BRAM FIFOs.  This removes the routed
+    // w512_d32 URAM port/control path while preserving the 32-token elasticity
+    // and one-record-per-cycle splitter throughput.  The V path is already
+    // split by update-engine ownership.
+#pragma HLS BIND_STORAGE variable=packed_key0_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=packed_key1_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=key0_chunk0_stream type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=key0_chunk1_stream type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=key0_chunk2_stream type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=key0_chunk3_stream type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=key1_chunk0_stream type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=key1_chunk1_stream type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=key1_chunk2_stream type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=key1_chunk3_stream type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=value0_engine0_stream type=fifo impl=uram
 #pragma HLS BIND_STORAGE variable=value0_engine1_stream type=fifo impl=uram
 #pragma HLS BIND_STORAGE variable=value0_engine2_stream type=fifo impl=uram
@@ -1631,19 +1804,37 @@ static void swiftkv_attention_head(
 #pragma HLS BIND_STORAGE variable=control_stream type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=inverse_normalization_stream type=fifo impl=srl
 
+    swiftkv_emit_current_record(
+        current_metadata, current_key0, current_key1,
+        current_value0, current_value1,
+        current_record_stream);
     swiftkv_read_compressed_kv_cache(
         kv_cache, head_base, position,
         cached_kv_word_stream);
     swiftkv_route_compressed_kv_cache(
-        position, current_record, cached_kv_word_stream,
+        position, cached_kv_word_stream, current_record_stream,
         key_metadata_stream, value_metadata_stream,
-        key0_stream, key1_stream,
+        packed_key0_stream, packed_key1_stream,
         value0_engine0_stream, value0_engine1_stream,
         value0_engine2_stream, value0_engine3_stream,
         value1_engine0_stream, value1_engine1_stream,
         value1_engine2_stream, value1_engine3_stream);
+    swiftkv_split_packed_key0_stream(
+        packed_key0_stream,
+        key0_chunk0_stream, key0_chunk1_stream,
+        key0_chunk2_stream, key0_chunk3_stream,
+        position);
+    swiftkv_split_packed_key1_stream(
+        packed_key1_stream,
+        key1_chunk0_stream, key1_chunk1_stream,
+        key1_chunk2_stream, key1_chunk3_stream,
+        position);
     swiftkv_process_compressed_kv(
-        query, key_metadata_stream, key0_stream, key1_stream,
+        query, key_metadata_stream,
+        key0_chunk0_stream, key0_chunk1_stream,
+        key0_chunk2_stream, key0_chunk3_stream,
+        key1_chunk0_stream, key1_chunk1_stream,
+        key1_chunk2_stream, key1_chunk3_stream,
         position, score_stream);
     swiftkv_coefficient_producer(
         score_stream, position,
@@ -1659,102 +1850,318 @@ static void swiftkv_attention_head(
         quantized_stream, scale_stream);
 }
 
-void swiftkv_preload_rope_lut(
+static swiftkv_rope_lut_word_t swiftkv_read_rope_lut_word(
     const int4_output_word_t* rope_lut_ddr,
-    swiftkv_rope_lut_word_t rope_lut[SWIFTKV_ROPE_LUT_WORDS]
+    int address
 ) {
-#pragma HLS INLINE off
-
-// Each 608-bit URAM row occupies two sequential 512-bit DDR words.  The
-// second word uses only its low 96 bits; retaining a fixed two-beat record
-// keeps the source address unit-stride and lets the AXI master form one long
-// 2 MiB burst at sequence start.
-preload_rope_lut_loop:
-    for (int address = 0;
-         address < SWIFTKV_ROPE_LUT_WORDS;
-         ++address) {
-#pragma HLS PIPELINE II=2
-        const int ddr_address =
-            address * SWIFTKV_ROPE_DDR_WORDS_PER_LUT_WORD;
-        const int4_output_word_t low =
-            rope_lut_ddr[ddr_address];
-        const int4_output_word_t high =
-            rope_lut_ddr[ddr_address + 1];
-        swiftkv_rope_lut_word_t packed = 0;
-        packed.range(511, 0) = low;
-        packed.range(SWIFTKV_ROPE_LUT_WORD_BITS - 1, 512) =
-            high.range(SWIFTKV_ROPE_LUT_WORD_BITS - 513, 0);
-        rope_lut[address] = packed;
-    }
+#pragma HLS INLINE
+    const int ddr_address =
+        address * SWIFTKV_ROPE_DDR_WORDS_PER_LUT_WORD;
+    const int4_output_word_t low = rope_lut_ddr[ddr_address];
+    const int4_output_word_t high = rope_lut_ddr[ddr_address + 1];
+    swiftkv_rope_lut_word_t packed = 0;
+    packed.range(511, 0) = low;
+    packed.range(SWIFTKV_ROPE_LUT_WORD_BITS - 1, 512) =
+        high.range(SWIFTKV_ROPE_LUT_WORD_BITS - 513, 0);
+    return packed;
 }
 
-void swiftkv_load_rope_position(
-    const swiftkv_rope_lut_word_t
-        rope_lut[SWIFTKV_ROPE_LUT_WORDS],
-    ap_uint<12> position,
-    swiftkv_rope_raw_t current_cos[SWIFTKV_ROPE_PAIRS],
-    swiftkv_rope_raw_t current_sin[SWIFTKV_ROPE_PAIRS]
+static void swiftkv_preload_rope_reader_bank0(
+    const int4_output_word_t* rope_lut_ddr,
+    swiftkv_rope_lut_word_t rope_lut_bank0[SWIFTKV_ROPE_BANK_WORDS],
+    hls::stream<swiftkv_rope_lut_beat_t>& rope_stream01
 ) {
 #pragma HLS INLINE off
-
-// Four 608-bit ROM rows describe one position.  Keep the destination arrays
-// single-ported and unpack one pair/cycle: RoPE is loaded only for layer zero
-// and the same coefficients are reused by all remaining decoder layers.
-rope_lut_group_loop:
-    for (int group = 0;
-         group < SWIFTKV_ROPE_LUT_WORDS_PER_POSITION;
-         ++group) {
-        const int address =
-            (int)position * SWIFTKV_ROPE_LUT_WORDS_PER_POSITION +
-            group;
-        ap_uint<SWIFTKV_ROPE_LUT_WORD_BITS> packed =
-            rope_lut[address];
-
-    rope_lut_lane_loop:
-        for (int lane = 0;
-             lane < SWIFTKV_ROPE_PAIRS_PER_LUT_WORD;
-             ++lane) {
+rope_preload_reader_position_loop:
+    for (int rope_position = 0;
+         rope_position < SWIFTKV_ROPE_BANK_WORDS;
+         ++rope_position) {
+    rope_preload_reader_bank_loop:
+        for (int bank = 0; bank < SWIFTKV_ROPE_BANKS; ++bank) {
+            const int address =
+                rope_position * SWIFTKV_ROPE_BANKS + bank;
+            swiftkv_rope_lut_word_t packed =
+                swiftkv_read_rope_lut_word(rope_lut_ddr, address);
+            if (bank == 0) {
+                rope_lut_bank0[rope_position] = packed;
+            } else {
+            rope_preload_reader_serialize_loop:
+                for (int beat = 0;
+                     beat < SWIFTKV_ROPE_LUT_BEATS_PER_WORD;
+                     ++beat) {
 #pragma HLS PIPELINE II=1
-            const int index =
-                group * SWIFTKV_ROPE_PAIRS_PER_LUT_WORD +
-                lane;
-            current_cos[index] =
-                (swiftkv_rope_raw_t)packed.range(18, 0);
-            current_sin[index] =
-                (swiftkv_rope_raw_t)packed.range(37, 19);
-            packed >>= 38;
+                    rope_stream01.write(
+                        (swiftkv_rope_lut_beat_t)packed.range(
+                            SWIFTKV_ROPE_LUT_BEAT_BITS - 1, 0));
+                    packed >>= SWIFTKV_ROPE_LUT_BEAT_BITS;
+                }
+            }
         }
     }
 }
 
-static void swiftkv_broadcast_rope(
-    const swiftkv_rope_raw_t current_cos[SWIFTKV_ROPE_PAIRS],
-    const swiftkv_rope_raw_t current_sin[SWIFTKV_ROPE_PAIRS],
+static void swiftkv_preload_rope_bank1_stage(
+    hls::stream<swiftkv_rope_lut_beat_t>& rope_stream01,
+    swiftkv_rope_lut_word_t rope_lut_bank1[SWIFTKV_ROPE_BANK_WORDS],
+    hls::stream<swiftkv_rope_lut_beat_t>& rope_stream12
+) {
+#pragma HLS INLINE off
+rope_preload_bank1_position_loop:
+    for (int rope_position = 0;
+         rope_position < SWIFTKV_ROPE_BANK_WORDS;
+         ++rope_position) {
+        swiftkv_rope_lut_word_t packed = 0;
+    rope_preload_bank1_receive_loop:
+        for (int beat = 0;
+             beat < SWIFTKV_ROPE_LUT_BEATS_PER_WORD;
+             ++beat) {
+#pragma HLS PIPELINE II=1
+            packed >>= SWIFTKV_ROPE_LUT_BEAT_BITS;
+            packed.range(
+                SWIFTKV_ROPE_LUT_WORD_BITS - 1,
+                SWIFTKV_ROPE_LUT_WORD_BITS -
+                    SWIFTKV_ROPE_LUT_BEAT_BITS) = rope_stream01.read();
+        }
+        rope_lut_bank1[rope_position] = packed;
+    rope_preload_bank1_forward_bank2_loop:
+        for (int beat = 0;
+             beat < SWIFTKV_ROPE_LUT_BEATS_PER_WORD;
+             ++beat) {
+#pragma HLS PIPELINE II=1
+            rope_stream12.write(rope_stream01.read());
+        }
+    rope_preload_bank1_forward_bank3_loop:
+        for (int beat = 0;
+             beat < SWIFTKV_ROPE_LUT_BEATS_PER_WORD;
+             ++beat) {
+#pragma HLS PIPELINE II=1
+            rope_stream12.write(rope_stream01.read());
+        }
+    }
+}
+
+static void swiftkv_preload_rope_bank2_stage(
+    hls::stream<swiftkv_rope_lut_beat_t>& rope_stream12,
+    swiftkv_rope_lut_word_t rope_lut_bank2[SWIFTKV_ROPE_BANK_WORDS],
+    hls::stream<swiftkv_rope_lut_beat_t>& rope_stream23
+) {
+#pragma HLS INLINE off
+rope_preload_bank2_position_loop:
+    for (int rope_position = 0;
+         rope_position < SWIFTKV_ROPE_BANK_WORDS;
+         ++rope_position) {
+        swiftkv_rope_lut_word_t packed = 0;
+    rope_preload_bank2_receive_loop:
+        for (int beat = 0;
+             beat < SWIFTKV_ROPE_LUT_BEATS_PER_WORD;
+             ++beat) {
+#pragma HLS PIPELINE II=1
+            packed >>= SWIFTKV_ROPE_LUT_BEAT_BITS;
+            packed.range(
+                SWIFTKV_ROPE_LUT_WORD_BITS - 1,
+                SWIFTKV_ROPE_LUT_WORD_BITS -
+                    SWIFTKV_ROPE_LUT_BEAT_BITS) = rope_stream12.read();
+        }
+        rope_lut_bank2[rope_position] = packed;
+    rope_preload_bank2_forward_bank3_loop:
+        for (int beat = 0;
+             beat < SWIFTKV_ROPE_LUT_BEATS_PER_WORD;
+             ++beat) {
+#pragma HLS PIPELINE II=1
+            rope_stream23.write(rope_stream12.read());
+        }
+    }
+}
+
+static void swiftkv_preload_rope_bank3_stage(
+    hls::stream<swiftkv_rope_lut_beat_t>& rope_stream23,
+    swiftkv_rope_lut_word_t rope_lut_bank3[SWIFTKV_ROPE_BANK_WORDS]
+) {
+#pragma HLS INLINE off
+rope_preload_bank3_position_loop:
+    for (int rope_position = 0;
+         rope_position < SWIFTKV_ROPE_BANK_WORDS;
+         ++rope_position) {
+        swiftkv_rope_lut_word_t packed = 0;
+    rope_preload_bank3_receive_loop:
+        for (int beat = 0;
+             beat < SWIFTKV_ROPE_LUT_BEATS_PER_WORD;
+             ++beat) {
+#pragma HLS PIPELINE II=1
+            packed >>= SWIFTKV_ROPE_LUT_BEAT_BITS;
+            packed.range(
+                SWIFTKV_ROPE_LUT_WORD_BITS - 1,
+                SWIFTKV_ROPE_LUT_WORD_BITS -
+                    SWIFTKV_ROPE_LUT_BEAT_BITS) = rope_stream23.read();
+        }
+        rope_lut_bank3[rope_position] = packed;
+    }
+}
+
+void swiftkv_preload_rope_lut(
+    const int4_output_word_t* rope_lut_ddr,
+    swiftkv_rope_lut_word_t rope_lut_bank0[SWIFTKV_ROPE_BANK_WORDS],
+    swiftkv_rope_lut_word_t rope_lut_bank1[SWIFTKV_ROPE_BANK_WORDS],
+    swiftkv_rope_lut_word_t rope_lut_bank2[SWIFTKV_ROPE_BANK_WORDS],
+    swiftkv_rope_lut_word_t rope_lut_bank3[SWIFTKV_ROPE_BANK_WORDS]
+) {
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW disable_start_propagation
+
+    // The DDR image remains position-major and bit-for-bit compatible.  A
+    // 38-bit beat contains one cosine/sine pair.  Only this narrow stream
+    // crosses each adjacent SLR boundary; every destination reconstructs the
+    // 608-bit LUT word locally before writing its own URAM bank.  Depth 128
+    // preserves the bit capacity of the former eight-word 608-bit FIFOs.
+    hls::stream<swiftkv_rope_lut_beat_t> rope_stream01;
+    hls::stream<swiftkv_rope_lut_beat_t> rope_stream12;
+    hls::stream<swiftkv_rope_lut_beat_t> rope_stream23;
+#pragma HLS STREAM variable=rope_stream01 depth=128
+#pragma HLS STREAM variable=rope_stream12 depth=128
+#pragma HLS STREAM variable=rope_stream23 depth=128
+#pragma HLS BIND_STORAGE variable=rope_stream01 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=rope_stream12 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=rope_stream23 type=fifo impl=bram
+
+    swiftkv_preload_rope_reader_bank0(
+        rope_lut_ddr, rope_lut_bank0, rope_stream01);
+    swiftkv_preload_rope_bank1_stage(
+        rope_stream01, rope_lut_bank1, rope_stream12);
+    swiftkv_preload_rope_bank2_stage(
+        rope_stream12, rope_lut_bank2, rope_stream23);
+    swiftkv_preload_rope_bank3_stage(
+        rope_stream23, rope_lut_bank3);
+}
+
+template <int BANK_ID>
+static void swiftkv_load_rope_bank_body(
+    const swiftkv_rope_lut_word_t
+        rope_lut_bank[SWIFTKV_ROPE_BANK_WORDS],
+    ap_uint<12> position,
+    swiftkv_rope_raw_t current_cos_pair01[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_sin_pair01[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_cos_pair23[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_sin_pair23[SWIFTKV_ROPE_PAIRS]
+) {
+#pragma HLS INLINE
+    ap_uint<SWIFTKV_ROPE_LUT_WORD_BITS> packed =
+        rope_lut_bank[(int)position];
+load_rope_bank_lane_loop:
+    for (int lane = 0;
+         lane < SWIFTKV_ROPE_PAIRS_PER_LUT_WORD;
+         ++lane) {
+#pragma HLS PIPELINE II=1
+        const int index =
+            BANK_ID * SWIFTKV_ROPE_PAIRS_PER_LUT_WORD + lane;
+        const swiftkv_rope_raw_t cosine =
+            (swiftkv_rope_raw_t)packed.range(18, 0);
+        const swiftkv_rope_raw_t sine =
+            (swiftkv_rope_raw_t)packed.range(37, 19);
+        current_cos_pair01[index] = cosine;
+        current_sin_pair01[index] = sine;
+        current_cos_pair23[index] = cosine;
+        current_sin_pair23[index] = sine;
+        packed >>= 38;
+    }
+}
+
+void swiftkv_load_rope_bank0(
+    const swiftkv_rope_lut_word_t rope_lut_bank[SWIFTKV_ROPE_BANK_WORDS],
+    ap_uint<12> position,
+    swiftkv_rope_raw_t current_cos_pair01[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_sin_pair01[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_cos_pair23[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_sin_pair23[SWIFTKV_ROPE_PAIRS]
+) {
+#pragma HLS INLINE off
+    swiftkv_load_rope_bank_body<0>(
+        rope_lut_bank, position,
+        current_cos_pair01, current_sin_pair01,
+        current_cos_pair23, current_sin_pair23);
+}
+
+void swiftkv_load_rope_bank1(
+    const swiftkv_rope_lut_word_t rope_lut_bank[SWIFTKV_ROPE_BANK_WORDS],
+    ap_uint<12> position,
+    swiftkv_rope_raw_t current_cos_pair01[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_sin_pair01[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_cos_pair23[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_sin_pair23[SWIFTKV_ROPE_PAIRS]
+) {
+#pragma HLS INLINE off
+    swiftkv_load_rope_bank_body<1>(
+        rope_lut_bank, position,
+        current_cos_pair01, current_sin_pair01,
+        current_cos_pair23, current_sin_pair23);
+}
+
+void swiftkv_load_rope_bank2(
+    const swiftkv_rope_lut_word_t rope_lut_bank[SWIFTKV_ROPE_BANK_WORDS],
+    ap_uint<12> position,
+    swiftkv_rope_raw_t current_cos_pair01[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_sin_pair01[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_cos_pair23[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_sin_pair23[SWIFTKV_ROPE_PAIRS]
+) {
+#pragma HLS INLINE off
+    swiftkv_load_rope_bank_body<2>(
+        rope_lut_bank, position,
+        current_cos_pair01, current_sin_pair01,
+        current_cos_pair23, current_sin_pair23);
+}
+
+void swiftkv_load_rope_bank3(
+    const swiftkv_rope_lut_word_t rope_lut_bank[SWIFTKV_ROPE_BANK_WORDS],
+    ap_uint<12> position,
+    swiftkv_rope_raw_t current_cos_pair01[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_sin_pair01[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_cos_pair23[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_sin_pair23[SWIFTKV_ROPE_PAIRS]
+) {
+#pragma HLS INLINE off
+    swiftkv_load_rope_bank_body<3>(
+        rope_lut_bank, position,
+        current_cos_pair01, current_sin_pair01,
+        current_cos_pair23, current_sin_pair23);
+}
+
+static void swiftkv_broadcast_rope_pair01(
+    const swiftkv_rope_raw_t current_cos_pair01[SWIFTKV_ROPE_PAIRS],
+    const swiftkv_rope_raw_t current_sin_pair01[SWIFTKV_ROPE_PAIRS],
     hls::stream<swiftkv_rope_raw_t>& cos_pe0,
     hls::stream<swiftkv_rope_raw_t>& cos_pe1,
+    hls::stream<swiftkv_rope_raw_t>& sin_pe0,
+    hls::stream<swiftkv_rope_raw_t>& sin_pe1
+) {
+#pragma HLS INLINE off
+rope_broadcast_pair01_loop:
+    for (int pair = 0; pair < SWIFTKV_ROPE_PAIRS; ++pair) {
+#pragma HLS PIPELINE II=1
+        const swiftkv_rope_raw_t cosine = current_cos_pair01[pair];
+        const swiftkv_rope_raw_t sine = current_sin_pair01[pair];
+        cos_pe0.write(cosine);
+        cos_pe1.write(cosine);
+        sin_pe0.write(sine);
+        sin_pe1.write(sine);
+    }
+}
+
+static void swiftkv_broadcast_rope_pair23(
+    const swiftkv_rope_raw_t current_cos_pair23[SWIFTKV_ROPE_PAIRS],
+    const swiftkv_rope_raw_t current_sin_pair23[SWIFTKV_ROPE_PAIRS],
     hls::stream<swiftkv_rope_raw_t>& cos_pe2,
     hls::stream<swiftkv_rope_raw_t>& cos_pe3,
-    hls::stream<swiftkv_rope_raw_t>& sin_pe0,
-    hls::stream<swiftkv_rope_raw_t>& sin_pe1,
     hls::stream<swiftkv_rope_raw_t>& sin_pe2,
     hls::stream<swiftkv_rope_raw_t>& sin_pe3
 ) {
 #pragma HLS INLINE off
-
-// Send one position row to every SLR.  Each PE caches the 64 pairs locally
-// and reuses them for its eight heads; no RoPE payload is retransmitted per
-// head across an SLR boundary.
-rope_broadcast_pair_loop:
+rope_broadcast_pair23_loop:
     for (int pair = 0; pair < SWIFTKV_ROPE_PAIRS; ++pair) {
 #pragma HLS PIPELINE II=1
-        const swiftkv_rope_raw_t cosine = current_cos[pair];
-        const swiftkv_rope_raw_t sine = current_sin[pair];
-        cos_pe0.write(cosine);
-        cos_pe1.write(cosine);
+        const swiftkv_rope_raw_t cosine = current_cos_pair23[pair];
+        const swiftkv_rope_raw_t sine = current_sin_pair23[pair];
         cos_pe2.write(cosine);
         cos_pe3.write(cosine);
-        sin_pe0.write(sine);
-        sin_pe1.write(sine);
         sin_pe2.write(sine);
         sin_pe3.write(sine);
     }
@@ -1766,6 +2173,7 @@ rope_broadcast_pair_loop:
 // generation.  This prevents the controller register bank from becoming a
 // four-SLR fanout root in generated RTL.
 typedef ap_uint<18> swiftkv_pe_command_t;
+typedef ap_uint<19> swiftkv_completion_t;
 
 static swiftkv_pe_command_t swiftkv_pack_pe_command(
     ap_uint<6> layer_index,
@@ -1778,11 +2186,9 @@ static swiftkv_pe_command_t swiftkv_pack_pe_command(
     return command;
 }
 
-static void swiftkv_broadcast_pe_commands(
+static void swiftkv_broadcast_pe_commands_pair01(
     hls::stream<swiftkv_pe_command_t>& swiftkv_command_pe0,
     hls::stream<swiftkv_pe_command_t>& swiftkv_command_pe1,
-    hls::stream<swiftkv_pe_command_t>& swiftkv_command_pe2,
-    hls::stream<swiftkv_pe_command_t>& swiftkv_command_pe3,
     ap_uint<6> layer_index,
     ap_uint<12> position
 ) {
@@ -1791,6 +2197,17 @@ static void swiftkv_broadcast_pe_commands(
         swiftkv_pack_pe_command(layer_index, position);
     swiftkv_command_pe0.write(command);
     swiftkv_command_pe1.write(command);
+}
+
+static void swiftkv_broadcast_pe_commands_pair23(
+    hls::stream<swiftkv_pe_command_t>& swiftkv_command_pe2,
+    hls::stream<swiftkv_pe_command_t>& swiftkv_command_pe3,
+    ap_uint<6> layer_index,
+    ap_uint<12> position
+) {
+#pragma HLS INLINE off
+    const swiftkv_pe_command_t command =
+        swiftkv_pack_pe_command(layer_index, position);
     swiftkv_command_pe2.write(command);
     swiftkv_command_pe3.write(command);
 }
@@ -1808,6 +2225,7 @@ static void swiftkv_run_bank(
     ap_uint<12> position
 ) {
 #pragma HLS INLINE off
+#pragma HLS ALLOCATION function instances=swiftkv_rotate_rope_word limit=1
 
     swiftkv_rope_raw_t local_cosine[SWIFTKV_ROPE_PAIRS];
     swiftkv_rope_raw_t local_sine[SWIFTKV_ROPE_PAIRS];
@@ -1889,58 +2307,19 @@ pe_head_loop:
         for (int word = 0;
              word < SWIFTKV_WORDS_PER_HEAD;
              ++word) {
-            int4_output_word_t q_shift = q_words[word];
-            int4_output_word_t k_shift = k_words[word];
-            int4_output_word_t rotated_k_word = 0;
-            swiftkv_rope_raw_t cosine = 0;
-            swiftkv_rope_raw_t sine = 0;
-
-        // Q and K use the same (cos,sin) pair.  Process them in two phases
-        // through one pair of complex-rotation datapaths.  This halves the
-        // RoPE multipliers while adding only 64 cycles per head, which is
-        // hidden by the much longer KV scan and weight stream.
-        pe_rope_pair_phase_loop:
-            for (int phase = 0; phase < 16; ++phase) {
-#pragma HLS PIPELINE II=1
-                const bool rotate_k = phase & 1;
-                const int pair = phase >> 1;
-                const int lane_0 = pair * 2;
-                const int index = word * 16 + lane_0;
-                if (!rotate_k) {
-                    cosine = local_cosine[index >> 1];
-                    sine = local_sine[index >> 1];
-                }
-                const ap_int<32> input_0 =
-                    rotate_k
-                        ? (ap_int<32>)k_shift.range(31, 0)
-                        : (ap_int<32>)q_shift.range(31, 0);
-                const ap_int<32> input_1 =
-                    rotate_k
-                        ? (ap_int<32>)k_shift.range(63, 32)
-                        : (ap_int<32>)q_shift.range(63, 32);
-                int4_fxp32_t rotated_0;
-                int4_fxp32_t rotated_1;
-                rotated_0.range(31, 0) =
-                    swiftkv_q17_mul_add_rope_raw(
-                        input_0, cosine, input_1, sine, true);
-                rotated_1.range(31, 0) =
-                    swiftkv_q17_mul_add_rope_raw(
-                        input_0, sine, input_1, cosine, false);
-                if (!rotate_k) {
-                    query[index] = rotated_0;
-                    query[index + 1] = rotated_1;
-                    q_shift >>= 64;
-                } else {
-                    ap_uint<64> rotated_k_pair = 0;
-                    rotated_k_pair.range(31, 0) =
-                        swiftkv_fxp_to_bits(rotated_0);
-                    rotated_k_pair.range(63, 32) =
-                        swiftkv_fxp_to_bits(rotated_1);
-                    rotated_k_word >>= 64;
-                    rotated_k_word.range(511, 448) =
-                        rotated_k_pair;
-                    k_shift >>= 64;
-                }
+            const int4_output_word_t rotated_q_word =
+                swiftkv_rotate_rope_word(
+                    q_words[word], local_cosine, local_sine, word);
+            const int4_output_word_t rotated_k_word =
+                swiftkv_rotate_rope_word(
+                    k_words[word], local_cosine, local_sine, word);
+        pe_unpack_rotated_query_lane_loop:
+            for (int lane = 0; lane < 16; ++lane) {
+#pragma HLS UNROLL
+                int4_fxp32_t rotated_query;
+                rotated_query.range(31, 0) = rotated_q_word.range(
+                    32 * lane + 31, 32 * lane);
+                query[word * 16 + lane] = rotated_query;
             }
             rotated_k_words[word] = rotated_k_word;
         }
@@ -1959,7 +2338,11 @@ pe_head_loop:
 
         swiftkv_attention_head(
             query, kv_cache, cache_head_base,
-            compressed_kv_record,
+            compressed_kv_record[0],
+            compressed_kv_record[1],
+            compressed_kv_record[2],
+            compressed_kv_record[3],
+            compressed_kv_record[4],
             position,
             quantized_stream, scale_stream);
     }
@@ -1975,7 +2358,8 @@ static void swiftkv_run_pe(
     hls::stream<swiftkv_rope_raw_t>& sine_stream,
     hls::stream<int4_quant_word_t>& quantized_stream,
     hls::stream<float>& scale_stream,
-    hls::stream<swiftkv_pe_command_t>& command_stream
+    hls::stream<swiftkv_pe_command_t>& command_stream,
+    hls::stream<swiftkv_completion_t>& done_stream
 ) {
 #pragma HLS INLINE off
     // PE_ID creates four distinct hierarchy instances.  Each instance owns
@@ -1994,6 +2378,53 @@ static void swiftkv_run_pe(
         cosine_stream, sine_stream,
         quantized_stream, scale_stream,
         layer_index, position);
+    swiftkv_completion_t completion = 0;
+    completion[18] = 1;
+    completion.range(17, 0) = command;
+    done_stream.write(completion);
+}
+
+// Completion follows the physical SLR chain instead of letting one generated
+// pf_all_done cone directly observe all four PE FSMs.  The token echoes the
+// local 18-bit command, so the join also detects a stale/mismatched worker.
+static void swiftkv_join_done01(
+    hls::stream<swiftkv_completion_t>& done0,
+    hls::stream<swiftkv_completion_t>& done1,
+    hls::stream<swiftkv_completion_t>& done01
+) {
+#pragma HLS INLINE off
+    const swiftkv_completion_t token0 = done0.read();
+    const swiftkv_completion_t token1 = done1.read();
+    done01.write(
+        token0 == token1 ? token0 : (swiftkv_completion_t)0);
+}
+
+static void swiftkv_join_done23(
+    hls::stream<swiftkv_completion_t>& done2,
+    hls::stream<swiftkv_completion_t>& done3,
+    hls::stream<swiftkv_completion_t>& done23
+) {
+#pragma HLS INLINE off
+    const swiftkv_completion_t token2 = done2.read();
+    const swiftkv_completion_t token3 = done3.read();
+    done23.write(
+        token2 == token3 ? token2 : (swiftkv_completion_t)0);
+}
+
+static void swiftkv_join_all_done(
+    hls::stream<swiftkv_completion_t>& done01,
+    hls::stream<swiftkv_completion_t>& done23,
+    swiftkv_pe_command_t expected,
+    ap_uint<1>& all_done
+) {
+#pragma HLS INLINE off
+    const swiftkv_completion_t token01 = done01.read();
+    const swiftkv_completion_t token23 = done23.read();
+    swiftkv_completion_t expected_completion = 0;
+    expected_completion[18] = 1;
+    expected_completion.range(17, 0) = expected;
+    all_done = token01 == expected_completion &&
+               token23 == expected_completion;
 }
 
 template <int PE_ID>
@@ -2077,57 +2508,212 @@ attention_gather_local_head_loop:
 }
 
 #ifdef SWIFTKV_INTEGRATED_TOP
-static void swiftkv_gather_attention_streams(
-    hls::stream<int4_quant_word_t>& quantized_pe0,
+template <int PE_ID>
+static void swiftkv_serialize_attention_edge_body(
+    hls::stream<int4_quant_word_t>& quantized_local,
+    hls::stream<int4_activation_beat_t>& quantized_edge
+) {
+#pragma HLS INLINE
+swiftkv_serialize_edge_word_loop:
+    for (int word = 0;
+         word < SWIFTKV_LOCAL_HEADS *
+             (SWIFTKV_HEAD_SIZE / INT4_GROUP_SIZE);
+         ++word) {
+        int4_quant_word_t remaining = quantized_local.read();
+    swiftkv_serialize_edge_beat_loop:
+        for (int beat = 0;
+             beat < INT4_ACTIVATION_BEATS_PER_WORD;
+             ++beat) {
+#pragma HLS PIPELINE II=1
+            quantized_edge.write(
+                (int4_activation_beat_t)remaining.range(
+                    INT4_ACTIVATION_BEAT_BITS - 1, 0));
+            remaining >>= INT4_ACTIVATION_BEAT_BITS;
+        }
+    }
+}
+
+static void swiftkv_serialize_attention_pe0_to_pair01(
+    hls::stream<int4_quant_word_t>& quantized_pe0_local,
+    hls::stream<int4_activation_beat_t>& quantized_pe0_to_pair01
+) {
+#pragma HLS INLINE off
+    swiftkv_serialize_attention_edge_body<0>(
+        quantized_pe0_local, quantized_pe0_to_pair01);
+}
+
+static void swiftkv_serialize_attention_pe3_to_pair23(
+    hls::stream<int4_quant_word_t>& quantized_pe3_local,
+    hls::stream<int4_activation_beat_t>& quantized_pe3_to_pair23
+) {
+#pragma HLS INLINE off
+    swiftkv_serialize_attention_edge_body<3>(
+        quantized_pe3_local, quantized_pe3_to_pair23);
+}
+
+template <int PE_ID>
+static int4_quant_word_t swiftkv_deserialize_attention_edge(
+    hls::stream<int4_activation_beat_t>& quantized_edge
+) {
+#pragma HLS INLINE
+    int4_quant_word_t q = 0;
+swiftkv_deserialize_edge_beat_loop:
+    for (int beat = 0;
+         beat < INT4_ACTIVATION_BEATS_PER_WORD;
+         ++beat) {
+#pragma HLS PIPELINE II=1
+        const int4_activation_beat_t beat_value = quantized_edge.read();
+        q >>= INT4_ACTIVATION_BEAT_BITS;
+        q.range(
+            INT4_QUANT_WORD_BITS - 1,
+            INT4_QUANT_WORD_BITS - INT4_ACTIVATION_BEAT_BITS) =
+                beat_value;
+    }
+    return q;
+}
+
+static void swiftkv_forward_attention_pe(
+    hls::stream<int4_quant_word_t>& quantized_pe,
+    hls::stream<float>& scale_pe,
+    hls::stream<int4_quant_word_t>& quantized_pair,
+    hls::stream<float>& scale_pair
+) {
+#pragma HLS INLINE
+swiftkv_forward_attention_group_loop:
+    for (int group = 0;
+         group < SWIFTKV_HEAD_SIZE / INT4_GROUP_SIZE;
+         ++group) {
+#pragma HLS PIPELINE II=1
+        quantized_pair.write(quantized_pe.read());
+        scale_pair.write(scale_pe.read());
+    }
+}
+
+template <int PE_ID>
+static void swiftkv_forward_attention_edge(
+    hls::stream<int4_activation_beat_t>& quantized_edge,
+    hls::stream<float>& scale_edge,
+    hls::stream<int4_quant_word_t>& quantized_pair,
+    hls::stream<float>& scale_pair
+) {
+#pragma HLS INLINE
+swiftkv_forward_attention_edge_group_loop:
+    for (int group = 0;
+         group < SWIFTKV_HEAD_SIZE / INT4_GROUP_SIZE;
+         ++group) {
+        quantized_pair.write(
+            swiftkv_deserialize_attention_edge<PE_ID>(quantized_edge));
+        scale_pair.write(scale_edge.read());
+    }
+}
+
+static void swiftkv_gather_attention_pair01(
+    hls::stream<int4_activation_beat_t>& quantized_pe0_to_pair01,
     hls::stream<int4_quant_word_t>& quantized_pe1,
-    hls::stream<int4_quant_word_t>& quantized_pe2,
-    hls::stream<int4_quant_word_t>& quantized_pe3,
     hls::stream<float>& scale_pe0,
     hls::stream<float>& scale_pe1,
+    hls::stream<int4_quant_word_t>& quantized_pair01,
+    hls::stream<float>& scale_pair01
+) {
+#pragma HLS INLINE off
+swiftkv_gather_pair01_head_loop:
+    for (int local_head = 0;
+         local_head < SWIFTKV_LOCAL_HEADS;
+         ++local_head) {
+        swiftkv_forward_attention_edge<0>(
+            quantized_pe0_to_pair01, scale_pe0,
+            quantized_pair01, scale_pair01);
+        swiftkv_forward_attention_pe(
+            quantized_pe1, scale_pe1,
+            quantized_pair01, scale_pair01);
+    }
+}
+
+static void swiftkv_gather_attention_pair23(
+    hls::stream<int4_quant_word_t>& quantized_pe2,
+    hls::stream<int4_activation_beat_t>& quantized_pe3_to_pair23,
     hls::stream<float>& scale_pe2,
     hls::stream<float>& scale_pe3,
+    hls::stream<int4_quant_word_t>& quantized_pair23,
+    hls::stream<float>& scale_pair23
+) {
+#pragma HLS INLINE off
+swiftkv_gather_pair23_head_loop:
+    for (int local_head = 0;
+         local_head < SWIFTKV_LOCAL_HEADS;
+         ++local_head) {
+        swiftkv_forward_attention_pe(
+            quantized_pe2, scale_pe2,
+            quantized_pair23, scale_pair23);
+        swiftkv_forward_attention_edge<3>(
+            quantized_pe3_to_pair23, scale_pe3,
+            quantized_pair23, scale_pair23);
+    }
+}
+
+// Preserve global G32 order, but expose only two registered pair interfaces
+// to the shared O-projection path.  The 4-way ready/control cone is gone.
+static void swiftkv_merge_attention_pair_streams(
+    hls::stream<int4_quant_word_t>& quantized_pair01,
+    hls::stream<int4_quant_word_t>& quantized_pair23,
+    hls::stream<float>& scale_pair01,
+    hls::stream<float>& scale_pair23,
+    hls::stream<int4_quant_word_t>& merged_quantized_stream,
+    hls::stream<float>& merged_scale_stream
+) {
+#pragma HLS INLINE off
+swiftkv_merge_pair_head_loop:
+    for (int local_head = 0;
+         local_head < SWIFTKV_LOCAL_HEADS;
+         ++local_head) {
+    swiftkv_merge_pair01_group_loop:
+        for (int group = 0;
+             group < 2 * SWIFTKV_HEAD_SIZE / INT4_GROUP_SIZE;
+             ++group) {
+#pragma HLS PIPELINE II=1
+            merged_quantized_stream.write(quantized_pair01.read());
+            merged_scale_stream.write(scale_pair01.read());
+        }
+    swiftkv_merge_pair23_group_loop:
+        for (int group = 0;
+             group < 2 * SWIFTKV_HEAD_SIZE / INT4_GROUP_SIZE;
+             ++group) {
+#pragma HLS PIPELINE II=1
+            merged_quantized_stream.write(quantized_pair23.read());
+            merged_scale_stream.write(scale_pair23.read());
+        }
+    }
+}
+
+// Compatibility sink for the standalone SwiftKV top.  The integrated decoder
+// bypasses this function and connects the merged stream directly to the O
+// projection, so this shared-memory write/read path is absent from its RTL.
+static void swiftkv_store_attention_streams(
+    hls::stream<int4_quant_word_t>& merged_quantized_stream,
+    hls::stream<float>& merged_scale_stream,
     int4_quant_word_t* activation_q,
     int4_scale_word_t* activation_scale
 ) {
 #pragma HLS INLINE off
+    int4_scale_word_t packed_scales = 0;
 
-integrated_gather_local_head_loop:
-    for (int local_head = 0;
-         local_head < SWIFTKV_LOCAL_HEADS;
-         ++local_head) {
-        int4_scale_word_t packed_scales = 0;
-    integrated_gather_pe_loop:
-        for (int pe = 0; pe < INT4_PE_COUNT; ++pe) {
-        integrated_gather_group_loop:
-            for (int group = 0;
-                 group < SWIFTKV_HEAD_SIZE / INT4_GROUP_SIZE;
-                 ++group) {
+store_attention_group_loop:
+    for (int global_group = 0;
+         global_group < INT4_GROUPS_PER_VECTOR;
+         ++global_group) {
 #pragma HLS PIPELINE II=1
-                int4_quant_word_t quantized = 0;
-                float scale = 0.0f;
-                if (pe == 0) {
-                    quantized = quantized_pe0.read();
-                    scale = scale_pe0.read();
-                } else if (pe == 1) {
-                    quantized = quantized_pe1.read();
-                    scale = scale_pe1.read();
-                } else if (pe == 2) {
-                    quantized = quantized_pe2.read();
-                    scale = scale_pe2.read();
-                } else {
-                    quantized = quantized_pe3.read();
-                    scale = scale_pe3.read();
-                }
-                const int lane = pe * 4 + group;
-                const int global_group =
-                    local_head * INT4_SCALE_ROWS_PER_WORD + lane;
-                activation_q[global_group] = quantized;
-                packed_scales >>= 32;
-                packed_scales.range(511, 480) =
-                    swiftkv_float_to_bits(scale);
-            }
+        const int scale_lane =
+            global_group & (INT4_OUTPUTS_PER_WORD - 1);
+        activation_q[global_group] =
+            merged_quantized_stream.read();
+        packed_scales >>= 32;
+        packed_scales.range(511, 480) =
+            swiftkv_float_to_bits(merged_scale_stream.read());
+        if (scale_lane == INT4_OUTPUTS_PER_WORD - 1) {
+            activation_scale[
+                global_group / INT4_OUTPUTS_PER_WORD] =
+                    packed_scales;
         }
-        activation_scale[local_head] = packed_scales;
     }
 }
 #endif
@@ -2149,11 +2735,15 @@ static void swiftkv_run_four_pes(
     int4_output_word_t* kv_cache_pe1,
     int4_output_word_t* kv_cache_pe2,
     int4_output_word_t* kv_cache_pe3,
-    const swiftkv_rope_raw_t current_cos[SWIFTKV_ROPE_PAIRS],
-    const swiftkv_rope_raw_t current_sin[SWIFTKV_ROPE_PAIRS],
+    const swiftkv_rope_raw_t current_cos_pair01[SWIFTKV_ROPE_PAIRS],
+    const swiftkv_rope_raw_t current_sin_pair01[SWIFTKV_ROPE_PAIRS],
+    const swiftkv_rope_raw_t current_cos_pair23[SWIFTKV_ROPE_PAIRS],
+    const swiftkv_rope_raw_t current_sin_pair23[SWIFTKV_ROPE_PAIRS],
 #ifdef SWIFTKV_INTEGRATED_TOP
-    int4_quant_word_t* activation_q,
-    int4_scale_word_t* activation_scale,
+    hls::stream<int4_quant_word_t>& quantized_half01_stream,
+    hls::stream<float>& scale_half01_stream,
+    hls::stream<int4_quant_word_t>& quantized_half23_stream,
+    hls::stream<float>& scale_half23_stream,
 #else
     int4_quant_word_t quantized_buffer_pe0[32],
     int4_quant_word_t quantized_buffer_pe1[32],
@@ -2164,7 +2754,9 @@ static void swiftkv_run_four_pes(
     float scale_buffer_pe2[32],
     float scale_buffer_pe3[32],
 #endif
-    const Int4Controller& controller
+    ap_uint<6> layer_index,
+    ap_uint<12> position,
+    ap_uint<1>& all_done
 ) {
 #pragma HLS INLINE off
     // Each PE and the gather are decoupled by explicitly sized FIFOs below.
@@ -2174,15 +2766,25 @@ static void swiftkv_run_four_pes(
 
     hls::stream<swiftkv_rope_raw_t> cos_pe0, cos_pe1, cos_pe2, cos_pe3;
     hls::stream<swiftkv_rope_raw_t> sin_pe0, sin_pe1, sin_pe2, sin_pe3;
-    hls::stream<int4_quant_word_t> quantized_pe0;
+    hls::stream<int4_quant_word_t> quantized_pe0_local;
     hls::stream<int4_quant_word_t> quantized_pe1;
     hls::stream<int4_quant_word_t> quantized_pe2;
-    hls::stream<int4_quant_word_t> quantized_pe3;
+    hls::stream<int4_quant_word_t> quantized_pe3_local;
+#ifdef SWIFTKV_INTEGRATED_TOP
+    hls::stream<int4_activation_beat_t> quantized_pe0_to_pair01;
+    hls::stream<int4_activation_beat_t> quantized_pe3_to_pair23;
+#endif
     hls::stream<float> scale_pe0, scale_pe1, scale_pe2, scale_pe3;
     hls::stream<swiftkv_pe_command_t> swiftkv_command_pe0;
     hls::stream<swiftkv_pe_command_t> swiftkv_command_pe1;
     hls::stream<swiftkv_pe_command_t> swiftkv_command_pe2;
     hls::stream<swiftkv_pe_command_t> swiftkv_command_pe3;
+    hls::stream<swiftkv_completion_t> swiftkv_done_pe0;
+    hls::stream<swiftkv_completion_t> swiftkv_done_pe1;
+    hls::stream<swiftkv_completion_t> swiftkv_done_pe2;
+    hls::stream<swiftkv_completion_t> swiftkv_done_pe3;
+    hls::stream<swiftkv_completion_t> swiftkv_done01;
+    hls::stream<swiftkv_completion_t> swiftkv_done23;
 #pragma HLS STREAM variable=cos_pe0 depth=4
 #pragma HLS STREAM variable=cos_pe1 depth=4
 #pragma HLS STREAM variable=cos_pe2 depth=4
@@ -2193,10 +2795,14 @@ static void swiftkv_run_four_pes(
 #pragma HLS STREAM variable=sin_pe3 depth=4
 // Each PE now has its own producer.  Four entries cover one complete head
 // burst while allowing the interleaved gather to visit the other PEs.
-#pragma HLS STREAM variable=quantized_pe0 depth=4
+#pragma HLS STREAM variable=quantized_pe0_local depth=4
 #pragma HLS STREAM variable=quantized_pe1 depth=4
 #pragma HLS STREAM variable=quantized_pe2 depth=4
-#pragma HLS STREAM variable=quantized_pe3 depth=4
+#pragma HLS STREAM variable=quantized_pe3_local depth=4
+#ifdef SWIFTKV_INTEGRATED_TOP
+#pragma HLS STREAM variable=quantized_pe0_to_pair01 depth=64
+#pragma HLS STREAM variable=quantized_pe3_to_pair23 depth=64
+#endif
 #pragma HLS STREAM variable=scale_pe0 depth=4
 #pragma HLS STREAM variable=scale_pe1 depth=4
 #pragma HLS STREAM variable=scale_pe2 depth=4
@@ -2205,6 +2811,12 @@ static void swiftkv_run_four_pes(
 #pragma HLS STREAM variable=swiftkv_command_pe1 depth=2
 #pragma HLS STREAM variable=swiftkv_command_pe2 depth=2
 #pragma HLS STREAM variable=swiftkv_command_pe3 depth=2
+#pragma HLS STREAM variable=swiftkv_done_pe0 depth=2
+#pragma HLS STREAM variable=swiftkv_done_pe1 depth=2
+#pragma HLS STREAM variable=swiftkv_done_pe2 depth=2
+#pragma HLS STREAM variable=swiftkv_done_pe3 depth=2
+#pragma HLS STREAM variable=swiftkv_done01 depth=2
+#pragma HLS STREAM variable=swiftkv_done23 depth=2
 #pragma HLS BIND_STORAGE variable=cos_pe0 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=cos_pe1 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=cos_pe2 type=fifo impl=srl
@@ -2213,10 +2825,18 @@ static void swiftkv_run_four_pes(
 #pragma HLS BIND_STORAGE variable=sin_pe1 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=sin_pe2 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=sin_pe3 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=quantized_pe0 type=fifo impl=bram
+// The earlier unconstrained build could place a BRAM FIFO remotely and created
+// a -1.949 ns SLR2->SLR3 path.  The mandatory floorplan now anchors every FIFO
+// with its SwiftKV PE, so BRAM removes the wide LUTRAM enable cone while the
+// hard block remains local to its producer/gather boundary.
+#pragma HLS BIND_STORAGE variable=quantized_pe0_local type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=quantized_pe1 type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=quantized_pe2 type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=quantized_pe3 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=quantized_pe3_local type=fifo impl=bram
+#ifdef SWIFTKV_INTEGRATED_TOP
+#pragma HLS BIND_STORAGE variable=quantized_pe0_to_pair01 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=quantized_pe3_to_pair23 type=fifo impl=bram
+#endif
 #pragma HLS BIND_STORAGE variable=scale_pe0 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=scale_pe1 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=scale_pe2 type=fifo impl=srl
@@ -2225,45 +2845,69 @@ static void swiftkv_run_four_pes(
 #pragma HLS BIND_STORAGE variable=swiftkv_command_pe1 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=swiftkv_command_pe2 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=swiftkv_command_pe3 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=swiftkv_done_pe0 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=swiftkv_done_pe1 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=swiftkv_done_pe2 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=swiftkv_done_pe3 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=swiftkv_done01 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=swiftkv_done23 type=fifo impl=srl
 
-    swiftkv_broadcast_pe_commands(
+    swiftkv_broadcast_pe_commands_pair01(
         swiftkv_command_pe0, swiftkv_command_pe1,
+        layer_index, position);
+    swiftkv_broadcast_pe_commands_pair23(
         swiftkv_command_pe2, swiftkv_command_pe3,
-        controller.layer_index, controller.position);
+        layer_index, position);
+    const swiftkv_pe_command_t expected_completion_command =
+        swiftkv_pack_pe_command(layer_index, position);
 
-    swiftkv_broadcast_rope(
-        current_cos, current_sin,
-        cos_pe0, cos_pe1, cos_pe2, cos_pe3,
-        sin_pe0, sin_pe1, sin_pe2, sin_pe3);
+    swiftkv_broadcast_rope_pair01(
+        current_cos_pair01, current_sin_pair01,
+        cos_pe0, cos_pe1, sin_pe0, sin_pe1);
+    swiftkv_broadcast_rope_pair23(
+        current_cos_pair23, current_sin_pair23,
+        cos_pe2, cos_pe3, sin_pe2, sin_pe3);
     swiftkv_run_pe<0>(
         q_pe0, k_pe0, v_pe0, kv_cache_pe0,
         cos_pe0, sin_pe0,
-        quantized_pe0, scale_pe0,
-        swiftkv_command_pe0);
+        quantized_pe0_local, scale_pe0,
+        swiftkv_command_pe0, swiftkv_done_pe0);
     swiftkv_run_pe<1>(
         q_pe1, k_pe1, v_pe1, kv_cache_pe1,
         cos_pe1, sin_pe1,
         quantized_pe1, scale_pe1,
-        swiftkv_command_pe1);
+        swiftkv_command_pe1, swiftkv_done_pe1);
     swiftkv_run_pe<2>(
         q_pe2, k_pe2, v_pe2, kv_cache_pe2,
         cos_pe2, sin_pe2,
         quantized_pe2, scale_pe2,
-        swiftkv_command_pe2);
+        swiftkv_command_pe2, swiftkv_done_pe2);
     swiftkv_run_pe<3>(
         q_pe3, k_pe3, v_pe3, kv_cache_pe3,
         cos_pe3, sin_pe3,
-        quantized_pe3, scale_pe3,
-        swiftkv_command_pe3);
+        quantized_pe3_local, scale_pe3,
+        swiftkv_command_pe3, swiftkv_done_pe3);
+    swiftkv_join_done01(
+        swiftkv_done_pe0, swiftkv_done_pe1, swiftkv_done01);
+    swiftkv_join_done23(
+        swiftkv_done_pe2, swiftkv_done_pe3, swiftkv_done23);
+    swiftkv_join_all_done(
+        swiftkv_done01, swiftkv_done23,
+        expected_completion_command, all_done);
 #ifdef SWIFTKV_INTEGRATED_TOP
-    swiftkv_gather_attention_streams(
-        quantized_pe0, quantized_pe1,
-        quantized_pe2, quantized_pe3,
-        scale_pe0, scale_pe1, scale_pe2, scale_pe3,
-        activation_q, activation_scale);
+    swiftkv_serialize_attention_pe0_to_pair01(
+        quantized_pe0_local, quantized_pe0_to_pair01);
+    swiftkv_serialize_attention_pe3_to_pair23(
+        quantized_pe3_local, quantized_pe3_to_pair23);
+    swiftkv_gather_attention_pair01(
+        quantized_pe0_to_pair01, quantized_pe1, scale_pe0, scale_pe1,
+        quantized_half01_stream, scale_half01_stream);
+    swiftkv_gather_attention_pair23(
+        quantized_pe2, quantized_pe3_to_pair23, scale_pe2, scale_pe3,
+        quantized_half23_stream, scale_half23_stream);
 #else
     swiftkv_collect_pe_output<0>(
-        quantized_pe0, scale_pe0,
+        quantized_pe0_local, scale_pe0,
         quantized_buffer_pe0, scale_buffer_pe0);
     swiftkv_collect_pe_output<1>(
         quantized_pe1, scale_pe1,
@@ -2272,8 +2916,160 @@ static void swiftkv_run_four_pes(
         quantized_pe2, scale_pe2,
         quantized_buffer_pe2, scale_buffer_pe2);
     swiftkv_collect_pe_output<3>(
-        quantized_pe3, scale_pe3,
+        quantized_pe3_local, scale_pe3,
         quantized_buffer_pe3, scale_buffer_pe3);
+#endif
+}
+
+#ifdef SWIFTKV_INTEGRATED_TOP
+void int4_swiftkv_attention_4pe_pair_halves_command(
+    const int4_output_word_t* q_pe0,
+    const int4_output_word_t* q_pe1,
+    const int4_output_word_t* q_pe2,
+    const int4_output_word_t* q_pe3,
+    const int4_output_word_t* k_pe0,
+    const int4_output_word_t* k_pe1,
+    const int4_output_word_t* k_pe2,
+    const int4_output_word_t* k_pe3,
+    const int4_output_word_t* v_pe0,
+    const int4_output_word_t* v_pe1,
+    const int4_output_word_t* v_pe2,
+    const int4_output_word_t* v_pe3,
+    int4_output_word_t* kv_cache_pe0,
+    int4_output_word_t* kv_cache_pe1,
+    int4_output_word_t* kv_cache_pe2,
+    int4_output_word_t* kv_cache_pe3,
+    const swiftkv_rope_raw_t current_cos_pair01[SWIFTKV_ROPE_PAIRS],
+    const swiftkv_rope_raw_t current_sin_pair01[SWIFTKV_ROPE_PAIRS],
+    const swiftkv_rope_raw_t current_cos_pair23[SWIFTKV_ROPE_PAIRS],
+    const swiftkv_rope_raw_t current_sin_pair23[SWIFTKV_ROPE_PAIRS],
+    hls::stream<int4_quant_word_t>& quantized_half01_stream,
+    hls::stream<float>& scale_half01_stream,
+    hls::stream<int4_quant_word_t>& quantized_half23_stream,
+    hls::stream<float>& scale_half23_stream,
+    ap_uint<6> layer_index,
+    ap_uint<12> position
+) {
+#pragma HLS INLINE off
+    ap_uint<1> swiftkv_all_done = 0;
+    swiftkv_run_four_pes(
+        q_pe0, q_pe1, q_pe2, q_pe3,
+        k_pe0, k_pe1, k_pe2, k_pe3,
+        v_pe0, v_pe1, v_pe2, v_pe3,
+        kv_cache_pe0, kv_cache_pe1,
+        kv_cache_pe2, kv_cache_pe3,
+        current_cos_pair01, current_sin_pair01,
+        current_cos_pair23, current_sin_pair23,
+        quantized_half01_stream, scale_half01_stream,
+        quantized_half23_stream, scale_half23_stream,
+        layer_index, position, swiftkv_all_done);
+}
+#endif
+
+void int4_swiftkv_attention_4pe_command(
+    const int4_output_word_t* q_pe0,
+    const int4_output_word_t* q_pe1,
+    const int4_output_word_t* q_pe2,
+    const int4_output_word_t* q_pe3,
+    const int4_output_word_t* k_pe0,
+    const int4_output_word_t* k_pe1,
+    const int4_output_word_t* k_pe2,
+    const int4_output_word_t* k_pe3,
+    const int4_output_word_t* v_pe0,
+    const int4_output_word_t* v_pe1,
+    const int4_output_word_t* v_pe2,
+    const int4_output_word_t* v_pe3,
+    int4_output_word_t* kv_cache_pe0,
+    int4_output_word_t* kv_cache_pe1,
+    int4_output_word_t* kv_cache_pe2,
+    int4_output_word_t* kv_cache_pe3,
+    const swiftkv_rope_raw_t current_cos[SWIFTKV_ROPE_PAIRS],
+    const swiftkv_rope_raw_t current_sin[SWIFTKV_ROPE_PAIRS],
+    int4_quant_word_t* activation_q,
+    int4_scale_word_t* activation_scale,
+    ap_uint<6> layer_index,
+    ap_uint<12> position
+) {
+#pragma HLS INLINE off
+#ifdef SWIFTKV_INTEGRATED_TOP
+#pragma HLS DATAFLOW disable_start_propagation
+    hls::stream<int4_quant_word_t> quantized_half01_stream;
+    hls::stream<int4_quant_word_t> quantized_half23_stream;
+    hls::stream<float> scale_half01_stream;
+    hls::stream<float> scale_half23_stream;
+    hls::stream<int4_quant_word_t> merged_quantized_stream;
+    hls::stream<float> merged_scale_stream;
+#pragma HLS STREAM variable=quantized_half01_stream depth=8
+#pragma HLS STREAM variable=quantized_half23_stream depth=8
+#pragma HLS STREAM variable=scale_half01_stream depth=8
+#pragma HLS STREAM variable=scale_half23_stream depth=8
+#pragma HLS STREAM variable=merged_quantized_stream depth=4
+#pragma HLS STREAM variable=merged_scale_stream depth=4
+#pragma HLS BIND_STORAGE variable=quantized_half01_stream type=fifo impl=lutram
+#pragma HLS BIND_STORAGE variable=quantized_half23_stream type=fifo impl=lutram
+#pragma HLS BIND_STORAGE variable=scale_half01_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=scale_half23_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=merged_quantized_stream type=fifo impl=lutram
+#pragma HLS BIND_STORAGE variable=merged_scale_stream type=fifo impl=srl
+
+    int4_swiftkv_attention_4pe_pair_halves_command(
+        q_pe0, q_pe1, q_pe2, q_pe3,
+        k_pe0, k_pe1, k_pe2, k_pe3,
+        v_pe0, v_pe1, v_pe2, v_pe3,
+        kv_cache_pe0, kv_cache_pe1,
+        kv_cache_pe2, kv_cache_pe3,
+        current_cos, current_sin,
+        current_cos, current_sin,
+        quantized_half01_stream, scale_half01_stream,
+        quantized_half23_stream, scale_half23_stream,
+        layer_index, position);
+    swiftkv_merge_attention_pair_streams(
+        quantized_half01_stream, quantized_half23_stream,
+        scale_half01_stream, scale_half23_stream,
+        merged_quantized_stream, merged_scale_stream);
+    swiftkv_store_attention_streams(
+        merged_quantized_stream, merged_scale_stream,
+        activation_q, activation_scale);
+#else
+    int4_quant_word_t quantized_buffer_pe0[32];
+    int4_quant_word_t quantized_buffer_pe1[32];
+    int4_quant_word_t quantized_buffer_pe2[32];
+    int4_quant_word_t quantized_buffer_pe3[32];
+    float scale_buffer_pe0[32];
+    float scale_buffer_pe1[32];
+    float scale_buffer_pe2[32];
+    float scale_buffer_pe3[32];
+#pragma HLS BIND_STORAGE variable=quantized_buffer_pe0 type=ram_1p impl=lutram
+#pragma HLS BIND_STORAGE variable=quantized_buffer_pe1 type=ram_1p impl=lutram
+#pragma HLS BIND_STORAGE variable=quantized_buffer_pe2 type=ram_1p impl=lutram
+#pragma HLS BIND_STORAGE variable=quantized_buffer_pe3 type=ram_1p impl=lutram
+#pragma HLS BIND_STORAGE variable=scale_buffer_pe0 type=ram_1p impl=lutram
+#pragma HLS BIND_STORAGE variable=scale_buffer_pe1 type=ram_1p impl=lutram
+#pragma HLS BIND_STORAGE variable=scale_buffer_pe2 type=ram_1p impl=lutram
+#pragma HLS BIND_STORAGE variable=scale_buffer_pe3 type=ram_1p impl=lutram
+    ap_uint<1> swiftkv_all_done = 0;
+    swiftkv_run_four_pes(
+        q_pe0, q_pe1, q_pe2, q_pe3,
+        k_pe0, k_pe1, k_pe2, k_pe3,
+        v_pe0, v_pe1, v_pe2, v_pe3,
+        kv_cache_pe0, kv_cache_pe1,
+        kv_cache_pe2, kv_cache_pe3,
+        current_cos, current_sin,
+        current_cos, current_sin,
+        quantized_buffer_pe0, quantized_buffer_pe1,
+        quantized_buffer_pe2, quantized_buffer_pe3,
+        scale_buffer_pe0, scale_buffer_pe1,
+        scale_buffer_pe2, scale_buffer_pe3,
+        layer_index, position, swiftkv_all_done);
+    if (!swiftkv_all_done) {
+        return;
+    }
+    swiftkv_gather_attention_buffers(
+        quantized_buffer_pe0, quantized_buffer_pe1,
+        quantized_buffer_pe2, quantized_buffer_pe3,
+        scale_buffer_pe0, scale_buffer_pe1,
+        scale_buffer_pe2, scale_buffer_pe3,
+        activation_q, activation_scale);
 #endif
 }
 
@@ -2364,50 +3160,15 @@ void int4_swiftkv_attention_4pe(
         return;
     }
 
-#ifndef SWIFTKV_INTEGRATED_TOP
-    int4_quant_word_t quantized_buffer_pe0[32];
-    int4_quant_word_t quantized_buffer_pe1[32];
-    int4_quant_word_t quantized_buffer_pe2[32];
-    int4_quant_word_t quantized_buffer_pe3[32];
-    float scale_buffer_pe0[32];
-    float scale_buffer_pe1[32];
-    float scale_buffer_pe2[32];
-    float scale_buffer_pe3[32];
-#endif
-#ifndef SWIFTKV_INTEGRATED_TOP
-#pragma HLS BIND_STORAGE variable=quantized_buffer_pe0 type=ram_1p impl=lutram
-#pragma HLS BIND_STORAGE variable=quantized_buffer_pe1 type=ram_1p impl=lutram
-#pragma HLS BIND_STORAGE variable=quantized_buffer_pe2 type=ram_1p impl=lutram
-#pragma HLS BIND_STORAGE variable=quantized_buffer_pe3 type=ram_1p impl=lutram
-#pragma HLS BIND_STORAGE variable=scale_buffer_pe0 type=ram_1p impl=lutram
-#pragma HLS BIND_STORAGE variable=scale_buffer_pe1 type=ram_1p impl=lutram
-#pragma HLS BIND_STORAGE variable=scale_buffer_pe2 type=ram_1p impl=lutram
-#pragma HLS BIND_STORAGE variable=scale_buffer_pe3 type=ram_1p impl=lutram
-#endif
-    swiftkv_run_four_pes(
+    int4_swiftkv_attention_4pe_command(
         q_pe0, q_pe1, q_pe2, q_pe3,
         k_pe0, k_pe1, k_pe2, k_pe3,
         v_pe0, v_pe1, v_pe2, v_pe3,
         kv_cache_pe0, kv_cache_pe1,
         kv_cache_pe2, kv_cache_pe3,
         current_cos, current_sin,
-#ifdef SWIFTKV_INTEGRATED_TOP
         activation_q, activation_scale,
-#else
-        quantized_buffer_pe0, quantized_buffer_pe1,
-        quantized_buffer_pe2, quantized_buffer_pe3,
-        scale_buffer_pe0, scale_buffer_pe1,
-        scale_buffer_pe2, scale_buffer_pe3,
-#endif
-        controller);
-#ifndef SWIFTKV_INTEGRATED_TOP
-    swiftkv_gather_attention_buffers(
-        quantized_buffer_pe0, quantized_buffer_pe1,
-        quantized_buffer_pe2, quantized_buffer_pe3,
-        scale_buffer_pe0, scale_buffer_pe1,
-        scale_buffer_pe2, scale_buffer_pe3,
-        activation_q, activation_scale);
-#endif
+        controller.layer_index, controller.position);
 
     controller.run_rope = INT4_LAZY;
     controller.run_attention = INT4_LAZY;
@@ -2471,13 +3232,7 @@ void swiftkv_attention_latency_verify(
 #pragma HLS INTERFACE s_axilite port=position bundle=control
 #pragma HLS INTERFACE s_axilite port=return bundle=control
 
-    Int4Controller controller;
-    controller.run_rope = INT4_RUN;
-    controller.run_attention = INT4_RUN;
-    controller.layer_index = 0;
-    controller.position = position;
-
-    swiftkv_run_four_pes(
+    int4_swiftkv_attention_4pe_command(
         q_pe0, q_pe1, q_pe2, q_pe3,
         k_pe0, k_pe1, k_pe2, k_pe3,
         v_pe0, v_pe1, v_pe2, v_pe3,
@@ -2485,6 +3240,6 @@ void swiftkv_attention_latency_verify(
         kv_cache_pe2, kv_cache_pe3,
         current_cos, current_sin,
         activation_q, activation_scale,
-        controller);
+        0, position);
 }
 #endif

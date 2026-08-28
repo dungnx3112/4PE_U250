@@ -73,6 +73,25 @@ void int4_rmsnorm_quantize_stream_4pe(
     hls::stream<float>& scale_stream
 );
 
+// Integrated pair-local producer.  Each output contains only the groups
+// owned by its adjacent PE pair; the controller exchanges the two halves
+// once and assembles one full ordered activation stream inside each pair.
+void int4_rmsnorm_quantize_pair_halves_4pe(
+    const int4_output_word_t* input_pe0,
+    const int4_output_word_t* input_pe1,
+    const int4_output_word_t* input_pe2,
+    const int4_output_word_t* input_pe3,
+    const int4_output_word_t* gamma_pe0,
+    const int4_output_word_t* gamma_pe1,
+    const int4_output_word_t* gamma_pe2,
+    const int4_output_word_t* gamma_pe3,
+    bool run,
+    hls::stream<int4_quant_word_t>& quantized_half01_stream,
+    hls::stream<float>& scale_half01_stream,
+    hls::stream<int4_quant_word_t>& quantized_half23_stream,
+    hls::stream<float>& scale_half23_stream
+);
+
 // In-place residual add for O projection and FFN-down outputs.  Both operands
 // use the same row-striped four-bank layout.  The controller selects which
 // successor is enabled, including layer advance and final RMSNorm.
@@ -120,4 +139,20 @@ void int4_swiglu_quantize_stream_4pe(
     bool run,
     hls::stream<int4_quant_word_t>& quantized_stream,
     hls::stream<float>& scale_stream
+);
+
+void int4_swiglu_quantize_pair_halves_4pe(
+    const int4_output_word_t* gate_pe0,
+    const int4_output_word_t* gate_pe1,
+    const int4_output_word_t* gate_pe2,
+    const int4_output_word_t* gate_pe3,
+    const int4_output_word_t* up_pe0,
+    const int4_output_word_t* up_pe1,
+    const int4_output_word_t* up_pe2,
+    const int4_output_word_t* up_pe3,
+    bool run,
+    hls::stream<int4_quant_word_t>& quantized_half01_stream,
+    hls::stream<float>& scale_half01_stream,
+    hls::stream<int4_quant_word_t>& quantized_half23_stream,
+    hls::stream<float>& scale_half23_stream
 );

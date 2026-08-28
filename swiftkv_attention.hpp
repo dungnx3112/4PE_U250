@@ -58,10 +58,17 @@ static constexpr int SWIFTKV_ROPE_POSITIONS = 4096;
 static constexpr int SWIFTKV_ROPE_PAIRS_PER_LUT_WORD = 16;
 static constexpr int SWIFTKV_ROPE_LUT_WORDS_PER_POSITION =
     SWIFTKV_ROPE_PAIRS / SWIFTKV_ROPE_PAIRS_PER_LUT_WORD;
+static constexpr int SWIFTKV_ROPE_BANKS =
+    SWIFTKV_ROPE_LUT_WORDS_PER_POSITION;
+static constexpr int SWIFTKV_ROPE_BANK_WORDS =
+    SWIFTKV_ROPE_POSITIONS;
 static constexpr int SWIFTKV_ROPE_LUT_WORDS =
     SWIFTKV_ROPE_POSITIONS * SWIFTKV_ROPE_LUT_WORDS_PER_POSITION;
 static constexpr int SWIFTKV_ROPE_LUT_WORD_BITS =
     SWIFTKV_ROPE_PAIRS_PER_LUT_WORD * 2 * 19;
+static constexpr int SWIFTKV_ROPE_LUT_BEAT_BITS = 2 * 19;
+static constexpr int SWIFTKV_ROPE_LUT_BEATS_PER_WORD =
+    SWIFTKV_ROPE_LUT_WORD_BITS / SWIFTKV_ROPE_LUT_BEAT_BITS;
 static constexpr int SWIFTKV_ROPE_DDR_WORDS_PER_LUT_WORD = 2;
 static constexpr int SWIFTKV_ROPE_DDR_WORDS =
     SWIFTKV_ROPE_LUT_WORDS *
@@ -70,6 +77,13 @@ static constexpr int SWIFTKV_ROPE_DDR_WORDS =
 using swiftkv_rope_raw_t = ap_int<19>;
 using swiftkv_rope_lut_word_t =
     ap_uint<SWIFTKV_ROPE_LUT_WORD_BITS>;
+using swiftkv_rope_lut_beat_t =
+    ap_uint<SWIFTKV_ROPE_LUT_BEAT_BITS>;
+
+static_assert(
+    SWIFTKV_ROPE_LUT_WORD_BITS ==
+        SWIFTKV_ROPE_LUT_BEATS_PER_WORD * SWIFTKV_ROPE_LUT_BEAT_BITS,
+    "RoPE LUT words must contain a whole number of cosine/sine beats");
 
 static_assert(
     SWIFTKV_HEAD_SIZE == INT4_TILE_ROWS,
@@ -96,15 +110,108 @@ static_assert(
 // The attention result is fused with A15/G32 quantization for O projection.
 void swiftkv_preload_rope_lut(
     const int4_output_word_t* rope_lut_ddr,
-    swiftkv_rope_lut_word_t rope_lut[SWIFTKV_ROPE_LUT_WORDS]
+    swiftkv_rope_lut_word_t rope_lut_bank0[SWIFTKV_ROPE_BANK_WORDS],
+    swiftkv_rope_lut_word_t rope_lut_bank1[SWIFTKV_ROPE_BANK_WORDS],
+    swiftkv_rope_lut_word_t rope_lut_bank2[SWIFTKV_ROPE_BANK_WORDS],
+    swiftkv_rope_lut_word_t rope_lut_bank3[SWIFTKV_ROPE_BANK_WORDS]
 );
 
-void swiftkv_load_rope_position(
+void swiftkv_load_rope_bank0(
     const swiftkv_rope_lut_word_t
-        rope_lut[SWIFTKV_ROPE_LUT_WORDS],
+        rope_lut_bank[SWIFTKV_ROPE_BANK_WORDS],
     ap_uint<12> position,
-    swiftkv_rope_raw_t current_cos[SWIFTKV_ROPE_PAIRS],
-    swiftkv_rope_raw_t current_sin[SWIFTKV_ROPE_PAIRS]
+    swiftkv_rope_raw_t current_cos_pair01[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_sin_pair01[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_cos_pair23[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_sin_pair23[SWIFTKV_ROPE_PAIRS]
+);
+
+void swiftkv_load_rope_bank1(
+    const swiftkv_rope_lut_word_t
+        rope_lut_bank[SWIFTKV_ROPE_BANK_WORDS],
+    ap_uint<12> position,
+    swiftkv_rope_raw_t current_cos_pair01[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_sin_pair01[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_cos_pair23[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_sin_pair23[SWIFTKV_ROPE_PAIRS]
+);
+
+void swiftkv_load_rope_bank2(
+    const swiftkv_rope_lut_word_t
+        rope_lut_bank[SWIFTKV_ROPE_BANK_WORDS],
+    ap_uint<12> position,
+    swiftkv_rope_raw_t current_cos_pair01[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_sin_pair01[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_cos_pair23[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_sin_pair23[SWIFTKV_ROPE_PAIRS]
+);
+
+void swiftkv_load_rope_bank3(
+    const swiftkv_rope_lut_word_t
+        rope_lut_bank[SWIFTKV_ROPE_BANK_WORDS],
+    ap_uint<12> position,
+    swiftkv_rope_raw_t current_cos_pair01[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_sin_pair01[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_cos_pair23[SWIFTKV_ROPE_PAIRS],
+    swiftkv_rope_raw_t current_sin_pair23[SWIFTKV_ROPE_PAIRS]
+);
+
+// Integrated dispatcher entry.  The global decoder controller terminates at
+// the caller; SwiftKV receives only the registered layer/position command.
+#ifdef SWIFTKV_INTEGRATED_TOP
+void int4_swiftkv_attention_4pe_pair_halves_command(
+    const int4_output_word_t* q_pe0,
+    const int4_output_word_t* q_pe1,
+    const int4_output_word_t* q_pe2,
+    const int4_output_word_t* q_pe3,
+    const int4_output_word_t* k_pe0,
+    const int4_output_word_t* k_pe1,
+    const int4_output_word_t* k_pe2,
+    const int4_output_word_t* k_pe3,
+    const int4_output_word_t* v_pe0,
+    const int4_output_word_t* v_pe1,
+    const int4_output_word_t* v_pe2,
+    const int4_output_word_t* v_pe3,
+    int4_output_word_t* kv_cache_pe0,
+    int4_output_word_t* kv_cache_pe1,
+    int4_output_word_t* kv_cache_pe2,
+    int4_output_word_t* kv_cache_pe3,
+    const swiftkv_rope_raw_t current_cos_pair01[SWIFTKV_ROPE_PAIRS],
+    const swiftkv_rope_raw_t current_sin_pair01[SWIFTKV_ROPE_PAIRS],
+    const swiftkv_rope_raw_t current_cos_pair23[SWIFTKV_ROPE_PAIRS],
+    const swiftkv_rope_raw_t current_sin_pair23[SWIFTKV_ROPE_PAIRS],
+    hls::stream<int4_quant_word_t>& quantized_half01_stream,
+    hls::stream<float>& scale_half01_stream,
+    hls::stream<int4_quant_word_t>& quantized_half23_stream,
+    hls::stream<float>& scale_half23_stream,
+    ap_uint<6> layer_index,
+    ap_uint<12> position
+);
+#endif
+
+void int4_swiftkv_attention_4pe_command(
+    const int4_output_word_t* q_pe0,
+    const int4_output_word_t* q_pe1,
+    const int4_output_word_t* q_pe2,
+    const int4_output_word_t* q_pe3,
+    const int4_output_word_t* k_pe0,
+    const int4_output_word_t* k_pe1,
+    const int4_output_word_t* k_pe2,
+    const int4_output_word_t* k_pe3,
+    const int4_output_word_t* v_pe0,
+    const int4_output_word_t* v_pe1,
+    const int4_output_word_t* v_pe2,
+    const int4_output_word_t* v_pe3,
+    int4_output_word_t* kv_cache_pe0,
+    int4_output_word_t* kv_cache_pe1,
+    int4_output_word_t* kv_cache_pe2,
+    int4_output_word_t* kv_cache_pe3,
+    const swiftkv_rope_raw_t current_cos[SWIFTKV_ROPE_PAIRS],
+    const swiftkv_rope_raw_t current_sin[SWIFTKV_ROPE_PAIRS],
+    int4_quant_word_t* activation_q,
+    int4_scale_word_t* activation_scale,
+    ap_uint<6> layer_index,
+    ap_uint<12> position
 );
 
 void int4_swiftkv_attention_4pe(

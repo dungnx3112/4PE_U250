@@ -11,7 +11,20 @@ using int4_weight_word_t = ap_uint<512>;
 using int4_weight_scale_word_t = ap_uint<512>;
 using int4_scale_word_t = ap_uint<512>;
 using int4_output_word_t = ap_uint<512>;
-using int4_quant_word_t = ap_uint<480>;
+static constexpr int INT4_QUANT_WORD_BITS = 480;
+using int4_quant_word_t = ap_uint<INT4_QUANT_WORD_BITS>;
+// Physical transport types.  A complete A15/G32 activation is still 480
+// bits architecturally, but no inter-SLR FIFO carries that width.  Sixteen
+// 30-bit beats preserve the exact payload while keeping the SLL bundle
+// narrow enough for a registered crossing at 300 MHz.
+static constexpr int INT4_ACTIVATION_BEAT_BITS = 30;
+static constexpr int INT4_ACTIVATION_BEATS_PER_WORD = 16;
+using int4_activation_beat_t = ap_uint<INT4_ACTIVATION_BEAT_BITS>;
+using int4_output_value_t = ap_uint<32>;
+static_assert(
+    INT4_QUANT_WORD_BITS ==
+        INT4_ACTIVATION_BEAT_BITS * INT4_ACTIVATION_BEATS_PER_WORD,
+    "activation transport must preserve all 480 quantized bits");
 static constexpr int INT4_ACTIVATION_BITS = 15;
 static constexpr int INT4_PACKED_WEIGHT_BITS = 27;
 using int4_activation_t = ap_int<INT4_ACTIVATION_BITS>;
@@ -163,6 +176,10 @@ Int4LinearShape int4_linear_shape_from_controller(
     const Int4Controller& controller
 );
 
+// Dispatcher-only state transition.  Datapath functions consume a registered
+// local command copy and never write the global decoder controller directly.
+void int4_complete_linear_dispatch(Int4Controller& controller);
+
 int int4_local_tile_count(int output_tiles, int pe_id);
 
 // Per-PE DDR layout for the currently selected matrix:
@@ -230,6 +247,64 @@ void int4_linear_4pe_optional_rms(
 // Single shared linear-engine entry for controller-level producer fusion.
 // If stream_activation is true, the first local output tile consumes groups
 // from the producer streams while filling the on-chip A15/scale replay RAMs.
+// The integrated decoder calls this command-only variant so no
+// Int4Controller state crosses the local execution boundary.
+void int4_linear_4pe_from_stream_command(
+    const int4_weight_word_t* weight_pe0,
+    const int4_weight_word_t* weight_pe1,
+    const int4_weight_word_t* weight_pe2,
+    const int4_weight_word_t* weight_pe3,
+    const int4_weight_scale_word_t* scale_pe0,
+    const int4_weight_scale_word_t* scale_pe1,
+    const int4_weight_scale_word_t* scale_pe2,
+    const int4_weight_scale_word_t* scale_pe3,
+    int4_quant_word_t* activation_q,
+    int4_scale_word_t* activation_scale,
+    hls::stream<int4_quant_word_t>& input_quantized_stream,
+    hls::stream<float>& input_scale_stream,
+    bool stream_activation,
+    bool cache_stream_activation,
+    int4_output_word_t* output_pe0,
+    int4_output_word_t* output_pe1,
+    int4_output_word_t* output_pe2,
+    int4_output_word_t* output_pe3,
+    ap_uint<3> linear_mode,
+    ap_uint<24> weight_word_offset,
+    ap_uint<11> weight_scale_word_offset
+);
+
+// Pair-local integrated entry.  The producer has already exchanged its two
+// halves, so each input stream is a complete activation vector physically
+// terminating in the owning pair.  The replay cache is duplicated per pair
+// to keep Q->K/V and GATE->UP traffic local as well.
+void int4_linear_4pe_from_pair_streams_command(
+    const int4_weight_word_t* weight_pe0,
+    const int4_weight_word_t* weight_pe1,
+    const int4_weight_word_t* weight_pe2,
+    const int4_weight_word_t* weight_pe3,
+    const int4_weight_scale_word_t* scale_pe0,
+    const int4_weight_scale_word_t* scale_pe1,
+    const int4_weight_scale_word_t* scale_pe2,
+    const int4_weight_scale_word_t* scale_pe3,
+    int4_quant_word_t* activation_q_pair01,
+    int4_scale_word_t* activation_scale_pair01,
+    int4_quant_word_t* activation_q_pair23,
+    int4_scale_word_t* activation_scale_pair23,
+    hls::stream<int4_quant_word_t>& input_quantized_pair01_stream,
+    hls::stream<float>& input_scale_pair01_stream,
+    hls::stream<int4_quant_word_t>& input_quantized_pair23_stream,
+    hls::stream<float>& input_scale_pair23_stream,
+    bool stream_activation,
+    bool cache_stream_activation,
+    int4_output_word_t* output_pe0,
+    int4_output_word_t* output_pe1,
+    int4_output_word_t* output_pe2,
+    int4_output_word_t* output_pe3,
+    ap_uint<3> linear_mode,
+    ap_uint<24> weight_word_offset,
+    ap_uint<11> weight_scale_word_offset
+);
+
 void int4_linear_4pe_from_stream(
     const int4_weight_word_t* weight_pe0,
     const int4_weight_word_t* weight_pe1,

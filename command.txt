@@ -1,0 +1,1 @@
+nohup bash ./build_300mhz.sh /opt/xilinx/platforms/xilinx_u250_gen3x16_xdma_4_1_202210_1/xilinx_u250_gen3x16_xdma_4_1_202210_1.xpfm int4_decoder_token_controller_300mhz.xclbin > build_xclbin_300mhz.log 2>&1 &

@@ -1,0 +1,4 @@
+open_project proj_int4_decoder_300mhz
+open_solution solution1
+export_design -format xo -output int4_decoder_token_controller_300mhz.xo
+exit
