@@ -105,6 +105,7 @@ $implementationLogs = @(
     Get-ChildItem -LiteralPath $tempDirectory -Filter "runme.log" -Recurse -File -ErrorAction SilentlyContinue
 )
 $floorplanMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: FLOORPLAN_APPLIED" -List
+$hardPblockMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: HARD_PBLOCKS_APPLIED" -List
 $pairLocalMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: PAIR_LOCAL_APPLIED" -List
 $postPlaceMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: FLOORPLAN_POST_PLACE_VALIDATED" -List
 
@@ -114,6 +115,13 @@ if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
 }
 if ($floorplanMarker) {
     Write-Host "Verified: 300 MHz PE/SLR floorplan hook was applied."
+}
+if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
+    -not $hardPblockMarker) {
+    throw "Vivado implementation ran without the required hard per-SLR pblock assignments."
+}
+if ($hardPblockMarker) {
+    Write-Host "Verified: PE, AXI and control hierarchy entered the platform hard per-SLR pblocks."
 }
 if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
     -not $pairLocalMarker) {

@@ -199,7 +199,7 @@ attention recurrence nên không materialize toàn bộ score vector.
 | `gemv2_pack_bench.cpp/.hpp` | Packed-DSP arithmetic primitives/benchmark được linear engine sử dụng |
 | `run_hls_300mhz.tcl` | Tạo HLS project, csynth và export XO |
 | `link_300mhz.cfg` | Clock, DDR connectivity và Vivado implementation strategy |
-| `timing_300mhz_pre_place.tcl` | Bắt buộc ownership PE/SLR và kiểm tra hierarchy trước place |
+| `timing_300mhz_pre_place.tcl` | Đưa hierarchy PE/AXI/control vào hard `pblock_dynamic_SLR0..3` của platform và kiểm tra trước place |
 | `timing_300mhz_post_place_check.tcl` | Fail implementation nếu PE, AXI hoặc control thoát khỏi SLR đã gắn |
 | `build_300mhz.ps1` / `build_300mhz.sh` | Wrapper link XCLBIN cho Windows/Linux, tạo run directory riêng và kiểm tra marker floorplan |
 | `report_300mhz_post_route.tcl` | Sinh timing, congestion, high-fanout và utilization report từ routed DCP |
@@ -256,6 +256,7 @@ Link chỉ được coi là hợp lệ khi log của chính run đó chứa cả
 
 ```text
 300MHz floorplan: PAIR_LOCAL_APPLIED
+300MHz floorplan: HARD_PBLOCKS_APPLIED
 300MHz floorplan: FLOORPLAN_APPLIED
 300MHz floorplan: FLOORPLAN_POST_PLACE_VALIDATED
 ```

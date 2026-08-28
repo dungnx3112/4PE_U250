@@ -13,14 +13,44 @@ proc find_floorplan_cells {patterns} {
     return [lsort -unique $matched]
 }
 
+# The U250 platform already owns four hard child pblocks named
+# pblock_dynamic_SLR0..3 below pblock_dynamic_region.  USER_SLR_ASSIGNMENT is
+# only a placement guideline and the placer is allowed to ignore it.  Put the
+# selected hierarchy into the platform child pblock as the hard constraint,
+# while retaining USER_SLR_ASSIGNMENT as an additional placement hint.
+proc require_platform_slr_pblock {slr} {
+    set pblock_name "pblock_dynamic_${slr}"
+    set pblock [get_pblocks -quiet $pblock_name]
+    if {[llength $pblock] != 1} {
+        error "300MHz floorplan: required platform pblock $pblock_name was not found uniquely"
+    }
+
+    set is_soft [get_property IS_SOFT $pblock]
+    if {$is_soft ni {0 false FALSE}} {
+        error "300MHz floorplan: platform pblock $pblock_name is soft (IS_SOFT=$is_soft)"
+    }
+    return $pblock
+}
+
 proc assign_slr {slr patterns} {
     set cells [find_floorplan_cells $patterns]
     if {[llength $cells] > 0} {
+        set pblock [require_platform_slr_pblock $slr]
+        set pblock_name [get_property NAME $pblock]
+
+        # Reassign the hierarchy from the parent dynamic-region pblock into
+        # the platform's hard per-SLR child pblock.
+        add_cells_to_pblock $pblock $cells
         set_property USER_SLR_ASSIGNMENT $slr $cells
         foreach cell $cells {
             set assigned [get_property USER_SLR_ASSIGNMENT $cell]
             if {$assigned ne $slr} {
                 error "300MHz floorplan: failed to assign [get_property NAME $cell] to $slr (read back '$assigned')"
+            }
+
+            set memberships [get_pblocks -quiet -of_objects $cell]
+            if {[lsearch -exact $memberships $pblock_name] < 0} {
+                error "300MHz floorplan: failed to add [get_property NAME $cell] to hard pblock $pblock_name"
             }
         }
     }
@@ -214,4 +244,5 @@ require_slr SLR3 "PE3 linear deserializer" [list \
     "*/int4_deserialize_activation_pe3_U0"]
 
 puts "INFO: 300MHz floorplan: PAIR_LOCAL_APPLIED"
+puts "INFO: 300MHz floorplan: HARD_PBLOCKS_APPLIED"
 puts "INFO: 300MHz floorplan: FLOORPLAN_APPLIED"

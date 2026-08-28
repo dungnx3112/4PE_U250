@@ -138,6 +138,9 @@ if (( ${#implementation_logs[@]} > 0 || link_exit_code == 0 )); then
         "300MHz floorplan: FLOORPLAN_APPLIED" \
         "the pre-place PE/SLR floorplan ran"
     require_marker \
+        "300MHz floorplan: HARD_PBLOCKS_APPLIED" \
+        "the PE, AXI and control hierarchies entered the platform hard per-SLR pblocks"
+    require_marker \
         "300MHz floorplan: PAIR_LOCAL_APPLIED" \
         "the pair-local anchors ran"
     require_marker \
