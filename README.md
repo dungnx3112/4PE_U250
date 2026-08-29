@@ -109,11 +109,11 @@ Output row tile toàn cục `t` thuộc PE `t % 4`; local tile là `t / 4`. Mọ
 trận được pad số output tile thành bội số của 4 để bốn DDR có layout và burst
 cân bằng.
 
-`timing_300mhz_pre_place.tcl` sử dụng `USER_SLR_ASSIGNMENT`, không dùng pblock
-hình học chặt. Cách này giữ ownership theo SLR nhưng vẫn cho placer đủ tự do ở
-thiết kế có congestion cao. Script kiểm tra bắt buộc hierarchy, memory, AXI,
-FIFO và local route owner; link phải fail nếu pattern source/RTL thay đổi hoặc
-floorplan không được áp dụng.
+`timing_300mhz_pre_place.tcl` sử dụng `USER_SLR_ASSIGNMENT` cùng các hard
+`pblock_dynamic_SLR0..3` có sẵn của platform. Chỉ datapath, memory, AXI, FIFO
+rộng và endpoint pair-local bị khóa; các wrapper DATAFLOW cùng control
+`ap_start/ap_done` bên ngoài vẫn để placer tự phân bố. Link phải fail nếu pattern
+source/RTL thay đổi, assignment bị bỏ qua hoặc floorplan không được áp dụng.
 
 ## Kiểm soát bus rộng và SLL crossing
 
@@ -199,8 +199,8 @@ attention recurrence nên không materialize toàn bộ score vector.
 | `gemv2_pack_bench.cpp/.hpp` | Packed-DSP arithmetic primitives/benchmark được linear engine sử dụng |
 | `run_hls_300mhz.tcl` | Tạo HLS project, csynth và export XO |
 | `link_300mhz.cfg` | Clock, DDR connectivity và Vivado implementation strategy |
-| `timing_300mhz_pre_place.tcl` | Đưa hierarchy PE/AXI/control vào hard `pblock_dynamic_SLR0..3` của platform và kiểm tra trước place |
-| `timing_300mhz_post_place_check.tcl` | Fail implementation nếu PE, AXI hoặc control thoát khỏi SLR đã gắn |
+| `timing_300mhz_pre_place.tcl` | Đưa PE-local datapath/AXI/memory/FIFO vào hard `pblock_dynamic_SLR0..3`, giữ outer control soft và kiểm tra trước place |
+| `timing_300mhz_post_place_check.tcl` | Fail implementation nếu datapath/AXI/memory/FIFO thoát khỏi SLR đã gắn hoặc một biên SLR dùng từ 50% SLL |
 | `build_300mhz.ps1` / `build_300mhz.sh` | Wrapper link XCLBIN cho Windows/Linux, tạo run directory riêng và kiểm tra marker floorplan |
 | `report_300mhz_post_route.tcl` | Sinh timing, congestion, high-fanout và utilization report từ routed DCP |
 
@@ -256,6 +256,7 @@ Link chỉ được coi là hợp lệ khi log của chính run đó chứa cả
 
 ```text
 300MHz floorplan: PAIR_LOCAL_APPLIED
+300MHz floorplan: LOCAL_DATA_PLANE_APPLIED
 300MHz floorplan: HARD_ANCHORS_APPLIED
 300MHz floorplan: FLOORPLAN_APPLIED
 300MHz floorplan: FLOORPLAN_POST_PLACE_VALIDATED

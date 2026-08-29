@@ -11,9 +11,11 @@ if {![catch {set candidate_run_directory [get_property DIRECTORY [current_run]]}
 }
 
 set route_report_path [file normalize [file join $run_directory final_route_status.rpt]]
-redirect -variable route_report {report_route_status}
-set route_report_file [open $route_report_path w]
-puts $route_report_file $route_report
+# Use the report command's native file output.  `redirect` is unavailable in
+# the Vitis-generated implementation hook interpreter.
+report_route_status -file $route_report_path
+set route_report_file [open $route_report_path r]
+set route_report [read $route_report_file]
 close $route_report_file
 
 proc require_route_count_zero {label pattern report} {

@@ -5,13 +5,33 @@
 
 puts "INFO: loading [file normalize [info script]]"
 
+proc prune_nested_floorplan_cells {cells} {
+    set roots {}
+    set root_names {}
+    foreach cell [lsort -unique $cells] {
+        set name [get_property NAME $cell]
+        set nested 0
+        foreach root_name $root_names {
+            if {[string first "${root_name}/" $name] == 0} {
+                set nested 1
+                break
+            }
+        }
+        if {!$nested} {
+            lappend roots $cell
+            lappend root_names $name
+        }
+    }
+    return $roots
+}
+
 proc find_required_roots {label patterns} {
     set roots {}
     foreach pattern $patterns {
         set roots [concat $roots [get_cells -quiet -hierarchical -filter \
             "NAME =~ $pattern && IS_PRIMITIVE == 0"]]
     }
-    set roots [lsort -unique $roots]
+    set roots [prune_nested_floorplan_cells $roots]
     if {[llength $roots] == 0} {
         error "300MHz post-place: required $label hierarchy was not found"
     }
@@ -36,7 +56,7 @@ proc check_physical_slr {slr label patterns required} {
         set roots [concat $roots [get_cells -quiet -hierarchical -filter \
             "NAME =~ $pattern && IS_PRIMITIVE == 0"]]
     }
-    set roots [lsort -unique $roots]
+    set roots [prune_nested_floorplan_cells $roots]
     if {[llength $roots] == 0} {
         if {$required} {
             error "300MHz post-place: required $label hierarchy was not found"
@@ -147,15 +167,46 @@ foreach pe {0 1 2 3} slr {SLR0 SLR1 SLR2 SLR3} {
         "*gate_pe${pe}_U" "*up_pe${pe}_U" \
         "*logits_pe${pe}_U" \
         "*rope_lut_bank${pe}_U"]
-    require_physical_slr $slr "PE${pe} linear arithmetic" [list \
-        "*/int4_run_pe_dataflow_${pe}_U0/int4_pe_mac_commanded_${pe}_U0" \
-        "*/int4_run_pe_dataflow_${pe}_U0/int4_pe_dequant_commanded_${pe}_U0"]
-    optional_physical_slr $slr "PE${pe} SwiftKV arithmetic" [list \
-        "*/swiftkv_run_pe_${pe}_U0/*/grp_swiftkv_attention_head_fu_*"]
+    require_physical_slr $slr "PE${pe} linear datapath" [list \
+        "*/int4_run_pe_dataflow_${pe}_U0/int4_pe_*_commanded_${pe}*_U0" \
+        "*/int4_run_pe_dataflow_${pe}_U0/weight_stream_U" \
+        "*/int4_run_pe_dataflow_${pe}_U0/replay_activation_stream_U" \
+        "*/int4_run_pe_dataflow_${pe}_U0/replay_scale_stream_U" \
+        "*/int4_run_pe_dataflow_${pe}_U0/group_stream_U" \
+        "*/int4_run_pe_dataflow_${pe}_U0/final_block_stream_U" \
+        "*/int4_run_pe_dataflow_${pe}_U0/output_value_stream_U"]
+    require_physical_slr $slr "PE${pe} memory clients" [list \
+        "*/grp_int4_route_projection_local_pe_${pe}*_fu_*" \
+        "*/grp_int4_seed_linear_stage_pe_${pe}*_fu_*" \
+        "*/grp_int4_preload_model_prefix_pe_${pe}*_fu_*" \
+        "*/grp_int4_load_residual_pe_${pe}*_fu_*" \
+        "*/grp_int4_store_residual_pe_${pe}*_fu_*"]
+    require_physical_slr $slr "PE${pe} preprocess datapath" [list \
+        "*/int4_rms_sumsq_pe_${pe}*_U0" \
+        "*/int4_rms_normalize_quantize_pe_${pe}*_U0" \
+        "*/int4_swiglu_quantize_pe${pe}*_U0" \
+        "*/quantized_pe${pe}_U" \
+        "*/quantized_pe${pe}_local_U"]
+    require_physical_slr $slr "PE${pe} SwiftKV bank datapath" [list \
+        "*/swiftkv_run_pe_${pe}_U0/grp_swiftkv_run_bank_fu_*"]
 }
 
 require_physical_slr SLR0 "AXI-Lite control adapter" [list \
     "*control_s_axi_U"]
+
+require_physical_slr SLR0 "PE0 edge source and destination" [list \
+    "*/int4_serialize_activation_pe0_to_pair01*_U0" \
+    "*/swiftkv_serialize_attention_pe0_to_pair01_U0" \
+    "*/int4_deserialize_activation_pe0_U0" \
+    "*/quantized_pair01_to_pe0_U" \
+    "*/activation_scale_pair01_to_pe0_U"]
+
+require_physical_slr SLR3 "PE3 edge source and destination" [list \
+    "*/int4_serialize_activation_pe3_to_pair23*_U0" \
+    "*/swiftkv_serialize_attention_pe3_to_pair23_U0" \
+    "*/int4_deserialize_activation_pe3_U0" \
+    "*/quantized_pair23_to_pe3_U" \
+    "*/activation_scale_pair23_to_pe3_U"]
 
 require_physical_slr SLR1 "pair01 storage" [list \
     "*activation_q_pair01_U" "*activation_scale_pair01_U" \
@@ -165,7 +216,17 @@ require_physical_slr SLR1 "pair01 storage" [list \
     "*/quantized_half01_local_U" \
     "*/quantized_half23_to01_U" \
     "*/quantized_pair01_stream_U" \
-    "*/quantized_pair01_U"]
+    "*/quantized_pair01_U" \
+    "*/quantized_pe0_to_pair01_U"]
+
+require_physical_slr SLR1 "pair01 datapath endpoints" [list \
+    "*/int4_broadcast_activation_pair01_U0" \
+    "*/int4_rms_gather_pair01_edge_U0" \
+    "*/int4_swiglu_gather_pair01_edge_U0" \
+    "*/int4_rms_broadcast_reciprocal_pair01_U0" \
+    "*/int4_rms_merge_partial01_U0" \
+    "*/int4_forward_attention_half_pair01_U0" \
+    "*/swiftkv_gather_attention_pair01_U0"]
 
 require_physical_slr SLR2 "pair23 storage" [list \
     "*activation_q_pair23_U" "*activation_scale_pair23_U" \
@@ -175,7 +236,18 @@ require_physical_slr SLR2 "pair23 storage" [list \
     "*/quantized_half23_local_U" \
     "*/quantized_half01_to23_U" \
     "*/quantized_pair23_stream_U" \
-    "*/quantized_pair23_U"]
+    "*/quantized_pair23_U" \
+    "*/quantized_pe3_to_pair23_U"]
+
+require_physical_slr SLR2 "pair23 datapath endpoints" [list \
+    "*/int4_broadcast_activation_pair23_U0" \
+    "*/int4_rms_gather_pair23_edge_U0" \
+    "*/int4_swiglu_gather_pair23_edge_U0" \
+    "*/int4_rms_broadcast_reciprocal_pair23_U0" \
+    "*/int4_rms_merge_partial23_U0" \
+    "*/int4_rms_finalize_pair_sums_U0" \
+    "*/int4_forward_attention_half_pair23_U0" \
+    "*/swiftkv_gather_attention_pair23_U0"]
 
 set run_directory [pwd]
 if {![catch {set candidate_run_directory [get_property DIRECTORY [current_run]]}] &&
@@ -183,9 +255,12 @@ if {![catch {set candidate_run_directory [get_property DIRECTORY [current_run]]}
     set run_directory $candidate_run_directory
 }
 set slr_report_path [file normalize [file join $run_directory post_place_utilization_slr.rpt]]
-redirect -variable slr_report {report_utilization -slr}
-set slr_report_file [open $slr_report_path w]
-puts $slr_report_file $slr_report
+# Vitis' implementation hook interpreter does not expose Vivado's `redirect`
+# command (VPL_TCL 101-2).  Generate the report with the command's native
+# -file option, then read it back for the SLL boundary guard below.
+report_utilization -slr -file $slr_report_path
+set slr_report_file [open $slr_report_path r]
+set slr_report [read $slr_report_file]
 close $slr_report_file
 
 set boundary_count 0

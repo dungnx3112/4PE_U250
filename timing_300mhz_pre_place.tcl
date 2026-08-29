@@ -2,6 +2,30 @@
 
 puts "INFO: loading [file normalize [info script]]"
 
+proc prune_nested_floorplan_cells {cells} {
+    # NAME =~ patterns ending in '*' also match descendants because a Vivado
+    # hierarchical name contains '/'.  Retain only the highest matched cell;
+    # otherwise one run-bank pattern expands into hundreds of hierarchy cells
+    # and recreates the old broad-pblock behavior.
+    set roots {}
+    set root_names {}
+    foreach cell [lsort -unique $cells] {
+        set name [get_property NAME $cell]
+        set nested 0
+        foreach root_name $root_names {
+            if {[string first "${root_name}/" $name] == 0} {
+                set nested 1
+                break
+            }
+        }
+        if {!$nested} {
+            lappend roots $cell
+            lappend root_names $name
+        }
+    }
+    return $roots
+}
+
 proc find_floorplan_cells {patterns} {
     set matched {}
     foreach pattern $patterns {
@@ -14,7 +38,7 @@ proc find_floorplan_cells {patterns} {
             set matched [concat $matched $cells]
         }
     }
-    return [lsort -unique $matched]
+    return [prune_nested_floorplan_cells $matched]
 }
 
 # The U250 platform already owns four hard child pblocks named
@@ -23,8 +47,9 @@ proc find_floorplan_cells {patterns} {
 # automatically generated ap_done/ap_sync control cones across all four SLRs
 # and made localized SLL demand exceed 100 percent.  Complete hierarchies are
 # checked for name/version compatibility but intentionally left unconstrained.
-# Only physical resource anchors (AXI adapters, memories and arithmetic-heavy
-# leaf functions) receive USER_SLR_ASSIGNMENT and enter hard child pblocks.
+# Only PE-local datapaths, their storage and pair-boundary endpoints receive
+# USER_SLR_ASSIGNMENT and enter hard child pblocks.  The outer HLS DATAFLOW
+# wrappers and their generated ap_start/ap_done orchestration remain soft.
 proc require_platform_slr_pblock {slr} {
     set pblock_name "pblock_dynamic_${slr}"
     set pblock [get_pblocks -quiet $pblock_name]
@@ -61,6 +86,10 @@ proc anchor_slr {slr label patterns required} {
     add_cells_to_pblock $pblock $cells
     set_property USER_SLR_ASSIGNMENT $slr $cells
     foreach cell $cells {
+        set assigned_slr [get_property USER_SLR_ASSIGNMENT $cell]
+        if {$assigned_slr ne $slr} {
+            error "300MHz floorplan: hard anchor [get_property NAME $cell] ignored USER_SLR_ASSIGNMENT=$slr (actual=$assigned_slr)"
+        }
         set memberships [get_pblocks -quiet -of_objects $cell]
         if {[lsearch -exact $memberships $pblock_name] < 0} {
             error "300MHz floorplan: failed to add hard anchor [get_property NAME $cell] to $pblock_name"
@@ -107,7 +136,7 @@ foreach pe {0 1 2 3} slr {SLR0 SLR1 SLR2 SLR3} {
         "*/swiftkv_run_pe_${pe}_U0/*/key*_chunk*_stream_U" \
         "*/swiftkv_run_pe_${pe}_U0/*/value*_engine*_stream_U" \
         "*/grp_int4_route_projection_local_pe_${pe}*_fu_*" \
-        "*/int4_seed_linear_stage_pe_${pe}*_U0" \
+        "*/grp_int4_seed_linear_stage_pe_${pe}*_fu_*" \
         "*/quantized_pe${pe}_U" \
         "*/quantized_pe${pe}_local_U" \
         "*/scale_pe${pe}_U" \
@@ -115,9 +144,9 @@ foreach pe {0 1 2 3} slr {SLR0 SLR1 SLR2 SLR3} {
         "*/int4_run_pe_dataflow_${pe}_U0/replay_activation_stream_U" \
         "*/int4_run_pe_dataflow_${pe}_U0/output_value_stream_U" \
         "*/swiftkv_run_pe_${pe}_U0/*/current_record_stream_U" \
-        "*/int4_preload_model_prefix_pe_${pe}*_U0" \
-        "*/int4_load_residual_pe_${pe}*_U0" \
-        "*/int4_store_residual_pe_${pe}*_U0" \
+        "*/grp_int4_preload_model_prefix_pe_${pe}*_fu_*" \
+        "*/grp_int4_load_residual_pe_${pe}*_fu_*" \
+        "*/grp_int4_store_residual_pe_${pe}*_fu_*" \
         "*/int4_rms_sumsq_pe_${pe}*_U0" \
         "*/int4_rms_normalize_quantize_pe_${pe}*_U0" \
         "*/int4_swiglu_quantize_pe${pe}*_U0" \
@@ -301,16 +330,65 @@ foreach pe {0 1 2 3} slr {SLR0 SLR1 SLR2 SLR3} {
         "*logits_pe${pe}_U" \
         "*rope_lut_bank${pe}_U"]
 
-    require_anchor_slr $slr "PE${pe} linear arithmetic" [list \
-        "*/int4_run_pe_dataflow_${pe}_U0/int4_pe_mac_commanded_${pe}_U0" \
-        "*/int4_run_pe_dataflow_${pe}_U0/int4_pe_dequant_commanded_${pe}_U0"]
+    # Anchor the six linear worker stages and their wide local FIFOs, but not
+    # int4_run_pe_dataflow itself.  This keeps the data plane next to gmemN
+    # without forcing the wrapper's generated start/done cone into four SLRs.
+    require_anchor_slr $slr "PE${pe} linear datapath" [list \
+        "*/int4_run_pe_dataflow_${pe}_U0/int4_pe_*_commanded_${pe}*_U0" \
+        "*/int4_run_pe_dataflow_${pe}_U0/weight_stream_U" \
+        "*/int4_run_pe_dataflow_${pe}_U0/replay_activation_stream_U" \
+        "*/int4_run_pe_dataflow_${pe}_U0/replay_scale_stream_U" \
+        "*/int4_run_pe_dataflow_${pe}_U0/group_stream_U" \
+        "*/int4_run_pe_dataflow_${pe}_U0/final_block_stream_U" \
+        "*/int4_run_pe_dataflow_${pe}_U0/output_value_stream_U"]
 
-    optional_anchor_slr $slr "PE${pe} SwiftKV arithmetic" [list \
-        "*/swiftkv_run_pe_${pe}_U0/*/grp_swiftkv_attention_head_fu_*"]
+    # These functions directly read or write PE-owned 512-bit memories.  They
+    # used to be only discovered, so placer could put the client in SLR2 while
+    # its PE3 RAM stayed in SLR3, consuming thousands of SLLs.
+    require_anchor_slr $slr "PE${pe} memory clients" [list \
+        "*/grp_int4_route_projection_local_pe_${pe}*_fu_*" \
+        "*/grp_int4_seed_linear_stage_pe_${pe}*_fu_*" \
+        "*/grp_int4_preload_model_prefix_pe_${pe}*_fu_*" \
+        "*/grp_int4_load_residual_pe_${pe}*_fu_*" \
+        "*/grp_int4_store_residual_pe_${pe}*_fu_*"]
+
+    # Keep the PE-specific normalization/SwiGLU producers and all 480-bit
+    # hand-off FIFOs with their producer/consumer PE.  Only the deliberately
+    # serialized 30-bit edge streams are allowed to cross an SLR boundary.
+    require_anchor_slr $slr "PE${pe} preprocess datapath" [list \
+        "*/int4_rms_sumsq_pe_${pe}*_U0" \
+        "*/int4_rms_normalize_quantize_pe_${pe}*_U0" \
+        "*/int4_swiglu_quantize_pe${pe}*_U0" \
+        "*/quantized_pe${pe}_U" \
+        "*/quantized_pe${pe}_local_U"]
+
+    # swiftkv_run_bank is the PE-local SwiftKV data plane: q/k/v/query BRAMs,
+    # RoPE, KV quantization and the attention engine.  Leave swiftkv_run_pe's
+    # command/completion shell soft so its narrow control tokens may be placed
+    # at the pair boundary.
+    require_anchor_slr $slr "PE${pe} SwiftKV bank datapath" [list \
+        "*/swiftkv_run_pe_${pe}_U0/grp_swiftkv_run_bank_fu_*"]
 }
 
 require_anchor_slr SLR0 "AXI-Lite control adapter" [list \
     "*control_s_axi_U"]
+
+# Endpoint placement makes every intentionally serialized edge an explicit
+# registered SLR cut.  The wide FIFO and serializer stay with the edge PE; the
+# 30-bit FIFO is placed at the receiving pair (or destination PE for linear).
+require_anchor_slr SLR0 "PE0 edge source and destination" [list \
+    "*/int4_serialize_activation_pe0_to_pair01*_U0" \
+    "*/swiftkv_serialize_attention_pe0_to_pair01_U0" \
+    "*/int4_deserialize_activation_pe0_U0" \
+    "*/quantized_pair01_to_pe0_U" \
+    "*/activation_scale_pair01_to_pe0_U"]
+
+require_anchor_slr SLR3 "PE3 edge source and destination" [list \
+    "*/int4_serialize_activation_pe3_to_pair23*_U0" \
+    "*/swiftkv_serialize_attention_pe3_to_pair23_U0" \
+    "*/int4_deserialize_activation_pe3_U0" \
+    "*/quantized_pair23_to_pe3_U" \
+    "*/activation_scale_pair23_to_pe3_U"]
 
 require_anchor_slr SLR1 "pair01 storage" [list \
     "*activation_q_pair01_U" "*activation_scale_pair01_U" \
@@ -320,7 +398,17 @@ require_anchor_slr SLR1 "pair01 storage" [list \
     "*/quantized_half01_local_U" \
     "*/quantized_half23_to01_U" \
     "*/quantized_pair01_stream_U" \
-    "*/quantized_pair01_U"]
+    "*/quantized_pair01_U" \
+    "*/quantized_pe0_to_pair01_U"]
+
+require_anchor_slr SLR1 "pair01 datapath endpoints" [list \
+    "*/int4_broadcast_activation_pair01_U0" \
+    "*/int4_rms_gather_pair01_edge_U0" \
+    "*/int4_swiglu_gather_pair01_edge_U0" \
+    "*/int4_rms_broadcast_reciprocal_pair01_U0" \
+    "*/int4_rms_merge_partial01_U0" \
+    "*/int4_forward_attention_half_pair01_U0" \
+    "*/swiftkv_gather_attention_pair01_U0"]
 
 require_anchor_slr SLR2 "pair23 storage" [list \
     "*activation_q_pair23_U" "*activation_scale_pair23_U" \
@@ -330,8 +418,20 @@ require_anchor_slr SLR2 "pair23 storage" [list \
     "*/quantized_half23_local_U" \
     "*/quantized_half01_to23_U" \
     "*/quantized_pair23_stream_U" \
-    "*/quantized_pair23_U"]
+    "*/quantized_pair23_U" \
+    "*/quantized_pe3_to_pair23_U"]
+
+require_anchor_slr SLR2 "pair23 datapath endpoints" [list \
+    "*/int4_broadcast_activation_pair23_U0" \
+    "*/int4_rms_gather_pair23_edge_U0" \
+    "*/int4_swiglu_gather_pair23_edge_U0" \
+    "*/int4_rms_broadcast_reciprocal_pair23_U0" \
+    "*/int4_rms_merge_partial23_U0" \
+    "*/int4_rms_finalize_pair_sums_U0" \
+    "*/int4_forward_attention_half_pair23_U0" \
+    "*/swiftkv_gather_attention_pair23_U0"]
 
 puts "INFO: 300MHz floorplan: PAIR_LOCAL_APPLIED"
+puts "INFO: 300MHz floorplan: LOCAL_DATA_PLANE_APPLIED"
 puts "INFO: 300MHz floorplan: HARD_ANCHORS_APPLIED"
 puts "INFO: 300MHz floorplan: FLOORPLAN_APPLIED"

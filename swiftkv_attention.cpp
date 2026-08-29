@@ -2829,9 +2829,9 @@ static void swiftkv_run_four_pes(
 #pragma HLS BIND_STORAGE variable=sin_pe2 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=sin_pe3 type=fifo impl=srl
 // The earlier unconstrained build could place a BRAM FIFO remotely and created
-// a -1.949 ns SLR2->SLR3 path.  The mandatory floorplan now anchors every FIFO
-// with its SwiftKV PE, so BRAM removes the wide LUTRAM enable cone while the
-// hard block remains local to its producer/gather boundary.
+// a -1.949 ns SLR2->SLR3 path.  The mandatory floorplan now anchors each wide
+// FIFO with its SwiftKV PE and places only the serialized 30-bit edge FIFO at
+// the receiving pair, so BRAM remains local to its producer/consumer boundary.
 #pragma HLS BIND_STORAGE variable=quantized_pe0_local type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=quantized_pe1 type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=quantized_pe2 type=fifo impl=bram

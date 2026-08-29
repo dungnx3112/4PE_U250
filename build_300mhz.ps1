@@ -116,6 +116,7 @@ $implementationLogs = @(
 $floorplanMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: FLOORPLAN_APPLIED" -List
 $hardAnchorMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: HARD_ANCHORS_APPLIED" -List
 $pairLocalMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: PAIR_LOCAL_APPLIED" -List
+$localDataPlaneMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: LOCAL_DATA_PLANE_APPLIED" -List
 $postPlaceMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: FLOORPLAN_POST_PLACE_VALIDATED" -List
 $sllBoundaryMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: SLL_BOUNDARY_VALIDATED" -List
 $postRouteMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: ROUTE_AND_TIMING_VALIDATED" -List
@@ -140,6 +141,13 @@ if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
 }
 if ($pairLocalMarker) {
     Write-Host "Verified: pair01/pair23 broadcast and gather anchors were applied."
+}
+if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
+    -not $localDataPlaneMarker) {
+    throw "Vivado implementation ran without the required PE-local data-plane anchors."
+}
+if ($localDataPlaneMarker) {
+    Write-Host "Verified: PE-local linear, preprocess and SwiftKV data planes were hard-anchored."
 }
 if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
     -not $postPlaceMarker) {

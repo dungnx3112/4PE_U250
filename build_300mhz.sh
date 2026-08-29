@@ -155,6 +155,9 @@ if (( ${#implementation_logs[@]} > 0 || link_exit_code == 0 )); then
         "300MHz floorplan: PAIR_LOCAL_APPLIED" \
         "the pair-local anchors ran"
     require_marker \
+        "300MHz floorplan: LOCAL_DATA_PLANE_APPLIED" \
+        "the PE-local linear, preprocess and SwiftKV data planes were hard-anchored"
+    require_marker \
         "300MHz floorplan: FLOORPLAN_POST_PLACE_VALIDATED" \
         "all hard resource anchors stayed in their assigned SLRs"
     require_marker \
