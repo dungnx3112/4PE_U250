@@ -586,6 +586,32 @@ static int4_swift_dispatch_command_t int4_pack_swift_dispatch_command(
     return command;
 }
 
+// Keep every operation in the outer DATAFLOW region as an explicit process.
+// Besides satisfying the canonical DATAFLOW form, this producer is the only
+// process driven directly by the global decoder state; the wide linear and
+// SwiftKV hierarchies start from registered FIFO commands.
+static void int4_emit_dispatch_commands(
+    hls::stream<int4_dispatch_command_t>& command_stream,
+    hls::stream<int4_swift_dispatch_command_t>& swift_command_stream,
+    int preprocess_mode,
+    ap_uint<3> linear_mode,
+    ap_uint<24> weight_word_offset,
+    ap_uint<11> weight_scale_word_offset,
+    ap_uint<13> norm_word_offset,
+    ap_uint<6> layer_index,
+    ap_uint<12> position
+) {
+#pragma HLS INLINE off
+    command_stream.write(int4_pack_dispatch_command(
+        (ap_uint<2>)preprocess_mode,
+        linear_mode,
+        weight_word_offset,
+        weight_scale_word_offset,
+        norm_word_offset));
+    swift_command_stream.write(
+        int4_pack_swift_dispatch_command(layer_index, position));
+}
+
 // Select the projection before entering the wide copy loop.  Keeping all four
 // PEs and seven destinations under one dispatcher FSM state made that state
 // drive more than 12k RAM-port loads.  ROUTE_ID specializes each local loop so
@@ -694,8 +720,10 @@ static void int4_seed_linear_stages_4pe(
     int4_output_word_t* linear_stage3
 ) {
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW disable_start_propagation
-
+    // A DATAFLOW wrapper around four independent copies generated a global
+    // ap_done/ap_sync join spanning SLR3 -> SLR0 -> SLR2 -> SLR0.  The copy is
+    // only 64 words per PE and is negligible beside GEMV, so serialize these
+    // calls and let each function boundary register completion locally.
     int4_seed_linear_stage_pe<0>(residual_pe0, linear_stage0);
     int4_seed_linear_stage_pe<1>(residual_pe1, linear_stage1);
     int4_seed_linear_stage_pe<2>(residual_pe2, linear_stage2);
@@ -974,19 +1002,16 @@ static void int4_dispatch_linear_registered(
 #pragma HLS BIND_STORAGE variable=command_stream type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=swift_command_stream type=fifo impl=srl
 
-    // The DATAFLOW entry process performs this write.  Keeping a separate
-    // two-bit producer function only added an extra FSM and did not add a
-    // register beyond the FIFO itself.
-    const int4_dispatch_command_t dispatch_command =
-        int4_pack_dispatch_command(
-        (ap_uint<2>)preprocess_mode,
+    int4_emit_dispatch_commands(
+        command_stream,
+        swift_command_stream,
+        preprocess_mode,
         linear_mode,
         weight_word_offset,
         weight_scale_word_offset,
-        norm_word_offset);
-    command_stream.write(dispatch_command);
-    swift_command_stream.write(
-        int4_pack_swift_dispatch_command(layer_index, position));
+        norm_word_offset,
+        layer_index,
+        position);
     int4_execute_dispatch_linear(
         weight_bank0, weight_bank1,
         weight_bank2, weight_bank3,
@@ -1071,10 +1096,10 @@ static void int4_preload_model_prefix_4ddr(
         norm_cache3[INT4_TOTAL_NORM_WORDS_PER_PE]
 ) {
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW disable_start_propagation
-
-    // Each bank owns its loop counter, AXI read control and cache write
-    // enables.  Only the four completion bits return to this small wrapper.
+    // Keep the four AXI engines as separate functions, but do not combine
+    // their completion pins in a cross-SLR DATAFLOW control cone.  Preload is
+    // performed once per invocation, so registered sequential completion is
+    // a small latency cost and a large routing win.
     int4_preload_model_prefix_pe<0>(
         model_bank0, scale_cache0, norm_cache0);
     int4_preload_model_prefix_pe<1>(
@@ -1112,8 +1137,7 @@ static void int4_load_residual_4ddr(
     int4_output_word_t residual_buffer3[INT4_VECTOR_WORDS_PER_PE]
 ) {
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW disable_start_propagation
-
+    // Avoid the four-way ap_ready/ap_done cone seen in the failed DCP.
     int4_load_residual_pe<0>(residual_pe0, residual_buffer0);
     int4_load_residual_pe<1>(residual_pe1, residual_buffer1);
     int4_load_residual_pe<2>(residual_pe2, residual_buffer2);
@@ -1152,8 +1176,7 @@ static void int4_store_residual_4ddr(
     int4_output_word_t* residual_pe3
 ) {
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW disable_start_propagation
-
+    // Avoid the four-way ap_ready/ap_done cone seen in the failed DCP.
     int4_store_residual_pe<0>(residual_buffer0, residual_pe0);
     int4_store_residual_pe<1>(residual_buffer1, residual_pe1);
     int4_store_residual_pe<2>(residual_buffer2, residual_pe2);

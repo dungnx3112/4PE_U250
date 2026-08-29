@@ -2414,12 +2414,15 @@ static void swiftkv_join_done23(
 static void swiftkv_join_all_done(
     hls::stream<swiftkv_completion_t>& done01,
     hls::stream<swiftkv_completion_t>& done23,
-    swiftkv_pe_command_t expected,
+    ap_uint<6> layer_index,
+    ap_uint<12> position,
     ap_uint<1>& all_done
 ) {
 #pragma HLS INLINE off
     const swiftkv_completion_t token01 = done01.read();
     const swiftkv_completion_t token23 = done23.read();
+    const swiftkv_pe_command_t expected =
+        swiftkv_pack_pe_command(layer_index, position);
     swiftkv_completion_t expected_completion = 0;
     expected_completion[18] = 1;
     expected_completion.range(17, 0) = expected;
@@ -2858,9 +2861,6 @@ static void swiftkv_run_four_pes(
     swiftkv_broadcast_pe_commands_pair23(
         swiftkv_command_pe2, swiftkv_command_pe3,
         layer_index, position);
-    const swiftkv_pe_command_t expected_completion_command =
-        swiftkv_pack_pe_command(layer_index, position);
-
     swiftkv_broadcast_rope_pair01(
         current_cos_pair01, current_sin_pair01,
         cos_pe0, cos_pe1, sin_pe0, sin_pe1);
@@ -2893,7 +2893,7 @@ static void swiftkv_run_four_pes(
         swiftkv_done_pe2, swiftkv_done_pe3, swiftkv_done23);
     swiftkv_join_all_done(
         swiftkv_done01, swiftkv_done23,
-        expected_completion_command, all_done);
+        layer_index, position, all_done);
 #ifdef SWIFTKV_INTEGRATED_TOP
     swiftkv_serialize_attention_pe0_to_pair01(
         quantized_pe0_local, quantized_pe0_to_pair01);

@@ -256,9 +256,11 @@ Link chỉ được coi là hợp lệ khi log của chính run đó chứa cả
 
 ```text
 300MHz floorplan: PAIR_LOCAL_APPLIED
-300MHz floorplan: HARD_PBLOCKS_APPLIED
+300MHz floorplan: HARD_ANCHORS_APPLIED
 300MHz floorplan: FLOORPLAN_APPLIED
 300MHz floorplan: FLOORPLAN_POST_PLACE_VALIDATED
+300MHz floorplan: SLL_BOUNDARY_VALIDATED
+300MHz floorplan: ROUTE_AND_TIMING_VALIDATED
 ```
 
 Không gọi `v++ --link` bỏ qua `link_300mhz.cfg` hoặc

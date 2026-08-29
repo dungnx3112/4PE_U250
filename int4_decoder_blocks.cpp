@@ -159,6 +159,21 @@ static void int4_rms_merge_partial01(
     merged_01.write(partial_0.read() + partial_1.read());
 }
 
+static void int4_rms_merge_partial23(
+    hls::stream<float>& partial_2,
+    hls::stream<float>& partial_3,
+    hls::stream<float>& merged_23
+) {
+#pragma HLS INLINE off
+    // This pair sum is used only as a registered SLR2/SLR3 completion token.
+    // The final ordered reduction below still preserves the original C
+    // floating-point association.
+    const float value2 = partial_2.read();
+    const float value3 = partial_3.read();
+    merged_23.write(value2);
+    merged_23.write(value3);
+}
+
 static void int4_rms_merge_partial2(
     hls::stream<float>& merged_01,
     hls::stream<float>& partial_2,
@@ -177,6 +192,20 @@ static void int4_rms_merge_partial3_and_rsqrt(
     // Preserve the exact former C association:
     // (((partial_0 + partial_1) + partial_2) + partial_3).
     const float total = merged_012.read() + partial_3.read();
+    const float mean_square =
+        total * (1.0f / (float)INT4_DIM) + 1.0e-5f;
+    reciprocal_rms = hls::rsqrtf(mean_square);
+}
+
+static void int4_rms_finalize_pair_sums(
+    hls::stream<float>& merged_01,
+    hls::stream<float>& partial_23,
+    float& reciprocal_rms
+) {
+#pragma HLS INLINE off
+    // Preserve (((partial_0 + partial_1) + partial_2) + partial_3) exactly.
+    const float merged_012 = merged_01.read() + partial_23.read();
+    const float total = merged_012 + partial_23.read();
     const float mean_square =
         total * (1.0f / (float)INT4_DIM) + 1.0e-5f;
     reciprocal_rms = hls::rsqrtf(mean_square);
@@ -520,6 +549,44 @@ rms_merge_output_local_tile_loop:
     }
 }
 
+static void int4_rms_sumsq_pair01(
+    const int4_output_word_t* input_pe0,
+    const int4_output_word_t* input_pe1,
+    hls::stream<float>& merged_01
+) {
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW disable_start_propagation
+    hls::stream<float> partial_0;
+    hls::stream<float> partial_1;
+#pragma HLS STREAM variable=partial_0 depth=2
+#pragma HLS STREAM variable=partial_1 depth=2
+#pragma HLS BIND_STORAGE variable=partial_0 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=partial_1 type=fifo impl=srl
+
+    int4_rms_sumsq_pe<0>(input_pe0, partial_0);
+    int4_rms_sumsq_pe<1>(input_pe1, partial_1);
+    int4_rms_merge_partial01(partial_0, partial_1, merged_01);
+}
+
+static void int4_rms_sumsq_pair23(
+    const int4_output_word_t* input_pe2,
+    const int4_output_word_t* input_pe3,
+    hls::stream<float>& partial_23
+) {
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW disable_start_propagation
+    hls::stream<float> partial_2;
+    hls::stream<float> partial_3;
+#pragma HLS STREAM variable=partial_2 depth=2
+#pragma HLS STREAM variable=partial_3 depth=2
+#pragma HLS BIND_STORAGE variable=partial_2 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=partial_3 type=fifo impl=srl
+
+    int4_rms_sumsq_pe<2>(input_pe2, partial_2);
+    int4_rms_sumsq_pe<3>(input_pe3, partial_3);
+    int4_rms_merge_partial23(partial_2, partial_3, partial_23);
+}
+
 static void int4_rms_sumsq_four_pes(
     const int4_output_word_t* input_pe0,
     const int4_output_word_t* input_pe1,
@@ -530,33 +597,18 @@ static void int4_rms_sumsq_four_pes(
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW disable_start_propagation
 
-    hls::stream<float> partial_0;
-    hls::stream<float> partial_1;
-    hls::stream<float> partial_2;
-    hls::stream<float> partial_3;
     hls::stream<float> merged_01;
-    hls::stream<float> merged_012;
-#pragma HLS STREAM variable=partial_0 depth=2
-#pragma HLS STREAM variable=partial_1 depth=2
-#pragma HLS STREAM variable=partial_2 depth=2
-#pragma HLS STREAM variable=partial_3 depth=2
+    hls::stream<float> partial_23;
 #pragma HLS STREAM variable=merged_01 depth=2
-#pragma HLS STREAM variable=merged_012 depth=2
-#pragma HLS BIND_STORAGE variable=partial_0 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=partial_1 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=partial_2 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=partial_3 type=fifo impl=srl
+#pragma HLS STREAM variable=partial_23 depth=2
 #pragma HLS BIND_STORAGE variable=merged_01 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=merged_012 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=partial_23 type=fifo impl=srl
 
-    int4_rms_sumsq_pe<0>(input_pe0, partial_0);
-    int4_rms_sumsq_pe<1>(input_pe1, partial_1);
-    int4_rms_sumsq_pe<2>(input_pe2, partial_2);
-    int4_rms_sumsq_pe<3>(input_pe3, partial_3);
-    int4_rms_merge_partial01(partial_0, partial_1, merged_01);
-    int4_rms_merge_partial2(merged_01, partial_2, merged_012);
-    int4_rms_merge_partial3_and_rsqrt(
-        merged_012, partial_3, reciprocal_rms);
+    // Only two pair-local wrappers participate in this DATAFLOW control cone;
+    // no PE0/PE3 ap_done signal is connected directly across four SLRs.
+    int4_rms_sumsq_pair01(input_pe0, input_pe1, merged_01);
+    int4_rms_sumsq_pair23(input_pe2, input_pe3, partial_23);
+    int4_rms_finalize_pair_sums(merged_01, partial_23, reciprocal_rms);
 }
 
 static void int4_rms_normalize_quantize_four_pes(
@@ -736,6 +788,98 @@ static void int4_rms_normalize_quantize_four_pes_stream(
         quantized_stream, scale_stream);
 }
 
+static void int4_rms_normalize_quantize_pair01_half(
+    const int4_output_word_t* input_pe0,
+    const int4_output_word_t* input_pe1,
+    const int4_output_word_t* gamma_pe0,
+    const int4_output_word_t* gamma_pe1,
+    float reciprocal_rms,
+    hls::stream<int4_quant_word_t>& quantized_half01_stream,
+    hls::stream<float>& scale_half01_stream
+) {
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW disable_start_propagation
+    hls::stream<int4_quant_word_t> quantized_pe0_local, quantized_pe1;
+    hls::stream<int4_activation_beat_t> quantized_pe0_to_pair01;
+    hls::stream<float> scale_pe0, scale_pe1;
+    hls::stream<float> reciprocal_pe0, reciprocal_pe1;
+#pragma HLS STREAM variable=quantized_pe0_local depth=4
+#pragma HLS STREAM variable=quantized_pe1 depth=4
+#pragma HLS STREAM variable=quantized_pe0_to_pair01 depth=64
+#pragma HLS STREAM variable=scale_pe0 depth=4
+#pragma HLS STREAM variable=scale_pe1 depth=4
+#pragma HLS STREAM variable=reciprocal_pe0 depth=2
+#pragma HLS STREAM variable=reciprocal_pe1 depth=2
+#pragma HLS BIND_STORAGE variable=quantized_pe0_local type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=quantized_pe1 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=quantized_pe0_to_pair01 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=scale_pe0 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=scale_pe1 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=reciprocal_pe0 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=reciprocal_pe1 type=fifo impl=srl
+
+    int4_rms_broadcast_reciprocal_pair01(
+        reciprocal_rms, reciprocal_pe0, reciprocal_pe1);
+    int4_rms_normalize_quantize_pe<0>(
+        input_pe0, gamma_pe0, reciprocal_pe0,
+        quantized_pe0_local, scale_pe0);
+    int4_rms_normalize_quantize_pe<1>(
+        input_pe1, gamma_pe1, reciprocal_pe1,
+        quantized_pe1, scale_pe1);
+    int4_serialize_activation_pe0_to_pair01(
+        quantized_pe0_local, quantized_pe0_to_pair01,
+        INT4_GROUPS_PER_VECTOR / INT4_PE_COUNT);
+    int4_rms_gather_pair01_edge(
+        quantized_pe0_to_pair01, quantized_pe1, scale_pe0, scale_pe1,
+        quantized_half01_stream, scale_half01_stream);
+}
+
+static void int4_rms_normalize_quantize_pair23_half(
+    const int4_output_word_t* input_pe2,
+    const int4_output_word_t* input_pe3,
+    const int4_output_word_t* gamma_pe2,
+    const int4_output_word_t* gamma_pe3,
+    float reciprocal_rms,
+    hls::stream<int4_quant_word_t>& quantized_half23_stream,
+    hls::stream<float>& scale_half23_stream
+) {
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW disable_start_propagation
+    hls::stream<int4_quant_word_t> quantized_pe2, quantized_pe3_local;
+    hls::stream<int4_activation_beat_t> quantized_pe3_to_pair23;
+    hls::stream<float> scale_pe2, scale_pe3;
+    hls::stream<float> reciprocal_pe2, reciprocal_pe3;
+#pragma HLS STREAM variable=quantized_pe2 depth=4
+#pragma HLS STREAM variable=quantized_pe3_local depth=4
+#pragma HLS STREAM variable=quantized_pe3_to_pair23 depth=64
+#pragma HLS STREAM variable=scale_pe2 depth=4
+#pragma HLS STREAM variable=scale_pe3 depth=4
+#pragma HLS STREAM variable=reciprocal_pe2 depth=2
+#pragma HLS STREAM variable=reciprocal_pe3 depth=2
+#pragma HLS BIND_STORAGE variable=quantized_pe2 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=quantized_pe3_local type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=quantized_pe3_to_pair23 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=scale_pe2 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=scale_pe3 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=reciprocal_pe2 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=reciprocal_pe3 type=fifo impl=srl
+
+    int4_rms_broadcast_reciprocal_pair23(
+        reciprocal_rms, reciprocal_pe2, reciprocal_pe3);
+    int4_rms_normalize_quantize_pe<2>(
+        input_pe2, gamma_pe2, reciprocal_pe2,
+        quantized_pe2, scale_pe2);
+    int4_rms_normalize_quantize_pe<3>(
+        input_pe3, gamma_pe3, reciprocal_pe3,
+        quantized_pe3_local, scale_pe3);
+    int4_serialize_activation_pe3_to_pair23(
+        quantized_pe3_local, quantized_pe3_to_pair23,
+        INT4_GROUPS_PER_VECTOR / INT4_PE_COUNT);
+    int4_rms_gather_pair23_edge(
+        quantized_pe2, quantized_pe3_to_pair23, scale_pe2, scale_pe3,
+        quantized_half23_stream, scale_half23_stream);
+}
+
 static void int4_rms_normalize_quantize_four_pes_pair_halves(
     const int4_output_word_t* input_pe0,
     const int4_output_word_t* input_pe1,
@@ -753,74 +897,13 @@ static void int4_rms_normalize_quantize_four_pes_pair_halves(
 ) {
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW disable_start_propagation
-
-    hls::stream<int4_quant_word_t>
-        quantized_pe0_local, quantized_pe1,
-        quantized_pe2, quantized_pe3_local;
-    hls::stream<int4_activation_beat_t>
-        quantized_pe0_to_pair01, quantized_pe3_to_pair23;
-    hls::stream<float> scale_pe0, scale_pe1, scale_pe2, scale_pe3;
-    hls::stream<float>
-        reciprocal_pe0, reciprocal_pe1, reciprocal_pe2, reciprocal_pe3;
-#pragma HLS STREAM variable=quantized_pe0_local depth=4
-#pragma HLS STREAM variable=quantized_pe1 depth=4
-#pragma HLS STREAM variable=quantized_pe2 depth=4
-#pragma HLS STREAM variable=quantized_pe3_local depth=4
-#pragma HLS STREAM variable=quantized_pe0_to_pair01 depth=64
-#pragma HLS STREAM variable=quantized_pe3_to_pair23 depth=64
-#pragma HLS STREAM variable=scale_pe0 depth=4
-#pragma HLS STREAM variable=scale_pe1 depth=4
-#pragma HLS STREAM variable=scale_pe2 depth=4
-#pragma HLS STREAM variable=scale_pe3 depth=4
-#pragma HLS STREAM variable=reciprocal_pe0 depth=2
-#pragma HLS STREAM variable=reciprocal_pe1 depth=2
-#pragma HLS STREAM variable=reciprocal_pe2 depth=2
-#pragma HLS STREAM variable=reciprocal_pe3 depth=2
-    // These 480-bit producer FIFOs are explicitly anchored with their owning
-    // PE by timing_300mhz_pre_place.tcl.  BRAM removes the distributed
-    // full_n/write-enable cone without creating a remote hard-block path.
-#pragma HLS BIND_STORAGE variable=quantized_pe0_local type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=quantized_pe1 type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=quantized_pe2 type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=quantized_pe3_local type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=quantized_pe0_to_pair01 type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=quantized_pe3_to_pair23 type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=scale_pe0 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=scale_pe1 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=scale_pe2 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=scale_pe3 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=reciprocal_pe0 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=reciprocal_pe1 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=reciprocal_pe2 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=reciprocal_pe3 type=fifo impl=srl
-
-    int4_rms_broadcast_reciprocal_pair01(
-        reciprocal_rms, reciprocal_pe0, reciprocal_pe1);
-    int4_rms_broadcast_reciprocal_pair23(
-        reciprocal_rms, reciprocal_pe2, reciprocal_pe3);
-    int4_rms_normalize_quantize_pe<0>(
-        input_pe0, gamma_pe0, reciprocal_pe0,
-        quantized_pe0_local, scale_pe0);
-    int4_rms_normalize_quantize_pe<1>(
-        input_pe1, gamma_pe1, reciprocal_pe1,
-        quantized_pe1, scale_pe1);
-    int4_rms_normalize_quantize_pe<2>(
-        input_pe2, gamma_pe2, reciprocal_pe2,
-        quantized_pe2, scale_pe2);
-    int4_rms_normalize_quantize_pe<3>(
-        input_pe3, gamma_pe3, reciprocal_pe3,
-        quantized_pe3_local, scale_pe3);
-    int4_serialize_activation_pe0_to_pair01(
-        quantized_pe0_local, quantized_pe0_to_pair01,
-        INT4_GROUPS_PER_VECTOR / INT4_PE_COUNT);
-    int4_serialize_activation_pe3_to_pair23(
-        quantized_pe3_local, quantized_pe3_to_pair23,
-        INT4_GROUPS_PER_VECTOR / INT4_PE_COUNT);
-    int4_rms_gather_pair01_edge(
-        quantized_pe0_to_pair01, quantized_pe1, scale_pe0, scale_pe1,
+    // The outer completion cone sees two registered pair islands, not four PE
+    // processes and their serializers/gathers spread over all SLRs.
+    int4_rms_normalize_quantize_pair01_half(
+        input_pe0, input_pe1, gamma_pe0, gamma_pe1, reciprocal_rms,
         quantized_half01_stream, scale_half01_stream);
-    int4_rms_gather_pair23_edge(
-        quantized_pe2, quantized_pe3_to_pair23, scale_pe2, scale_pe3,
+    int4_rms_normalize_quantize_pair23_half(
+        input_pe2, input_pe3, gamma_pe2, gamma_pe3, reciprocal_rms,
         quantized_half23_stream, scale_half23_stream);
 }
 
@@ -1684,6 +1767,76 @@ static void int4_swiglu_quantize_four_pes_stream(
         quantized_stream, scale_stream);
 }
 
+static void int4_swiglu_quantize_pair01_half(
+    const int4_output_word_t* gate_pe0,
+    const int4_output_word_t* gate_pe1,
+    const int4_output_word_t* up_pe0,
+    const int4_output_word_t* up_pe1,
+    hls::stream<int4_quant_word_t>& quantized_half01_stream,
+    hls::stream<float>& scale_half01_stream
+) {
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW disable_start_propagation
+    hls::stream<int4_quant_word_t> quantized_pe0_local, quantized_pe1;
+    hls::stream<int4_activation_beat_t> quantized_pe0_to_pair01;
+    hls::stream<float> scale_pe0, scale_pe1;
+#pragma HLS STREAM variable=quantized_pe0_local depth=4
+#pragma HLS STREAM variable=quantized_pe1 depth=4
+#pragma HLS STREAM variable=quantized_pe0_to_pair01 depth=64
+#pragma HLS STREAM variable=scale_pe0 depth=4
+#pragma HLS STREAM variable=scale_pe1 depth=4
+#pragma HLS BIND_STORAGE variable=quantized_pe0_local type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=quantized_pe1 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=quantized_pe0_to_pair01 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=scale_pe0 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=scale_pe1 type=fifo impl=srl
+
+    int4_swiglu_quantize_pe0(
+        gate_pe0, up_pe0, quantized_pe0_local, scale_pe0);
+    int4_swiglu_quantize_pe1(
+        gate_pe1, up_pe1, quantized_pe1, scale_pe1);
+    int4_serialize_activation_pe0_to_pair01(
+        quantized_pe0_local, quantized_pe0_to_pair01, 88);
+    int4_swiglu_gather_pair01_edge(
+        quantized_pe0_to_pair01, quantized_pe1, scale_pe0, scale_pe1,
+        quantized_half01_stream, scale_half01_stream);
+}
+
+static void int4_swiglu_quantize_pair23_half(
+    const int4_output_word_t* gate_pe2,
+    const int4_output_word_t* gate_pe3,
+    const int4_output_word_t* up_pe2,
+    const int4_output_word_t* up_pe3,
+    hls::stream<int4_quant_word_t>& quantized_half23_stream,
+    hls::stream<float>& scale_half23_stream
+) {
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW disable_start_propagation
+    hls::stream<int4_quant_word_t> quantized_pe2, quantized_pe3_local;
+    hls::stream<int4_activation_beat_t> quantized_pe3_to_pair23;
+    hls::stream<float> scale_pe2, scale_pe3;
+#pragma HLS STREAM variable=quantized_pe2 depth=4
+#pragma HLS STREAM variable=quantized_pe3_local depth=4
+#pragma HLS STREAM variable=quantized_pe3_to_pair23 depth=64
+#pragma HLS STREAM variable=scale_pe2 depth=4
+#pragma HLS STREAM variable=scale_pe3 depth=4
+#pragma HLS BIND_STORAGE variable=quantized_pe2 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=quantized_pe3_local type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=quantized_pe3_to_pair23 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=scale_pe2 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=scale_pe3 type=fifo impl=srl
+
+    int4_swiglu_quantize_pe2(
+        gate_pe2, up_pe2, quantized_pe2, scale_pe2);
+    int4_swiglu_quantize_pe3(
+        gate_pe3, up_pe3, quantized_pe3_local, scale_pe3);
+    int4_serialize_activation_pe3_to_pair23(
+        quantized_pe3_local, quantized_pe3_to_pair23, 84);
+    int4_swiglu_gather_pair23_edge(
+        quantized_pe2, quantized_pe3_to_pair23, scale_pe2, scale_pe3,
+        quantized_half23_stream, scale_half23_stream);
+}
+
 static void int4_swiglu_quantize_four_pes_pair_halves(
     const int4_output_word_t* gate_pe0,
     const int4_output_word_t* gate_pe1,
@@ -1700,51 +1853,11 @@ static void int4_swiglu_quantize_four_pes_pair_halves(
 ) {
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW disable_start_propagation
-
-    hls::stream<int4_quant_word_t>
-        quantized_pe0_local, quantized_pe1,
-        quantized_pe2, quantized_pe3_local;
-    hls::stream<int4_activation_beat_t>
-        quantized_pe0_to_pair01, quantized_pe3_to_pair23;
-    hls::stream<float> scale_pe0, scale_pe1, scale_pe2, scale_pe3;
-#pragma HLS STREAM variable=quantized_pe0_local depth=4
-#pragma HLS STREAM variable=quantized_pe1 depth=4
-#pragma HLS STREAM variable=quantized_pe2 depth=4
-#pragma HLS STREAM variable=quantized_pe3_local depth=4
-#pragma HLS STREAM variable=quantized_pe0_to_pair01 depth=64
-#pragma HLS STREAM variable=quantized_pe3_to_pair23 depth=64
-#pragma HLS STREAM variable=scale_pe0 depth=4
-#pragma HLS STREAM variable=scale_pe1 depth=4
-#pragma HLS STREAM variable=scale_pe2 depth=4
-#pragma HLS STREAM variable=scale_pe3 depth=4
-#pragma HLS BIND_STORAGE variable=quantized_pe0_local type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=quantized_pe1 type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=quantized_pe2 type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=quantized_pe3_local type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=quantized_pe0_to_pair01 type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=quantized_pe3_to_pair23 type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=scale_pe0 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=scale_pe1 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=scale_pe2 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=scale_pe3 type=fifo impl=srl
-
-    int4_swiglu_quantize_pe0(
-        gate_pe0, up_pe0, quantized_pe0_local, scale_pe0);
-    int4_swiglu_quantize_pe1(
-        gate_pe1, up_pe1, quantized_pe1, scale_pe1);
-    int4_swiglu_quantize_pe2(
-        gate_pe2, up_pe2, quantized_pe2, scale_pe2);
-    int4_swiglu_quantize_pe3(
-        gate_pe3, up_pe3, quantized_pe3_local, scale_pe3);
-    int4_serialize_activation_pe0_to_pair01(
-        quantized_pe0_local, quantized_pe0_to_pair01, 88);
-    int4_serialize_activation_pe3_to_pair23(
-        quantized_pe3_local, quantized_pe3_to_pair23, 84);
-    int4_swiglu_gather_pair01_edge(
-        quantized_pe0_to_pair01, quantized_pe1, scale_pe0, scale_pe1,
+    int4_swiglu_quantize_pair01_half(
+        gate_pe0, gate_pe1, up_pe0, up_pe1,
         quantized_half01_stream, scale_half01_stream);
-    int4_swiglu_gather_pair23_edge(
-        quantized_pe2, quantized_pe3_to_pair23, scale_pe2, scale_pe3,
+    int4_swiglu_quantize_pair23_half(
+        gate_pe2, gate_pe3, up_pe2, up_pe3,
         quantized_half23_stream, scale_half23_stream);
 }
 

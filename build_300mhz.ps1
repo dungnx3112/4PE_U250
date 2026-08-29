@@ -16,6 +16,7 @@ $xoPath = Join-Path $sourceDirectory "int4_decoder_token_controller_300mhz.xo"
 $baseConfigPath = Join-Path $sourceDirectory "link_300mhz.cfg"
 $prePlacePath = Join-Path $sourceDirectory "timing_300mhz_pre_place.tcl"
 $postPlacePath = Join-Path $sourceDirectory "timing_300mhz_post_place_check.tcl"
+$postRoutePath = Join-Path $sourceDirectory "timing_300mhz_post_route_check.tcl"
 $targetFrequencyHz = 300000000
 $kernelClock = "int4_decoder_token_controller_1.ap_clk"
 $buildDirectory = Join-Path $workspaceDirectory "build_300mhz"
@@ -31,7 +32,8 @@ foreach ($requiredPath in @(
     $xoPath,
     $baseConfigPath,
     $prePlacePath,
-    $postPlacePath
+    $postPlacePath,
+    $postRoutePath
 )) {
     if (-not (Test-Path -LiteralPath $requiredPath)) {
         throw "Required build input does not exist: $requiredPath"
@@ -50,10 +52,13 @@ New-Item -ItemType Directory -Force -Path $reportDirectory | Out-Null
 # project moves or when the build runs on a different host.
 $vivadoPrePlacePath = (Resolve-Path -LiteralPath $prePlacePath).Path.Replace("\", "/")
 $vivadoPostPlacePath = (Resolve-Path -LiteralPath $postPlacePath).Path.Replace("\", "/")
+$vivadoPostRoutePath = (Resolve-Path -LiteralPath $postRoutePath).Path.Replace("\", "/")
 $prePlaceProperty =
     "prop=run.impl_1.STEPS.PLACE_DESIGN.TCL.PRE=$vivadoPrePlacePath"
 $postPlaceProperty =
     "prop=run.impl_1.STEPS.PLACE_DESIGN.TCL.POST=$vivadoPostPlacePath"
+$postRouteProperty =
+    "prop=run.impl_1.STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.POST=$vivadoPostRoutePath"
 $baseConfig = Get-Content -LiteralPath $baseConfigPath
 $expectedFrequencyProperty = "freqhz=$targetFrequencyHz`:$kernelClock"
 if (@($baseConfig | Where-Object { $_ -eq $expectedFrequencyProperty }).Count -ne 1) {
@@ -61,12 +66,16 @@ if (@($baseConfig | Where-Object { $_ -eq $expectedFrequencyProperty }).Count -n
 }
 $resolvedConfig = $baseConfig `
     -replace '^prop=run\.impl_1\.STEPS\.PLACE_DESIGN\.TCL\.PRE=.*$', $prePlaceProperty `
-    -replace '^prop=run\.impl_1\.STEPS\.PLACE_DESIGN\.TCL\.POST=.*$', $postPlaceProperty
+    -replace '^prop=run\.impl_1\.STEPS\.PLACE_DESIGN\.TCL\.POST=.*$', $postPlaceProperty `
+    -replace '^prop=run\.impl_1\.STEPS\.POST_ROUTE_PHYS_OPT_DESIGN\.TCL\.POST=.*$', $postRouteProperty
 if (@($resolvedConfig | Where-Object { $_ -eq $prePlaceProperty }).Count -ne 1) {
     throw "Could not inject exactly one Vivado pre-place hook into the resolved link config."
 }
 if (@($resolvedConfig | Where-Object { $_ -eq $postPlaceProperty }).Count -ne 1) {
     throw "Could not inject exactly one Vivado post-place hook into the resolved link config."
+}
+if (@($resolvedConfig | Where-Object { $_ -eq $postRouteProperty }).Count -ne 1) {
+    throw "Could not inject exactly one Vivado post-route hook into the resolved link config."
 }
 $resolvedConfig | Set-Content -LiteralPath $resolvedConfigPath -Encoding Ascii
 Write-Host "Build run directory: $runDirectory"
@@ -105,9 +114,11 @@ $implementationLogs = @(
     Get-ChildItem -LiteralPath $tempDirectory -Filter "runme.log" -Recurse -File -ErrorAction SilentlyContinue
 )
 $floorplanMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: FLOORPLAN_APPLIED" -List
-$hardPblockMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: HARD_PBLOCKS_APPLIED" -List
+$hardAnchorMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: HARD_ANCHORS_APPLIED" -List
 $pairLocalMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: PAIR_LOCAL_APPLIED" -List
 $postPlaceMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: FLOORPLAN_POST_PLACE_VALIDATED" -List
+$sllBoundaryMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: SLL_BOUNDARY_VALIDATED" -List
+$postRouteMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: ROUTE_AND_TIMING_VALIDATED" -List
 
 if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
     -not $floorplanMarker) {
@@ -117,11 +128,11 @@ if ($floorplanMarker) {
     Write-Host "Verified: 300 MHz PE/SLR floorplan hook was applied."
 }
 if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
-    -not $hardPblockMarker) {
-    throw "Vivado implementation ran without the required hard per-SLR pblock assignments."
+    -not $hardAnchorMarker) {
+    throw "Vivado implementation ran without the required hard per-SLR resource anchors."
 }
-if ($hardPblockMarker) {
-    Write-Host "Verified: PE, AXI and control hierarchy entered the platform hard per-SLR pblocks."
+if ($hardAnchorMarker) {
+    Write-Host "Verified: AXI, memory and arithmetic anchors entered the platform hard per-SLR pblocks."
 }
 if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
     -not $pairLocalMarker) {
@@ -135,7 +146,21 @@ if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
     throw "Vivado placement did not pass the required physical SLR checks."
 }
 if ($postPlaceMarker) {
-    Write-Host "Verified: placed PE, AXI and control primitives stayed in their assigned SLRs."
+    Write-Host "Verified: all hard resource anchors stayed in their assigned SLRs."
+}
+if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
+    -not $sllBoundaryMarker) {
+    throw "Vivado placement did not pass the adjacent-SLR congestion guard."
+}
+if ($sllBoundaryMarker) {
+    Write-Host "Verified: every adjacent SLR boundary stayed below the 50% SLL limit."
+}
+if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
+    -not $postRouteMarker) {
+    throw "Vivado did not prove clean routing, DRC and setup/hold timing."
+}
+if ($postRouteMarker) {
+    Write-Host "Verified: zero unrouted nets, zero routing/DRC errors and non-negative setup/hold slack."
 }
 
 if ($linkExitCode -ne 0) {

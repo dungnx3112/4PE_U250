@@ -1850,6 +1850,166 @@ static void int4_run_four_pes(
 }
 
 #ifdef INT4_INTEGRATED_TOP
+static void int4_run_linear_pair01(
+    const int4_weight_word_t* weight_pe0,
+    const int4_weight_word_t* weight_pe1,
+    const int4_weight_scale_word_t* scale_pe0,
+    const int4_weight_scale_word_t* scale_pe1,
+    int4_quant_word_t activation_q_pair01[INT4_MAX_INPUT_GROUPS],
+    int4_scale_word_t
+        activation_scale_pair01[INT4_MAX_ACTIVATION_SCALE_WORDS],
+    hls::stream<int4_quant_word_t>& input_quantized_pair01_stream,
+    hls::stream<float>& input_scale_pair01_stream,
+    bool stream_activation,
+    bool cache_stream_activation,
+    int4_output_word_t* output_pe0,
+    int4_output_word_t* output_pe1,
+    int local_tiles_0,
+    int local_tiles_1,
+    int input_tiles,
+    ap_uint<3> linear_mode,
+    ap_uint<24> weight_word_offset,
+    ap_uint<11> weight_scale_word_offset
+) {
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW disable_start_propagation
+    hls::stream<int4_quant_word_t> quantized_pe0, quantized_pe1;
+    hls::stream<int4_activation_beat_t> quantized_pair01_to_pe0;
+    hls::stream<float> activation_scale_pe0, activation_scale_pe1;
+    hls::stream<float> activation_scale_pair01_to_pe0;
+    hls::stream<int4_quant_word_t> quantized_pair01;
+    hls::stream<float> activation_scale_pair01_stream;
+    hls::stream<int4_linear_pe_command_t>
+        linear_command_pe0, linear_command_pe1;
+#pragma HLS STREAM variable=quantized_pe0 depth=2
+#pragma HLS STREAM variable=quantized_pe1 depth=2
+#pragma HLS STREAM variable=quantized_pair01_to_pe0 depth=32
+#pragma HLS STREAM variable=activation_scale_pe0 depth=2
+#pragma HLS STREAM variable=activation_scale_pe1 depth=2
+#pragma HLS STREAM variable=activation_scale_pair01_to_pe0 depth=2
+#pragma HLS STREAM variable=quantized_pair01 depth=2
+#pragma HLS STREAM variable=activation_scale_pair01_stream depth=2
+#pragma HLS STREAM variable=linear_command_pe0 depth=4
+#pragma HLS STREAM variable=linear_command_pe1 depth=3
+#pragma HLS BIND_STORAGE variable=quantized_pe0 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=quantized_pe1 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=quantized_pair01_to_pe0 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=activation_scale_pe0 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=activation_scale_pe1 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=activation_scale_pair01_to_pe0 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=quantized_pair01 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=activation_scale_pair01_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=linear_command_pe0 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=linear_command_pe1 type=fifo impl=srl
+
+    int4_broadcast_linear_commands_pair01(
+        linear_command_pe0, linear_command_pe1,
+        linear_mode, weight_word_offset, weight_scale_word_offset);
+    int4_prepare_activation_pair01(
+        activation_q_pair01, activation_scale_pair01,
+        input_quantized_pair01_stream, input_scale_pair01_stream,
+        stream_activation, cache_stream_activation,
+        quantized_pair01, activation_scale_pair01_stream,
+        local_tiles_0, local_tiles_1, input_tiles);
+    int4_broadcast_activation_pair01(
+        quantized_pair01, activation_scale_pair01_stream,
+        quantized_pair01_to_pe0, quantized_pe1,
+        activation_scale_pair01_to_pe0, activation_scale_pe1,
+        local_tiles_0, local_tiles_1, input_tiles);
+    int4_deserialize_activation_pe0(
+        quantized_pair01_to_pe0, activation_scale_pair01_to_pe0,
+        quantized_pe0, activation_scale_pe0,
+        local_tiles_0, input_tiles);
+    int4_run_pe_dataflow<0>(
+        weight_pe0, scale_pe0,
+        quantized_pe0, activation_scale_pe0,
+        linear_command_pe0, output_pe0);
+    int4_run_pe_dataflow<1>(
+        weight_pe1, scale_pe1,
+        quantized_pe1, activation_scale_pe1,
+        linear_command_pe1, output_pe1);
+}
+
+static void int4_run_linear_pair23(
+    const int4_weight_word_t* weight_pe2,
+    const int4_weight_word_t* weight_pe3,
+    const int4_weight_scale_word_t* scale_pe2,
+    const int4_weight_scale_word_t* scale_pe3,
+    int4_quant_word_t activation_q_pair23[INT4_MAX_INPUT_GROUPS],
+    int4_scale_word_t
+        activation_scale_pair23[INT4_MAX_ACTIVATION_SCALE_WORDS],
+    hls::stream<int4_quant_word_t>& input_quantized_pair23_stream,
+    hls::stream<float>& input_scale_pair23_stream,
+    bool stream_activation,
+    bool cache_stream_activation,
+    int4_output_word_t* output_pe2,
+    int4_output_word_t* output_pe3,
+    int local_tiles_2,
+    int local_tiles_3,
+    int input_tiles,
+    ap_uint<3> linear_mode,
+    ap_uint<24> weight_word_offset,
+    ap_uint<11> weight_scale_word_offset
+) {
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW disable_start_propagation
+    hls::stream<int4_quant_word_t> quantized_pe2, quantized_pe3;
+    hls::stream<int4_activation_beat_t> quantized_pair23_to_pe3;
+    hls::stream<float> activation_scale_pe2, activation_scale_pe3;
+    hls::stream<float> activation_scale_pair23_to_pe3;
+    hls::stream<int4_quant_word_t> quantized_pair23;
+    hls::stream<float> activation_scale_pair23_stream;
+    hls::stream<int4_linear_pe_command_t>
+        linear_command_pe2, linear_command_pe3;
+#pragma HLS STREAM variable=quantized_pe2 depth=2
+#pragma HLS STREAM variable=quantized_pe3 depth=2
+#pragma HLS STREAM variable=quantized_pair23_to_pe3 depth=32
+#pragma HLS STREAM variable=activation_scale_pe2 depth=2
+#pragma HLS STREAM variable=activation_scale_pe3 depth=2
+#pragma HLS STREAM variable=activation_scale_pair23_to_pe3 depth=2
+#pragma HLS STREAM variable=quantized_pair23 depth=2
+#pragma HLS STREAM variable=activation_scale_pair23_stream depth=2
+#pragma HLS STREAM variable=linear_command_pe2 depth=3
+#pragma HLS STREAM variable=linear_command_pe3 depth=4
+#pragma HLS BIND_STORAGE variable=quantized_pe2 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=quantized_pe3 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=quantized_pair23_to_pe3 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=activation_scale_pe2 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=activation_scale_pe3 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=activation_scale_pair23_to_pe3 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=quantized_pair23 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=activation_scale_pair23_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=linear_command_pe2 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=linear_command_pe3 type=fifo impl=srl
+
+    int4_broadcast_linear_commands_pair23(
+        linear_command_pe2, linear_command_pe3,
+        linear_mode, weight_word_offset, weight_scale_word_offset);
+    int4_prepare_activation_pair23(
+        activation_q_pair23, activation_scale_pair23,
+        input_quantized_pair23_stream, input_scale_pair23_stream,
+        stream_activation, cache_stream_activation,
+        quantized_pair23, activation_scale_pair23_stream,
+        local_tiles_2, local_tiles_3, input_tiles);
+    int4_broadcast_activation_pair23(
+        quantized_pair23, activation_scale_pair23_stream,
+        quantized_pe2, quantized_pair23_to_pe3,
+        activation_scale_pe2, activation_scale_pair23_to_pe3,
+        local_tiles_2, local_tiles_3, input_tiles);
+    int4_deserialize_activation_pe3(
+        quantized_pair23_to_pe3, activation_scale_pair23_to_pe3,
+        quantized_pe3, activation_scale_pe3,
+        local_tiles_3, input_tiles);
+    int4_run_pe_dataflow<2>(
+        weight_pe2, scale_pe2,
+        quantized_pe2, activation_scale_pe2,
+        linear_command_pe2, output_pe2);
+    int4_run_pe_dataflow<3>(
+        weight_pe3, scale_pe3,
+        quantized_pe3, activation_scale_pe3,
+        linear_command_pe3, output_pe3);
+}
+
 static void int4_run_four_pes_pair_streams(
     const int4_weight_word_t* weight_pe0,
     const int4_weight_word_t* weight_pe1,
@@ -1886,121 +2046,25 @@ static void int4_run_four_pes_pair_streams(
 ) {
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW disable_start_propagation
-
-    hls::stream<int4_quant_word_t>
-        quantized_pe0, quantized_pe1, quantized_pe2, quantized_pe3;
-    hls::stream<int4_activation_beat_t>
-        quantized_pair01_to_pe0, quantized_pair23_to_pe3;
-    hls::stream<float>
-        activation_scale_pe0, activation_scale_pe1,
-        activation_scale_pe2, activation_scale_pe3;
-    hls::stream<float>
-        activation_scale_pair01_to_pe0,
-        activation_scale_pair23_to_pe3;
-    hls::stream<int4_quant_word_t> quantized_pair01;
-    hls::stream<int4_quant_word_t> quantized_pair23;
-    hls::stream<float> activation_scale_pair01_stream;
-    hls::stream<float> activation_scale_pair23_stream;
-    hls::stream<int4_linear_pe_command_t>
-        linear_command_pe0, linear_command_pe1,
-        linear_command_pe2, linear_command_pe3;
-#pragma HLS STREAM variable=quantized_pe0 depth=2
-#pragma HLS STREAM variable=quantized_pe1 depth=2
-#pragma HLS STREAM variable=quantized_pe2 depth=2
-#pragma HLS STREAM variable=quantized_pe3 depth=2
-#pragma HLS STREAM variable=quantized_pair01_to_pe0 depth=32
-#pragma HLS STREAM variable=quantized_pair23_to_pe3 depth=32
-#pragma HLS STREAM variable=activation_scale_pe0 depth=2
-#pragma HLS STREAM variable=activation_scale_pe1 depth=2
-#pragma HLS STREAM variable=activation_scale_pe2 depth=2
-#pragma HLS STREAM variable=activation_scale_pe3 depth=2
-#pragma HLS STREAM variable=activation_scale_pair01_to_pe0 depth=2
-#pragma HLS STREAM variable=activation_scale_pair23_to_pe3 depth=2
-#pragma HLS STREAM variable=quantized_pair01 depth=2
-#pragma HLS STREAM variable=quantized_pair23 depth=2
-#pragma HLS STREAM variable=activation_scale_pair01_stream depth=2
-#pragma HLS STREAM variable=activation_scale_pair23_stream depth=2
-#pragma HLS STREAM variable=linear_command_pe0 depth=4
-#pragma HLS STREAM variable=linear_command_pe1 depth=3
-#pragma HLS STREAM variable=linear_command_pe2 depth=3
-#pragma HLS STREAM variable=linear_command_pe3 depth=4
-#pragma HLS BIND_STORAGE variable=quantized_pe0 type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=quantized_pe1 type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=quantized_pe2 type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=quantized_pe3 type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=quantized_pair01_to_pe0 type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=quantized_pair23_to_pe3 type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=activation_scale_pe0 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=activation_scale_pe1 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=activation_scale_pe2 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=activation_scale_pe3 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=activation_scale_pair01_to_pe0 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=activation_scale_pair23_to_pe3 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=quantized_pair01 type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=quantized_pair23 type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=activation_scale_pair01_stream type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=activation_scale_pair23_stream type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=linear_command_pe0 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=linear_command_pe1 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=linear_command_pe2 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=linear_command_pe3 type=fifo impl=srl
-
-    int4_broadcast_linear_commands_pair01(
-        linear_command_pe0, linear_command_pe1,
-        linear_mode, weight_word_offset, weight_scale_word_offset);
-    int4_broadcast_linear_commands_pair23(
-        linear_command_pe2, linear_command_pe3,
-        linear_mode, weight_word_offset, weight_scale_word_offset);
-
-    int4_prepare_activation_pair01(
+    // Register completion at the pair boundary.  The failed RTL connected
+    // PE3 output completion directly into the four-PE and outer controller
+    // FSMs, producing several SLR3 -> SLR0 timing paths.
+    int4_run_linear_pair01(
+        weight_pe0, weight_pe1, scale_pe0, scale_pe1,
         activation_q_pair01, activation_scale_pair01,
         input_quantized_pair01_stream, input_scale_pair01_stream,
         stream_activation, cache_stream_activation,
-        quantized_pair01, activation_scale_pair01_stream,
-        local_tiles_0, local_tiles_1, input_tiles);
-    int4_prepare_activation_pair23(
+        output_pe0, output_pe1,
+        local_tiles_0, local_tiles_1, input_tiles,
+        linear_mode, weight_word_offset, weight_scale_word_offset);
+    int4_run_linear_pair23(
+        weight_pe2, weight_pe3, scale_pe2, scale_pe3,
         activation_q_pair23, activation_scale_pair23,
         input_quantized_pair23_stream, input_scale_pair23_stream,
         stream_activation, cache_stream_activation,
-        quantized_pair23, activation_scale_pair23_stream,
-        local_tiles_2, local_tiles_3, input_tiles);
-
-    int4_broadcast_activation_pair01(
-        quantized_pair01, activation_scale_pair01_stream,
-        quantized_pair01_to_pe0, quantized_pe1,
-        activation_scale_pair01_to_pe0, activation_scale_pe1,
-        local_tiles_0, local_tiles_1, input_tiles);
-    int4_broadcast_activation_pair23(
-        quantized_pair23, activation_scale_pair23_stream,
-        quantized_pe2, quantized_pair23_to_pe3,
-        activation_scale_pe2, activation_scale_pair23_to_pe3,
-        local_tiles_2, local_tiles_3, input_tiles);
-
-    int4_deserialize_activation_pe0(
-        quantized_pair01_to_pe0, activation_scale_pair01_to_pe0,
-        quantized_pe0, activation_scale_pe0,
-        local_tiles_0, input_tiles);
-    int4_deserialize_activation_pe3(
-        quantized_pair23_to_pe3, activation_scale_pair23_to_pe3,
-        quantized_pe3, activation_scale_pe3,
-        local_tiles_3, input_tiles);
-
-    int4_run_pe_dataflow<0>(
-        weight_pe0, scale_pe0,
-        quantized_pe0, activation_scale_pe0,
-        linear_command_pe0, output_pe0);
-    int4_run_pe_dataflow<1>(
-        weight_pe1, scale_pe1,
-        quantized_pe1, activation_scale_pe1,
-        linear_command_pe1, output_pe1);
-    int4_run_pe_dataflow<2>(
-        weight_pe2, scale_pe2,
-        quantized_pe2, activation_scale_pe2,
-        linear_command_pe2, output_pe2);
-    int4_run_pe_dataflow<3>(
-        weight_pe3, scale_pe3,
-        quantized_pe3, activation_scale_pe3,
-        linear_command_pe3, output_pe3);
+        output_pe2, output_pe3,
+        local_tiles_2, local_tiles_3, input_tiles,
+        linear_mode, weight_word_offset, weight_scale_word_offset);
 }
 #endif
 
@@ -2292,7 +2356,10 @@ static void int4_run_four_pes_optional_rms(
     int local_tiles_2,
     int local_tiles_3,
     int input_tiles,
-    ap_uint<3> linear_mode
+    ap_uint<3> linear_mode,
+    bool cache_rms_activation,
+    ap_uint<24> weight_word_offset,
+    ap_uint<11> weight_scale_word_offset
 ) {
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW disable_start_propagation
@@ -2314,15 +2381,13 @@ static void int4_run_four_pes_optional_rms(
         scale_pe0, scale_pe1, scale_pe2, scale_pe3,
         activation_q, activation_scale,
         rms_quantized_stream, rms_scale_stream, fuse_rms,
-        fuse_rms &&
-            (linear_mode == INT4_LINEAR_Q ||
-             linear_mode == INT4_LINEAR_GATE),
+        cache_rms_activation,
         output_pe0, output_pe1, output_pe2, output_pe3,
         local_tiles_0, local_tiles_1,
         local_tiles_2, local_tiles_3,
         input_tiles, linear_mode,
-        (ap_uint<24>)0,
-        (ap_uint<11>)0);
+        weight_word_offset,
+        weight_scale_word_offset);
 }
 
 void int4_linear_4pe_optional_rms(
@@ -2371,6 +2436,10 @@ void int4_linear_4pe_optional_rms(
         int4_local_tile_count(shape.output_tiles, 2);
     const int local_tiles_3 =
         int4_local_tile_count(shape.output_tiles, 3);
+    const bool cache_rms_activation =
+        fuse_rms &&
+        (controller.linear_mode == INT4_LINEAR_Q ||
+         controller.linear_mode == INT4_LINEAR_GATE);
 
     int4_run_four_pes_optional_rms(
         weight_pe0, weight_pe1, weight_pe2, weight_pe3,
@@ -2384,7 +2453,10 @@ void int4_linear_4pe_optional_rms(
         local_tiles_0, local_tiles_1,
         local_tiles_2, local_tiles_3,
         shape.input_tiles,
-        (ap_uint<3>)controller.linear_mode);
+        (ap_uint<3>)controller.linear_mode,
+        cache_rms_activation,
+        (ap_uint<24>)0,
+        (ap_uint<11>)0);
 
     int4_complete_linear_dispatch(controller);
 }
