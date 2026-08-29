@@ -123,9 +123,13 @@ set +e
 link_exit_code=$?
 set -e
 
-mapfile -d '' implementation_logs < <(
-    find "$temp_dir" -type f -name runme.log -print0 2>/dev/null
-)
+# Bash 4.2 (still common on CentOS/RHEL build servers) supports mapfile but
+# not its later -d option.  Newlines cannot occur in Vitis' generated run
+# paths here, so populate the array with the portable read loop instead.
+implementation_logs=()
+while IFS= read -r implementation_log; do
+    implementation_logs+=("$implementation_log")
+done < <(find "$temp_dir" -type f -name runme.log -print 2>/dev/null)
 
 validation_failed=0
 require_marker() {
