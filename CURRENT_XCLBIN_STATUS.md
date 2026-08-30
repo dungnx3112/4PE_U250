@@ -13,7 +13,10 @@ command/reduction scalar có thanh ghi được đi qua biên SLR.
 - Estimated Fmax: 300.03 MHz với target 3.333 ns.
 - Không còn cảnh báo `HLS 200-656` hoặc `Deadlocks can occur`.
 - Test layout/packer 4 PE độc lập: PASS.
-- 122/122 pattern hierarchy bắt buộc của floorplan có mặt trong RTL.
+- XO chứa đúng source hiện tại; SHA-256 của `int4_linear_controller.cpp` trong
+  XO khớp source trên đĩa.
+- Floorplan hiện chỉ phụ thuộc các hierarchy PE-local lớn còn tồn tại sau
+  `opt_design`, không phụ thuộc tên của helper command nhỏ.
 - XO cuối: `int4_decoder_token_controller_300mhz.xo`.
 - Kích thước XO: 8,819,002 byte.
 - SHA-256: `1A834CE9A5311DC2885374BC36D3D31EFE85AC6B9D5B6CB63835E0932BC91311`.
@@ -22,10 +25,10 @@ command/reduction scalar có thanh ghi được đi qua biên SLR.
 
 ## Điều chưa được khẳng định
 
-Đây mới là kết quả HLS trước place/route. Máy hiện tại chưa được cung cấp đường dẫn
-U250 `.xpfm`, nên chưa tạo XCLBIN/routed DCP mới. Chỉ được xác nhận 300 MHz thực tế
-khi full link kết thúc với WNS/WHS không âm, không còn net unrouted, routing error
-hoặc DRC Error.
+Full link gần nhất đã hoàn tất synthesis và `opt_design`, nhưng pre-place cũ dừng
+vì Vivado đã flatten helper `int4_seed_linear_command_chain_U0`. Floorplan đã được
+đơn giản hóa để bỏ phụ thuộc này. Vẫn cần chạy lại full link; chỉ xác nhận 300 MHz
+thực tế khi WNS/WHS không âm và không còn net unrouted, routing error hoặc DRC Error.
 
 Lệnh full link khi có platform:
 

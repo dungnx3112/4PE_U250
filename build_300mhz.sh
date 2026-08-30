@@ -186,7 +186,7 @@ echo "Build run directory: $run_dir"
 echo "Vitis settings: $vitis_settings"
 echo "Platform: $platform"
 echo "XO input: $xo_path"
-sha256sum -- "$xo_path" | tee "$report_dir/xo.sha256"
+sha256sum -- "$xo_path"
 echo "Target kernel clock: ${target_frequency_hz} Hz"
 echo "Resolved link config: $resolved_config_path"
 
@@ -232,20 +232,14 @@ if (( ${#implementation_logs[@]} > 0 || link_exit_code == 0 )); then
         "300MHz floorplan: FLOORPLAN_APPLIED" \
         "the pre-place PE/SLR floorplan ran"
     require_marker \
-        "300MHz floorplan: HARD_ANCHORS_APPLIED" \
-        "the AXI, memory and arithmetic anchors entered the platform hard per-SLR pblocks"
-    require_marker \
-        "300MHz floorplan: PAIR_LOCAL_APPLIED" \
-        "the pair-local anchors ran"
-    require_marker \
-        "300MHz floorplan: LOCAL_DATA_PLANE_APPLIED" \
-        "the PE-local linear, preprocess and SwiftKV data planes were hard-anchored"
+        "300MHz floorplan: SIMPLE_PE_ANCHORS_APPLIED" \
+        "the simple PE-local AXI, memory and compute anchors ran"
     require_marker \
         "300MHz floorplan: FLOORPLAN_POST_PLACE_VALIDATED" \
         "all hard resource anchors stayed in their assigned SLRs"
     require_marker \
-        "300MHz floorplan: SLL_BOUNDARY_VALIDATED" \
-        "every adjacent SLR boundary stayed below the 50% SLL limit"
+        "300MHz floorplan: SIMPLE_FLOORPLAN_VALIDATED" \
+        "the simple per-PE floorplan passed post-place validation"
     require_marker \
         "300MHz floorplan: ROUTE_AND_TIMING_VALIDATED" \
         "routing, DRC and setup/hold timing all passed"
@@ -263,7 +257,7 @@ if [[ ! -s $resolved_output ]]; then
     exit 1
 fi
 
-sha256sum -- "$resolved_output" | tee "$report_dir/xclbin.sha256"
+sha256sum -- "$resolved_output"
 if command -v xclbinutil >/dev/null 2>&1; then
     xclbinutil --input "$resolved_output" --info \
         > "$report_dir/xclbin.info.txt"

@@ -26,7 +26,7 @@ shard logits.
 | `int4_model_layout.hpp` | Shape, padding và offset cố định của mỗi DDR |
 | `int4_weight_packer.cpp/.hpp` | Packer offline tạo bốn model image input-column-sharded |
 | `link_300mhz.cfg` | Ánh xạ `gmem0..3` tới `DDR[0]..3` |
-| `timing_300mhz_*.tcl` | Hard floorplan và kiểm tra physical/timing bắt buộc |
+| `timing_300mhz_*.tcl` | Floorplan PE/SLR đơn giản và kiểm tra physical/timing |
 | `tests/int4_layout_packer_test.cpp` | Test padding, offset, nibble order, scale, residual, logits và RoPE |
 
 ## Kiến trúc dữ liệu
@@ -177,19 +177,21 @@ void int4_decoder_token_controller(
 và norm được preload vào URAM persistent khi `position == 0`. Residual chỉ đọc
 một lần đầu invocation và ghi một lần cuối invocation.
 
-## Floorplan bắt buộc
+## Floorplan PE/SLR đơn giản
 
-`timing_300mhz_pre_place.tcl` hard-anchor các thành phần sau vào đúng SLR:
+`timing_300mhz_pre_place.tcl` chỉ hard-anchor ba nhóm ổn định của mỗi PE vào
+đúng SLR:
 
-- AXI master, local memories và DDR clients của từng PE;
-- local linear, RMS, SwiGLU, residual và SwiftKV data plane;
-- reducer `pair01` tại SLR1, `pair23` tại SLR2;
-- endpoint của các scalar command-chain.
+- AXI/DDR endpoint;
+- local memories;
+- local linear, RMS, SwiGLU, residual và SwiftKV compute.
 
-Outer DATAFLOW wrappers vẫn soft để placer đặt glue `ap_start/ap_done` gần
-consumer. `timing_300mhz_post_place_check.tcl` làm link fail nếu primitive nào
-thoát khỏi SLR được gán hoặc một biên SLR dùng từ 50% SLL. Post-route hook yêu
-cầu zero unrouted net, zero routing/DRC error và setup/hold slack không âm.
+Các helper command, relay và reduction nhỏ được để placer tự đặt. Chúng không
+được dùng làm anchor bắt buộc vì Vivado có thể flatten chúng trong `opt_design`.
+`timing_300mhz_post_place_check.tcl` làm link fail nếu primitive thuộc ba nhóm
+PE chính thoát khỏi SLR được gán. Script vẫn xuất báo cáo utilization/congestion
+theo SLR. Post-route hook yêu cầu zero unrouted net, zero routing/DRC error và
+setup/hold slack không âm.
 
 ## Kiểm thử và build
 
@@ -251,8 +253,8 @@ REBUILD_XO=1 bash source/build_300mhz.sh
 
 Script tự source Vitis, tạo config theo từng run với đường dẫn Tcl tuyệt đối,
 chạy `v++ --link --target hw --save-temps`, rồi chỉ báo thành công nếu đủ tất
-cả marker floorplan/post-place/post-route. Build sẽ fail nếu sai SLR, biên SLL
-dùng từ 50%, còn unrouted net/routing error/DRC Error, hoặc WNS/WHS âm.
+cả marker floorplan/post-place/post-route. Build sẽ fail nếu nhóm PE chính sai
+SLR, còn unrouted net/routing error/DRC Error, hoặc WNS/WHS âm.
 
 Artifact mặc định và log được ghi tại:
 

@@ -1,0 +1,128 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[vietnamese]{babel}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{tikz}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{geometry}
+\geometry{
+ a4paper,
+ total={170mm,257mm},
+ left=20mm,
+ top=20mm,
+}
+
+\title{\textbf{Báo Cáo Kiến Trúc Phần Cứng}\\ \Large Bộ Giải Mã Llama-2 7B INT4 trên FPGA Alveo U250}
+\author{Khóa Luận Tốt Nghiệp}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Giới thiệu chung}
+Báo cáo này mô tả chi tiết kiến trúc phần cứng của hệ thống giải mã (decoder) token Llama-2 7B được lượng tử hóa xuống chuẩn INT4, triển khai trên FPGA Xilinx Alveo U250 (\texttt{xcu250-figd2104-2L-e}) sử dụng Vitis HLS 2023.2. 
+
+Kiến trúc được phân mảnh (sharded) theo cột (input column) và phân bố đều trên 4 Super Logic Regions (SLR) của card U250, tương ứng với 4 Processing Elements (PE) hoạt động độc lập với 4 bộ nhớ DDR (DDR0 đến DDR3). 
+
+Nguyên tắc thiết kế bắt buộc:
+\begin{itemize}
+    \item Mỗi PE/SLR/DDR là một miền dữ liệu độc lập. Không PE nào truy cập chéo bộ nhớ tham số (model), RoPE, residual hay KV cache của PE khác.
+    \item Chỉ các luồng dữ liệu trung gian (partial output 128-bit) và lệnh điều khiển (scalar command/reduction) được phép đi qua ranh giới giữa các SLR để tránh hiện tượng nghẽn cổ chai vật lý.
+\end{itemize}
+
+\section{Kiến trúc Hệ thống (Top-Level Module)}
+Kernel chính điều khiển toàn bộ luồng dữ liệu là \texttt{int4\_decoder\_token\_controller}. Khi được gọi, kernel này nhận một hidden state đã được nhúng (embedding), sau đó chạy tuần tự qua 32 lớp decoder, cập nhật KV cache cục bộ và xuất ra logits.
+
+\subsection{Giao tiếp và Bộ nhớ}
+Mỗi PE quản lý một cổng giao tiếp AXI với bộ nhớ DDR cục bộ của nó:
+\begin{itemize}
+    \item \textbf{Model Bank (\texttt{gmem0-3}):} Lưu trữ trọng số mô hình (weights), scales và các hệ số chuẩn hóa. Tổng cộng khoảng $13.1$ triệu từ 512-bit trên mỗi DDR.
+    \item \textbf{RoPE LUT:} Bảng tra cứu cho Rotary Positional Embedding.
+    \item \textbf{KV Cache:} Lưu trữ Key và Value cục bộ phục vụ cơ chế Attention.
+    \item \textbf{Residual \& Logits:} Dữ liệu vào/ra chính của pipeline.
+\end{itemize}
+
+Dữ liệu tạm thời được đưa vào bộ nhớ nội bộ của FPGA:
+\begin{itemize}
+    \item \textbf{URAM:} Dùng để lưu trữ bộ nhớ đệm (cache) cho Scale và Norm Gamma nhằm đảm bảo tốc độ truy xuất ngẫu nhiên nhanh.
+    \item \textbf{BRAM:} Làm bộ nhớ nháp (scratchpad) lưu các giá trị trung gian như Q, K, V, Gate, và các luồng Residual.
+\end{itemize}
+
+\section{Kiến trúc Xử lý Nội bộ và Các Sub-Module}
+Hệ thống sử dụng cơ chế \textbf{Time-Multiplexing} (Tái sử dụng phần cứng). Thay vì nhân bản phần cứng cho từng lớp hoặc từng phép tính, toàn bộ pipeline dùng chung một khối nhân ma trận động.
+
+\subsection{Động cơ Nhân ma trận Tensor-Parallel (\texttt{int4\_sharded\_linear\_4pe})}
+Khối Linear là thành phần lõi của thiết kế, được sử dụng lại cho toàn bộ các phép chiếu (projections): Q, K, V, O, Gate, Up, Down và Logits. 
+
+Bốn PE độc lập tự động lấy dữ liệu từ BRAM cục bộ và DDR, tính toán các tổng thành phần (partial sum). Các tổng này (128-bit) được chuyển chéo qua các SLR qua một mạng lưới Reduction (Cộng gộp):
+\begin{itemize}
+    \item \textbf{SLR1 (Pair 01):} Cộng gộp kết quả của PE0 và PE1.
+    \item \textbf{SLR2 (Pair 23):} Cộng gộp kết quả của PE2 và PE3.
+\end{itemize}
+Sự kết hợp chéo giữa Pair01 và Pair23 sẽ tạo ra output hoàn chỉnh, sau đó được phát ngược lại vào BRAM của mỗi SLR.
+
+\subsection{Kỹ thuật Đóng gói DSP48 (DSP Packing)}
+Điểm nhấn kỹ thuật giúp tiết kiệm tài nguyên là việc nhồi \textbf{hai phép nhân \texttt{INT4 x INT15}} vào cùng một khối DSP48. 
+
+Hai trọng số INT4 của hai hàng ngõ ra chia sẻ chung một giá trị kích hoạt (activation INT15). Trọng số được đóng gói vào toán hạng 27-bit, cách nhau 23-bit:
+\begin{equation}
+    packed\_weight = (w_{high} \ll 23) + w_{low}
+\end{equation}
+\begin{equation}
+    packed\_weight \times activation = (w_{high} \times activation \ll 23) + (w_{low} \times activation)
+\end{equation}
+Khoảng cách 23-bit đủ lớn để chứa tổng có dấu của một group 32 phần tử (tương ứng với một SIMD lane) mà không bị tràn (overflow). Điều này cho phép một khối DSP48 xử lý đồng thời 2 phép tính, nâng cao thông lượng lên 128 phép nhân scalar mỗi chu kỳ cho một PE, mà chỉ chiếm 7\% tài nguyên DSP của chip.
+
+\subsection{Các Khối Xử lý Khác}
+\begin{itemize}
+    \item \textbf{\texttt{int4\_rmsnorm\_quantize\_shards}:} Thực hiện chuẩn hóa RMS. Đây là khối duy nhất truyền dữ liệu liên SLR gồm 1 số FP32 (tổng bình phương) và 1 nghịch đảo căn bậc hai. Sau khi chuẩn hóa, kết quả được lượng tử hóa sang dạng INT4.
+    \item \textbf{\texttt{int4\_swiftkv\_attention\_pe}:} Tính toán Attention cục bộ trên từng SLR. Do dữ liệu K, V đã được chia nhỏ theo head, module này chạy hoàn toàn độc lập, sử dụng thuật toán online-softmax.
+    \item \textbf{\texttt{int4\_swiglu\_quantize\_shards}:} Tính hàm kích hoạt $\text{Swish}(\text{Gate}) \times \text{Up}$ cho khối Feed-Forward (FFN), sau đó lượng tử hóa kết quả.
+\end{itemize}
+
+\section{Luồng Dữ Liệu (Dataflow)}
+Để khắc phục hạn chế về đồng bộ của kiến trúc HLS DATAFLOW phân tán trên nhiều SLR, hệ thống sử dụng một chuỗi Token chuyền qua các PE (Token Control Network) thay vì sử dụng máy trạng thái trung tâm.
+
+Quy trình hoạt động cho 1 Layer (Lặp lại 32 lần):
+\begin{enumerate}
+    \item \textbf{RMS(attn)} $\rightarrow$ Sinh ra Activation lượng tử hóa.
+    \item Khối \textbf{Linear} lần lượt tính \textbf{Q, K, V}.
+    \item Khối \textbf{Attention (SwiftKV + RoPE)} tính toán ngữ cảnh, cập nhật bộ nhớ DDR.
+    \item Khối \textbf{Linear} chiếu kết quả tạo \textbf{O}, sau đó cộng \textbf{Residual}.
+    \item \textbf{RMS(ffn)} $\rightarrow$ Khối \textbf{Linear} tính \textbf{Gate, Up}.
+    \item Khối \textbf{SwiGLU} kích hoạt phi tuyến.
+    \item Khối \textbf{Linear} chiếu \textbf{Down}, sau đó cộng \textbf{Residual}.
+\end{enumerate}
+
+\section{Sử dụng Tài nguyên và Hiệu năng}
+Dựa trên báo cáo tổng hợp C-Synthesis (Vitis HLS 2023.2):
+\begin{table}[H]
+    \centering
+    \begin{tabular}{l l r}
+    \toprule
+    \textbf{Chỉ số} & \textbf{Chi tiết} & \textbf{Kết quả} \\
+    \midrule
+    Mục tiêu xung nhịp & Target Clock & $300$ MHz ($3.333$ ns) \\
+    Initiation Interval & Linear MAC II & 1 \\
+    Đóng gói MAC & Lượng tính toán / DSP48 & 2 phép nhân \texttt{INT4xINT15} \\
+    Sử dụng BRAM18K & Bộ nhớ nội bộ (Scratchpad) & $1308 / 5376$ ($24\%$) \\
+    Sử dụng DSP & Khối tính toán & $916 / 12288$ ($7\%$) \\
+    Sử dụng LUT & Logic tùy biến & $387973 / 1728000$ ($22\%$) \\
+    Sử dụng URAM & Bộ nhớ cache (Scales/Norms) & $160 / 1280$ ($12\%$) \\
+    \bottomrule
+    \end{tabular}
+    \caption{Tóm tắt tài nguyên phần cứng ước tính}
+\end{table}
+Với tài nguyên sử dụng tối ưu, mạng lưới floorplan được thiết kế cứng (\texttt{hard floorplan}) thông qua file cấu hình TCL để đảm bảo đạt tiêu chuẩn timing khắt khe ở mức $300$ MHz mà không xảy ra lỗi định tuyến liên SLR.
+
+\section{Kết luận}
+Kiến trúc phần cứng được hiện thực hóa mang tính tối ưu cao cho luồng xử lý suy luận LLM theo phương thức memory-bound. Việc tái sử dụng lõi tính toán, kết hợp lượng tử hóa INT4 và đóng gói hiệu năng vào DSP48 biến Alveo U250 trở thành một cỗ máy gia tốc mạnh mẽ cho mô hình Llama-2 7B.
+
+\end{document}
