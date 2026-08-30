@@ -2,19 +2,60 @@
 set -euo pipefail
 
 usage() {
-    echo "Usage: $0 <platform.xpfm-or-name> [output.xclbin] [v++ executable]" >&2
+    cat >&2 <<EOF
+Usage: $0 [platform.xpfm-or-name] [output.xclbin] [v++ executable]
+
+Defaults:
+  platform: $default_platform
+  output:   int4_decoder_token_controller_300mhz.xclbin
+  settings: $default_vitis_settings
+
+Environment overrides:
+  VITIS_SETTINGS=<settings64.sh>
+  U250_PLATFORM=<platform.xpfm-or-name>
+  XCLBIN_OUTPUT=<output.xclbin>
+  VPP=<v++ executable>
+  REBUILD_XO=1              rebuild the XO from the checked-in HLS source
+  VITIS_HLS=<vitis_hls>     HLS executable used with REBUILD_XO=1
+EOF
 }
 
-if (( $# < 1 || $# > 3 )); then
+default_platform=/opt/xilinx/platforms/xilinx_u250_gen3x16_xdma_4_1_202210_1/xilinx_u250_gen3x16_xdma_4_1_202210_1.xpfm
+default_vitis_settings=/home/eda/xilinx/Vitis/2023.2/settings64.sh
+
+if (( $# > 3 )); then
     usage
     exit 2
 fi
 
-platform=$1
-output=${2:-int4_decoder_token_controller_300mhz.xclbin}
-vpp=${3:-v++}
+platform=${1:-${U250_PLATFORM:-$default_platform}}
+output=${2:-${XCLBIN_OUTPUT:-int4_decoder_token_controller_300mhz.xclbin}}
+vpp=${3:-${VPP:-v++}}
+vitis_settings=${VITIS_SETTINGS:-$default_vitis_settings}
+rebuild_xo=${REBUILD_XO:-0}
 target_frequency_hz=300000000
 kernel_clock=int4_decoder_token_controller_1.ap_clk
+
+case $rebuild_xo in
+    0|1) ;;
+    *)
+        echo "REBUILD_XO must be 0 or 1, got: $rebuild_xo" >&2
+        exit 2
+        ;;
+esac
+
+if [[ ! -f $vitis_settings ]]; then
+    echo "Vitis settings file does not exist: $vitis_settings" >&2
+    exit 1
+fi
+
+# The settings script supplies v++, vitis_hls, Vivado and XRT utility paths.
+# Vendor settings scripts may inspect optional variables that are unset, so
+# suspend nounset only while sourcing the trusted Xilinx environment.
+# shellcheck disable=SC1090
+set +u
+source "$vitis_settings"
+set -u
 
 source_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 workspace_dir=$(cd -- "$source_dir/.." && pwd -P)
@@ -23,6 +64,7 @@ base_config_path=$source_dir/link_300mhz.cfg
 pre_place_path=$source_dir/timing_300mhz_pre_place.tcl
 post_place_path=$source_dir/timing_300mhz_post_place_check.tcl
 post_route_path=$source_dir/timing_300mhz_post_route_check.tcl
+hls_script_path=$source_dir/run_hls_300mhz.tcl
 run_id=$(date +%Y%m%d-%H%M%S)-$$
 run_dir=$workspace_dir/build_300mhz/runs/$run_id
 temp_dir=$run_dir/temp
@@ -31,7 +73,6 @@ report_dir=$run_dir/reports
 resolved_config_path=$run_dir/link_300mhz.resolved.cfg
 
 for required_path in \
-    "$xo_path" \
     "$base_config_path" \
     "$pre_place_path" \
     "$post_place_path" \
@@ -41,6 +82,44 @@ for required_path in \
         exit 1
     fi
 done
+
+mkdir -p -- "$temp_dir" "$log_dir" "$report_dir"
+
+if [[ ! -f $xo_path ]]; then
+    echo "XO does not exist; enabling REBUILD_XO=1: $xo_path"
+    rebuild_xo=1
+fi
+
+if (( rebuild_xo == 1 )); then
+    if [[ ! -f $hls_script_path ]]; then
+        echo "HLS build script does not exist: $hls_script_path" >&2
+        exit 1
+    fi
+    hls=${VITIS_HLS:-vitis_hls}
+    if [[ $hls == */* ]]; then
+        if [[ ! -x $hls ]]; then
+            echo "Vitis HLS executable does not exist or is not executable: $hls" >&2
+            exit 1
+        fi
+    else
+        hls=$(command -v -- "$hls" || true)
+        if [[ -z $hls ]]; then
+            echo "vitis_hls was not found after sourcing $vitis_settings" >&2
+            exit 1
+        fi
+    fi
+
+    echo "Rebuilding XO with: $hls"
+    (
+        cd -- "$source_dir"
+        "$hls" -f "$hls_script_path"
+    ) 2>&1 | tee "$log_dir/vitis_hls.log"
+fi
+
+if [[ ! -s $xo_path ]]; then
+    echo "XO was not generated or is empty: $xo_path" >&2
+    exit 1
+fi
 
 if [[ $vpp == */* ]]; then
     if [[ ! -x $vpp ]]; then
@@ -59,8 +138,6 @@ if [[ $platform == */* && ! -f $platform ]]; then
     echo "Platform file does not exist: $platform" >&2
     exit 1
 fi
-
-mkdir -p -- "$temp_dir" "$log_dir" "$report_dir"
 
 expected_frequency="freqhz=${target_frequency_hz}:${kernel_clock}"
 if [[ $(grep -Fxc -- "$expected_frequency" "$base_config_path") -ne 1 ]]; then
@@ -103,8 +180,13 @@ if [[ $output == /* ]]; then
 else
     resolved_output=$workspace_dir/$output
 fi
+mkdir -p -- "$(dirname -- "$resolved_output")"
 
 echo "Build run directory: $run_dir"
+echo "Vitis settings: $vitis_settings"
+echo "Platform: $platform"
+echo "XO input: $xo_path"
+sha256sum -- "$xo_path" | tee "$report_dir/xo.sha256"
 echo "Target kernel clock: ${target_frequency_hz} Hz"
 echo "Resolved link config: $resolved_config_path"
 
@@ -113,6 +195,7 @@ set +e
     --link \
     --target hw \
     --platform "$platform" \
+    --save-temps \
     --freqhz "${target_frequency_hz}:${kernel_clock}" \
     --config "$resolved_config_path" \
     --temp_dir "$temp_dir" \
@@ -171,4 +254,20 @@ fi
 if (( validation_failed != 0 )); then
     exit 1
 fi
-exit "$link_exit_code"
+if (( link_exit_code != 0 )); then
+    exit "$link_exit_code"
+fi
+
+if [[ ! -s $resolved_output ]]; then
+    echo "v++ returned success but XCLBIN is missing or empty: $resolved_output" >&2
+    exit 1
+fi
+
+sha256sum -- "$resolved_output" | tee "$report_dir/xclbin.sha256"
+if command -v xclbinutil >/dev/null 2>&1; then
+    xclbinutil --input "$resolved_output" --info \
+        > "$report_dir/xclbin.info.txt"
+fi
+
+echo "XCLBIN build completed and validated: $resolved_output"
+echo "Reports: $report_dir"

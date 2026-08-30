@@ -156,6 +156,54 @@ void swiftkv_load_rope_bank3(
     swiftkv_rope_raw_t current_sin_pair23[SWIFTKV_ROPE_PAIRS]
 );
 
+// New local-ownership entry points.  Each PE consumes only its local Q/K/V
+// shard, RoPE image and KV cache.  The 64 RoPE pairs for the current token are
+// fetched from that PE's DDR inside the local hierarchy (eight 512-bit reads),
+// so no table, address or wide control bus is broadcast between SLRs.
+void int4_swiftkv_attention_pe0(
+    const int4_output_word_t q[INT4_VECTOR_WORDS_PER_PE],
+    const int4_output_word_t k[INT4_VECTOR_WORDS_PER_PE],
+    const int4_output_word_t v[INT4_VECTOR_WORDS_PER_PE],
+    int4_output_word_t* kv_cache,
+    const int4_output_word_t* rope_lut_ddr,
+    int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
+    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    ap_uint<6> layer_index,
+    ap_uint<12> position);
+
+void int4_swiftkv_attention_pe1(
+    const int4_output_word_t q[INT4_VECTOR_WORDS_PER_PE],
+    const int4_output_word_t k[INT4_VECTOR_WORDS_PER_PE],
+    const int4_output_word_t v[INT4_VECTOR_WORDS_PER_PE],
+    int4_output_word_t* kv_cache,
+    const int4_output_word_t* rope_lut_ddr,
+    int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
+    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    ap_uint<6> layer_index,
+    ap_uint<12> position);
+
+void int4_swiftkv_attention_pe2(
+    const int4_output_word_t q[INT4_VECTOR_WORDS_PER_PE],
+    const int4_output_word_t k[INT4_VECTOR_WORDS_PER_PE],
+    const int4_output_word_t v[INT4_VECTOR_WORDS_PER_PE],
+    int4_output_word_t* kv_cache,
+    const int4_output_word_t* rope_lut_ddr,
+    int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
+    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    ap_uint<6> layer_index,
+    ap_uint<12> position);
+
+void int4_swiftkv_attention_pe3(
+    const int4_output_word_t q[INT4_VECTOR_WORDS_PER_PE],
+    const int4_output_word_t k[INT4_VECTOR_WORDS_PER_PE],
+    const int4_output_word_t v[INT4_VECTOR_WORDS_PER_PE],
+    int4_output_word_t* kv_cache,
+    const int4_output_word_t* rope_lut_ddr,
+    int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
+    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    ap_uint<6> layer_index,
+    ap_uint<12> position);
+
 // Integrated dispatcher entry.  The global decoder controller terminates at
 // the caller; SwiftKV receives only the registered layer/position command.
 #ifdef SWIFTKV_INTEGRATED_TOP
@@ -214,6 +262,7 @@ void int4_swiftkv_attention_4pe_command(
     ap_uint<12> position
 );
 
+#ifdef INT4_LEGACY_CONTROLLER
 void int4_swiftkv_attention_4pe(
     const int4_output_word_t* q_pe0,
     const int4_output_word_t* q_pe1,
@@ -237,6 +286,7 @@ void int4_swiftkv_attention_4pe(
     int4_scale_word_t* activation_scale,
     Int4Controller& controller
 );
+#endif
 
 #ifdef SWIFTKV_LATENCY_VERIFY_TOP
 void swiftkv_attention_latency_verify(

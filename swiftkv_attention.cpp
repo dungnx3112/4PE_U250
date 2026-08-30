@@ -2455,6 +2455,159 @@ collect_pe_group_loop:
     }
 }
 
+// The new decoder never materializes or broadcasts a complete RoPE row.
+// Every PE reads the eight 512-bit beats for its current position and turns
+// them directly into two local 19-bit streams.  This read is tiny compared to
+// the KV and weight traffic and avoids four 4096x608-bit on-chip replicas.
+template <int PE_ID>
+static void swiftkv_seed_local_pe(
+    const int4_output_word_t* rope_lut_ddr,
+    ap_uint<6> layer_index,
+    ap_uint<12> position,
+    hls::stream<swiftkv_rope_raw_t>& cosine_stream,
+    hls::stream<swiftkv_rope_raw_t>& sine_stream,
+    hls::stream<swiftkv_pe_command_t>& command_stream) {
+#pragma HLS INLINE off
+local_rope_bank_loop:
+    for (int bank = 0; bank < SWIFTKV_ROPE_BANKS; ++bank) {
+        const int address = (int)position * SWIFTKV_ROPE_BANKS + bank;
+        swiftkv_rope_lut_word_t packed =
+            swiftkv_read_rope_lut_word(rope_lut_ddr, address);
+    local_rope_lane_loop:
+        for (int lane = 0;
+             lane < SWIFTKV_ROPE_PAIRS_PER_LUT_WORD;
+             ++lane) {
+#pragma HLS PIPELINE II=1
+            cosine_stream.write(
+                (swiftkv_rope_raw_t)packed.range(18, 0));
+            sine_stream.write(
+                (swiftkv_rope_raw_t)packed.range(37, 19));
+            packed >>= SWIFTKV_ROPE_LUT_BEAT_BITS;
+        }
+    }
+    command_stream.write(
+        swiftkv_pack_pe_command(layer_index, position));
+}
+
+template <int PE_ID>
+static void swiftkv_consume_local_done(
+    hls::stream<swiftkv_completion_t>& done_stream) {
+#pragma HLS INLINE off
+    (void)done_stream.read();
+}
+
+template <int PE_ID>
+static void int4_swiftkv_attention_local_body(
+    const int4_output_word_t q[INT4_VECTOR_WORDS_PER_PE],
+    const int4_output_word_t k[INT4_VECTOR_WORDS_PER_PE],
+    const int4_output_word_t v[INT4_VECTOR_WORDS_PER_PE],
+    int4_output_word_t* kv_cache,
+    const int4_output_word_t* rope_lut_ddr,
+    int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
+    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    ap_uint<6> layer_index,
+    ap_uint<12> position) {
+#pragma HLS INLINE off
+    // RoPE and KV share one PE-local AXI master, so their reads are ordered
+    // inside this wrapper. The four PE wrappers still run concurrently in
+    // int4_run_local_attention_4pe; only this tiny local phase is sequential.
+    hls::stream<swiftkv_rope_raw_t> cosine_stream;
+    hls::stream<swiftkv_rope_raw_t> sine_stream;
+    hls::stream<int4_quant_word_t> quantized_stream;
+    hls::stream<float> scale_stream;
+    hls::stream<swiftkv_pe_command_t> command_stream;
+    hls::stream<swiftkv_completion_t> done_stream;
+#pragma HLS STREAM variable=cosine_stream depth=64
+#pragma HLS STREAM variable=sine_stream depth=64
+#pragma HLS STREAM variable=quantized_stream depth=64
+#pragma HLS STREAM variable=scale_stream depth=64
+#pragma HLS STREAM variable=command_stream depth=2
+#pragma HLS STREAM variable=done_stream depth=2
+#pragma HLS BIND_STORAGE variable=cosine_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=sine_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=quantized_stream type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=scale_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=command_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=done_stream type=fifo impl=srl
+
+    swiftkv_seed_local_pe<PE_ID>(
+        rope_lut_ddr, layer_index, position,
+        cosine_stream, sine_stream, command_stream);
+    swiftkv_run_pe<PE_ID>(
+        q, k, v, kv_cache,
+        cosine_stream, sine_stream,
+        quantized_stream, scale_stream,
+        command_stream, done_stream);
+    swiftkv_collect_pe_output<PE_ID>(
+        quantized_stream, scale_stream,
+        activation_q, activation_scale);
+    swiftkv_consume_local_done<PE_ID>(done_stream);
+}
+
+void int4_swiftkv_attention_pe0(
+    const int4_output_word_t q[INT4_VECTOR_WORDS_PER_PE],
+    const int4_output_word_t k[INT4_VECTOR_WORDS_PER_PE],
+    const int4_output_word_t v[INT4_VECTOR_WORDS_PER_PE],
+    int4_output_word_t* kv_cache,
+    const int4_output_word_t* rope_lut_ddr,
+    int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
+    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    ap_uint<6> layer_index,
+    ap_uint<12> position) {
+#pragma HLS INLINE off
+    int4_swiftkv_attention_local_body<0>(
+        q, k, v, kv_cache, rope_lut_ddr,
+        activation_q, activation_scale, layer_index, position);
+}
+
+void int4_swiftkv_attention_pe1(
+    const int4_output_word_t q[INT4_VECTOR_WORDS_PER_PE],
+    const int4_output_word_t k[INT4_VECTOR_WORDS_PER_PE],
+    const int4_output_word_t v[INT4_VECTOR_WORDS_PER_PE],
+    int4_output_word_t* kv_cache,
+    const int4_output_word_t* rope_lut_ddr,
+    int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
+    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    ap_uint<6> layer_index,
+    ap_uint<12> position) {
+#pragma HLS INLINE off
+    int4_swiftkv_attention_local_body<1>(
+        q, k, v, kv_cache, rope_lut_ddr,
+        activation_q, activation_scale, layer_index, position);
+}
+
+void int4_swiftkv_attention_pe2(
+    const int4_output_word_t q[INT4_VECTOR_WORDS_PER_PE],
+    const int4_output_word_t k[INT4_VECTOR_WORDS_PER_PE],
+    const int4_output_word_t v[INT4_VECTOR_WORDS_PER_PE],
+    int4_output_word_t* kv_cache,
+    const int4_output_word_t* rope_lut_ddr,
+    int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
+    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    ap_uint<6> layer_index,
+    ap_uint<12> position) {
+#pragma HLS INLINE off
+    int4_swiftkv_attention_local_body<2>(
+        q, k, v, kv_cache, rope_lut_ddr,
+        activation_q, activation_scale, layer_index, position);
+}
+
+void int4_swiftkv_attention_pe3(
+    const int4_output_word_t q[INT4_VECTOR_WORDS_PER_PE],
+    const int4_output_word_t k[INT4_VECTOR_WORDS_PER_PE],
+    const int4_output_word_t v[INT4_VECTOR_WORDS_PER_PE],
+    int4_output_word_t* kv_cache,
+    const int4_output_word_t* rope_lut_ddr,
+    int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
+    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    ap_uint<6> layer_index,
+    ap_uint<12> position) {
+#pragma HLS INLINE off
+    int4_swiftkv_attention_local_body<3>(
+        q, k, v, kv_cache, rope_lut_ddr,
+        activation_q, activation_scale, layer_index, position);
+}
+
 static void swiftkv_gather_attention_buffers(
     const int4_quant_word_t quantized_pe0[32],
     const int4_quant_word_t quantized_pe1[32],
@@ -3073,6 +3226,7 @@ void int4_swiftkv_attention_4pe_command(
 #endif
 }
 
+#ifdef INT4_LEGACY_CONTROLLER
 void int4_swiftkv_attention_4pe(
     const int4_output_word_t* q_pe0,
     const int4_output_word_t* q_pe1,
@@ -3175,6 +3329,7 @@ void int4_swiftkv_attention_4pe(
     controller.run_linear = INT4_RUN;
     controller.linear_mode = INT4_LINEAR_O;
 }
+#endif
 
 #ifdef SWIFTKV_LATENCY_VERIFY_TOP
 // Diagnostic top that matches the integrated decoder memory topology:

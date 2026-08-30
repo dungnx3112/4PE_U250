@@ -1,4 +1,9 @@
-# Phân tích timing 300 MHz cho U250
+# Phân tích lịch sử của checkpoint cũ (không phải kiến trúc hiện tại)
+
+> Tài liệu bên dưới chỉ lưu bằng chứng của routed checkpoint thuộc source cũ.
+> Không dùng các con số hay topology này để đánh giá kernel 4 PE độc lập ngày
+> 2026-08-30. Trạng thái hiện hành nằm trong `README.md` và
+> `CURRENT_XCLBIN_STATUS.md`.
 
 Ngày cập nhật source/HLS: 2026-08-26
 

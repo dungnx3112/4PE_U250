@@ -1,3 +1,4 @@
+# Fast verification flow: synthesize and generate reports without packaging XO.
 open_project -reset proj_int4_decoder_300mhz
 set_top int4_decoder_token_controller
 
@@ -19,5 +20,4 @@ config_interface -m_axi_max_widen_bitwidth 512
 config_rtl -register_reset_num 3
 
 csynth_design
-export_design -format xo -output int4_decoder_token_controller_300mhz.xo
 exit
