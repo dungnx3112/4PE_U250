@@ -1,39 +1,51 @@
-# Trạng thái hiện tại — kiến trúc 4 PE độc lập
+# Trạng thái hiện tại — bản sửa critical path 300 MHz
 
-Ngày kiểm chứng: 2026-08-30
+Ngày kiểm chứng: 2026-08-31
 
-Source cũ không còn là thiết kế đang build. Kernel hiện tại đã được viết lại theo
-miền sở hữu độc lập `PE n / SLR n / DDR n`; chỉ packet partial-output 128-bit và
-command/reduction scalar có thanh ghi được đi qua biên SLR.
+Checkpoint `../level0_wrapper_routed.dcp` là implementation của RTL cũ. Nó fail
+setup rất nặng: WNS `-13.105 ns`, TNS `-118341.414 ns`, 70,322 endpoint fail;
+hold sạch với WHS `+0.009 ns`. Đường xấu nhất có 15.631/16.027 ns là routing và
+đi qua control `ap_done/ap_sync/ap_continue` giữa nhiều SLR.
 
-## Kết quả đã hoàn tất
+## Đã sửa và xác minh
 
-- Vitis HLS 2023.2 C-synthesis: exit code 0.
-- Tất cả loop constraint được thỏa.
-- Estimated Fmax: 300.03 MHz với target 3.333 ns.
-- Không còn cảnh báo `HLS 200-656` hoặc `Deadlocks can occur`.
-- Test layout/packer 4 PE độc lập: PASS.
-- XO chứa đúng source hiện tại; SHA-256 của `int4_linear_controller.cpp` trong
-  XO khớp source trên đĩa.
-- Floorplan hiện chỉ phụ thuộc các hierarchy PE-local lớn còn tồn tại sau
-  `opt_design`, không phụ thuộc tên của helper command nhỏ.
-- XO cuối: `int4_decoder_token_controller_300mhz.xo`.
-- Kích thước XO: 8,819,002 byte.
-- SHA-256: `1A834CE9A5311DC2885374BC36D3D31EFE85AC6B9D5B6CB63835E0932BC91311`.
+- Bốn PE chạy bằng persistent `hls::task`; completion đi qua FIFO token và cây
+  gom có đăng ký, không còn fan-in `ap_done/ap_continue` trực tiếp giữa bốn PE.
+- Command/data/completion FIFO qua biên SLR có ownership rõ ràng; pre-place Tcl
+  neo worker, local memory, AXI endpoint và các FIFO biên vào SLR tương ứng.
+- Critical DSP preadder/multiply 3.333 ns được thay bằng phép cộng fabric.
+- Vitis HLS 2023.2 C-synthesis thành công, không có `ERROR` hay
+  `CRITICAL WARNING`; tất cả loop constraint đạt.
+- Estimated clock: `2.787 ns`, tương đương `358.84 MHz`, với target 3.333 ns.
+- RTL có 10 KPN; 109 worker đều có `ap_start=1`, `ap_continue=1`; `ap_done` của
+  worker không tham gia logic điều khiển KPN.
+- XO cuối: `int4_decoder_token_controller_300mhz.xo`, 10,220,792 byte.
+- SHA-256: `4BA302F2F63AB56BC6B535D3430BDE17171E4E2232FBB76F03E7A71E16FA97A8`.
+- Resource HLS toàn U250: 1308 BRAM18K, 904 DSP, 366313 FF, 397750 LUT,
+  160 URAM.
+- `build_300mhz.sh` và `build_300mhz.ps1` đều giữ routed DCP và gọi
+  `verify_300mhz_routed.tcl`. Build fail nếu route chưa đủ, có routing/DRC Error,
+  WNS/WHS âm hoặc còn setup/hold path fail; XCLBIN chỉ được nhận khi có marker
+  `TIMING_CLOSED`.
+- Pass `timing_300mhz_pre_physopt.tcl` ép replicate các top-level
+  `mode_reg/ap_CS_fsm/ap_sync` theo cụm tải sau placement, rồi chạy riêng
+  BRAM-enable và SLR-crossing optimization. Build fail nếu thiếu marker
+  `CONTROL_MEMORY_PATH_OPT_APPLIED`.
+- Hook physopt đã được smoke-test bằng Vivado 2023.2 trên đúng part
+  `xcu250-figd2104-2L-e`: 3/3 control net được replicate, cả pass BRAM và SLR/TNS
+  chạy thành công, exit code 0.
+- Timing gate đã được thử trên checkpoint cũ và trả exit code 1 đúng như yêu cầu.
 
-Ước lượng toàn U250: 1308 BRAM18K, 916 DSP, 356947 FF, 387973 LUT và 160 URAM.
+## Chưa thể khẳng định trên máy này
 
-## Điều chưa được khẳng định
+Máy hiện tại không có U250 `.xpfm`, nên chưa thể chạy full `v++ --link` để tạo
+routed DCP mới. HLS estimate không thay thế post-route STA. Trên máy Linux có
+platform mặc định, chạy từ workspace:
 
-Full link gần nhất đã hoàn tất synthesis và `opt_design`, nhưng pre-place cũ dừng
-vì Vivado đã flatten helper `int4_seed_linear_command_chain_U0`. Floorplan đã được
-đơn giản hóa để bỏ phụ thuộc này. Vẫn cần chạy lại full link; chỉ xác nhận 300 MHz
-thực tế khi WNS/WHS không âm và không còn net unrouted, routing error hoặc DRC Error.
-
-Lệnh full link khi có platform:
-
-```powershell
-.\build_300mhz.ps1 -Platform '<đường-dẫn-U250.xpfm>'
+```bash
+bash source/build_300mhz.sh
 ```
 
-Chi tiết kiến trúc, layout DDR và cách build nằm trong `README.md`.
+Kết quả chỉ đạt khi cuối log có `300MHz timing gate: TIMING_CLOSED`. Chi tiết lỗi
+cũ, mapping từng nhóm cảnh báo và các thay đổi nằm trong
+`PNR_300MHZ_FIX_REPORT.md`.

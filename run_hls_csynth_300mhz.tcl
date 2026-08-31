@@ -18,6 +18,7 @@ config_interface -m_axi_latency 64
 config_interface -m_axi_alignment_byte_size 64
 config_interface -m_axi_max_widen_bitwidth 512
 config_rtl -register_reset_num 3
+config_dataflow -start_fifo_depth 8
 
 csynth_design
 exit

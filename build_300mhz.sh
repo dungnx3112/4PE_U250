@@ -15,6 +15,7 @@ Environment overrides:
   U250_PLATFORM=<platform.xpfm-or-name>
   XCLBIN_OUTPUT=<output.xclbin>
   VPP=<v++ executable>
+  VIVADO=<vivado executable> hard-gate the retained routed DCP
   REBUILD_XO=1              rebuild the XO from the checked-in HLS source
   VITIS_HLS=<vitis_hls>     HLS executable used with REBUILD_XO=1
 EOF
@@ -62,7 +63,9 @@ workspace_dir=$(cd -- "$source_dir/.." && pwd -P)
 xo_path=$source_dir/int4_decoder_token_controller_300mhz.xo
 base_config_path=$source_dir/link_300mhz.cfg
 pre_place_path=$source_dir/timing_300mhz_pre_place.tcl
+pre_physopt_path=$source_dir/timing_300mhz_pre_physopt.tcl
 hls_script_path=$source_dir/run_hls_300mhz.tcl
+timing_gate_path=$source_dir/verify_300mhz_routed.tcl
 run_id=$(date +%Y%m%d-%H%M%S)-$$
 run_dir=$workspace_dir/build_300mhz/runs/$run_id
 temp_dir=$run_dir/temp
@@ -72,7 +75,9 @@ resolved_config_path=$run_dir/link_300mhz.resolved.cfg
 
 for required_path in \
     "$base_config_path" \
-    "$pre_place_path"; do
+    "$pre_place_path" \
+    "$pre_physopt_path" \
+    "$timing_gate_path"; do
     if [[ ! -f $required_path ]]; then
         echo "Required build input does not exist: $required_path" >&2
         exit 1
@@ -143,16 +148,21 @@ fi
 
 # Generate a run-local config. The absolute Linux paths remain valid after
 # Vitis changes directory into its generated Vivado implementation project.
-if ! awk -v pre="$pre_place_path" '
-    BEGIN { pre_count = 0 }
+if ! awk -v pre="$pre_place_path" -v phys="$pre_physopt_path" '
+    BEGIN { pre_count = 0; phys_count = 0 }
     /^prop=run\.impl_1\.STEPS\.PLACE_DESIGN\.TCL\.PRE=/ {
         print "prop=run.impl_1.STEPS.PLACE_DESIGN.TCL.PRE=" pre
         pre_count++
         next
     }
+    /^prop=run\.impl_1\.STEPS\.PHYS_OPT_DESIGN\.TCL\.PRE=/ {
+        print "prop=run.impl_1.STEPS.PHYS_OPT_DESIGN.TCL.PRE=" phys
+        phys_count++
+        next
+    }
     { print }
     END {
-        if (pre_count != 1) {
+        if (pre_count != 1 || phys_count != 1) {
             exit 42
         }
     }
@@ -218,8 +228,11 @@ if (( ${#implementation_logs[@]} > 0 || link_exit_code == 0 )); then
         "300MHz floorplan: FLOORPLAN_APPLIED" \
         "the pre-place PE/SLR floorplan ran"
     require_marker \
-        "300MHz floorplan: SIMPLE_PE_ANCHORS_APPLIED" \
-        "the simple PE-local AXI, memory and compute anchors ran"
+        "300MHz floorplan: DATA_DRIVEN_TASK_ANCHORS_APPLIED" \
+        "the PE-local KPN workers and registered SLR boundaries were anchored"
+    require_marker \
+        "300MHz control physopt: CONTROL_MEMORY_PATH_OPT_APPLIED" \
+        "top scheduler-to-memory control nets were replicated and optimized"
 fi
 
 if (( validation_failed != 0 )); then
@@ -231,6 +244,42 @@ fi
 
 if [[ ! -s $resolved_output ]]; then
     echo "v++ returned success but XCLBIN is missing or empty: $resolved_output" >&2
+    exit 1
+fi
+
+vivado=${VIVADO:-vivado}
+if [[ $vivado == */* ]]; then
+    if [[ ! -x $vivado ]]; then
+        echo "Vivado executable does not exist or is not executable: $vivado" >&2
+        exit 1
+    fi
+else
+    vivado=$(command -v -- "$vivado" || true)
+    if [[ -z $vivado ]]; then
+        echo "Vivado was not found after sourcing $vitis_settings" >&2
+        exit 1
+    fi
+fi
+
+routed_dcp=$(find "$temp_dir" -type f -name 'level0_wrapper_routed.dcp' \
+    -print 2>/dev/null | sort | tail -n 1)
+if [[ -z $routed_dcp ]]; then
+    routed_dcp=$(find "$temp_dir" -type f -name '*routed.dcp' -print \
+        2>/dev/null | sort | tail -n 1)
+fi
+if [[ -z $routed_dcp || ! -s $routed_dcp ]]; then
+    echo "Link completed, but no non-empty routed DCP was retained under: $temp_dir" >&2
+    exit 1
+fi
+
+echo "Running hard setup/hold timing gate on: $routed_dcp"
+"$vivado" -mode batch -notrace \
+    -source "$timing_gate_path" \
+    -tclargs "$routed_dcp" "$report_dir" \
+    2>&1 | tee "$log_dir/timing_gate.log"
+if ! grep -Fq -- "300MHz timing gate: TIMING_CLOSED" \
+        "$log_dir/timing_gate.log"; then
+    echo "Vivado timing gate did not emit TIMING_CLOSED." >&2
     exit 1
 fi
 

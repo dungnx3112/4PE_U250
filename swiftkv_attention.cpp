@@ -1229,6 +1229,7 @@ static void swiftkv_coefficient_producer(
 
 coefficient_token_loop:
     for (int token = 0; token <= (int)position; ++token) {
+#pragma HLS PIPELINE II=6
 #pragma HLS LOOP_TRIPCOUNT min=1 max=SWIFTKV_MAX_SEQ_LEN
         const int4_fxp32_t score = score_stream.read();
         swiftkv_coefficient_t coefficient = 1.0;
@@ -2477,7 +2478,7 @@ local_rope_bank_loop:
         for (int lane = 0;
              lane < SWIFTKV_ROPE_PAIRS_PER_LUT_WORD;
              ++lane) {
-#pragma HLS PIPELINE II=1
+#pragma HLS PIPELINE II=2
             cosine_stream.write(
                 (swiftkv_rope_raw_t)packed.range(18, 0));
             sine_stream.write(

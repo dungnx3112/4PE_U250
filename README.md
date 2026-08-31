@@ -19,15 +19,17 @@ shard logits.
 
 | File | Vai trò |
 |---|---|
-| `int4_decoder_controller.cpp/.hpp` | Top kernel, scheduler 32 layer và các command-chain liên SLR |
-| `int4_linear_controller.cpp/.hpp` | GEMV INT4 4 PE, overlap DDR/compute và reduction output |
-| `int4_decoder_blocks.cpp/.hpp` | RMSNorm, SwiGLU, residual và token-chain cục bộ |
+| `int4_decoder_controller.cpp/.hpp` | Top kernel, scheduler 32 layer và task graph liên SLR |
+| `int4_linear_controller.cpp/.hpp` | GEMV INT4 4 PE, overlap DDR/compute và completion FIFO |
+| `int4_decoder_blocks.cpp/.hpp` | RMSNorm, SwiGLU, residual và task/FIFO cục bộ |
+| `int4_task_control.hpp` | Completion token, pair join và final wait dùng chung |
 | `swiftkv_attention.cpp/.hpp` | RoPE, KV cache INT8 và online-softmax attention cục bộ |
 | `int4_model_layout.hpp` | Shape, padding và offset cố định của mỗi DDR |
 | `int4_weight_packer.cpp/.hpp` | Packer offline tạo bốn model image input-column-sharded |
 | `link_300mhz.cfg` | Ánh xạ `gmem0..3` tới `DDR[0]..3` |
-| `timing_300mhz_pre_place.tcl` | Floorplan PE/SLR đơn giản trước placement |
-| `tests/int4_layout_packer_test.cpp` | Test padding, offset, nibble order, scale, residual, logits và RoPE |
+| `timing_300mhz_pre_place.tcl` | Floorplan PE/SLR, task worker và FIFO boundary trước placement |
+| `timing_300mhz_pre_physopt.tcl` | Replicate control theo placement; tối ưu BRAM-enable và SLR crossing |
+| `verify_300mhz_routed.tcl` | Hard gate route, DRC, setup và hold trên routed DCP |
 
 ## Kiến trúc dữ liệu
 
@@ -55,9 +57,9 @@ DDR3 -> PE3 --128b--/                       +-> output PE2/PE3
 ```
 
 RMSNorm cũng theo topology pair nhưng chỉ truyền một partial FP32 và một
-reciprocal FP32. Attention, projection-save và linear mode dùng command-chain
-nhỏ có thanh ghi `SLR0 -> SLR1 -> SLR2 -> SLR3`; controller không lái trực tiếp
-một bus shape/mode rộng tới cả bốn SLR.
+reciprocal FP32. Attention, projection-save và linear mode dùng persistent task
+với command/completion FIFO có thanh ghi `SLR0 -> SLR1 -> SLR2 -> SLR3`;
+controller không gom trực tiếp `ap_done/ap_continue` của bốn PE.
 
 ## Overlap DDR với compute
 
@@ -177,29 +179,29 @@ void int4_decoder_token_controller(
 và norm được preload vào URAM persistent khi `position == 0`. Residual chỉ đọc
 một lần đầu invocation và ghi một lần cuối invocation.
 
-## Floorplan PE/SLR đơn giản
+## Floorplan PE/SLR và control KPN
 
-`timing_300mhz_pre_place.tcl` chỉ hard-anchor ba nhóm ổn định của mỗi PE vào
-đúng SLR:
+`timing_300mhz_pre_place.tcl` hard-anchor các miền sở hữu của mỗi PE vào đúng
+SLR:
 
 - AXI/DDR endpoint;
 - local memories;
 - local linear, RMS, SwiGLU, residual và SwiftKV compute.
+- persistent KPN worker cùng command/data/completion FIFO PE-local.
 
-Các helper command, relay và reduction nhỏ được để placer tự đặt. Chúng không
-được dùng làm anchor bắt buộc vì Vivado có thể flatten chúng trong `opt_design`.
-Flow không cài post-place hoặc post-route Tcl hook; kết quả link được quyết định
-trực tiếp bởi Vivado/Vitis. Có thể đọc các report mặc định sau build để đánh giá
-SLR, congestion và timing.
+Ba FIFO biên `01`, `12`, `23` được đặt lần lượt tại SLR1, SLR2, SLR3. Cây gom
+completion đặt theo topology gần nhất thay vì đưa `ap_done/ap_continue` của bốn
+PE về một FSM trung tâm. Build bắt buộc kiểm tra cả marker floorplan và marker
+`DATA_DRIVEN_TASK_ANCHORS_APPLIED`.
 
-## Kiểm thử và build
+Sau placement, `timing_300mhz_pre_physopt.tcl` chọn các net top-level
+`mode_reg`, `ap_CS_fsm`, `ap_sync` có ít nhất tám tải, ép Vivado replicate driver
+theo cụm tải vật lý, rồi chạy `bram_enable_opt` cùng
+`slr_crossing_opt -tns_cleanup`. Pass này xử lý phần control-to-memory còn lại
+mà HLS vẫn tạo để multiplex các cổng RAM dùng chung. Marker
+`CONTROL_MEMORY_PATH_OPT_APPLIED` là bắt buộc trước khi build được chấp nhận.
 
-Chạy test layout/packer:
-
-```powershell
-Set-Location C:\KLTN\u250
-.\source\tests\run_tests.ps1
-```
+## Tổng hợp và build
 
 Chạy HLS synthesis nhanh, không package XO:
 
@@ -252,8 +254,10 @@ REBUILD_XO=1 bash source/build_300mhz.sh
 
 Script tự source Vitis, tạo config theo từng run với đường dẫn Tcl tuyệt đối,
 chạy `v++ --link --target hw --save-temps`, kiểm tra pre-place floorplan đã chạy,
-rồi dùng exit code của `v++` và sự tồn tại của XCLBIN làm kết quả cuối. Flow không
-tự áp thêm post-place/post-route guard.
+rồi kiểm tra pass control/memory phys-opt đã chạy trước khi mở routed DCP bằng
+Vivado. XCLBIN chỉ được chấp nhận khi route đầy đủ, không có routing/DRC Error,
+không còn setup/hold path âm và log có marker
+`300MHz timing gate: TIMING_CLOSED`.
 
 Artifact mặc định và log được ghi tại:
 
@@ -263,24 +267,25 @@ Artifact mặc định và log được ghi tại:
 ```
 
 Có thể override mà không sửa script qua `VITIS_SETTINGS`, `U250_PLATFORM`,
-`XCLBIN_OUTPUT`, `VPP` và `VITIS_HLS`.
+`XCLBIN_OUTPUT`, `VPP`, `VIVADO` và `VITIS_HLS`.
 
 ## Kết quả HLS đã xác minh
 
-C-synthesis Vitis HLS 2023.2 ngày 2026-08-30 hoàn tất với exit code 0:
+C-synthesis Vitis HLS 2023.2 ngày 2026-08-31 hoàn tất với exit code 0:
 
 | Chỉ số | Kết quả |
 |---|---:|
 | Target | 3.333 ns / 300 MHz |
-| Estimated Fmax | 300.03 MHz |
+| Estimated clock | 2.787 ns |
+| Estimated Fmax | 358.84 MHz |
 | Linear instances | 1 time-shared 4-PE engine |
 | Linear MAC II | 1 |
 | Integer MAC packing | 2 phép nhân `INT4 x INT15` / DSP48 |
 | Integer packed MAC / PE | 64 DSP48 = 128 scalar multiply/cycle |
 | BRAM18K | 1308 / 5376 (24%) |
-| DSP | 916 / 12288 (7%) |
-| FF | 356947 / 3456000 (10%) |
-| LUT | 387973 / 1728000 (22%) |
+| DSP | 904 / 12288 (7%) |
+| FF | 366313 / 3456000 (10%) |
+| LUT | 397750 / 1728000 (23%) |
 | URAM | 160 / 1280 (12%) |
 
 Đây là kết quả HLS trước place/route. Chỉ XCLBIN/routed DCP với WNS và WHS
@@ -290,6 +295,10 @@ XO tương ứng với source hiện tại:
 
 ```text
 int4_decoder_token_controller_300mhz.xo
-size:    8,819,002 byte
-SHA-256: 1A834CE9A5311DC2885374BC36D3D31EFE85AC6B9D5B6CB63835E0932BC91311
+size:    10,220,792 byte
+SHA-256: 4BA302F2F63AB56BC6B535D3430BDE17171E4E2232FBB76F03E7A71E16FA97A8
 ```
+
+Máy Windows hiện tại chưa cài U250 `.xpfm`, vì vậy chưa có routed DCP mới để
+báo WNS/WHS sau sửa. Dùng wrapper trên máy có platform; wrapper sẽ tự fail nếu
+route chưa đóng timing.

@@ -1,19 +1,66 @@
 \documentclass[12pt,a4paper]{article}
 \usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc} % Sửa lỗi font chữ tiếng Việt bị mờ/xấu (bitmapped)
 \usepackage[vietnamese]{babel}
+\usepackage{mathptmx} % Sử dụng font Times New Roman chuẩn học thuật
+\usepackage{setspace}
+\onehalfspacing % Giãn dòng 1.5 chuẩn KLTN
 \usepackage{amsmath}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{float}
 \usepackage{tikz}
+\usetikzlibrary{arrows.meta,calc,positioning}
 \usepackage{hyperref}
 \usepackage{listings}
 \usepackage{geometry}
 \geometry{
  a4paper,
  total={170mm,257mm},
- left=20mm,
+ left=30mm, % Lề trái 3cm chuẩn đóng bìa
+ right=20mm,
  top=20mm,
+ bottom=20mm,
+}
+
+% Màu và kiểu dùng chung cho các sơ đồ kiến trúc phần cứng.
+\definecolor{u250blue}{HTML}{D9EAF7}
+\definecolor{u250navy}{HTML}{28587B}
+\definecolor{u250green}{HTML}{DDF2E1}
+\definecolor{u250orange}{HTML}{FCE8CE}
+\definecolor{u250purple}{HTML}{E9E0F5}
+\definecolor{u250gray}{HTML}{EEF1F4}
+\definecolor{u250red}{HTML}{F6D7D7}
+
+\tikzset{
+    slrbox/.style={draw=u250navy, very thick, rounded corners=3pt,
+        fill=u250blue!35, minimum width=3.8cm, minimum height=5.25cm},
+    ddrbox/.style={draw=u250navy, thick, rounded corners=2pt,
+        fill=u250gray, minimum width=2.55cm, minimum height=0.72cm,
+        align=center, font=\small\bfseries},
+    pebox/.style={draw=u250navy, thick, rounded corners=2pt,
+        fill=u250green, minimum width=3.05cm, minimum height=1.35cm,
+        align=center, font=\small},
+    localbox/.style={draw=u250navy, thick, rounded corners=2pt,
+        fill=white, minimum width=3.05cm, minimum height=1.15cm,
+        align=center, font=\scriptsize},
+    reducebox/.style={draw=u250navy, thick, rounded corners=2pt,
+        fill=u250purple, minimum width=3.25cm, minimum height=0.85cm,
+        align=center, font=\small},
+    hwbox/.style={draw=u250navy, thick, rounded corners=2pt,
+        fill=u250gray, minimum height=0.9cm, align=center, font=\small},
+    dspbox/.style={draw=u250navy, very thick, rounded corners=2pt,
+        fill=u250orange, minimum width=2.3cm, minimum height=1.25cm,
+        align=center, font=\small\bfseries},
+    streambox/.style={draw=u250navy, thick, rounded corners=2pt,
+        fill=u250green, minimum width=1.8cm, minimum height=1.05cm,
+        align=center, font=\scriptsize},
+    dataline/.style={-{Latex[length=2.1mm,width=1.5mm]}, very thick,
+        draw=u250navy},
+    cmdline/.style={-{Latex[length=1.8mm,width=1.2mm]}, thick, dashed,
+        draw=black!65},
+    bothline/.style={{Latex[length=1.8mm,width=1.2mm]}-{Latex[length=1.8mm,width=1.2mm]},
+        very thick, draw=u250navy}
 }
 
 \title{\textbf{Báo Cáo Kiến Trúc Phần Cứng}\\ \Large Bộ Giải Mã Llama-2 7B INT4 trên FPGA Alveo U250}
@@ -121,6 +168,165 @@ Dựa trên báo cáo tổng hợp C-Synthesis (Vitis HLS 2023.2):
     \caption{Tóm tắt tài nguyên phần cứng ước tính}
 \end{table}
 Với tài nguyên sử dụng tối ưu, mạng lưới floorplan được thiết kế cứng (\texttt{hard floorplan}) thông qua file cấu hình TCL để đảm bảo đạt tiêu chuẩn timing khắt khe ở mức $300$ MHz mà không xảy ra lỗi định tuyến liên SLR.
+
+\clearpage
+\section{Sơ đồ kiến trúc phần cứng}
+
+Hai sơ đồ dưới đây được rút trực tiếp từ cấu trúc module và ràng buộc kết nối
+trong source.  Mỗi PE sở hữu một miền DDR/SLR riêng, gồm model shard, activation
+scratchpad và KV cache cục bộ.  Luồng điều khiển xuyên SLR chỉ mang lệnh scalar;
+đường dữ liệu xuyên SLR có bề rộng lớn duy nhất là các packet partial 128 bit
+tại tầng reduction.
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[x=1cm,y=1cm]
+    % Bốn DDR nằm ngoài FPGA và chỉ nối với SLR tương ứng.
+    \node[ddrbox] (ddr0) at (0,7.15) {DDR0 / gmem0\\AXI 512 bit};
+    \node[ddrbox] (ddr1) at (4.5,7.15) {DDR1 / gmem1\\AXI 512 bit};
+    \node[ddrbox] (ddr2) at (9.0,7.15) {DDR2 / gmem2\\AXI 512 bit};
+    \node[ddrbox] (ddr3) at (13.5,7.15) {DDR3 / gmem3\\AXI 512 bit};
+
+    % Nền SLR được vẽ trước các khối con.
+    \node[slrbox] (slr0) at (0,3.85) {};
+    \node[slrbox] (slr1) at (4.5,3.85) {};
+    \node[slrbox] (slr2) at (9.0,3.85) {};
+    \node[slrbox] (slr3) at (13.5,3.85) {};
+
+    \node[font=\bfseries\small, text=u250navy] at (0,6.15) {SLR0};
+    \node[font=\bfseries\small, text=u250navy] at (4.5,6.15) {SLR1};
+    \node[font=\bfseries\small, text=u250navy] at (9.0,6.15) {SLR2};
+    \node[font=\bfseries\small, text=u250navy] at (13.5,6.15) {SLR3};
+
+    \node[pebox] (pe0) at (0,4.75) {\textbf{Linear PE0}\\RMSNorm, RoPE, SwiftKV\\SwiGLU, residual};
+    \node[pebox] (pe1) at (4.5,4.75) {\textbf{Linear PE1}\\RMSNorm, RoPE, SwiftKV\\SwiGLU, residual};
+    \node[pebox] (pe2) at (9.0,4.75) {\textbf{Linear PE2}\\RMSNorm, RoPE, SwiftKV\\SwiGLU, residual};
+    \node[pebox] (pe3) at (13.5,4.75) {\textbf{Linear PE3}\\RMSNorm, RoPE, SwiftKV\\SwiGLU, residual};
+
+    \node[localbox] (mem0) at (0,2.85) {BRAM/URAM cục bộ\\model shard, scale, activation\\KV cache, residual, logits};
+    \node[localbox] (mem1) at (4.5,2.85) {BRAM/URAM cục bộ\\model shard, scale, activation\\KV cache, residual, logits};
+    \node[localbox] (mem2) at (9.0,2.85) {BRAM/URAM cục bộ\\model shard, scale, activation\\KV cache, residual, logits};
+    \node[localbox] (mem3) at (13.5,2.85) {BRAM/URAM cục bộ\\model shard, scale, activation\\KV cache, residual, logits};
+
+    \draw[dataline] (ddr0) -- node[right, font=\scriptsize] {weight} (pe0);
+    \draw[dataline] (ddr1) -- node[right, font=\scriptsize] {weight} (pe1);
+    \draw[dataline] (ddr2) -- node[right, font=\scriptsize] {weight} (pe2);
+    \draw[dataline] (ddr3) -- node[right, font=\scriptsize] {weight} (pe3);
+    \draw[bothline] (pe0) -- (mem0);
+    \draw[bothline] (pe1) -- (mem1);
+    \draw[bothline] (pe2) -- (mem2);
+    \draw[bothline] (pe3) -- (mem3);
+
+    % Command chain rất hẹp, tránh fanout điều khiển xuyên SLR.
+    \draw[cmdline] (-1.45,1.85) -- (1.45,1.85);
+    \draw[cmdline] (1.65,1.85) -- (6.15,1.85);
+    \draw[cmdline] (6.35,1.85) -- (10.65,1.85);
+    \draw[cmdline] (10.85,1.85) -- (15.05,1.85);
+    \node[font=\scriptsize, fill=white, inner sep=1pt] at (6.75,1.85)
+        {chuỗi lệnh scalar: PE0 $\rightarrow$ PE1 $\rightarrow$ PE2 $\rightarrow$ PE3};
+
+    % Mạng cộng logic: chỉ các gói partial đi qua biên SLR.
+    \node[reducebox] (r01) at (2.25,0.45) {pair reduction 01\\FP32 partial, 128 bit};
+    \node[reducebox] (r23) at (11.25,0.45) {pair reduction 23\\FP32 partial, 128 bit};
+    \draw[dataline] (mem0.south) -- (r01.north west);
+    \draw[dataline] (mem1.south) -- (r01.north east);
+    \draw[dataline] (mem2.south) -- (r23.north west);
+    \draw[dataline] (mem3.south) -- (r23.north east);
+    \draw[bothline] (r01) -- node[above, font=\scriptsize, fill=white]
+        {mỗi chiều một packet 128 bit} (r23);
+
+    \node[font=\scriptsize, align=center] at (6.75,-0.55)
+        {Cộng đủ 4 shard rồi ghi/broadcast kết quả về projection scratch cục bộ;\\
+         scheduler tái sử dụng cùng datapath cho Q, K, V, O, Gate, Up, Down và Logits.};
+\end{tikzpicture}%
+}
+\caption{Kiến trúc tổng quan của bộ tăng tốc Llama 2-7B trên Alveo U250.}
+\label{fig:u250-overview}
+\end{figure}
+
+Hình~\ref{fig:w4a15-dataflow} ghép hai mức nhìn của cùng datapath. Phần (a)
+mô tả phép đóng gói signed bên trong một DSP48E2. Phần (b) cho thấy FIFO BRAM
+tách AXI burst khỏi pipeline MAC, nhờ đó tile $n+1$ được nạp trong khi tile
+$n$ đang tính và packet trước đó đang được reduction/ghi ra.
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[x=1cm,y=1cm]
+    \node[font=\bfseries, anchor=west] at (-0.1,6.35)
+        {(a) Signed W4A15 packing trong một DSP48E2};
+
+    \node[hwbox, fill=u250red, minimum width=1.55cm] (wh) at (0.8,5.15)
+        {$w_{\mathrm{hi}}$\\signed W4};
+    \node[hwbox, fill=u250red, minimum width=1.55cm] (wl) at (0.8,3.85)
+        {$w_{\mathrm{lo}}$\\signed W4};
+    \node[hwbox, fill=u250blue, minimum width=3.55cm] (pack) at (4.0,4.5)
+        {$P=(w_{\mathrm{hi}}\ll23)+w_{\mathrm{lo}}$\\signed 27 bit};
+    \node[hwbox, fill=u250green, minimum width=2.25cm] (act) at (4.0,2.95)
+        {$x$ signed A15\\sign-extend 18 bit};
+    \node[dspbox] (dsp) at (7.6,4.25)
+        {DSP48E2\\$27\times18$ MAC};
+    \node[hwbox, fill=u250orange, minimum width=2.65cm] (acc) at (11.0,4.25)
+        {packed accumulator\\signed 48 bit};
+    \node[hwbox, fill=u250purple, minimum width=4.15cm, minimum height=1.55cm]
+        (split) at (15.5,4.25)
+        {$y_{\mathrm{lo}}=\mathrm{acc}[22{:}0]$\\
+         $y_{\mathrm{hi}}=\mathrm{acc}[45{:}23]+\mathrm{acc}[22]$\\
+         hai tích vô hướng signed độc lập};
+
+    \draw[dataline] (wh.east) -- (pack.west);
+    \draw[dataline] (wl.east) -- (pack.west);
+    \draw[dataline] (pack.east) -- node[above, font=\scriptsize] {operand A} (dsp.west);
+    \draw[dataline] (act.east) -| node[below right, font=\scriptsize] {operand B} (dsp.south);
+    \draw[dataline] (dsp.east) -- (acc.west);
+    \draw[dataline] (acc.east) -- (split.west);
+    \node[font=\small, align=center, text=u250navy] at (7.6,2.85)
+        {2 phép nhân W4$\times$A15/DSP\\32 lane $\times$ 2 DSP/lane = 64 DSP/PE};
+
+    \draw[black!35, thick] (-0.1,2.25) -- (19.5,2.25);
+    \node[font=\bfseries, anchor=west] at (-0.1,1.85)
+        {(b) DATAFLOW load--compute--write của linear PE $n$};
+
+    \node[streambox, fill=u250gray] (ddr) at (0.55,0.35)
+        {DDR$n$\\weight W4};
+    \node[streambox] (load) at (2.75,0.35)
+        {AXI load\\512 bit/cycle};
+    \node[streambox, fill=u250blue] (fifo) at (5.3,0.35)
+        {BRAM FIFO\\depth 512\\$\geq 2$ tile};
+    \node[streambox, fill=u250orange, minimum width=2.2cm] (mac) at (8.5,0.35)
+        {32 lane unroll\\64 packed DSP\\row-block II=1};
+    \node[streambox, fill=u250purple] (partial) at (11.5,0.35)
+        {partial FP32\\packet 128 bit};
+    \node[streambox, fill=u250purple] (reduce) at (14.2,0.35)
+        {pair/global\\reduction};
+    \node[streambox] (store) at (16.8,0.35)
+        {store local\\output};
+    \node[streambox, fill=u250gray] (proj) at (19.4,0.35)
+        {projection\\BRAM};
+    \node[streambox, fill=u250green, minimum width=2.8cm, minimum height=0.75cm]
+        (as) at (8.5,1.45) {activation A15 + scale\\BRAM/URAM cục bộ};
+
+    \draw[dataline] (ddr) -- (load);
+    \draw[dataline] (load) -- (fifo);
+    \draw[dataline] (fifo) -- (mac);
+    \draw[dataline] (as) -- (mac);
+    \draw[dataline] (mac) -- (partial);
+    \draw[dataline] (partial) -- (reduce);
+    \draw[dataline] (reduce) -- (store);
+    \draw[dataline] (store) -- (proj);
+
+    \node[draw=u250navy, thick, rounded corners=2pt, fill=white,
+        minimum width=16.8cm, minimum height=0.62cm, align=center,
+        font=\small] at (10.0,-1.05)
+        {Trạng thái ổn định: \textbf{load tile $n+1$}\quad$\parallel$\quad
+         \textbf{compute tile $n$}\quad$\parallel$\quad
+         \textbf{reduce/write packet $n-1$}};
+\end{tikzpicture}%
+}
+\caption{Signed W4A15 DSP packing và dataflow load-compute-write của một linear PE.}
+\label{fig:w4a15-dataflow}
+\end{figure}
 
 \section{Kết luận}
 Kiến trúc phần cứng được hiện thực hóa mang tính tối ưu cao cho luồng xử lý suy luận LLM theo phương thức memory-bound. Việc tái sử dụng lõi tính toán, kết hợp lượng tử hóa INT4 và đóng gói hiệu năng vào DSP48 biến Alveo U250 trở thành một cỗ máy gia tốc mạnh mẽ cho mô hình Llama-2 7B.

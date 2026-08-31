@@ -1,6 +1,6 @@
 #pragma once
 
-#include "int4_linear_controller.hpp"
+#include "int4_model_layout.hpp"
 
 #include <ap_fixed.h>
 
@@ -22,10 +22,10 @@ void int4_rmsnorm_quantize_shards(
     const int4_output_word_t residual1[INT4_VECTOR_WORDS_PER_PE],
     const int4_output_word_t residual2[INT4_VECTOR_WORDS_PER_PE],
     const int4_output_word_t residual3[INT4_VECTOR_WORDS_PER_PE],
-    const int4_output_word_t gamma0[INT4_VECTOR_WORDS_PER_PE],
-    const int4_output_word_t gamma1[INT4_VECTOR_WORDS_PER_PE],
-    const int4_output_word_t gamma2[INT4_VECTOR_WORDS_PER_PE],
-    const int4_output_word_t gamma3[INT4_VECTOR_WORDS_PER_PE],
+    const int4_output_word_t norm_cache0[INT4_TOTAL_NORM_WORDS_PER_PE],
+    const int4_output_word_t norm_cache1[INT4_TOTAL_NORM_WORDS_PER_PE],
+    const int4_output_word_t norm_cache2[INT4_TOTAL_NORM_WORDS_PER_PE],
+    const int4_output_word_t norm_cache3[INT4_TOTAL_NORM_WORDS_PER_PE],
     int4_quant_word_t activation_q0[INT4_MAX_LOCAL_GROUPS],
     int4_quant_word_t activation_q1[INT4_MAX_LOCAL_GROUPS],
     int4_quant_word_t activation_q2[INT4_MAX_LOCAL_GROUPS],
@@ -33,7 +33,8 @@ void int4_rmsnorm_quantize_shards(
     float activation_scale0[INT4_MAX_LOCAL_GROUPS],
     float activation_scale1[INT4_MAX_LOCAL_GROUPS],
     float activation_scale2[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale3[INT4_MAX_LOCAL_GROUPS]
+    float activation_scale3[INT4_MAX_LOCAL_GROUPS],
+    int norm_offset
 );
 
 // Local-only elementwise blocks. No data or control signal from one PE

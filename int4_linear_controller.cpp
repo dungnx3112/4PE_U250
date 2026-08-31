@@ -1,7 +1,7 @@
 #include "int4_model_layout.hpp"
+#include "int4_task_control.hpp"
 
 #include <cstdint>
-#include <hls_stream.h>
 
 union int4_fp32_bits_t {
     std::uint32_t bits;
@@ -108,7 +108,10 @@ static ap_int<27> int4_pack_two_w4(
     int4_weight_t high,
     int4_weight_t low) {
 #pragma HLS INLINE
-    return ((ap_int<27>)high << 23) + (ap_int<27>)low;
+    const ap_int<27> packed =
+        ((ap_int<27>)high << 23) + (ap_int<27>)low;
+#pragma HLS BIND_OP variable=packed op=add impl=fabric
+    return packed;
 }
 
 static void int4_unpack_packed_acc(
@@ -489,7 +492,8 @@ template <int PE_ID>
 static void int4_store_local_output(
     hls::stream<int4_reduction_packet_t>& input_stream,
     int4_output_word_t* output_mem,
-    hls::stream<int4_linear_command_t>& command_stream) {
+    hls::stream<int4_linear_command_t>& command_stream,
+    hls::stream<int4_completion_token_t>& completion_stream) {
 #pragma HLS INLINE off
     const int local_output_tiles = int4_command_local_output_tiles(
         command_stream.read());
@@ -511,6 +515,7 @@ store_local_output_word_loop:
         }
         output_mem[word] = packed;
     }
+    completion_stream.write(1);
 }
 
 void int4_sharded_linear_4pe(
@@ -540,49 +545,79 @@ void int4_sharded_linear_4pe(
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW disable_start_propagation
 
-    hls::stream<int4_linear_command_t> command_pe0;
-    hls::stream<int4_linear_command_t> command_pe1;
-    hls::stream<int4_linear_command_t> command_pe2;
-    hls::stream<int4_linear_command_t> command_pe3;
-    hls::stream<int4_linear_command_t> command_01;
-    hls::stream<int4_linear_command_t> command_12;
-    hls::stream<int4_linear_command_t> command_23;
-    hls::stream<int4_linear_command_t> command_store0;
-    hls::stream<int4_linear_command_t> command_store1;
-    hls::stream<int4_linear_command_t> command_store2;
-    hls::stream<int4_linear_command_t> command_store3;
-    hls::stream<int4_linear_command_t> command_reduce01;
-    hls::stream<int4_linear_command_t> command_finalize01;
-    hls::stream<int4_linear_command_t> command_reduce23;
-    hls::stream<int4_linear_command_t> command_finalize23;
-    hls::stream<int4_reduction_packet_t> partial0;
-    hls::stream<int4_reduction_packet_t> partial1;
-    hls::stream<int4_reduction_packet_t> partial2;
-    hls::stream<int4_reduction_packet_t> partial3;
-    hls::stream<int4_reduction_packet_t> sum01_local;
-    hls::stream<int4_reduction_packet_t> sum01_to23;
-    hls::stream<int4_reduction_packet_t> sum23_local;
-    hls::stream<int4_reduction_packet_t> sum23_to01;
-    hls::stream<int4_reduction_packet_t> output0_stream;
-    hls::stream<int4_reduction_packet_t> output1_stream;
-    hls::stream<int4_reduction_packet_t> output2_stream;
-    hls::stream<int4_reduction_packet_t> output3_stream;
+    // These interfaces are physically stable for the duration of one kernel
+    // execution.  Explicit command/completion FIFOs provide transaction
+    // synchronization for the persistent PE tasks below.
+#pragma HLS STABLE variable=weight_pe0
+#pragma HLS STABLE variable=weight_pe1
+#pragma HLS STABLE variable=weight_pe2
+#pragma HLS STABLE variable=weight_pe3
+#pragma HLS STABLE variable=scale_pe0
+#pragma HLS STABLE variable=scale_pe1
+#pragma HLS STABLE variable=scale_pe2
+#pragma HLS STABLE variable=scale_pe3
+#pragma HLS STABLE variable=activation_q0
+#pragma HLS STABLE variable=activation_q1
+#pragma HLS STABLE variable=activation_q2
+#pragma HLS STABLE variable=activation_q3
+#pragma HLS STABLE variable=activation_scale0
+#pragma HLS STABLE variable=activation_scale1
+#pragma HLS STABLE variable=activation_scale2
+#pragma HLS STABLE variable=activation_scale3
+#pragma HLS STABLE variable=output_pe0
+#pragma HLS STABLE variable=output_pe1
+#pragma HLS STABLE variable=output_pe2
+#pragma HLS STABLE variable=output_pe3
 
-#pragma HLS STREAM variable=command_pe0 depth=2
-#pragma HLS STREAM variable=command_pe1 depth=2
-#pragma HLS STREAM variable=command_pe2 depth=2
-#pragma HLS STREAM variable=command_pe3 depth=2
-#pragma HLS STREAM variable=command_01 depth=2
-#pragma HLS STREAM variable=command_12 depth=2
-#pragma HLS STREAM variable=command_23 depth=2
-#pragma HLS STREAM variable=command_store0 depth=2
-#pragma HLS STREAM variable=command_store1 depth=2
-#pragma HLS STREAM variable=command_store2 depth=2
-#pragma HLS STREAM variable=command_store3 depth=2
-#pragma HLS STREAM variable=command_reduce01 depth=2
-#pragma HLS STREAM variable=command_finalize01 depth=2
-#pragma HLS STREAM variable=command_reduce23 depth=2
-#pragma HLS STREAM variable=command_finalize23 depth=2
+    HLS_TASK_STREAM<int4_linear_command_t> command_pe0;
+    HLS_TASK_STREAM<int4_linear_command_t> command_pe1;
+    HLS_TASK_STREAM<int4_linear_command_t> command_pe2;
+    HLS_TASK_STREAM<int4_linear_command_t> command_pe3;
+    HLS_TASK_STREAM<int4_linear_command_t> command_01;
+    HLS_TASK_STREAM<int4_linear_command_t> command_12;
+    HLS_TASK_STREAM<int4_linear_command_t> command_23;
+    HLS_TASK_STREAM<int4_linear_command_t> command_store0;
+    HLS_TASK_STREAM<int4_linear_command_t> command_store1;
+    HLS_TASK_STREAM<int4_linear_command_t> command_store2;
+    HLS_TASK_STREAM<int4_linear_command_t> command_store3;
+    HLS_TASK_STREAM<int4_linear_command_t> command_reduce01;
+    HLS_TASK_STREAM<int4_linear_command_t> command_finalize01;
+    HLS_TASK_STREAM<int4_linear_command_t> command_reduce23;
+    HLS_TASK_STREAM<int4_linear_command_t> command_finalize23;
+    HLS_TASK_STREAM<int4_reduction_packet_t> partial0;
+    HLS_TASK_STREAM<int4_reduction_packet_t> partial1;
+    HLS_TASK_STREAM<int4_reduction_packet_t> partial2;
+    HLS_TASK_STREAM<int4_reduction_packet_t> partial3;
+    HLS_TASK_STREAM<int4_reduction_packet_t> sum01_local;
+    HLS_TASK_STREAM<int4_reduction_packet_t> sum01_to23;
+    HLS_TASK_STREAM<int4_reduction_packet_t> sum23_local;
+    HLS_TASK_STREAM<int4_reduction_packet_t> sum23_to01;
+    HLS_TASK_STREAM<int4_reduction_packet_t> output0_stream;
+    HLS_TASK_STREAM<int4_reduction_packet_t> output1_stream;
+    HLS_TASK_STREAM<int4_reduction_packet_t> output2_stream;
+    HLS_TASK_STREAM<int4_reduction_packet_t> output3_stream;
+    HLS_TASK_STREAM<int4_completion_token_t> completion0;
+    HLS_TASK_STREAM<int4_completion_token_t> completion1;
+    HLS_TASK_STREAM<int4_completion_token_t> completion2;
+    HLS_TASK_STREAM<int4_completion_token_t> completion3;
+    HLS_TASK_STREAM<int4_completion_token_t> completion01;
+    HLS_TASK_STREAM<int4_completion_token_t> completion23;
+
+#pragma HLS STREAM variable=command_pe0 depth=8
+#pragma HLS STREAM variable=command_pe1 depth=8
+#pragma HLS STREAM variable=command_pe2 depth=8
+#pragma HLS STREAM variable=command_pe3 depth=8
+#pragma HLS STREAM variable=command_01 depth=8
+#pragma HLS STREAM variable=command_12 depth=8
+#pragma HLS STREAM variable=command_23 depth=8
+#pragma HLS STREAM variable=command_store0 depth=8
+#pragma HLS STREAM variable=command_store1 depth=8
+#pragma HLS STREAM variable=command_store2 depth=8
+#pragma HLS STREAM variable=command_store3 depth=8
+#pragma HLS STREAM variable=command_reduce01 depth=8
+#pragma HLS STREAM variable=command_finalize01 depth=8
+#pragma HLS STREAM variable=command_reduce23 depth=8
+#pragma HLS STREAM variable=command_finalize23 depth=8
 #pragma HLS STREAM variable=partial0 depth=8
 #pragma HLS STREAM variable=partial1 depth=8
 #pragma HLS STREAM variable=partial2 depth=8
@@ -595,6 +630,12 @@ void int4_sharded_linear_4pe(
 #pragma HLS STREAM variable=output1_stream depth=32
 #pragma HLS STREAM variable=output2_stream depth=32
 #pragma HLS STREAM variable=output3_stream depth=32
+#pragma HLS STREAM variable=completion0 depth=4
+#pragma HLS STREAM variable=completion1 depth=4
+#pragma HLS STREAM variable=completion2 depth=4
+#pragma HLS STREAM variable=completion3 depth=4
+#pragma HLS STREAM variable=completion01 depth=4
+#pragma HLS STREAM variable=completion23 depth=4
 #pragma HLS BIND_STORAGE variable=command_pe0 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=command_pe1 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=command_pe2 type=fifo impl=srl
@@ -620,57 +661,63 @@ void int4_sharded_linear_4pe(
     int4_seed_linear_command_chain(
         mode, weight_word_offset, weight_scale_word_offset,
         command_pe0, command_store0, command_01);
-    int4_relay_pair_linear_command<0>(
+    HLS_TASK relay_command01(int4_relay_pair_linear_command<0>,
         command_01, command_pe1,
         command_reduce01, command_finalize01, command_store1,
         command_12);
-    int4_relay_pair_linear_command<1>(
+    HLS_TASK relay_command23(int4_relay_pair_linear_command<1>,
         command_12, command_pe2,
         command_reduce23, command_finalize23, command_store2,
         command_23);
-    int4_terminate_linear_command(
+    HLS_TASK terminate_command(int4_terminate_linear_command,
         command_23, command_pe3, command_store3);
 
-    int4_run_local_pe<0>(
+    HLS_TASK local_pe0(int4_run_local_pe<0>,
         weight_pe0, scale_pe0,
         activation_q0, activation_scale0,
         command_pe0, partial0);
-    int4_run_local_pe<1>(
+    HLS_TASK local_pe1(int4_run_local_pe<1>,
         weight_pe1, scale_pe1,
         activation_q1, activation_scale1,
         command_pe1, partial1);
-    int4_run_local_pe<2>(
+    HLS_TASK local_pe2(int4_run_local_pe<2>,
         weight_pe2, scale_pe2,
         activation_q2, activation_scale2,
         command_pe2, partial2);
-    int4_run_local_pe<3>(
+    HLS_TASK local_pe3(int4_run_local_pe<3>,
         weight_pe3, scale_pe3,
         activation_q3, activation_scale3,
         command_pe3, partial3);
 
     // pair01 is physically rooted in SLR1 and pair23 in SLR2. Only the half
     // needed by the opposite pair crosses the central SLR boundary.
-    int4_reduce_pair_and_route<0>(
+    HLS_TASK reduce_pair01(int4_reduce_pair_and_route<0>,
         partial0, partial1, sum01_local, sum01_to23,
         command_reduce01);
-    int4_reduce_pair_and_route<1>(
+    HLS_TASK reduce_pair23(int4_reduce_pair_and_route<1>,
         partial2, partial3, sum23_local, sum23_to01,
         command_reduce23);
-    int4_finalize_pair_outputs<0>(
+    HLS_TASK finalize_pair01(int4_finalize_pair_outputs<0>,
         sum01_local, sum23_to01,
         output0_stream, output1_stream,
         command_finalize01);
-    int4_finalize_pair_outputs<1>(
+    HLS_TASK finalize_pair23(int4_finalize_pair_outputs<1>,
         sum23_local, sum01_to23,
         output2_stream, output3_stream,
         command_finalize23);
 
-    int4_store_local_output<0>(
-        output0_stream, output_pe0, command_store0);
-    int4_store_local_output<1>(
-        output1_stream, output_pe1, command_store1);
-    int4_store_local_output<2>(
-        output2_stream, output_pe2, command_store2);
-    int4_store_local_output<3>(
-        output3_stream, output_pe3, command_store3);
+    HLS_TASK store0(int4_store_local_output<0>,
+        output0_stream, output_pe0, command_store0, completion0);
+    HLS_TASK store1(int4_store_local_output<1>,
+        output1_stream, output_pe1, command_store1, completion1);
+    HLS_TASK store2(int4_store_local_output<2>,
+        output2_stream, output_pe2, command_store2, completion2);
+    HLS_TASK store3(int4_store_local_output<3>,
+        output3_stream, output_pe3, command_store3, completion3);
+
+    HLS_TASK join01(int4_join_task_completion_pair<100>,
+        completion0, completion1, completion01);
+    HLS_TASK join23(int4_join_task_completion_pair<101>,
+        completion2, completion3, completion23);
+    int4_wait_task_completion_pairs<100>(completion01, completion23);
 }
