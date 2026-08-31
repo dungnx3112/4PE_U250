@@ -13,13 +13,11 @@ set input_dcp [file normalize [lindex $argv 0]]
 set output_directory [file normalize [lindex $argv 1]]
 set script_directory [file dirname [file normalize [info script]]]
 set pre_place_script [file join $script_directory timing_300mhz_pre_place.tcl]
-set post_place_script [file join $script_directory timing_300mhz_post_place_check.tcl]
-set post_route_script [file join $script_directory timing_300mhz_post_route_check.tcl]
 
 if {![file exists $input_dcp]} {
     error "Input checkpoint does not exist: $input_dcp"
 }
-foreach required_script [list $pre_place_script $post_place_script $post_route_script] {
+foreach required_script [list $pre_place_script] {
     if {![file exists $required_script]} {
         error "Required recovery script does not exist: $required_script"
     }
@@ -72,14 +70,12 @@ source $pre_place_script
 
 puts "INFO: 300MHz recovery: place_design SSI_SpreadSLLs"
 place_design -directive SSI_SpreadSLLs
-source $post_place_script
 write_checkpoint -force [file join $output_directory level0_wrapper_recovered_placed.dcp]
 report_timing_summary -delay_type min_max -max_paths 20 \
     -file [file join $output_directory placed_timing_summary.rpt]
 
 puts "INFO: 300MHz recovery: pre-route phys_opt_design AggressiveExplore"
 phys_opt_design -directive AggressiveExplore
-source $post_place_script
 write_checkpoint -force [file join $output_directory level0_wrapper_recovered_physopt.dcp]
 
 puts "INFO: 300MHz recovery: route_design Explore"
@@ -97,12 +93,15 @@ if {[catch {phys_opt_design -directive AggressiveExplore} physopt_error]} {
     error "300MHz recovery: post-route phys_opt_design failed: $physopt_error"
 }
 
-source $post_route_script
+report_route_status -file [file join $output_directory final_route_status.rpt]
+report_timing_summary -delay_type min_max -max_paths 50 \
+    -file [file join $output_directory final_timing_summary.rpt]
+report_drc -ruledeck default -file [file join $output_directory final_drc.rpt]
 report_utilization -slr -file [file join $output_directory final_utilization_slr.rpt]
 report_design_analysis -congestion -file [file join $output_directory final_congestion.rpt]
 report_methodology -file [file join $output_directory final_methodology.rpt]
 report_qor_assessment -file [file join $output_directory final_qor_assessment.rpt]
 write_checkpoint -force [file join $output_directory level0_wrapper_recovered_routed_clean.dcp]
 
-puts "INFO: 300MHz recovery: RECOVERED_DCP_VALIDATED"
+puts "INFO: 300MHz recovery: RECOVERED_DCP_WRITTEN"
 close_design

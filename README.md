@@ -26,7 +26,7 @@ shard logits.
 | `int4_model_layout.hpp` | Shape, padding và offset cố định của mỗi DDR |
 | `int4_weight_packer.cpp/.hpp` | Packer offline tạo bốn model image input-column-sharded |
 | `link_300mhz.cfg` | Ánh xạ `gmem0..3` tới `DDR[0]..3` |
-| `timing_300mhz_*.tcl` | Floorplan PE/SLR đơn giản và kiểm tra physical/timing |
+| `timing_300mhz_pre_place.tcl` | Floorplan PE/SLR đơn giản trước placement |
 | `tests/int4_layout_packer_test.cpp` | Test padding, offset, nibble order, scale, residual, logits và RoPE |
 
 ## Kiến trúc dữ liệu
@@ -188,10 +188,9 @@ một lần đầu invocation và ghi một lần cuối invocation.
 
 Các helper command, relay và reduction nhỏ được để placer tự đặt. Chúng không
 được dùng làm anchor bắt buộc vì Vivado có thể flatten chúng trong `opt_design`.
-`timing_300mhz_post_place_check.tcl` làm link fail nếu primitive thuộc ba nhóm
-PE chính thoát khỏi SLR được gán. Script vẫn xuất báo cáo utilization/congestion
-theo SLR. Post-route hook yêu cầu zero unrouted net, zero routing/DRC error và
-setup/hold slack không âm.
+Flow không cài post-place hoặc post-route Tcl hook; kết quả link được quyết định
+trực tiếp bởi Vivado/Vitis. Có thể đọc các report mặc định sau build để đánh giá
+SLR, congestion và timing.
 
 ## Kiểm thử và build
 
@@ -252,9 +251,9 @@ REBUILD_XO=1 bash source/build_300mhz.sh
 ```
 
 Script tự source Vitis, tạo config theo từng run với đường dẫn Tcl tuyệt đối,
-chạy `v++ --link --target hw --save-temps`, rồi chỉ báo thành công nếu đủ tất
-cả marker floorplan/post-place/post-route. Build sẽ fail nếu nhóm PE chính sai
-SLR, còn unrouted net/routing error/DRC Error, hoặc WNS/WHS âm.
+chạy `v++ --link --target hw --save-temps`, kiểm tra pre-place floorplan đã chạy,
+rồi dùng exit code của `v++` và sự tồn tại của XCLBIN làm kết quả cuối. Flow không
+tự áp thêm post-place/post-route guard.
 
 Artifact mặc định và log được ghi tại:
 

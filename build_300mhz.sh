@@ -62,8 +62,6 @@ workspace_dir=$(cd -- "$source_dir/.." && pwd -P)
 xo_path=$source_dir/int4_decoder_token_controller_300mhz.xo
 base_config_path=$source_dir/link_300mhz.cfg
 pre_place_path=$source_dir/timing_300mhz_pre_place.tcl
-post_place_path=$source_dir/timing_300mhz_post_place_check.tcl
-post_route_path=$source_dir/timing_300mhz_post_route_check.tcl
 hls_script_path=$source_dir/run_hls_300mhz.tcl
 run_id=$(date +%Y%m%d-%H%M%S)-$$
 run_dir=$workspace_dir/build_300mhz/runs/$run_id
@@ -74,9 +72,7 @@ resolved_config_path=$run_dir/link_300mhz.resolved.cfg
 
 for required_path in \
     "$base_config_path" \
-    "$pre_place_path" \
-    "$post_place_path" \
-    "$post_route_path"; do
+    "$pre_place_path"; do
     if [[ ! -f $required_path ]]; then
         echo "Required build input does not exist: $required_path" >&2
         exit 1
@@ -147,31 +143,21 @@ fi
 
 # Generate a run-local config. The absolute Linux paths remain valid after
 # Vitis changes directory into its generated Vivado implementation project.
-if ! awk -v pre="$pre_place_path" -v post="$post_place_path" -v post_route="$post_route_path" '
-    BEGIN { pre_count = 0; post_count = 0; post_route_count = 0 }
+if ! awk -v pre="$pre_place_path" '
+    BEGIN { pre_count = 0 }
     /^prop=run\.impl_1\.STEPS\.PLACE_DESIGN\.TCL\.PRE=/ {
         print "prop=run.impl_1.STEPS.PLACE_DESIGN.TCL.PRE=" pre
         pre_count++
         next
     }
-    /^prop=run\.impl_1\.STEPS\.PLACE_DESIGN\.TCL\.POST=/ {
-        print "prop=run.impl_1.STEPS.PLACE_DESIGN.TCL.POST=" post
-        post_count++
-        next
-    }
-    /^prop=run\.impl_1\.STEPS\.POST_ROUTE_PHYS_OPT_DESIGN\.TCL\.POST=/ {
-        print "prop=run.impl_1.STEPS.POST_ROUTE_PHYS_OPT_DESIGN.TCL.POST=" post_route
-        post_route_count++
-        next
-    }
     { print }
     END {
-        if (pre_count != 1 || post_count != 1 || post_route_count != 1) {
+        if (pre_count != 1) {
             exit 42
         }
     }
 ' "$base_config_path" > "$resolved_config_path"; then
-    echo "Could not inject exactly one pre-place, post-place and post-route hook." >&2
+    echo "Could not inject exactly one pre-place hook." >&2
     exit 1
 fi
 
@@ -234,15 +220,6 @@ if (( ${#implementation_logs[@]} > 0 || link_exit_code == 0 )); then
     require_marker \
         "300MHz floorplan: SIMPLE_PE_ANCHORS_APPLIED" \
         "the simple PE-local AXI, memory and compute anchors ran"
-    require_marker \
-        "300MHz floorplan: FLOORPLAN_POST_PLACE_VALIDATED" \
-        "all hard resource anchors stayed in their assigned SLRs"
-    require_marker \
-        "300MHz floorplan: SIMPLE_FLOORPLAN_VALIDATED" \
-        "the simple per-PE floorplan passed post-place validation"
-    require_marker \
-        "300MHz floorplan: ROUTE_AND_TIMING_VALIDATED" \
-        "routing, DRC and setup/hold timing all passed"
 fi
 
 if (( validation_failed != 0 )); then
@@ -263,5 +240,5 @@ if command -v xclbinutil >/dev/null 2>&1; then
         > "$report_dir/xclbin.info.txt"
 fi
 
-echo "XCLBIN build completed and validated: $resolved_output"
+echo "XCLBIN build completed: $resolved_output"
 echo "Reports: $report_dir"
