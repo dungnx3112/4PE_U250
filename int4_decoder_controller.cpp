@@ -1,40 +1,40 @@
 #include "int4_decoder_controller.hpp"
+#include "int4_decoder_blocks.hpp"
+#include "int4_decoder_schedule.hpp"
 #include "int4_task_control.hpp"
 
-// A single max-sized output scratchpad is the destination of the only linear
-// call-site. Q/K/V and Gate are copied only because they must survive a later
-// projection; O, Up, Down and Logits are consumed directly from the scratch.
 static constexpr int INT4_PROJECTION_SCRATCH_WORDS =
     INT4_MAX_LOCAL_OUTPUT_WORDS;
+using int4_position_command_t = ap_uint<12>;
 
-typedef ap_uint<18> int4_attention_command_t;
-typedef ap_uint<3> int4_projection_command_t;
-typedef ap_uint<1> int4_controller_token_t;
-
-static void int4_seed_controller_token_chain(
-    hls::stream<int4_controller_token_t>& token_pe0,
-    hls::stream<int4_controller_token_t>& token_01) {
+static void int4_seed_position_chain(
+    ap_uint<12> position,
+    hls::stream<int4_position_command_t>& position_pe0,
+    hls::stream<int4_position_command_t>& position_01) {
 #pragma HLS INLINE off
-    token_pe0.write(1);
-    token_01.write(1);
+#pragma HLS PIPELINE II=1
+    position_pe0.write(position);
+    position_01.write(position);
 }
 
 template <int PE_ID>
-static void int4_relay_controller_token(
-    hls::stream<int4_controller_token_t>& token_in,
-    hls::stream<int4_controller_token_t>& token_local,
-    hls::stream<int4_controller_token_t>& token_out) {
+static void int4_relay_position(
+    hls::stream<int4_position_command_t>& position_in,
+    hls::stream<int4_position_command_t>& position_local,
+    hls::stream<int4_position_command_t>& position_out) {
 #pragma HLS INLINE off
-    const int4_controller_token_t token = token_in.read();
-    token_local.write(token);
-    token_out.write(token);
+#pragma HLS PIPELINE II=1
+    const int4_position_command_t position = position_in.read();
+    position_local.write(position);
+    position_out.write(position);
 }
 
-static void int4_terminate_controller_token(
-    hls::stream<int4_controller_token_t>& token_in,
-    hls::stream<int4_controller_token_t>& token_pe3) {
+static void int4_terminate_position_chain(
+    hls::stream<int4_position_command_t>& position_in,
+    hls::stream<int4_position_command_t>& position_pe3) {
 #pragma HLS INLINE off
-    token_pe3.write(token_in.read());
+#pragma HLS PIPELINE II=1
+    position_pe3.write(position_in.read());
 }
 
 template <int PE_ID>
@@ -59,100 +59,6 @@ preload_local_norm_loop:
 }
 
 template <int PE_ID>
-static void int4_preload_local_metadata_commanded(
-    const int4_weight_word_t* model_bank,
-    int4_weight_scale_word_t scale_cache[
-        INT4_TOTAL_WEIGHT_SCALE_WORDS_PER_PE],
-    int4_output_word_t norm_cache[INT4_TOTAL_NORM_WORDS_PER_PE],
-    hls::stream<int4_controller_token_t>& token_stream,
-    hls::stream<int4_completion_token_t>& completion_stream) {
-#pragma HLS INLINE off
-    (void)token_stream.read();
-    int4_preload_local_metadata<PE_ID>(
-        model_bank, scale_cache, norm_cache);
-    completion_stream.write(1);
-}
-
-static void int4_preload_all_metadata(
-    const int4_weight_word_t* model_bank0,
-    const int4_weight_word_t* model_bank1,
-    const int4_weight_word_t* model_bank2,
-    const int4_weight_word_t* model_bank3,
-    int4_weight_scale_word_t scale_cache0[
-        INT4_TOTAL_WEIGHT_SCALE_WORDS_PER_PE],
-    int4_weight_scale_word_t scale_cache1[
-        INT4_TOTAL_WEIGHT_SCALE_WORDS_PER_PE],
-    int4_weight_scale_word_t scale_cache2[
-        INT4_TOTAL_WEIGHT_SCALE_WORDS_PER_PE],
-    int4_weight_scale_word_t scale_cache3[
-        INT4_TOTAL_WEIGHT_SCALE_WORDS_PER_PE],
-    int4_output_word_t norm_cache0[INT4_TOTAL_NORM_WORDS_PER_PE],
-    int4_output_word_t norm_cache1[INT4_TOTAL_NORM_WORDS_PER_PE],
-    int4_output_word_t norm_cache2[INT4_TOTAL_NORM_WORDS_PER_PE],
-    int4_output_word_t norm_cache3[INT4_TOTAL_NORM_WORDS_PER_PE]) {
-#pragma HLS INLINE off
-#pragma HLS DATAFLOW disable_start_propagation
-#pragma HLS STABLE variable=model_bank0
-#pragma HLS STABLE variable=model_bank1
-#pragma HLS STABLE variable=model_bank2
-#pragma HLS STABLE variable=model_bank3
-#pragma HLS STABLE variable=scale_cache0
-#pragma HLS STABLE variable=scale_cache1
-#pragma HLS STABLE variable=scale_cache2
-#pragma HLS STABLE variable=scale_cache3
-#pragma HLS STABLE variable=norm_cache0
-#pragma HLS STABLE variable=norm_cache1
-#pragma HLS STABLE variable=norm_cache2
-#pragma HLS STABLE variable=norm_cache3
-    HLS_TASK_STREAM<int4_controller_token_t> token_pe0, token_pe1;
-    HLS_TASK_STREAM<int4_controller_token_t> token_pe2, token_pe3;
-    HLS_TASK_STREAM<int4_controller_token_t> token_01, token_12, token_23;
-    HLS_TASK_STREAM<int4_completion_token_t> completion0, completion1;
-    HLS_TASK_STREAM<int4_completion_token_t> completion2, completion3;
-    HLS_TASK_STREAM<int4_completion_token_t> completion01, completion23;
-#pragma HLS STREAM variable=token_pe0 depth=2
-#pragma HLS STREAM variable=token_pe1 depth=2
-#pragma HLS STREAM variable=token_pe2 depth=2
-#pragma HLS STREAM variable=token_pe3 depth=2
-#pragma HLS STREAM variable=token_01 depth=2
-#pragma HLS STREAM variable=token_12 depth=2
-#pragma HLS STREAM variable=token_23 depth=2
-#pragma HLS STREAM variable=completion0 depth=4
-#pragma HLS STREAM variable=completion1 depth=4
-#pragma HLS STREAM variable=completion2 depth=4
-#pragma HLS STREAM variable=completion3 depth=4
-#pragma HLS STREAM variable=completion01 depth=4
-#pragma HLS STREAM variable=completion23 depth=4
-#pragma HLS BIND_STORAGE variable=token_pe0 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_pe1 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_pe2 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_pe3 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_01 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_12 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_23 type=fifo impl=srl
-    int4_seed_controller_token_chain(token_pe0, token_01);
-    HLS_TASK relay1(int4_relay_controller_token<1>,
-        token_01, token_pe1, token_12);
-    HLS_TASK relay2(int4_relay_controller_token<2>,
-        token_12, token_pe2, token_23);
-    HLS_TASK terminate(int4_terminate_controller_token,
-        token_23, token_pe3);
-    HLS_TASK preload0(int4_preload_local_metadata_commanded<0>,
-        model_bank0, scale_cache0, norm_cache0, token_pe0, completion0);
-    HLS_TASK preload1(int4_preload_local_metadata_commanded<1>,
-        model_bank1, scale_cache1, norm_cache1, token_pe1, completion1);
-    HLS_TASK preload2(int4_preload_local_metadata_commanded<2>,
-        model_bank2, scale_cache2, norm_cache2, token_pe2, completion2);
-    HLS_TASK preload3(int4_preload_local_metadata_commanded<3>,
-        model_bank3, scale_cache3, norm_cache3, token_pe3, completion3);
-    HLS_TASK join01(int4_join_task_completion_pair<0>,
-        completion0, completion1, completion01);
-    HLS_TASK join23(int4_join_task_completion_pair<1>,
-        completion2, completion3, completion23);
-    int4_wait_task_completion_pairs<0>(completion01, completion23);
-}
-
-template <int PE_ID>
 static void int4_load_local_residual(
     const int4_output_word_t* external_residual,
     int4_output_word_t local_residual[INT4_VECTOR_WORDS_PER_PE]) {
@@ -162,85 +68,6 @@ load_local_residual_loop:
 #pragma HLS PIPELINE II=1
         local_residual[word] = external_residual[word];
     }
-}
-
-template <int PE_ID>
-static void int4_load_local_residual_commanded(
-    const int4_output_word_t* external_residual,
-    int4_output_word_t local_residual[INT4_VECTOR_WORDS_PER_PE],
-    hls::stream<int4_controller_token_t>& token_stream,
-    hls::stream<int4_completion_token_t>& completion_stream) {
-#pragma HLS INLINE off
-    (void)token_stream.read();
-    int4_load_local_residual<PE_ID>(external_residual, local_residual);
-    completion_stream.write(1);
-}
-
-static void int4_load_all_residuals(
-    const int4_output_word_t* residual_pe0,
-    const int4_output_word_t* residual_pe1,
-    const int4_output_word_t* residual_pe2,
-    const int4_output_word_t* residual_pe3,
-    int4_output_word_t residual0[INT4_VECTOR_WORDS_PER_PE],
-    int4_output_word_t residual1[INT4_VECTOR_WORDS_PER_PE],
-    int4_output_word_t residual2[INT4_VECTOR_WORDS_PER_PE],
-    int4_output_word_t residual3[INT4_VECTOR_WORDS_PER_PE]) {
-#pragma HLS INLINE off
-#pragma HLS DATAFLOW disable_start_propagation
-#pragma HLS STABLE variable=residual_pe0
-#pragma HLS STABLE variable=residual_pe1
-#pragma HLS STABLE variable=residual_pe2
-#pragma HLS STABLE variable=residual_pe3
-#pragma HLS STABLE variable=residual0
-#pragma HLS STABLE variable=residual1
-#pragma HLS STABLE variable=residual2
-#pragma HLS STABLE variable=residual3
-    HLS_TASK_STREAM<int4_controller_token_t> token_pe0, token_pe1;
-    HLS_TASK_STREAM<int4_controller_token_t> token_pe2, token_pe3;
-    HLS_TASK_STREAM<int4_controller_token_t> token_01, token_12, token_23;
-    HLS_TASK_STREAM<int4_completion_token_t> completion0, completion1;
-    HLS_TASK_STREAM<int4_completion_token_t> completion2, completion3;
-    HLS_TASK_STREAM<int4_completion_token_t> completion01, completion23;
-#pragma HLS STREAM variable=token_pe0 depth=2
-#pragma HLS STREAM variable=token_pe1 depth=2
-#pragma HLS STREAM variable=token_pe2 depth=2
-#pragma HLS STREAM variable=token_pe3 depth=2
-#pragma HLS STREAM variable=token_01 depth=2
-#pragma HLS STREAM variable=token_12 depth=2
-#pragma HLS STREAM variable=token_23 depth=2
-#pragma HLS STREAM variable=completion0 depth=4
-#pragma HLS STREAM variable=completion1 depth=4
-#pragma HLS STREAM variable=completion2 depth=4
-#pragma HLS STREAM variable=completion3 depth=4
-#pragma HLS STREAM variable=completion01 depth=4
-#pragma HLS STREAM variable=completion23 depth=4
-#pragma HLS BIND_STORAGE variable=token_pe0 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_pe1 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_pe2 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_pe3 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_01 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_12 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_23 type=fifo impl=srl
-    int4_seed_controller_token_chain(token_pe0, token_01);
-    HLS_TASK relay1(int4_relay_controller_token<1>,
-        token_01, token_pe1, token_12);
-    HLS_TASK relay2(int4_relay_controller_token<2>,
-        token_12, token_pe2, token_23);
-    HLS_TASK terminate(int4_terminate_controller_token,
-        token_23, token_pe3);
-    HLS_TASK load0(int4_load_local_residual_commanded<0>,
-        residual_pe0, residual0, token_pe0, completion0);
-    HLS_TASK load1(int4_load_local_residual_commanded<1>,
-        residual_pe1, residual1, token_pe1, completion1);
-    HLS_TASK load2(int4_load_local_residual_commanded<2>,
-        residual_pe2, residual2, token_pe2, completion2);
-    HLS_TASK load3(int4_load_local_residual_commanded<3>,
-        residual_pe3, residual3, token_pe3, completion3);
-    HLS_TASK join01(int4_join_task_completion_pair<10>,
-        completion0, completion1, completion01);
-    HLS_TASK join23(int4_join_task_completion_pair<11>,
-        completion2, completion3, completion23);
-    int4_wait_task_completion_pairs<10>(completion01, completion23);
 }
 
 template <int PE_ID>
@@ -256,264 +83,6 @@ store_local_residual_loop:
 }
 
 template <int PE_ID>
-static void int4_store_local_residual_commanded(
-    const int4_output_word_t local_residual[INT4_VECTOR_WORDS_PER_PE],
-    int4_output_word_t* external_residual,
-    hls::stream<int4_controller_token_t>& token_stream,
-    hls::stream<int4_completion_token_t>& completion_stream) {
-#pragma HLS INLINE off
-    (void)token_stream.read();
-    int4_store_local_residual<PE_ID>(local_residual, external_residual);
-    completion_stream.write(1);
-}
-
-static void int4_store_all_residuals(
-    const int4_output_word_t residual0[INT4_VECTOR_WORDS_PER_PE],
-    const int4_output_word_t residual1[INT4_VECTOR_WORDS_PER_PE],
-    const int4_output_word_t residual2[INT4_VECTOR_WORDS_PER_PE],
-    const int4_output_word_t residual3[INT4_VECTOR_WORDS_PER_PE],
-    int4_output_word_t* residual_pe0,
-    int4_output_word_t* residual_pe1,
-    int4_output_word_t* residual_pe2,
-    int4_output_word_t* residual_pe3) {
-#pragma HLS INLINE off
-#pragma HLS DATAFLOW disable_start_propagation
-#pragma HLS STABLE variable=residual0
-#pragma HLS STABLE variable=residual1
-#pragma HLS STABLE variable=residual2
-#pragma HLS STABLE variable=residual3
-#pragma HLS STABLE variable=residual_pe0
-#pragma HLS STABLE variable=residual_pe1
-#pragma HLS STABLE variable=residual_pe2
-#pragma HLS STABLE variable=residual_pe3
-    HLS_TASK_STREAM<int4_controller_token_t> token_pe0, token_pe1;
-    HLS_TASK_STREAM<int4_controller_token_t> token_pe2, token_pe3;
-    HLS_TASK_STREAM<int4_controller_token_t> token_01, token_12, token_23;
-    HLS_TASK_STREAM<int4_completion_token_t> completion0, completion1;
-    HLS_TASK_STREAM<int4_completion_token_t> completion2, completion3;
-    HLS_TASK_STREAM<int4_completion_token_t> completion01, completion23;
-#pragma HLS STREAM variable=token_pe0 depth=2
-#pragma HLS STREAM variable=token_pe1 depth=2
-#pragma HLS STREAM variable=token_pe2 depth=2
-#pragma HLS STREAM variable=token_pe3 depth=2
-#pragma HLS STREAM variable=token_01 depth=2
-#pragma HLS STREAM variable=token_12 depth=2
-#pragma HLS STREAM variable=token_23 depth=2
-#pragma HLS STREAM variable=completion0 depth=4
-#pragma HLS STREAM variable=completion1 depth=4
-#pragma HLS STREAM variable=completion2 depth=4
-#pragma HLS STREAM variable=completion3 depth=4
-#pragma HLS STREAM variable=completion01 depth=4
-#pragma HLS STREAM variable=completion23 depth=4
-#pragma HLS BIND_STORAGE variable=token_pe0 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_pe1 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_pe2 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_pe3 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_01 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_12 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_23 type=fifo impl=srl
-    int4_seed_controller_token_chain(token_pe0, token_01);
-    HLS_TASK relay1(int4_relay_controller_token<1>,
-        token_01, token_pe1, token_12);
-    HLS_TASK relay2(int4_relay_controller_token<2>,
-        token_12, token_pe2, token_23);
-    HLS_TASK terminate(int4_terminate_controller_token,
-        token_23, token_pe3);
-    HLS_TASK store0(int4_store_local_residual_commanded<0>,
-        residual0, residual_pe0, token_pe0, completion0);
-    HLS_TASK store1(int4_store_local_residual_commanded<1>,
-        residual1, residual_pe1, token_pe1, completion1);
-    HLS_TASK store2(int4_store_local_residual_commanded<2>,
-        residual2, residual_pe2, token_pe2, completion2);
-    HLS_TASK store3(int4_store_local_residual_commanded<3>,
-        residual3, residual_pe3, token_pe3, completion3);
-    HLS_TASK join01(int4_join_task_completion_pair<20>,
-        completion0, completion1, completion01);
-    HLS_TASK join23(int4_join_task_completion_pair<21>,
-        completion2, completion3, completion23);
-    int4_wait_task_completion_pairs<20>(completion01, completion23);
-}
-
-static void int4_seed_attention_command_chain(
-    ap_uint<6> layer,
-    ap_uint<12> position,
-    hls::stream<int4_attention_command_t>& command_pe0,
-    hls::stream<int4_attention_command_t>& command_01) {
-#pragma HLS INLINE off
-    int4_attention_command_t command = 0;
-    command.range(5, 0) = layer;
-    command.range(17, 6) = position;
-    command_pe0.write(command);
-    command_01.write(command);
-}
-
-template <int PE_ID>
-static void int4_relay_attention_command(
-    hls::stream<int4_attention_command_t>& command_in,
-    hls::stream<int4_attention_command_t>& command_local,
-    hls::stream<int4_attention_command_t>& command_out) {
-#pragma HLS INLINE off
-    const int4_attention_command_t command = command_in.read();
-    command_local.write(command);
-    command_out.write(command);
-}
-
-static void int4_terminate_attention_command(
-    hls::stream<int4_attention_command_t>& command_in,
-    hls::stream<int4_attention_command_t>& command_pe3) {
-#pragma HLS INLINE off
-    command_pe3.write(command_in.read());
-}
-
-#define INT4_DEFINE_LOCAL_ATTENTION_COMMAND_WRAPPER(PE)                 \
-static void int4_run_local_attention_commanded_##PE(                   \
-    const int4_output_word_t q[INT4_VECTOR_WORDS_PER_PE],              \
-    const int4_output_word_t k[INT4_VECTOR_WORDS_PER_PE],              \
-    const int4_output_word_t v[INT4_VECTOR_WORDS_PER_PE],              \
-    int4_output_word_t* kv_cache,                                      \
-    const int4_output_word_t* rope_lut,                                \
-    int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],             \
-    float activation_scale[INT4_MAX_LOCAL_GROUPS],                     \
-    hls::stream<int4_attention_command_t>& command_stream,             \
-    hls::stream<int4_completion_token_t>& completion_stream) {        \
-    _Pragma("HLS INLINE off")                                          \
-    const int4_attention_command_t command = command_stream.read();    \
-    int4_swiftkv_attention_pe##PE(                                     \
-        q, k, v, kv_cache, rope_lut,                                   \
-        activation_q, activation_scale,                               \
-        (ap_uint<6>)command.range(5, 0),                               \
-        (ap_uint<12>)command.range(17, 6));                            \
-    completion_stream.write(1);                                       \
-}
-
-INT4_DEFINE_LOCAL_ATTENTION_COMMAND_WRAPPER(0)
-INT4_DEFINE_LOCAL_ATTENTION_COMMAND_WRAPPER(1)
-INT4_DEFINE_LOCAL_ATTENTION_COMMAND_WRAPPER(2)
-INT4_DEFINE_LOCAL_ATTENTION_COMMAND_WRAPPER(3)
-
-#undef INT4_DEFINE_LOCAL_ATTENTION_COMMAND_WRAPPER
-
-static void int4_run_local_attention_4pe(
-    const int4_output_word_t q0[INT4_VECTOR_WORDS_PER_PE],
-    const int4_output_word_t q1[INT4_VECTOR_WORDS_PER_PE],
-    const int4_output_word_t q2[INT4_VECTOR_WORDS_PER_PE],
-    const int4_output_word_t q3[INT4_VECTOR_WORDS_PER_PE],
-    const int4_output_word_t k0[INT4_VECTOR_WORDS_PER_PE],
-    const int4_output_word_t k1[INT4_VECTOR_WORDS_PER_PE],
-    const int4_output_word_t k2[INT4_VECTOR_WORDS_PER_PE],
-    const int4_output_word_t k3[INT4_VECTOR_WORDS_PER_PE],
-    const int4_output_word_t v0[INT4_VECTOR_WORDS_PER_PE],
-    const int4_output_word_t v1[INT4_VECTOR_WORDS_PER_PE],
-    const int4_output_word_t v2[INT4_VECTOR_WORDS_PER_PE],
-    const int4_output_word_t v3[INT4_VECTOR_WORDS_PER_PE],
-    int4_output_word_t* kv_cache_pe0,
-    int4_output_word_t* kv_cache_pe1,
-    int4_output_word_t* kv_cache_pe2,
-    int4_output_word_t* kv_cache_pe3,
-    const int4_output_word_t* rope_lut_pe0,
-    const int4_output_word_t* rope_lut_pe1,
-    const int4_output_word_t* rope_lut_pe2,
-    const int4_output_word_t* rope_lut_pe3,
-    int4_quant_word_t activation_q0[INT4_MAX_LOCAL_GROUPS],
-    int4_quant_word_t activation_q1[INT4_MAX_LOCAL_GROUPS],
-    int4_quant_word_t activation_q2[INT4_MAX_LOCAL_GROUPS],
-    int4_quant_word_t activation_q3[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale0[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale1[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale2[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale3[INT4_MAX_LOCAL_GROUPS],
-    ap_uint<6> layer,
-    ap_uint<12> position) {
-#pragma HLS INLINE off
-#pragma HLS DATAFLOW disable_start_propagation
-#pragma HLS STABLE variable=q0
-#pragma HLS STABLE variable=q1
-#pragma HLS STABLE variable=q2
-#pragma HLS STABLE variable=q3
-#pragma HLS STABLE variable=k0
-#pragma HLS STABLE variable=k1
-#pragma HLS STABLE variable=k2
-#pragma HLS STABLE variable=k3
-#pragma HLS STABLE variable=v0
-#pragma HLS STABLE variable=v1
-#pragma HLS STABLE variable=v2
-#pragma HLS STABLE variable=v3
-#pragma HLS STABLE variable=kv_cache_pe0
-#pragma HLS STABLE variable=kv_cache_pe1
-#pragma HLS STABLE variable=kv_cache_pe2
-#pragma HLS STABLE variable=kv_cache_pe3
-#pragma HLS STABLE variable=rope_lut_pe0
-#pragma HLS STABLE variable=rope_lut_pe1
-#pragma HLS STABLE variable=rope_lut_pe2
-#pragma HLS STABLE variable=rope_lut_pe3
-#pragma HLS STABLE variable=activation_q0
-#pragma HLS STABLE variable=activation_q1
-#pragma HLS STABLE variable=activation_q2
-#pragma HLS STABLE variable=activation_q3
-#pragma HLS STABLE variable=activation_scale0
-#pragma HLS STABLE variable=activation_scale1
-#pragma HLS STABLE variable=activation_scale2
-#pragma HLS STABLE variable=activation_scale3
-    HLS_TASK_STREAM<int4_attention_command_t> command_pe0;
-    HLS_TASK_STREAM<int4_attention_command_t> command_pe1;
-    HLS_TASK_STREAM<int4_attention_command_t> command_pe2;
-    HLS_TASK_STREAM<int4_attention_command_t> command_pe3;
-    HLS_TASK_STREAM<int4_attention_command_t> command_01;
-    HLS_TASK_STREAM<int4_attention_command_t> command_12;
-    HLS_TASK_STREAM<int4_attention_command_t> command_23;
-    HLS_TASK_STREAM<int4_completion_token_t> completion0, completion1;
-    HLS_TASK_STREAM<int4_completion_token_t> completion2, completion3;
-    HLS_TASK_STREAM<int4_completion_token_t> completion01, completion23;
-#pragma HLS STREAM variable=command_pe0 depth=2
-#pragma HLS STREAM variable=command_pe1 depth=2
-#pragma HLS STREAM variable=command_pe2 depth=2
-#pragma HLS STREAM variable=command_pe3 depth=2
-#pragma HLS STREAM variable=command_01 depth=2
-#pragma HLS STREAM variable=command_12 depth=2
-#pragma HLS STREAM variable=command_23 depth=2
-#pragma HLS STREAM variable=completion0 depth=4
-#pragma HLS STREAM variable=completion1 depth=4
-#pragma HLS STREAM variable=completion2 depth=4
-#pragma HLS STREAM variable=completion3 depth=4
-#pragma HLS STREAM variable=completion01 depth=4
-#pragma HLS STREAM variable=completion23 depth=4
-#pragma HLS BIND_STORAGE variable=command_pe0 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=command_pe1 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=command_pe2 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=command_pe3 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=command_01 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=command_12 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=command_23 type=fifo impl=srl
-
-    int4_seed_attention_command_chain(
-        layer, position, command_pe0, command_01);
-    HLS_TASK relay1(int4_relay_attention_command<1>,
-        command_01, command_pe1, command_12);
-    HLS_TASK relay2(int4_relay_attention_command<2>,
-        command_12, command_pe2, command_23);
-    HLS_TASK terminate(int4_terminate_attention_command,
-        command_23, command_pe3);
-
-    HLS_TASK attention0(int4_run_local_attention_commanded_0,
-        q0, k0, v0, kv_cache_pe0, rope_lut_pe0,
-        activation_q0, activation_scale0, command_pe0, completion0);
-    HLS_TASK attention1(int4_run_local_attention_commanded_1,
-        q1, k1, v1, kv_cache_pe1, rope_lut_pe1,
-        activation_q1, activation_scale1, command_pe1, completion1);
-    HLS_TASK attention2(int4_run_local_attention_commanded_2,
-        q2, k2, v2, kv_cache_pe2, rope_lut_pe2,
-        activation_q2, activation_scale2, command_pe2, completion2);
-    HLS_TASK attention3(int4_run_local_attention_commanded_3,
-        q3, k3, v3, kv_cache_pe3, rope_lut_pe3,
-        activation_q3, activation_scale3, command_pe3, completion3);
-    HLS_TASK join01(int4_join_task_completion_pair<30>,
-        completion0, completion1, completion01);
-    HLS_TASK join23(int4_join_task_completion_pair<31>,
-        completion2, completion3, completion23);
-    int4_wait_task_completion_pairs<30>(completion01, completion23);
-}
-
-template <int PE_ID>
 static void int4_save_local_projection(
     const int4_output_word_t scratch[INT4_PROJECTION_SCRATCH_WORDS],
     int4_output_word_t q[INT4_VECTOR_WORDS_PER_PE],
@@ -524,8 +93,7 @@ static void int4_save_local_projection(
 #pragma HLS INLINE off
     const int words = mode == INT4_LINEAR_GATE
         ? INT4_HIDDEN_WORDS_PER_PE
-        : ((mode == INT4_LINEAR_Q || mode == INT4_LINEAR_K ||
-            mode == INT4_LINEAR_V) ? INT4_VECTOR_WORDS_PER_PE : 0);
+        : INT4_VECTOR_WORDS_PER_PE;
 save_local_projection_loop:
     for (int word = 0; word < words; ++word) {
 #pragma HLS PIPELINE II=1
@@ -535,146 +103,6 @@ save_local_projection_loop:
         else if (mode == INT4_LINEAR_V) v[word] = value;
         else gate[word] = value;
     }
-}
-
-static void int4_seed_projection_command_chain(
-    ap_uint<3> mode,
-    hls::stream<int4_projection_command_t>& command_pe0,
-    hls::stream<int4_projection_command_t>& command_01) {
-#pragma HLS INLINE off
-    command_pe0.write(mode);
-    command_01.write(mode);
-}
-
-template <int PE_ID>
-static void int4_relay_projection_command(
-    hls::stream<int4_projection_command_t>& command_in,
-    hls::stream<int4_projection_command_t>& command_local,
-    hls::stream<int4_projection_command_t>& command_out) {
-#pragma HLS INLINE off
-    const int4_projection_command_t command = command_in.read();
-    command_local.write(command);
-    command_out.write(command);
-}
-
-static void int4_terminate_projection_command(
-    hls::stream<int4_projection_command_t>& command_in,
-    hls::stream<int4_projection_command_t>& command_pe3) {
-#pragma HLS INLINE off
-    command_pe3.write(command_in.read());
-}
-
-template <int PE_ID>
-static void int4_save_local_projection_commanded(
-    const int4_output_word_t scratch[INT4_PROJECTION_SCRATCH_WORDS],
-    int4_output_word_t q[INT4_VECTOR_WORDS_PER_PE],
-    int4_output_word_t k[INT4_VECTOR_WORDS_PER_PE],
-    int4_output_word_t v[INT4_VECTOR_WORDS_PER_PE],
-    int4_output_word_t gate[INT4_HIDDEN_WORDS_PER_PE],
-    hls::stream<int4_projection_command_t>& command_stream,
-    hls::stream<int4_completion_token_t>& completion_stream) {
-#pragma HLS INLINE off
-    int4_save_local_projection<PE_ID>(
-        scratch, q, k, v, gate, command_stream.read());
-    completion_stream.write(1);
-}
-
-static void int4_save_projection_4pe(
-    const int4_output_word_t scratch0[INT4_PROJECTION_SCRATCH_WORDS],
-    const int4_output_word_t scratch1[INT4_PROJECTION_SCRATCH_WORDS],
-    const int4_output_word_t scratch2[INT4_PROJECTION_SCRATCH_WORDS],
-    const int4_output_word_t scratch3[INT4_PROJECTION_SCRATCH_WORDS],
-    int4_output_word_t q0[INT4_VECTOR_WORDS_PER_PE],
-    int4_output_word_t q1[INT4_VECTOR_WORDS_PER_PE],
-    int4_output_word_t q2[INT4_VECTOR_WORDS_PER_PE],
-    int4_output_word_t q3[INT4_VECTOR_WORDS_PER_PE],
-    int4_output_word_t k0[INT4_VECTOR_WORDS_PER_PE],
-    int4_output_word_t k1[INT4_VECTOR_WORDS_PER_PE],
-    int4_output_word_t k2[INT4_VECTOR_WORDS_PER_PE],
-    int4_output_word_t k3[INT4_VECTOR_WORDS_PER_PE],
-    int4_output_word_t v0[INT4_VECTOR_WORDS_PER_PE],
-    int4_output_word_t v1[INT4_VECTOR_WORDS_PER_PE],
-    int4_output_word_t v2[INT4_VECTOR_WORDS_PER_PE],
-    int4_output_word_t v3[INT4_VECTOR_WORDS_PER_PE],
-    int4_output_word_t gate0[INT4_HIDDEN_WORDS_PER_PE],
-    int4_output_word_t gate1[INT4_HIDDEN_WORDS_PER_PE],
-    int4_output_word_t gate2[INT4_HIDDEN_WORDS_PER_PE],
-    int4_output_word_t gate3[INT4_HIDDEN_WORDS_PER_PE],
-    ap_uint<3> mode) {
-#pragma HLS INLINE off
-#pragma HLS DATAFLOW disable_start_propagation
-#pragma HLS STABLE variable=scratch0
-#pragma HLS STABLE variable=scratch1
-#pragma HLS STABLE variable=scratch2
-#pragma HLS STABLE variable=scratch3
-#pragma HLS STABLE variable=q0
-#pragma HLS STABLE variable=q1
-#pragma HLS STABLE variable=q2
-#pragma HLS STABLE variable=q3
-#pragma HLS STABLE variable=k0
-#pragma HLS STABLE variable=k1
-#pragma HLS STABLE variable=k2
-#pragma HLS STABLE variable=k3
-#pragma HLS STABLE variable=v0
-#pragma HLS STABLE variable=v1
-#pragma HLS STABLE variable=v2
-#pragma HLS STABLE variable=v3
-#pragma HLS STABLE variable=gate0
-#pragma HLS STABLE variable=gate1
-#pragma HLS STABLE variable=gate2
-#pragma HLS STABLE variable=gate3
-    HLS_TASK_STREAM<int4_projection_command_t> command_pe0;
-    HLS_TASK_STREAM<int4_projection_command_t> command_pe1;
-    HLS_TASK_STREAM<int4_projection_command_t> command_pe2;
-    HLS_TASK_STREAM<int4_projection_command_t> command_pe3;
-    HLS_TASK_STREAM<int4_projection_command_t> command_01;
-    HLS_TASK_STREAM<int4_projection_command_t> command_12;
-    HLS_TASK_STREAM<int4_projection_command_t> command_23;
-    HLS_TASK_STREAM<int4_completion_token_t> completion0, completion1;
-    HLS_TASK_STREAM<int4_completion_token_t> completion2, completion3;
-    HLS_TASK_STREAM<int4_completion_token_t> completion01, completion23;
-#pragma HLS STREAM variable=command_pe0 depth=2
-#pragma HLS STREAM variable=command_pe1 depth=2
-#pragma HLS STREAM variable=command_pe2 depth=2
-#pragma HLS STREAM variable=command_pe3 depth=2
-#pragma HLS STREAM variable=command_01 depth=2
-#pragma HLS STREAM variable=command_12 depth=2
-#pragma HLS STREAM variable=command_23 depth=2
-#pragma HLS STREAM variable=completion0 depth=4
-#pragma HLS STREAM variable=completion1 depth=4
-#pragma HLS STREAM variable=completion2 depth=4
-#pragma HLS STREAM variable=completion3 depth=4
-#pragma HLS STREAM variable=completion01 depth=4
-#pragma HLS STREAM variable=completion23 depth=4
-#pragma HLS BIND_STORAGE variable=command_pe0 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=command_pe1 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=command_pe2 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=command_pe3 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=command_01 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=command_12 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=command_23 type=fifo impl=srl
-
-    int4_seed_projection_command_chain(mode, command_pe0, command_01);
-    HLS_TASK relay1(int4_relay_projection_command<1>,
-        command_01, command_pe1, command_12);
-    HLS_TASK relay2(int4_relay_projection_command<2>,
-        command_12, command_pe2, command_23);
-    HLS_TASK terminate(int4_terminate_projection_command,
-        command_23, command_pe3);
-
-    HLS_TASK save0(int4_save_local_projection_commanded<0>,
-        scratch0, q0, k0, v0, gate0, command_pe0, completion0);
-    HLS_TASK save1(int4_save_local_projection_commanded<1>,
-        scratch1, q1, k1, v1, gate1, command_pe1, completion1);
-    HLS_TASK save2(int4_save_local_projection_commanded<2>,
-        scratch2, q2, k2, v2, gate2, command_pe2, completion2);
-    HLS_TASK save3(int4_save_local_projection_commanded<3>,
-        scratch3, q3, k3, v3, gate3, command_pe3, completion3);
-    HLS_TASK join01(int4_join_task_completion_pair<40>,
-        completion0, completion1, completion01);
-    HLS_TASK join23(int4_join_task_completion_pair<41>,
-        completion2, completion3, completion23);
-    int4_wait_task_completion_pairs<40>(completion01, completion23);
 }
 
 template <int PE_ID>
@@ -689,84 +117,135 @@ store_local_logits_loop:
     }
 }
 
-template <int PE_ID>
-static void int4_store_local_logits_commanded(
-    const int4_output_word_t scratch[INT4_PROJECTION_SCRATCH_WORDS],
-    int4_output_word_t* logits,
-    hls::stream<int4_controller_token_t>& token_stream,
-    hls::stream<int4_completion_token_t>& completion_stream) {
-#pragma HLS INLINE off
-    (void)token_stream.read();
-    int4_store_local_logits<PE_ID>(scratch, logits);
-    completion_stream.write(1);
+// Four copies of this local scheduler are synthesized. Each copy owns its
+// local memories, address generation, AXI requesters and mode/state registers.
+#define INT4_DEFINE_LOCAL_DECODER_PE(                                  \
+    PE, RMS_STAGE, LINEAR_STAGE, ATTENTION_STAGE,                      \
+    SWIGLU_STAGE, RESIDUAL_ADD)                                        \
+static void int4_decoder_local_pe_##PE(                                \
+    const int4_weight_word_t* model_bank,                              \
+    const int4_output_word_t* rope_lut,                                \
+    int4_output_word_t* external_residual,                            \
+    int4_output_word_t* logits,                                       \
+    int4_output_word_t* kv_cache,                                     \
+    hls::stream<int4_position_command_t>& position_stream,            \
+    hls::stream<float>& rms_partial,                                  \
+    hls::stream<float>& rms_reciprocal,                               \
+    hls::stream<int4_reduction_packet_t>& linear_partial,             \
+    hls::stream<int4_reduction_packet_t>& linear_completed,           \
+    hls::stream<int4_completion_token_t>& completion_stream) {        \
+    _Pragma("HLS INLINE off")                                         \
+    static int4_weight_scale_word_t scale_cache[                       \
+        INT4_TOTAL_WEIGHT_SCALE_WORDS_PER_PE];                         \
+    static int4_output_word_t norm_cache[                              \
+        INT4_TOTAL_NORM_WORDS_PER_PE];                                 \
+    int4_output_word_t residual[INT4_VECTOR_WORDS_PER_PE];            \
+    int4_output_word_t projection[INT4_PROJECTION_SCRATCH_WORDS];     \
+    int4_output_word_t q[INT4_VECTOR_WORDS_PER_PE];                   \
+    int4_output_word_t k[INT4_VECTOR_WORDS_PER_PE];                   \
+    int4_output_word_t v[INT4_VECTOR_WORDS_PER_PE];                   \
+    int4_output_word_t gate[INT4_HIDDEN_WORDS_PER_PE];                \
+    int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS];            \
+    float activation_scale[INT4_MAX_LOCAL_GROUPS];                    \
+    _Pragma("HLS BIND_STORAGE variable=scale_cache type=ram_2p impl=uram") \
+    _Pragma("HLS BIND_STORAGE variable=norm_cache type=ram_2p impl=uram") \
+    _Pragma("HLS BIND_STORAGE variable=residual type=ram_2p impl=bram") \
+    _Pragma("HLS BIND_STORAGE variable=projection type=ram_2p impl=bram") \
+    _Pragma("HLS BIND_STORAGE variable=q type=ram_2p impl=bram")       \
+    _Pragma("HLS BIND_STORAGE variable=k type=ram_2p impl=bram")       \
+    _Pragma("HLS BIND_STORAGE variable=v type=ram_2p impl=bram")       \
+    _Pragma("HLS BIND_STORAGE variable=gate type=ram_2p impl=bram")    \
+    _Pragma("HLS BIND_STORAGE variable=activation_q type=ram_2p impl=bram") \
+    _Pragma("HLS BIND_STORAGE variable=activation_scale type=ram_2p impl=bram") \
+    const ap_uint<12> local_position = position_stream.read();         \
+    if (local_position == 0) {                                        \
+        int4_preload_local_metadata<PE>(                              \
+            model_bank, scale_cache, norm_cache);                     \
+    }                                                                 \
+    int4_load_local_residual<PE>(external_residual, residual);        \
+    const int4_weight_word_t* weight_mem =                            \
+        model_bank + INT4_MODEL_WEIGHT_BASE_WORD;                     \
+local_projection_layer_loop_##PE:                                     \
+    for (int schedule_layer = 0;                                     \
+         schedule_layer < INT4_DECODER_SCHEDULE_LAYERS;               \
+         ++schedule_layer) {                                          \
+        _Pragma("HLS LOOP_FLATTEN off")                               \
+        _Pragma("HLS LOOP_TRIPCOUNT min=33 max=33")                   \
+        const int stage_count =                                      \
+            int4_decoder_stage_count(schedule_layer);                 \
+    local_projection_stage_loop_##PE:                                 \
+        for (int stage = 0; stage < stage_count; ++stage) {           \
+            _Pragma("HLS LOOP_TRIPCOUNT min=1 max=7")                 \
+            const ap_uint<3> mode = int4_decoder_stage_mode(          \
+                schedule_layer, stage);                               \
+            const int layer =                                        \
+                int4_decoder_model_layer(schedule_layer);             \
+            if (mode == INT4_LINEAR_Q ||                              \
+                mode == INT4_LINEAR_GATE ||                           \
+                mode == INT4_LINEAR_LOGITS) {                         \
+                const int norm_mode = mode == INT4_LINEAR_Q           \
+                    ? INT4_RMSNORM_ATTENTION                          \
+                    : (mode == INT4_LINEAR_GATE                       \
+                        ? INT4_RMSNORM_FFN                            \
+                        : INT4_RMSNORM_FINAL);                        \
+                RMS_STAGE(                                            \
+                    residual, norm_cache,                             \
+                    activation_q, activation_scale,                   \
+                    int4_norm_offset(layer, norm_mode),               \
+                    rms_partial, rms_reciprocal);                     \
+            } else if (mode == INT4_LINEAR_O) {                       \
+                ATTENTION_STAGE(                                      \
+                    q, k, v, kv_cache, rope_lut,                      \
+                    activation_q, activation_scale,                   \
+                    (ap_uint<6>)layer, local_position);                \
+            } else if (mode == INT4_LINEAR_DOWN) {                    \
+                SWIGLU_STAGE(                                         \
+                    gate, projection,                                \
+                    activation_q, activation_scale);                  \
+            }                                                         \
+            LINEAR_STAGE(                                             \
+                weight_mem, scale_cache,                              \
+                activation_q, activation_scale, projection,           \
+                mode,                                                 \
+                (ap_uint<24>)int4_weight_offset(layer, (int)mode),    \
+                (ap_uint<16>)int4_weight_scale_offset(                \
+                    layer, (int)mode),                                \
+                linear_partial, linear_completed);                    \
+            if (mode == INT4_LINEAR_Q || mode == INT4_LINEAR_K ||    \
+                mode == INT4_LINEAR_V ||                              \
+                mode == INT4_LINEAR_GATE) {                           \
+                int4_save_local_projection<PE>(                       \
+                    projection, q, k, v, gate, mode);                 \
+            } else if (mode == INT4_LINEAR_O ||                       \
+                       mode == INT4_LINEAR_DOWN) {                    \
+                RESIDUAL_ADD(residual, projection);                   \
+            } else {                                                  \
+                int4_store_local_logits<PE>(projection, logits);      \
+            }                                                         \
+        }                                                             \
+    }                                                                 \
+    int4_store_local_residual<PE>(residual, external_residual);       \
+    completion_stream.write(1);                                       \
 }
 
-static void int4_store_logits_4pe(
-    const int4_output_word_t scratch0[INT4_PROJECTION_SCRATCH_WORDS],
-    const int4_output_word_t scratch1[INT4_PROJECTION_SCRATCH_WORDS],
-    const int4_output_word_t scratch2[INT4_PROJECTION_SCRATCH_WORDS],
-    const int4_output_word_t scratch3[INT4_PROJECTION_SCRATCH_WORDS],
-    int4_output_word_t* logits0,
-    int4_output_word_t* logits1,
-    int4_output_word_t* logits2,
-    int4_output_word_t* logits3) {
-#pragma HLS INLINE off
-#pragma HLS DATAFLOW disable_start_propagation
-#pragma HLS STABLE variable=scratch0
-#pragma HLS STABLE variable=scratch1
-#pragma HLS STABLE variable=scratch2
-#pragma HLS STABLE variable=scratch3
-#pragma HLS STABLE variable=logits0
-#pragma HLS STABLE variable=logits1
-#pragma HLS STABLE variable=logits2
-#pragma HLS STABLE variable=logits3
-    HLS_TASK_STREAM<int4_controller_token_t> token_pe0, token_pe1;
-    HLS_TASK_STREAM<int4_controller_token_t> token_pe2, token_pe3;
-    HLS_TASK_STREAM<int4_controller_token_t> token_01, token_12, token_23;
-    HLS_TASK_STREAM<int4_completion_token_t> completion0, completion1;
-    HLS_TASK_STREAM<int4_completion_token_t> completion2, completion3;
-    HLS_TASK_STREAM<int4_completion_token_t> completion01, completion23;
-#pragma HLS STREAM variable=token_pe0 depth=2
-#pragma HLS STREAM variable=token_pe1 depth=2
-#pragma HLS STREAM variable=token_pe2 depth=2
-#pragma HLS STREAM variable=token_pe3 depth=2
-#pragma HLS STREAM variable=token_01 depth=2
-#pragma HLS STREAM variable=token_12 depth=2
-#pragma HLS STREAM variable=token_23 depth=2
-#pragma HLS STREAM variable=completion0 depth=4
-#pragma HLS STREAM variable=completion1 depth=4
-#pragma HLS STREAM variable=completion2 depth=4
-#pragma HLS STREAM variable=completion3 depth=4
-#pragma HLS STREAM variable=completion01 depth=4
-#pragma HLS STREAM variable=completion23 depth=4
-#pragma HLS BIND_STORAGE variable=token_pe0 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_pe1 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_pe2 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_pe3 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_01 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_12 type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=token_23 type=fifo impl=srl
-    int4_seed_controller_token_chain(token_pe0, token_01);
-    HLS_TASK relay1(int4_relay_controller_token<1>,
-        token_01, token_pe1, token_12);
-    HLS_TASK relay2(int4_relay_controller_token<2>,
-        token_12, token_pe2, token_23);
-    HLS_TASK terminate(int4_terminate_controller_token,
-        token_23, token_pe3);
-    HLS_TASK store0(int4_store_local_logits_commanded<0>,
-        scratch0, logits0, token_pe0, completion0);
-    HLS_TASK store1(int4_store_local_logits_commanded<1>,
-        scratch1, logits1, token_pe1, completion1);
-    HLS_TASK store2(int4_store_local_logits_commanded<2>,
-        scratch2, logits2, token_pe2, completion2);
-    HLS_TASK store3(int4_store_local_logits_commanded<3>,
-        scratch3, logits3, token_pe3, completion3);
-    HLS_TASK join01(int4_join_task_completion_pair<50>,
-        completion0, completion1, completion01);
-    HLS_TASK join23(int4_join_task_completion_pair<51>,
-        completion2, completion3, completion23);
-    int4_wait_task_completion_pairs<50>(completion01, completion23);
-}
+INT4_DEFINE_LOCAL_DECODER_PE(
+    0, int4_local_rms_stage_pe0, int4_linear_local_stage_pe0,
+    int4_swiftkv_attention_pe0, int4_local_swiglu_stage_pe0,
+    int4_local_residual_add_pe0)
+INT4_DEFINE_LOCAL_DECODER_PE(
+    1, int4_local_rms_stage_pe1, int4_linear_local_stage_pe1,
+    int4_swiftkv_attention_pe1, int4_local_swiglu_stage_pe1,
+    int4_local_residual_add_pe1)
+INT4_DEFINE_LOCAL_DECODER_PE(
+    2, int4_local_rms_stage_pe2, int4_linear_local_stage_pe2,
+    int4_swiftkv_attention_pe2, int4_local_swiglu_stage_pe2,
+    int4_local_residual_add_pe2)
+INT4_DEFINE_LOCAL_DECODER_PE(
+    3, int4_local_rms_stage_pe3, int4_linear_local_stage_pe3,
+    int4_swiftkv_attention_pe3, int4_local_swiglu_stage_pe3,
+    int4_local_residual_add_pe3)
+
+#undef INT4_DEFINE_LOCAL_DECODER_PE
 
 void int4_decoder_token_controller(
     ap_uint<12> position,
@@ -834,266 +313,150 @@ void int4_decoder_token_controller(
 #pragma HLS INTERFACE s_axilite port=kv_cache_pe3 bundle=control
 #pragma HLS INTERFACE s_axilite port=return bundle=control
 
-    // Persistent data-driven PE tasks receive fixed memory/base addresses.
-    // Transaction ordering is carried explicitly by command and completion
-    // FIFOs, so the control-driven PIPO synchronization is intentionally
-    // disabled at the memory-owner scope.
-    // All Q/K/V/O/Gate/Up/Down/Logits calls share one four-PE linear engine.
-#pragma HLS ALLOCATION function instances=int4_sharded_linear_4pe limit=1
+#pragma HLS DATAFLOW disable_start_propagation
+    // AXI base addresses do not change during one kernel invocation. Marking
+    // them stable lets the four ap_ctrl_none local-controller tasks own their
+    // non-FIFO memory ports while all transaction ordering remains explicit in
+    // the FIFO graph. Vitis HLS 2023.2 emits one 20-input entry gate for these
+    // values; patch_partitioned_entry_proc.tcl replaces only that generated
+    // gate with four atomic five-address PE launchers before RTL use/export.
+#pragma HLS STABLE variable=model_bank0
+#pragma HLS STABLE variable=model_bank1
+#pragma HLS STABLE variable=model_bank2
+#pragma HLS STABLE variable=model_bank3
+#pragma HLS STABLE variable=rope_lut_pe0
+#pragma HLS STABLE variable=rope_lut_pe1
+#pragma HLS STABLE variable=rope_lut_pe2
+#pragma HLS STABLE variable=rope_lut_pe3
+#pragma HLS STABLE variable=residual_pe0
+#pragma HLS STABLE variable=residual_pe1
+#pragma HLS STABLE variable=residual_pe2
+#pragma HLS STABLE variable=residual_pe3
+#pragma HLS STABLE variable=logits_pe0
+#pragma HLS STABLE variable=logits_pe1
+#pragma HLS STABLE variable=logits_pe2
+#pragma HLS STABLE variable=logits_pe3
+#pragma HLS STABLE variable=kv_cache_pe0
+#pragma HLS STABLE variable=kv_cache_pe1
+#pragma HLS STABLE variable=kv_cache_pe2
+#pragma HLS STABLE variable=kv_cache_pe3
 
-    static int4_weight_scale_word_t scale_cache0[
-        INT4_TOTAL_WEIGHT_SCALE_WORDS_PER_PE];
-    static int4_weight_scale_word_t scale_cache1[
-        INT4_TOTAL_WEIGHT_SCALE_WORDS_PER_PE];
-    static int4_weight_scale_word_t scale_cache2[
-        INT4_TOTAL_WEIGHT_SCALE_WORDS_PER_PE];
-    static int4_weight_scale_word_t scale_cache3[
-        INT4_TOTAL_WEIGHT_SCALE_WORDS_PER_PE];
-    static int4_output_word_t norm_cache0[INT4_TOTAL_NORM_WORDS_PER_PE];
-    static int4_output_word_t norm_cache1[INT4_TOTAL_NORM_WORDS_PER_PE];
-    static int4_output_word_t norm_cache2[INT4_TOTAL_NORM_WORDS_PER_PE];
-    static int4_output_word_t norm_cache3[INT4_TOTAL_NORM_WORDS_PER_PE];
+    HLS_TASK_STREAM<int4_position_command_t> position_pe0, position_pe1;
+    HLS_TASK_STREAM<int4_position_command_t> position_pe2, position_pe3;
+    HLS_TASK_STREAM<int4_position_command_t> position_01, position_12;
+    HLS_TASK_STREAM<int4_position_command_t> position_23;
+    HLS_TASK_STREAM<float> rms_partial0, rms_partial1;
+    HLS_TASK_STREAM<float> rms_partial2, rms_partial3;
+    HLS_TASK_STREAM<float> rms_reciprocal0, rms_reciprocal1;
+    HLS_TASK_STREAM<float> rms_reciprocal2, rms_reciprocal3;
+    HLS_TASK_STREAM<float> rms_sum23_to01, rms_reciprocal01_to23;
+    HLS_TASK_STREAM<int4_reduction_packet_t> linear_partial0;
+    HLS_TASK_STREAM<int4_reduction_packet_t> linear_partial1;
+    HLS_TASK_STREAM<int4_reduction_packet_t> linear_partial2;
+    HLS_TASK_STREAM<int4_reduction_packet_t> linear_partial3;
+    HLS_TASK_STREAM<int4_reduction_packet_t> linear_sum01_local;
+    HLS_TASK_STREAM<int4_reduction_packet_t> linear_sum01_to23;
+    HLS_TASK_STREAM<int4_reduction_packet_t> linear_sum23_local;
+    HLS_TASK_STREAM<int4_reduction_packet_t> linear_sum23_to01;
+    HLS_TASK_STREAM<int4_reduction_packet_t> linear_output0;
+    HLS_TASK_STREAM<int4_reduction_packet_t> linear_output1;
+    HLS_TASK_STREAM<int4_reduction_packet_t> linear_output2;
+    HLS_TASK_STREAM<int4_reduction_packet_t> linear_output3;
+    HLS_TASK_STREAM<int4_completion_token_t> completion0, completion1;
+    HLS_TASK_STREAM<int4_completion_token_t> completion2, completion3;
+    HLS_TASK_STREAM<int4_completion_token_t> completion01, completion23;
 
-    int4_output_word_t residual0[INT4_VECTOR_WORDS_PER_PE];
-    int4_output_word_t residual1[INT4_VECTOR_WORDS_PER_PE];
-    int4_output_word_t residual2[INT4_VECTOR_WORDS_PER_PE];
-    int4_output_word_t residual3[INT4_VECTOR_WORDS_PER_PE];
-    int4_output_word_t projection0[INT4_PROJECTION_SCRATCH_WORDS];
-    int4_output_word_t projection1[INT4_PROJECTION_SCRATCH_WORDS];
-    int4_output_word_t projection2[INT4_PROJECTION_SCRATCH_WORDS];
-    int4_output_word_t projection3[INT4_PROJECTION_SCRATCH_WORDS];
-    int4_output_word_t q0[INT4_VECTOR_WORDS_PER_PE];
-    int4_output_word_t q1[INT4_VECTOR_WORDS_PER_PE];
-    int4_output_word_t q2[INT4_VECTOR_WORDS_PER_PE];
-    int4_output_word_t q3[INT4_VECTOR_WORDS_PER_PE];
-    int4_output_word_t k0[INT4_VECTOR_WORDS_PER_PE];
-    int4_output_word_t k1[INT4_VECTOR_WORDS_PER_PE];
-    int4_output_word_t k2[INT4_VECTOR_WORDS_PER_PE];
-    int4_output_word_t k3[INT4_VECTOR_WORDS_PER_PE];
-    int4_output_word_t v0[INT4_VECTOR_WORDS_PER_PE];
-    int4_output_word_t v1[INT4_VECTOR_WORDS_PER_PE];
-    int4_output_word_t v2[INT4_VECTOR_WORDS_PER_PE];
-    int4_output_word_t v3[INT4_VECTOR_WORDS_PER_PE];
-    int4_output_word_t gate0[INT4_HIDDEN_WORDS_PER_PE];
-    int4_output_word_t gate1[INT4_HIDDEN_WORDS_PER_PE];
-    int4_output_word_t gate2[INT4_HIDDEN_WORDS_PER_PE];
-    int4_output_word_t gate3[INT4_HIDDEN_WORDS_PER_PE];
-    int4_quant_word_t activation_q0[INT4_MAX_LOCAL_GROUPS];
-    int4_quant_word_t activation_q1[INT4_MAX_LOCAL_GROUPS];
-    int4_quant_word_t activation_q2[INT4_MAX_LOCAL_GROUPS];
-    int4_quant_word_t activation_q3[INT4_MAX_LOCAL_GROUPS];
-    float activation_scale0[INT4_MAX_LOCAL_GROUPS];
-    float activation_scale1[INT4_MAX_LOCAL_GROUPS];
-    float activation_scale2[INT4_MAX_LOCAL_GROUPS];
-    float activation_scale3[INT4_MAX_LOCAL_GROUPS];
+#pragma HLS STREAM variable=position_pe0 depth=2
+#pragma HLS STREAM variable=position_pe1 depth=2
+#pragma HLS STREAM variable=position_pe2 depth=2
+#pragma HLS STREAM variable=position_pe3 depth=2
+#pragma HLS STREAM variable=position_01 depth=2
+#pragma HLS STREAM variable=position_12 depth=2
+#pragma HLS STREAM variable=position_23 depth=2
+#pragma HLS BIND_STORAGE variable=position_pe0 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=position_pe1 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=position_pe2 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=position_pe3 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=position_01 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=position_12 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=position_23 type=fifo impl=srl
+#pragma HLS STREAM variable=rms_partial0 depth=4
+#pragma HLS STREAM variable=rms_partial1 depth=4
+#pragma HLS STREAM variable=rms_partial2 depth=4
+#pragma HLS STREAM variable=rms_partial3 depth=4
+#pragma HLS STREAM variable=rms_reciprocal0 depth=2
+#pragma HLS STREAM variable=rms_reciprocal1 depth=2
+#pragma HLS STREAM variable=rms_reciprocal2 depth=2
+#pragma HLS STREAM variable=rms_reciprocal3 depth=2
+#pragma HLS STREAM variable=rms_sum23_to01 depth=4
+#pragma HLS STREAM variable=rms_reciprocal01_to23 depth=4
+#pragma HLS STREAM variable=linear_partial0 depth=8
+#pragma HLS STREAM variable=linear_partial1 depth=8
+#pragma HLS STREAM variable=linear_partial2 depth=8
+#pragma HLS STREAM variable=linear_partial3 depth=8
+#pragma HLS STREAM variable=linear_sum01_local depth=16
+#pragma HLS STREAM variable=linear_sum01_to23 depth=16
+#pragma HLS STREAM variable=linear_sum23_local depth=16
+#pragma HLS STREAM variable=linear_sum23_to01 depth=16
+#pragma HLS STREAM variable=linear_output0 depth=32
+#pragma HLS STREAM variable=linear_output1 depth=32
+#pragma HLS STREAM variable=linear_output2 depth=32
+#pragma HLS STREAM variable=linear_output3 depth=32
+#pragma HLS BIND_STORAGE variable=linear_sum01_to23 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=linear_sum23_to01 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=linear_output0 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=linear_output3 type=fifo impl=bram
+#pragma HLS STREAM variable=completion0 depth=4
+#pragma HLS STREAM variable=completion1 depth=4
+#pragma HLS STREAM variable=completion2 depth=4
+#pragma HLS STREAM variable=completion3 depth=4
+#pragma HLS STREAM variable=completion01 depth=4
+#pragma HLS STREAM variable=completion23 depth=4
 
-#pragma HLS STABLE variable=scale_cache0
-#pragma HLS STABLE variable=scale_cache1
-#pragma HLS STABLE variable=scale_cache2
-#pragma HLS STABLE variable=scale_cache3
-#pragma HLS STABLE variable=norm_cache0
-#pragma HLS STABLE variable=norm_cache1
-#pragma HLS STABLE variable=norm_cache2
-#pragma HLS STABLE variable=norm_cache3
-#pragma HLS STABLE variable=residual0
-#pragma HLS STABLE variable=residual1
-#pragma HLS STABLE variable=residual2
-#pragma HLS STABLE variable=residual3
-#pragma HLS STABLE variable=projection0
-#pragma HLS STABLE variable=projection1
-#pragma HLS STABLE variable=projection2
-#pragma HLS STABLE variable=projection3
-#pragma HLS STABLE variable=q0
-#pragma HLS STABLE variable=q1
-#pragma HLS STABLE variable=q2
-#pragma HLS STABLE variable=q3
-#pragma HLS STABLE variable=k0
-#pragma HLS STABLE variable=k1
-#pragma HLS STABLE variable=k2
-#pragma HLS STABLE variable=k3
-#pragma HLS STABLE variable=v0
-#pragma HLS STABLE variable=v1
-#pragma HLS STABLE variable=v2
-#pragma HLS STABLE variable=v3
-#pragma HLS STABLE variable=gate0
-#pragma HLS STABLE variable=gate1
-#pragma HLS STABLE variable=gate2
-#pragma HLS STABLE variable=gate3
-#pragma HLS STABLE variable=activation_q0
-#pragma HLS STABLE variable=activation_q1
-#pragma HLS STABLE variable=activation_q2
-#pragma HLS STABLE variable=activation_q3
-#pragma HLS STABLE variable=activation_scale0
-#pragma HLS STABLE variable=activation_scale1
-#pragma HLS STABLE variable=activation_scale2
-#pragma HLS STABLE variable=activation_scale3
-
-#pragma HLS BIND_STORAGE variable=scale_cache0 type=ram_2p impl=uram
-#pragma HLS BIND_STORAGE variable=scale_cache1 type=ram_2p impl=uram
-#pragma HLS BIND_STORAGE variable=scale_cache2 type=ram_2p impl=uram
-#pragma HLS BIND_STORAGE variable=scale_cache3 type=ram_2p impl=uram
-#pragma HLS BIND_STORAGE variable=norm_cache0 type=ram_2p impl=uram
-#pragma HLS BIND_STORAGE variable=norm_cache1 type=ram_2p impl=uram
-#pragma HLS BIND_STORAGE variable=norm_cache2 type=ram_2p impl=uram
-#pragma HLS BIND_STORAGE variable=norm_cache3 type=ram_2p impl=uram
-#pragma HLS BIND_STORAGE variable=residual0 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=residual1 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=residual2 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=residual3 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=projection0 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=projection1 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=projection2 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=projection3 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=q0 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=q1 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=q2 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=q3 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=k0 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=k1 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=k2 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=k3 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=v0 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=v1 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=v2 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=v3 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=gate0 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=gate1 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=gate2 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=gate3 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=activation_q0 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=activation_q1 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=activation_q2 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=activation_q3 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=activation_scale0 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=activation_scale1 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=activation_scale2 type=ram_2p impl=bram
-#pragma HLS BIND_STORAGE variable=activation_scale3 type=ram_2p impl=bram
-
-    if (position == 0) {
-        int4_preload_all_metadata(
-            model_bank0, model_bank1, model_bank2, model_bank3,
-            scale_cache0, scale_cache1, scale_cache2, scale_cache3,
-            norm_cache0, norm_cache1, norm_cache2, norm_cache3);
-    }
-    int4_load_all_residuals(
-        residual_pe0, residual_pe1, residual_pe2, residual_pe3,
-        residual0, residual1, residual2, residual3);
-
-    const int4_weight_word_t* weight0 =
-        model_bank0 + INT4_MODEL_WEIGHT_BASE_WORD;
-    const int4_weight_word_t* weight1 =
-        model_bank1 + INT4_MODEL_WEIGHT_BASE_WORD;
-    const int4_weight_word_t* weight2 =
-        model_bank2 + INT4_MODEL_WEIGHT_BASE_WORD;
-    const int4_weight_word_t* weight3 =
-        model_bank3 + INT4_MODEL_WEIGHT_BASE_WORD;
-
-projection_layer_loop:
-    for (int schedule_layer = 0;
-         schedule_layer <= INT4_NUM_LAYERS;
-         ++schedule_layer) {
-#pragma HLS LOOP_FLATTEN off
-#pragma HLS LOOP_TRIPCOUNT min=33 max=33
-        const bool logits_stage = schedule_layer == INT4_NUM_LAYERS;
-        const int stage_count = logits_stage ? 1 : 7;
-    projection_stage_loop:
-        for (int stage = 0; stage < stage_count; ++stage) {
-#pragma HLS LOOP_TRIPCOUNT min=1 max=7
-            const ap_uint<3> mode = logits_stage
-                ? (ap_uint<3>)INT4_LINEAR_LOGITS
-                : (ap_uint<3>)stage;
-            const int layer = logits_stage ? 0 : schedule_layer;
-
-            if (mode == INT4_LINEAR_Q) {
-                const int norm_offset =
-                    int4_norm_offset(layer, INT4_RMSNORM_ATTENTION);
-                int4_rmsnorm_quantize_shards(
-                    residual0, residual1, residual2, residual3,
-                    norm_cache0, norm_cache1, norm_cache2, norm_cache3,
-                    activation_q0, activation_q1,
-                    activation_q2, activation_q3,
-                    activation_scale0, activation_scale1,
-                    activation_scale2, activation_scale3, norm_offset);
-            } else if (mode == INT4_LINEAR_O) {
-                int4_run_local_attention_4pe(
-                    q0, q1, q2, q3,
-                    k0, k1, k2, k3,
-                    v0, v1, v2, v3,
-                    kv_cache_pe0, kv_cache_pe1,
-                    kv_cache_pe2, kv_cache_pe3,
-                    rope_lut_pe0, rope_lut_pe1,
-                    rope_lut_pe2, rope_lut_pe3,
-                    activation_q0, activation_q1,
-                    activation_q2, activation_q3,
-                    activation_scale0, activation_scale1,
-                    activation_scale2, activation_scale3,
-                    (ap_uint<6>)layer, position);
-            } else if (mode == INT4_LINEAR_GATE) {
-                const int norm_offset =
-                    int4_norm_offset(layer, INT4_RMSNORM_FFN);
-                int4_rmsnorm_quantize_shards(
-                    residual0, residual1, residual2, residual3,
-                    norm_cache0, norm_cache1, norm_cache2, norm_cache3,
-                    activation_q0, activation_q1,
-                    activation_q2, activation_q3,
-                    activation_scale0, activation_scale1,
-                    activation_scale2, activation_scale3, norm_offset);
-            } else if (mode == INT4_LINEAR_DOWN) {
-                int4_swiglu_quantize_shards(
-                    gate0, gate1, gate2, gate3,
-                    projection0, projection1, projection2, projection3,
-                    activation_q0, activation_q1,
-                    activation_q2, activation_q3,
-                    activation_scale0, activation_scale1,
-                    activation_scale2, activation_scale3);
-            } else if (mode == INT4_LINEAR_LOGITS) {
-                const int norm_offset =
-                    int4_norm_offset(0, INT4_RMSNORM_FINAL);
-                int4_rmsnorm_quantize_shards(
-                    residual0, residual1, residual2, residual3,
-                    norm_cache0, norm_cache1, norm_cache2, norm_cache3,
-                    activation_q0, activation_q1,
-                    activation_q2, activation_q3,
-                    activation_scale0, activation_scale1,
-                    activation_scale2, activation_scale3, norm_offset);
-            }
-
-            // This is intentionally the sole call-site in the complete token
-            // schedule. Dynamic mode and offsets force one time-shared RTL
-            // linear pipeline instead of eight constant-specialized clones.
-            int4_sharded_linear_4pe(
-                weight0, weight1, weight2, weight3,
-                scale_cache0, scale_cache1, scale_cache2, scale_cache3,
-                activation_q0, activation_q1,
-                activation_q2, activation_q3,
-                activation_scale0, activation_scale1,
-                activation_scale2, activation_scale3,
-                projection0, projection1, projection2, projection3,
-                mode,
-                (ap_uint<24>)int4_weight_offset(layer, (int)mode),
-                (ap_uint<16>)int4_weight_scale_offset(layer, (int)mode));
-
-            if (mode == INT4_LINEAR_Q || mode == INT4_LINEAR_K ||
-                mode == INT4_LINEAR_V || mode == INT4_LINEAR_GATE) {
-                int4_save_projection_4pe(
-                    projection0, projection1, projection2, projection3,
-                    q0, q1, q2, q3, k0, k1, k2, k3,
-                    v0, v1, v2, v3, gate0, gate1, gate2, gate3,
-                    mode);
-            } else if (mode == INT4_LINEAR_O ||
-                       mode == INT4_LINEAR_DOWN) {
-                int4_residual_add_shards(
-                    residual0, residual1, residual2, residual3,
-                    projection0, projection1, projection2, projection3);
-            } else if (mode == INT4_LINEAR_LOGITS) {
-                int4_store_logits_4pe(
-                    projection0, projection1, projection2, projection3,
-                    logits_pe0, logits_pe1, logits_pe2, logits_pe3);
-            }
-        }
-    }
-
-    int4_store_all_residuals(
-        residual0, residual1, residual2, residual3,
-        residual_pe0, residual_pe1, residual_pe2, residual_pe3);
+    int4_seed_position_chain(position, position_pe0, position_01);
+    HLS_TASK relay_position1(int4_relay_position<1>,
+        position_01, position_pe1, position_12);
+    HLS_TASK relay_position2(int4_relay_position<2>,
+        position_12, position_pe2, position_23);
+    HLS_TASK terminate_position(int4_terminate_position_chain,
+        position_23, position_pe3);
+    HLS_TASK local_pe0(int4_decoder_local_pe_0,
+        model_bank0, rope_lut_pe0, residual_pe0, logits_pe0, kv_cache_pe0,
+        position_pe0, rms_partial0, rms_reciprocal0,
+        linear_partial0, linear_output0, completion0);
+    HLS_TASK local_pe1(int4_decoder_local_pe_1,
+        model_bank1, rope_lut_pe1, residual_pe1, logits_pe1, kv_cache_pe1,
+        position_pe1, rms_partial1, rms_reciprocal1,
+        linear_partial1, linear_output1, completion1);
+    HLS_TASK local_pe2(int4_decoder_local_pe_2,
+        model_bank2, rope_lut_pe2, residual_pe2, logits_pe2, kv_cache_pe2,
+        position_pe2, rms_partial2, rms_reciprocal2,
+        linear_partial2, linear_output2, completion2);
+    HLS_TASK local_pe3(int4_decoder_local_pe_3,
+        model_bank3, rope_lut_pe3, residual_pe3, logits_pe3, kv_cache_pe3,
+        position_pe3, rms_partial3, rms_reciprocal3,
+        linear_partial3, linear_output3, completion3);
+    HLS_TASK rms_pair01(int4_rms_pair01_schedule,
+        rms_partial0, rms_partial1, rms_sum23_to01,
+        rms_reciprocal0, rms_reciprocal1, rms_reciprocal01_to23);
+    HLS_TASK rms_pair23(int4_rms_pair23_schedule,
+        rms_partial2, rms_partial3, rms_sum23_to01,
+        rms_reciprocal01_to23, rms_reciprocal2, rms_reciprocal3);
+    HLS_TASK reduce_pair01(int4_linear_reduce_pair01_schedule,
+        linear_partial0, linear_partial1,
+        linear_sum01_local, linear_sum01_to23);
+    HLS_TASK reduce_pair23(int4_linear_reduce_pair23_schedule,
+        linear_partial2, linear_partial3,
+        linear_sum23_local, linear_sum23_to01);
+    HLS_TASK finalize_pair01(int4_linear_finalize_pair01_schedule,
+        linear_sum01_local, linear_sum23_to01,
+        linear_output0, linear_output1);
+    HLS_TASK finalize_pair23(int4_linear_finalize_pair23_schedule,
+        linear_sum23_local, linear_sum01_to23,
+        linear_output2, linear_output3);
+    HLS_TASK join01(int4_join_task_completion_pair<300>,
+        completion0, completion1, completion01);
+    HLS_TASK join23(int4_join_task_completion_pair<301>,
+        completion2, completion3, completion23);
+    int4_wait_task_completion_pairs<300>(completion01, completion23);
 }

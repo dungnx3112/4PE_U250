@@ -68,3 +68,49 @@ void int4_swiglu_quantize_shards(
     float activation_scale2[INT4_MAX_LOCAL_GROUPS],
     float activation_scale3[INT4_MAX_LOCAL_GROUPS]
 );
+
+// Local building blocks used by the per-SLR decoder controllers. These APIs
+// keep all address generation and local memory selection below the PE root.
+#define INT4_DECLARE_LOCAL_DECODER_BLOCKS(PE)                           \
+void int4_local_rms_stage_pe##PE(                                      \
+    const int4_output_word_t residual[INT4_VECTOR_WORDS_PER_PE],       \
+    const int4_output_word_t norm_cache[INT4_TOTAL_NORM_WORDS_PER_PE], \
+    int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],             \
+    float activation_scale[INT4_MAX_LOCAL_GROUPS],                     \
+    int norm_offset,                                                   \
+    hls::stream<float>& partial_stream,                                \
+    hls::stream<float>& reciprocal_stream);                            \
+void int4_local_residual_add_pe##PE(                                   \
+    int4_output_word_t residual[INT4_VECTOR_WORDS_PER_PE],             \
+    const int4_output_word_t branch[INT4_VECTOR_WORDS_PER_PE]);        \
+void int4_local_swiglu_stage_pe##PE(                                   \
+    const int4_output_word_t gate[INT4_HIDDEN_WORDS_PER_PE],           \
+    const int4_output_word_t up[INT4_HIDDEN_WORDS_PER_PE],             \
+    int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],             \
+    float activation_scale[INT4_MAX_LOCAL_GROUPS])
+
+INT4_DECLARE_LOCAL_DECODER_BLOCKS(0);
+INT4_DECLARE_LOCAL_DECODER_BLOCKS(1);
+INT4_DECLARE_LOCAL_DECODER_BLOCKS(2);
+INT4_DECLARE_LOCAL_DECODER_BLOCKS(3);
+
+#undef INT4_DECLARE_LOCAL_DECODER_BLOCKS
+
+// RMSNorm exchanges one FP32 partial and one FP32 reciprocal per event. Pair
+// 01 performs the final scalar operation; pair 23 is a registered neighbour
+// relay, so no reciprocal is broadcast from a top-level controller.
+void int4_rms_pair01_schedule(
+    hls::stream<float>& partial0,
+    hls::stream<float>& partial1,
+    hls::stream<float>& sum23,
+    hls::stream<float>& reciprocal0,
+    hls::stream<float>& reciprocal1,
+    hls::stream<float>& reciprocal_to23);
+
+void int4_rms_pair23_schedule(
+    hls::stream<float>& partial2,
+    hls::stream<float>& partial3,
+    hls::stream<float>& sum_to01,
+    hls::stream<float>& reciprocal_from01,
+    hls::stream<float>& reciprocal2,
+    hls::stream<float>& reciprocal3);

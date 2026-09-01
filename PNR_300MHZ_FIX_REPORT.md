@@ -3,6 +3,9 @@
 Ngày: 2026-08-31  
 Target: Alveo U250, `xcu250-figd2104-2L-e`, 300 MHz
 
+> Số liệu HLS/XO bên dưới đã được sinh lại sau local-controller refactor. Chưa
+> có routed DCP mới, nên các số này không phải bằng chứng timing closure 300 MHz.
+
 ## Kết luận hiện tại
 
 Source đã được sửa ở mức kiến trúc, C-synthesis thành công và XO mới đã được
@@ -32,14 +35,16 @@ Máy hiện tại không có U250 `.xpfm`, nên chưa thể tạo routed DCP m�
 - `int4_task_control.hpp`: token completion, pair join và final wait.
 - `int4_linear_controller.cpp`: bốn PE thành `hls::task`; command, output và
   completion đi bằng FIFO; boundary FIFO 01/12/23 được đăng ký.
-- `int4_decoder_controller.cpp`: preload, residual load/store, attention,
-  projection save và logits store thành task graph có cây completion.
-- `int4_decoder_blocks.cpp`: RMSNorm, SwiGLU và residual add dùng task/FIFO
-  completion thay cho fan-in `ap_done`.
+- `int4_decoder_controller.cpp`: bốn `int4_decoder_local_pe_N` tự chạy đủ lịch
+  32 layer, sở hữu preload, RAM, attention, linear, residual/logits và AXI cục bộ.
+- `int4_decoder_schedule.hpp`: một định nghĩa lịch cố định dùng độc lập trong
+  bốn local controller và các pair service; top không phát `mode/state/address`.
+- `int4_decoder_blocks.cpp`: RMSNorm, SwiGLU và residual add nằm dưới local PE;
+  chỉ partial/reciprocal FP32 đi qua hai RMS pair service.
 - `swiftkv_attention.cpp`: pipeline constraint khớp recurrence và số cổng AXI.
-- `timing_300mhz_pre_place.tcl`: chỉ neo bốn hierarchy root
-  `int4_run_local_pe_0..3` lần lượt vào SLR0..3. Memory ngoài root, FIFO biên,
-  join/reduction và control logic được để placer tự bố trí.
+- `timing_300mhz_pre_place.tcl`: chỉ neo bốn hierarchy root hoàn chỉnh
+  `int4_decoder_local_pe_0..3` lần lượt vào SLR0..3. FIFO biên và pair
+  reduction được để placer tự bố trí.
 - `timing_300mhz_pre_physopt.tcl`: no-op. Full implementation cho thấy forced
   replication cũ làm WNS xấu từ `-10.188 ns` thành `-11.035 ns`, vì vậy
   AggressiveExplore chuẩn chịu trách nhiệm toàn bộ physical optimization.
@@ -57,14 +62,14 @@ Máy hiện tại không có U250 `.xpfm`, nên chưa thể tạo routed DCP m�
 | Estimated Fmax | 358.84 MHz |
 | Loop constraints | PASS |
 | HLS ERROR / CRITICAL WARNING | 0 / 0 |
-| KPN RTL modules | 10 |
-| Worker controls kiểm tra | 109 |
+| KPN RTL modules | 5 |
+| Worker controls kiểm tra | 23 |
 | Worker `ap_start`/`ap_continue` không hằng 1 | 0 |
 | Worker `ap_done` tham gia control KPN | 0 |
 | BRAM18K | 1308 / 5376 (24%) |
-| DSP | 904 / 12288 (7%) |
-| FF | 366313 / 3456000 (10%) |
-| LUT | 397750 / 1728000 (23%) |
+| DSP | 900 / 12288 (7%) |
+| FF | 362090 / 3456000 (10%) |
+| LUT | 394519 / 1728000 (22%) |
 | URAM | 160 / 1280 (12%) |
 
 ## Phân loại toàn bộ warning còn lại
@@ -74,25 +79,26 @@ Các mục dưới đây là warning, không phải error. Không tắt warning 
 | Mã | Số lượng | Đánh giá/xử lý |
 |---|---:|---|
 | `HLS 200-871`, `200-1016` | 16 + 16 | Một số local loop dài 2.466–2.787 ns so với effective budget 2.433 ns do uncertainty 0.900 ns; vẫn dưới clock vật lý 3.333 ns và top estimate đạt 2.787 ns. Không hạ uncertainty giả tạo. |
-| `HLS 200-1888` | 24 | Vitis 2023.2 cảnh báo con trỏ ghi được đánh dấu `STABLE` trong persistent task. `STABLE` là yêu cầu để task giữ pointer; RTL đã kiểm tra còn đầy đủ BRAM write-enable và AXI AW/W channels. Ordering được bảo đảm bằng completion FIFO. |
-| `HLS 200-1449`, `200-1450` | 5 + 10 | Throughput giới hạn bởi recurrence/task topology; constraint đã đặt đúng II đạt được. Không phải timing error. |
-| `HLS 200-1614` | 5 | Cảnh báo cosim deadlock tổng quát cho dataflow có M_AXI; không xuất hiện lỗi synth. Completion FIFO có depth 4, start FIFO depth 8. |
+| `HLS 200-1888` | 4 | Vitis 2023.2 cảnh báo con trỏ ghi được đánh dấu `STABLE` trong persistent task. `STABLE` là yêu cầu để task giữ pointer; RTL đã kiểm tra còn đầy đủ BRAM write-enable và AXI AW/W channels. Ordering được bảo đảm bằng completion FIFO. |
+| `HLS 200-1449`, `200-1450` | 5 + 5 | Throughput giới hạn bởi recurrence/task topology; constraint đã đặt đúng II đạt được. Không phải timing error. |
+| `HLS 200-1614` | 11 | Cảnh báo cosim deadlock tổng quát cho dataflow có M_AXI/array input; không xuất hiện lỗi synth. Completion FIFO có depth 4, start FIFO depth 8. |
 | `HLS 200-2042` | 16 | URAM dependency warning; scheduler vẫn đạt II yêu cầu. Đổi sang BRAM sẽ tăng áp lực BRAM mỗi SLR nên không áp dụng. |
-| `HLS 200-657` | 4 | Backward FIFO của reciprocal trong graph RMSNorm; đây là feedback channel có buffer và explicit token. |
-| `HLS 200-765` | 9 | Region throughput message; không phải constraint failure. |
-| `HLS 214-273`, `214-388` | 23 + 1 | Diagnostic từ vendor `hls_task.h` về pragma canonicalization; 10 KPN vẫn sinh đúng `ap_ctrl_none`. |
-| `RTGEN 206-101` | 1221 | Child hierarchy port không dùng sau top-level merge/tie-off; top AXI/BRAM port ghi đã được xác nhận tồn tại. |
-| `SYN 201-103`, `201-303` | 252 + 4 | RTL synthesis message về module/port nội bộ; không có synth failure. |
-| `BIND 205-102`, `ANALYSIS 214-52`, `XFORM 203-561`, `SYNCHK 200-23` | 19 + 16 + 4 + 1 | Binding/analysis transform thông tin của HLS; loop bounds và hardware binding đã phản ánh trong report cuối. |
+| `HLS 200-657` | 9 | Backward FIFO của reciprocal/output trong graph có chu kỳ; các channel đều có buffer và explicit token. |
+| `HLS 200-765` | 5 | Region throughput message; không phải constraint failure. |
+| `HLS 214-273`, `214-388` | 8 + 1 | Diagnostic từ vendor `hls_task.h` về pragma canonicalization; 5 KPN vẫn sinh đúng `ap_ctrl_none`. |
+| `RTGEN 206-101` | 671 | Child hierarchy port không dùng sau top-level merge/tie-off; top AXI/BRAM port ghi đã được xác nhận tồn tại. |
+| `SYN 201-103`, `201-303` | 174 + 8 | RTL synthesis message về module/port nội bộ; không có synth failure. |
+| `BIND 205-102`, `ANALYSIS 214-52`, `XFORM 203-561`, `SYNCHK 200-23` | 19 + 16 + 8 + 1 | Binding/analysis transform thông tin của HLS; loop bounds và hardware binding đã phản ánh trong report cuối. |
+| `HLS 200-960` | 4 | Pair schedule không flatten vì có logic tính shape trước inner loop; chủ ý giữ controller nhỏ và không ảnh hưởng constraint. |
 
-Các warning cũ `HLS 200-1018`, `200-1020`, `200-880`, `200-960` đã về 0.
+Các warning nguy hiểm `HLS 200-656` về auto-rewind trong `ap_ctrl_none` đã về 0.
 
 ## Artifact
 
 ```text
 source/int4_decoder_token_controller_300mhz.xo
-size:    10,220,792 byte
-SHA-256: 4BA302F2F63AB56BC6B535D3430BDE17171E4E2232FBB76F03E7A71E16FA97A8
+size:    8,864,862 byte
+SHA-256: C76827EF70E5FA88214E4B63C37FDB86AA212CE87AE933666F2183E70492AA0E
 ```
 
 HLS report:

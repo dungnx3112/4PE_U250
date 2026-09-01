@@ -2,6 +2,9 @@
 
 Ngày kiểm chứng: 2026-09-01
 
+> XO đã được export lại từ source local-controller. XCLBIN/routed DCP hiện vẫn là
+> artifact cũ; phải link và route lại trước khi đánh giá timing vật lý.
+
 Checkpoint `../level0_wrapper_routed.dcp` là implementation của RTL cũ. Nó fail
 setup rất nặng: WNS `-13.105 ns`, TNS `-118341.414 ns`, 70,322 endpoint fail;
 hold sạch với WHS `+0.009 ns`. Đường xấu nhất có 15.631/16.027 ns là routing và
@@ -9,20 +12,21 @@ hold sạch với WHS `+0.009 ns`. Đường xấu nhất có 15.631/16.027 ns l
 
 ## Đã sửa và xác minh
 
-- Bốn PE chạy bằng persistent `hls::task`; completion đi qua FIFO token và cây
-  gom có đăng ký, không còn fan-in `ap_done/ap_continue` trực tiếp giữa bốn PE.
-- Command/data/completion FIFO qua biên SLR có ownership rõ ràng. Pre-place Tcl
-  chỉ neo bốn root `int4_run_local_pe_0..3` vào SLR0..3; các cell còn lại do
-  placer tự bố trí.
+- Bốn `int4_decoder_local_pe_N` chạy bằng persistent `hls::task`; mỗi root sở
+  hữu local scheduler, BRAM/URAM, attention, linear và AXI của đúng SLR.
+- Top không còn phát `mode/state/address` tới bốn PE. Qua biên SLR chỉ còn
+  position token 12-bit, RMS FP32, linear packet 128-bit và completion 1-bit.
+- Pre-place Tcl neo bốn root `int4_decoder_local_pe_0..3` vào SLR0..3; FIFO biên
+  và pair reduction do placer tự bố trí.
 - Critical DSP preadder/multiply 3.333 ns được thay bằng phép cộng fabric.
 - Vitis HLS 2023.2 C-synthesis thành công, không có `ERROR` hay
   `CRITICAL WARNING`; tất cả loop constraint đạt.
 - Estimated clock: `2.787 ns`, tương đương `358.84 MHz`, với target 3.333 ns.
-- RTL có 10 KPN; 109 worker đều có `ap_start=1`, `ap_continue=1`; `ap_done` của
+- RTL có 5 KPN; 23 worker đều có `ap_start=1`, `ap_continue=1`; `ap_done` của
   worker không tham gia logic điều khiển KPN.
-- XO cuối: `int4_decoder_token_controller_300mhz.xo`, 10,220,792 byte.
-- SHA-256: `4BA302F2F63AB56BC6B535D3430BDE17171E4E2232FBB76F03E7A71E16FA97A8`.
-- Resource HLS toàn U250: 1308 BRAM18K, 904 DSP, 366313 FF, 397750 LUT,
+- XO cuối: `int4_decoder_token_controller_300mhz.xo`, 8,864,862 byte.
+- SHA-256: `C76827EF70E5FA88214E4B63C37FDB86AA212CE87AE933666F2183E70492AA0E`.
+- Resource HLS toàn U250: 1308 BRAM18K, 900 DSP, 362090 FF, 394519 LUT,
   160 URAM.
 - `build_300mhz.sh` và `build_300mhz.ps1` đều giữ routed DCP và gọi
   `verify_300mhz_routed.tcl`. Build fail nếu route chưa đủ, có routing/DRC Error,

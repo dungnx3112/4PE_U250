@@ -1,4 +1,5 @@
 #include "int4_decoder_blocks.hpp"
+#include "int4_decoder_schedule.hpp"
 #include "int4_task_control.hpp"
 
 #include <cstdint>
@@ -172,8 +173,7 @@ static void int4_local_rms_normalize_quantize(
     const int4_output_word_t gamma[INT4_VECTOR_WORDS_PER_PE],
     hls::stream<float>& reciprocal_stream,
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale[INT4_MAX_LOCAL_GROUPS],
-    hls::stream<int4_completion_token_t>& completion_stream) {
+    float activation_scale[INT4_MAX_LOCAL_GROUPS]) {
 #pragma HLS INLINE off
     const float reciprocal = reciprocal_stream.read();
     float values[INT4_GROUP_SIZE];
@@ -201,7 +201,6 @@ local_rms_group_loop:
         int4_quantize_g32(
             values, activation_q[group], activation_scale[group]);
     }
-    completion_stream.write(1);
 }
 
 template <int PE_ID>
@@ -222,7 +221,8 @@ static void int4_local_rms_task(
     const int norm_offset = offset_stream.read();
     int4_local_rms_normalize_quantize<PE_ID>(
         residual, norm_cache + norm_offset, reciprocal_stream,
-        activation_q, activation_scale, completion_stream);
+        activation_q, activation_scale);
+    completion_stream.write(1);
 }
 
 void int4_rmsnorm_quantize_shards(
@@ -603,4 +603,98 @@ void int4_swiglu_quantize_shards(
     HLS_TASK join23(int4_join_task_completion_pair<221>,
         completion2, completion3, completion23);
     int4_wait_task_completion_pairs<220>(completion01, completion23);
+}
+
+template <int PE_ID>
+static void int4_local_rms_stage(
+    const int4_output_word_t residual[INT4_VECTOR_WORDS_PER_PE],
+    const int4_output_word_t norm_cache[INT4_TOTAL_NORM_WORDS_PER_PE],
+    int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
+    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    int norm_offset,
+    hls::stream<float>& partial_stream,
+    hls::stream<float>& reciprocal_stream) {
+#pragma HLS INLINE off
+    int4_local_sumsq<PE_ID>(residual, partial_stream);
+    int4_local_rms_normalize_quantize<PE_ID>(
+        residual, norm_cache + norm_offset, reciprocal_stream,
+        activation_q, activation_scale);
+}
+
+#define INT4_DEFINE_LOCAL_DECODER_BLOCKS(PE)                            \
+void int4_local_rms_stage_pe##PE(                                      \
+    const int4_output_word_t residual[INT4_VECTOR_WORDS_PER_PE],       \
+    const int4_output_word_t norm_cache[INT4_TOTAL_NORM_WORDS_PER_PE], \
+    int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],             \
+    float activation_scale[INT4_MAX_LOCAL_GROUPS],                     \
+    int norm_offset,                                                   \
+    hls::stream<float>& partial_stream,                                \
+    hls::stream<float>& reciprocal_stream) {                           \
+    _Pragma("HLS INLINE off")                                         \
+    int4_local_rms_stage<PE>(                                          \
+        residual, norm_cache, activation_q, activation_scale,         \
+        norm_offset, partial_stream, reciprocal_stream);               \
+}                                                                     \
+void int4_local_residual_add_pe##PE(                                   \
+    int4_output_word_t residual[INT4_VECTOR_WORDS_PER_PE],             \
+    const int4_output_word_t branch[INT4_VECTOR_WORDS_PER_PE]) {       \
+    _Pragma("HLS INLINE off")                                         \
+    int4_local_residual_add<PE>(residual, branch);                     \
+}                                                                     \
+void int4_local_swiglu_stage_pe##PE(                                   \
+    const int4_output_word_t gate[INT4_HIDDEN_WORDS_PER_PE],           \
+    const int4_output_word_t up[INT4_HIDDEN_WORDS_PER_PE],             \
+    int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],             \
+    float activation_scale[INT4_MAX_LOCAL_GROUPS]) {                   \
+    _Pragma("HLS INLINE off")                                         \
+    int4_local_swiglu_quantize<PE>(                                    \
+        gate, up, activation_q, activation_scale);                     \
+}
+
+INT4_DEFINE_LOCAL_DECODER_BLOCKS(0)
+INT4_DEFINE_LOCAL_DECODER_BLOCKS(1)
+INT4_DEFINE_LOCAL_DECODER_BLOCKS(2)
+INT4_DEFINE_LOCAL_DECODER_BLOCKS(3)
+
+#undef INT4_DEFINE_LOCAL_DECODER_BLOCKS
+
+void int4_rms_pair01_schedule(
+    hls::stream<float>& partial0,
+    hls::stream<float>& partial1,
+    hls::stream<float>& sum23,
+    hls::stream<float>& reciprocal0,
+    hls::stream<float>& reciprocal1,
+    hls::stream<float>& reciprocal_to23) {
+#pragma HLS INLINE off
+rms_pair01_schedule_loop:
+    for (int event = 0; event < INT4_DECODER_RMS_STAGES; ++event) {
+#pragma HLS PIPELINE off
+#pragma HLS LOOP_TRIPCOUNT min=65 max=65
+        const float total =
+            (partial0.read() + partial1.read()) + sum23.read();
+        const float reciprocal = hls::rsqrtf(
+            total * (1.0f / (float)INT4_DIM) + 1.0e-5f);
+        reciprocal0.write(reciprocal);
+        reciprocal1.write(reciprocal);
+        reciprocal_to23.write(reciprocal);
+    }
+}
+
+void int4_rms_pair23_schedule(
+    hls::stream<float>& partial2,
+    hls::stream<float>& partial3,
+    hls::stream<float>& sum_to01,
+    hls::stream<float>& reciprocal_from01,
+    hls::stream<float>& reciprocal2,
+    hls::stream<float>& reciprocal3) {
+#pragma HLS INLINE off
+rms_pair23_schedule_loop:
+    for (int event = 0; event < INT4_DECODER_RMS_STAGES; ++event) {
+#pragma HLS PIPELINE off
+#pragma HLS LOOP_TRIPCOUNT min=65 max=65
+        sum_to01.write(partial2.read() + partial3.read());
+        const float reciprocal = reciprocal_from01.read();
+        reciprocal2.write(reciprocal);
+        reciprocal3.write(reciprocal);
+    }
 }

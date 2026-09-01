@@ -19,6 +19,7 @@ $baseConfigPath = Join-Path $sourceDirectory "link_300mhz.cfg"
 $prePlacePath = Join-Path $sourceDirectory "timing_300mhz_pre_place.tcl"
 $prePhysoptPath = Join-Path $sourceDirectory "timing_300mhz_pre_physopt.tcl"
 $timingGatePath = Join-Path $sourceDirectory "verify_300mhz_routed.tcl"
+$postRouteReportPath = Join-Path $sourceDirectory "report_300mhz_post_route.tcl"
 $targetFrequencyHz = 300000000
 $kernelClock = "int4_decoder_token_controller_1.ap_clk"
 $buildDirectory = Join-Path $workspaceDirectory "build_300mhz"
@@ -37,7 +38,8 @@ foreach ($requiredPath in @(
     $baseConfigPath,
     $prePlacePath,
     $prePhysoptPath,
-    $timingGatePath
+    $timingGatePath,
+    $postRouteReportPath
 )) {
     if (-not (Test-Path -LiteralPath $requiredPath)) {
         throw "Required build input does not exist: $requiredPath"
@@ -116,7 +118,8 @@ $implementationLogs = @(
     Get-ChildItem -LiteralPath $tempDirectory -Filter "runme.log" -Recurse -File -ErrorAction SilentlyContinue
 )
 $floorplanMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: FLOORPLAN_APPLIED" -List
-$peRootsMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: PE_ROOTS_APPLIED" -List
+$localDomainsMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: LOCAL_DOMAINS_APPLIED" -List
+$registeredBoundariesMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: REGISTERED_BOUNDARIES_APPLIED" -List
 $toolDrivenPhysoptMarker = $implementationLogs | Select-String -Pattern "300MHz physopt: TOOL_DRIVEN_PHYSOPT" -List
 
 if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
@@ -127,11 +130,18 @@ if ($floorplanMarker) {
     Write-Host "Verified: 300 MHz PE/SLR floorplan hook was applied."
 }
 if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
-    -not $peRootsMarker) {
-    throw "Vivado implementation ran without the four PE-root SLR assignments."
+    -not $localDomainsMarker) {
+    throw "Vivado implementation ran without the four local PE/AXI/config domains."
 }
-if ($peRootsMarker) {
-    Write-Host "Verified: only the four PE roots were assigned to SLR0-SLR3."
+if ($localDomainsMarker) {
+    Write-Host "Verified: four local PE/AXI/config domains were assigned to SLR0-SLR3."
+}
+if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
+    -not $registeredBoundariesMarker) {
+    throw "Vivado implementation ran without the registered inter-SLR boundary assignments."
+}
+if ($registeredBoundariesMarker) {
+    Write-Host "Verified: position, pair-reduction and completion boundaries were localized."
 }
 if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
     -not $toolDrivenPhysoptMarker) {
@@ -182,6 +192,24 @@ if ($timingGateExitCode -ne 0) {
 if (-not (Select-String -LiteralPath $timingGateLog `
         -Pattern "300MHz timing gate: TIMING_CLOSED" -Quiet)) {
     throw "Vivado timing gate did not emit TIMING_CLOSED. See: $timingGateLog"
+}
+
+$postRouteLog = Join-Path $logDirectory "post_route_slr_audit.log"
+$postRouteArguments = @(
+    "-mode", "batch",
+    "-notrace",
+    "-source", $postRouteReportPath,
+    "-tclargs", $routedCheckpoint, $reportDirectory
+)
+Write-Host "Running full SLR-sequence audit on: $routedCheckpoint"
+& $VivadoPath @postRouteArguments 2>&1 | Tee-Object -FilePath $postRouteLog
+$postRouteExitCode = $LASTEXITCODE
+if ($postRouteExitCode -ne 0) {
+    throw "Vivado post-route SLR audit failed with exit code $postRouteExitCode. See: $postRouteLog"
+}
+if (-not (Select-String -LiteralPath $postRouteLog `
+        -Pattern "300MHz post-route: SLR_PATH_AUDIT_COMPLETE" -Quiet)) {
+    throw "Vivado post-route report did not complete the SLR path audit. See: $postRouteLog"
 }
 
 $outputHash = Get-FileHash -LiteralPath $resolvedOutput -Algorithm SHA256

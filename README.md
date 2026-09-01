@@ -19,9 +19,10 @@ shard logits.
 
 | File | Vai trò |
 |---|---|
-| `int4_decoder_controller.cpp/.hpp` | Top kernel, scheduler 32 layer và task graph liên SLR |
-| `int4_linear_controller.cpp/.hpp` | GEMV INT4 4 PE, overlap DDR/compute và completion FIFO |
-| `int4_decoder_blocks.cpp/.hpp` | RMSNorm, SwiGLU, residual và task/FIFO cục bộ |
+| `int4_decoder_controller.cpp/.hpp` | Top kernel và bốn local scheduler sở hữu trọn PE/SLR |
+| `int4_decoder_schedule.hpp` | Lịch cố định dùng riêng trong từng local controller/reducer |
+| `int4_linear_controller.cpp/.hpp` | Linear cục bộ từng PE và hai pair reducer 128-bit |
+| `int4_decoder_blocks.cpp/.hpp` | RMSNorm, SwiGLU, residual cục bộ và RMS pair service |
 | `int4_task_control.hpp` | Completion token, pair join và final wait dùng chung |
 | `swiftkv_attention.cpp/.hpp` | RoPE, KV cache INT8 và online-softmax attention cục bộ |
 | `int4_model_layout.hpp` | Shape, padding và offset cố định của mỗi DDR |
@@ -57,9 +58,9 @@ DDR3 -> PE3 --128b--/                       +-> output PE2/PE3
 ```
 
 RMSNorm cũng theo topology pair nhưng chỉ truyền một partial FP32 và một
-reciprocal FP32. Attention, projection-save và linear mode dùng persistent task
-với command/completion FIFO có thanh ghi `SLR0 -> SLR1 -> SLR2 -> SLR3`;
-controller không gom trực tiếp `ap_done/ap_continue` của bốn PE.
+reciprocal FP32. Mỗi `int4_decoder_local_pe_N` tự chạy đủ lịch 32 layer và tự
+giữ `mode/layer/address/enable`; top chỉ phát position token theo chuỗi
+`SLR0 -> SLR1 -> SLR2 -> SLR3` và không còn bus mode/state toàn cục.
 
 ## Overlap DDR với compute
 
@@ -80,9 +81,9 @@ cục bộ nên được sắp tuần tự trong PE; bốn PE attention vẫn ch
 
 ## Tái sử dụng phần cứng
 
-- Chỉ có **một** call-site `int4_sharded_linear_4pe` trong toàn scheduler.
-- Q, K, V, O, GATE, UP, DOWN và LOGITS dùng lại cùng một linear pipeline trên
-  mỗi PE; không sinh tám bản MAC.
+- Mỗi local controller chỉ có **một** call-site `int4_linear_local_stage_peN`.
+- Q, K, V, O, GATE, UP, DOWN và LOGITS dùng lại cùng một linear pipeline trong
+  PE tương ứng; không sinh tám bản MAC trên mỗi PE.
 - Mỗi PE chỉ có một scratch projection lớn nhất. Q/K/V và GATE được lưu riêng
   vì phải sống qua stage sau; O, UP, DOWN và LOGITS tiêu thụ scratch trực tiếp.
 - RMSNorm, SwiGLU, residual-add và local SwiftKV được gọi lại qua mọi layer/token.
@@ -181,12 +182,17 @@ một lần đầu invocation và ghi một lần cuối invocation.
 
 ## Floorplan PE/SLR và control KPN
 
-`timing_300mhz_pre_place.tcl` chỉ hard-anchor bốn hierarchy root
-`int4_run_local_pe_0_U0` .. `int4_run_local_pe_3_U0` lần lượt vào SLR0..SLR3.
-Mỗi root bao gồm command split, weight reader, compute pipeline và AXI-facing
-logic của PE. Memory ngoài root, FIFO biên, join, reduction và control logic
-không bị neo thủ công; `SSI_BalanceSLLs` được tự do đặt chúng ở phía tốt nhất của
-mỗi SLR crossing. Build kiểm tra marker `PE_ROOTS_APPLIED`.
+`timing_300mhz_pre_place.tcl` hard-anchor từng local PE, AXI adapter và năm FIFO
+địa chỉ của PE đó vào SLR0..SLR3. Position relay được xếp thành chuỗi
+SLR0 -> SLR1 -> SLR2 -> SLR3. RMS/linear/completion pair01 nằm ở SLR1, pair23
+nằm ở SLR2; FIFO crossing được đặt tại phía producer. Build kiểm tra marker
+`LOCAL_DOMAINS_APPLIED` và `REGISTERED_BOUNDARIES_APPLIED`.
+
+Vitis HLS 2023.2 tự sinh một `entry_proc` AND đồng thời 20 tín hiệu `full_n`
+của các FIFO địa chỉ. `patch_partitioned_entry_proc.tcl` được gọi tự động sau
+`csynth_design` và trước `export_design`: nó thay cone 20 ngõ bằng bốn launcher
+5 ngõ độc lập, mỗi launcher vẫn ghi nguyên tử đủ năm địa chỉ của một PE. Script
+fail build nếu không tìm đúng một entry process hoặc nếu cone toàn cục vẫn còn.
 
 `timing_300mhz_pre_physopt.tcl` không sửa netlist. Pass ép replication cũ đã làm
 WNS full-design xấu hơn và tăng số candidate cho SLR optimization, nên fanout,
@@ -209,6 +215,12 @@ Synthesize và export XO:
 & 'C:\Xilinx\Vitis_HLS\2023.2\bin\vitis_hls.bat' `
   -f run_hls_300mhz.tcl
 ```
+
+XO đã export phải chứa marker `PARTITIONED_PE_CONFIG_LAUNCH` trong
+`int4_decoder_token_controller_entry_proc42.v`. Báo cáo post-route tạo thêm
+`timing_path_slr_audit.csv`; cột `slr_sequence` ghi toàn bộ hành trình vật lý
+của path và đánh dấu `SLR_REVISIT`, `SAME_SLR_DETOUR`, `NONADJACENT_HOP` hoặc
+`ROUTE_DOMINATED_FAIL` thay vì chỉ nhìn SLR của hai endpoint.
 
 Link XCLBIN bằng wrapper để absolute Tcl hooks và marker validation luôn được
 áp dụng:
@@ -263,21 +275,21 @@ Có thể override mà không sửa script qua `VITIS_SETTINGS`, `U250_PLATFORM`
 
 ## Kết quả HLS đã xác minh
 
-C-synthesis Vitis HLS 2023.2 ngày 2026-08-31 hoàn tất với exit code 0:
+C-synthesis Vitis HLS 2023.2 ngày 2026-09-01 hoàn tất với exit code 0:
 
 | Chỉ số | Kết quả |
 |---|---:|
 | Target | 3.333 ns / 300 MHz |
 | Estimated clock | 2.787 ns |
 | Estimated Fmax | 358.84 MHz |
-| Linear instances | 1 time-shared 4-PE engine |
+| Linear instances | 4 local engine, mỗi PE dùng lại cho 8 mode |
 | Linear MAC II | 1 |
 | Integer MAC packing | 2 phép nhân `INT4 x INT15` / DSP48 |
 | Integer packed MAC / PE | 64 DSP48 = 128 scalar multiply/cycle |
 | BRAM18K | 1308 / 5376 (24%) |
-| DSP | 904 / 12288 (7%) |
-| FF | 366313 / 3456000 (10%) |
-| LUT | 397750 / 1728000 (23%) |
+| DSP | 900 / 12288 (7%) |
+| FF | 362090 / 3456000 (10%) |
+| LUT | 394519 / 1728000 (22%) |
 | URAM | 160 / 1280 (12%) |
 
 Đây là kết quả HLS trước place/route. Chỉ XCLBIN/routed DCP với WNS và WHS
@@ -287,8 +299,8 @@ XO tương ứng với source hiện tại:
 
 ```text
 int4_decoder_token_controller_300mhz.xo
-size:    10,220,792 byte
-SHA-256: 4BA302F2F63AB56BC6B535D3430BDE17171E4E2232FBB76F03E7A71E16FA97A8
+size:    8,864,862 byte
+SHA-256: C76827EF70E5FA88214E4B63C37FDB86AA212CE87AE933666F2183E70492AA0E
 ```
 
 Máy Windows hiện tại chưa cài U250 `.xpfm`, vì vậy chưa có routed DCP mới để

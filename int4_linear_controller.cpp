@@ -1,4 +1,5 @@
 #include "int4_model_layout.hpp"
+#include "int4_decoder_schedule.hpp"
 #include "int4_task_control.hpp"
 
 #include <cstdint>
@@ -226,6 +227,20 @@ static void int4_split_local_command(
     const int4_linear_command_t command = command_in.read();
     reader_command.write(command);
     compute_command.write(command);
+}
+
+static void int4_seed_local_linear_command(
+    ap_uint<3> mode,
+    ap_uint<24> weight_offset,
+    ap_uint<16> scale_offset,
+    hls::stream<int4_linear_command_t>& command_compute,
+    hls::stream<int4_linear_command_t>& command_store) {
+#pragma HLS INLINE off
+#pragma HLS PIPELINE II=1
+    const int4_linear_command_t command = int4_pack_linear_command(
+        mode, weight_offset, scale_offset);
+    command_compute.write(command);
+    command_store.write(command);
 }
 
 template <int PE_ID>
@@ -516,6 +531,214 @@ store_local_output_word_loop:
         output_mem[word] = packed;
     }
     completion_stream.write(1);
+}
+
+template <int PE_ID>
+static void int4_run_local_linear_stage(
+    const int4_weight_word_t* weight_mem,
+    const int4_weight_scale_word_t* scale_mem,
+    const int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
+    const float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    int4_output_word_t output_mem[INT4_MAX_LOCAL_OUTPUT_WORDS],
+    ap_uint<3> mode,
+    ap_uint<24> weight_word_offset,
+    ap_uint<16> weight_scale_word_offset,
+    hls::stream<int4_reduction_packet_t>& partial_stream,
+    hls::stream<int4_reduction_packet_t>& completed_stream) {
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW disable_start_propagation
+#pragma HLS STABLE variable=weight_mem
+#pragma HLS STABLE variable=scale_mem
+#pragma HLS STABLE variable=activation_q
+#pragma HLS STABLE variable=activation_scale
+#pragma HLS STABLE variable=output_mem
+    HLS_TASK_STREAM<int4_linear_command_t> command_compute;
+    HLS_TASK_STREAM<int4_linear_command_t> command_store;
+    HLS_TASK_STREAM<int4_completion_token_t> completion;
+#pragma HLS STREAM variable=command_compute depth=3
+#pragma HLS STREAM variable=command_store depth=3
+#pragma HLS STREAM variable=completion depth=4
+#pragma HLS BIND_STORAGE variable=command_compute type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=command_store type=fifo impl=srl
+
+    int4_seed_local_linear_command(
+        mode, weight_word_offset, weight_scale_word_offset,
+        command_compute, command_store);
+    HLS_TASK compute(int4_run_local_pe<PE_ID>,
+        weight_mem, scale_mem, activation_q, activation_scale,
+        command_compute, partial_stream);
+    HLS_TASK store(int4_store_local_output<PE_ID>,
+        completed_stream, output_mem, command_store, completion);
+    int4_wait_task_completion<PE_ID>(completion);
+}
+
+#define INT4_DEFINE_LOCAL_LINEAR_STAGE(PE)                              \
+void int4_linear_local_stage_pe##PE(                                   \
+    const int4_weight_word_t* weight_mem,                              \
+    const int4_weight_scale_word_t* scale_mem,                         \
+    const int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],       \
+    const float activation_scale[INT4_MAX_LOCAL_GROUPS],               \
+    int4_output_word_t output_mem[INT4_MAX_LOCAL_OUTPUT_WORDS],        \
+    ap_uint<3> mode,                                                   \
+    ap_uint<24> weight_word_offset,                                    \
+    ap_uint<16> weight_scale_word_offset,                              \
+    hls::stream<int4_reduction_packet_t>& partial_stream,              \
+    hls::stream<int4_reduction_packet_t>& completed_stream) {          \
+    _Pragma("HLS INLINE off")                                         \
+    int4_run_local_linear_stage<PE>(                                   \
+        weight_mem, scale_mem, activation_q, activation_scale,        \
+        output_mem, mode, weight_word_offset,                          \
+        weight_scale_word_offset, partial_stream, completed_stream);   \
+}
+
+INT4_DEFINE_LOCAL_LINEAR_STAGE(0)
+INT4_DEFINE_LOCAL_LINEAR_STAGE(1)
+INT4_DEFINE_LOCAL_LINEAR_STAGE(2)
+INT4_DEFINE_LOCAL_LINEAR_STAGE(3)
+
+#undef INT4_DEFINE_LOCAL_LINEAR_STAGE
+
+template <int PAIR_ID>
+static void int4_reduce_pair_schedule(
+    hls::stream<int4_reduction_packet_t>& partial_first,
+    hls::stream<int4_reduction_packet_t>& partial_second,
+    hls::stream<int4_reduction_packet_t>& local_half,
+    hls::stream<int4_reduction_packet_t>& remote_half) {
+#pragma HLS INLINE off
+decoder_reduce_schedule_layer_loop:
+    for (int schedule_layer = 0;
+         schedule_layer < INT4_DECODER_SCHEDULE_LAYERS;
+         ++schedule_layer) {
+#pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min=33 max=33
+        const int stage_count = int4_decoder_stage_count(schedule_layer);
+    decoder_reduce_schedule_stage_loop:
+        for (int stage = 0; stage < stage_count; ++stage) {
+#pragma HLS LOOP_TRIPCOUNT min=1 max=7
+            const ap_uint<3> mode = int4_decoder_stage_mode(
+                schedule_layer, stage);
+            const int4_linear_command_t command =
+                int4_pack_linear_command(mode, 0, 0);
+            const int output_tiles = int4_command_output_tiles(command);
+            const int pair_tiles = output_tiles / 2;
+            const int packet_count = output_tiles * INT4_ROW_BLOCKS;
+        decoder_reduce_schedule_packet_loop:
+            for (int packet_index = 0;
+                 packet_index < packet_count;
+                 ++packet_index) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=1024 max=8064
+                const int4_reduction_packet_t pair_sum =
+                    int4_add_partial_packets(
+                        partial_first.read(), partial_second.read());
+                const int output_tile = packet_index / INT4_ROW_BLOCKS;
+                const bool belongs_to_pair01 = output_tile < pair_tiles;
+                const bool local = PAIR_ID == 0
+                    ? belongs_to_pair01
+                    : !belongs_to_pair01;
+                if (local) local_half.write(pair_sum);
+                else remote_half.write(pair_sum);
+            }
+        }
+    }
+}
+
+template <int PAIR_ID>
+static void int4_finalize_pair_schedule(
+    hls::stream<int4_reduction_packet_t>& local_pair_sum,
+    hls::stream<int4_reduction_packet_t>& remote_pair_sum,
+    hls::stream<int4_reduction_packet_t>& first_output,
+    hls::stream<int4_reduction_packet_t>& second_output) {
+#pragma HLS INLINE off
+decoder_finalize_schedule_layer_loop:
+    for (int schedule_layer = 0;
+         schedule_layer < INT4_DECODER_SCHEDULE_LAYERS;
+         ++schedule_layer) {
+#pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min=33 max=33
+        const int stage_count = int4_decoder_stage_count(schedule_layer);
+    decoder_finalize_schedule_stage_loop:
+        for (int stage = 0; stage < stage_count; ++stage) {
+#pragma HLS LOOP_TRIPCOUNT min=1 max=7
+            const ap_uint<3> mode = int4_decoder_stage_mode(
+                schedule_layer, stage);
+            const int4_linear_command_t command =
+                int4_pack_linear_command(mode, 0, 0);
+            const int local_output_tiles =
+                int4_command_local_output_tiles(command);
+            const bool output_fxp = command[61];
+            const int pair_packets =
+                2 * local_output_tiles * INT4_ROW_BLOCKS;
+            const int first_packets =
+                local_output_tiles * INT4_ROW_BLOCKS;
+        decoder_finalize_schedule_packet_loop:
+            for (int packet_index = 0;
+                 packet_index < pair_packets;
+                 ++packet_index) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=512 max=4032
+                int4_reduction_packet_t completed =
+                    int4_add_partial_packets(
+                        local_pair_sum.read(), remote_pair_sum.read());
+                if (output_fxp) {
+                    for (int lane = 0;
+                         lane < INT4_REDUCTION_LANES;
+                         ++lane) {
+#pragma HLS UNROLL
+                        completed.range(32 * lane + 31, 32 * lane) =
+                            int4_float_to_fxp_bits(int4_bits_to_float(
+                                completed.range(
+                                    32 * lane + 31, 32 * lane)));
+                    }
+                }
+                if (packet_index < first_packets) {
+                    first_output.write(completed);
+                } else {
+                    second_output.write(completed);
+                }
+            }
+        }
+    }
+}
+
+void int4_linear_reduce_pair01_schedule(
+    hls::stream<int4_reduction_packet_t>& partial0,
+    hls::stream<int4_reduction_packet_t>& partial1,
+    hls::stream<int4_reduction_packet_t>& local_sum,
+    hls::stream<int4_reduction_packet_t>& remote_sum) {
+#pragma HLS INLINE off
+    int4_reduce_pair_schedule<0>(
+        partial0, partial1, local_sum, remote_sum);
+}
+
+void int4_linear_reduce_pair23_schedule(
+    hls::stream<int4_reduction_packet_t>& partial2,
+    hls::stream<int4_reduction_packet_t>& partial3,
+    hls::stream<int4_reduction_packet_t>& local_sum,
+    hls::stream<int4_reduction_packet_t>& remote_sum) {
+#pragma HLS INLINE off
+    int4_reduce_pair_schedule<1>(
+        partial2, partial3, local_sum, remote_sum);
+}
+
+void int4_linear_finalize_pair01_schedule(
+    hls::stream<int4_reduction_packet_t>& local_sum,
+    hls::stream<int4_reduction_packet_t>& remote_sum,
+    hls::stream<int4_reduction_packet_t>& output0,
+    hls::stream<int4_reduction_packet_t>& output1) {
+#pragma HLS INLINE off
+    int4_finalize_pair_schedule<0>(
+        local_sum, remote_sum, output0, output1);
+}
+
+void int4_linear_finalize_pair23_schedule(
+    hls::stream<int4_reduction_packet_t>& local_sum,
+    hls::stream<int4_reduction_packet_t>& remote_sum,
+    hls::stream<int4_reduction_packet_t>& output2,
+    hls::stream<int4_reduction_packet_t>& output3) {
+#pragma HLS INLINE off
+    int4_finalize_pair_schedule<1>(
+        local_sum, remote_sum, output2, output3);
 }
 
 void int4_sharded_linear_4pe(

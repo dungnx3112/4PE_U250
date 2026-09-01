@@ -66,6 +66,7 @@ pre_place_path=$source_dir/timing_300mhz_pre_place.tcl
 pre_physopt_path=$source_dir/timing_300mhz_pre_physopt.tcl
 hls_script_path=$source_dir/run_hls_300mhz.tcl
 timing_gate_path=$source_dir/verify_300mhz_routed.tcl
+post_route_report_path=$source_dir/report_300mhz_post_route.tcl
 run_id=$(date +%Y%m%d-%H%M%S)-$$
 run_dir=$workspace_dir/build_300mhz/runs/$run_id
 temp_dir=$run_dir/temp
@@ -77,7 +78,8 @@ for required_path in \
     "$base_config_path" \
     "$pre_place_path" \
     "$pre_physopt_path" \
-    "$timing_gate_path"; do
+    "$timing_gate_path" \
+    "$post_route_report_path"; do
     if [[ ! -f $required_path ]]; then
         echo "Required build input does not exist: $required_path" >&2
         exit 1
@@ -228,8 +230,11 @@ if (( ${#implementation_logs[@]} > 0 || link_exit_code == 0 )); then
         "300MHz floorplan: FLOORPLAN_APPLIED" \
         "the pre-place PE/SLR floorplan ran"
     require_marker \
-        "300MHz floorplan: PE_ROOTS_APPLIED" \
-        "only the four PE roots were assigned to SLR0-SLR3"
+        "300MHz floorplan: LOCAL_DOMAINS_APPLIED" \
+        "four local PE/AXI/config domains were assigned to SLR0-SLR3"
+    require_marker \
+        "300MHz floorplan: REGISTERED_BOUNDARIES_APPLIED" \
+        "position, pair-reduction and completion boundaries were localized"
     require_marker \
         "300MHz physopt: TOOL_DRIVEN_PHYSOPT" \
         "custom physopt mutations were disabled in favor of the Vivado strategy"
@@ -280,6 +285,17 @@ echo "Running hard setup/hold timing gate on: $routed_dcp"
 if ! grep -Fq -- "300MHz timing gate: TIMING_CLOSED" \
         "$log_dir/timing_gate.log"; then
     echo "Vivado timing gate did not emit TIMING_CLOSED." >&2
+    exit 1
+fi
+
+echo "Running full SLR-sequence audit on: $routed_dcp"
+"$vivado" -mode batch -notrace \
+    -source "$post_route_report_path" \
+    -tclargs "$routed_dcp" "$report_dir" \
+    2>&1 | tee "$log_dir/post_route_slr_audit.log"
+if ! grep -Fq -- "300MHz post-route: SLR_PATH_AUDIT_COMPLETE" \
+        "$log_dir/post_route_slr_audit.log"; then
+    echo "Vivado post-route report did not complete the SLR path audit." >&2
     exit 1
 fi
 

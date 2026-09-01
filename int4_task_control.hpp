@@ -29,3 +29,10 @@ static void int4_wait_task_completion_pairs(
     (void)pair01.read();
     (void)pair23.read();
 }
+
+template <int WAIT_ID>
+static void int4_wait_task_completion(
+    hls::stream<int4_completion_token_t>& completion) {
+#pragma HLS INLINE off
+    (void)completion.read();
+}

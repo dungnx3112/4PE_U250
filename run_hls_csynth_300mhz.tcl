@@ -21,4 +21,9 @@ config_rtl -register_reset_num 3
 config_dataflow -start_fifo_depth 8
 
 csynth_design
+set patch_script [file normalize "patch_partitioned_entry_proc.tcl"]
+if {![file exists $patch_script]} {
+    error "Missing generated-RTL partition patch: $patch_script"
+}
+source $patch_script
 exit
