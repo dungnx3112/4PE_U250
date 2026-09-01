@@ -27,8 +27,8 @@ shard logits.
 | `int4_model_layout.hpp` | Shape, padding và offset cố định của mỗi DDR |
 | `int4_weight_packer.cpp/.hpp` | Packer offline tạo bốn model image input-column-sharded |
 | `link_300mhz.cfg` | Ánh xạ `gmem0..3` tới `DDR[0]..3` |
-| `timing_300mhz_pre_place.tcl` | Floorplan PE/SLR, task worker và FIFO boundary trước placement |
-| `timing_300mhz_pre_physopt.tcl` | Replicate control theo placement; tối ưu BRAM-enable và SLR crossing |
+| `timing_300mhz_pre_place.tcl` | Chỉ gán bốn hierarchy root PE0..3 vào SLR0..3 |
+| `timing_300mhz_pre_physopt.tcl` | Hook no-op; để strategy Vivado tự physical optimization |
 | `verify_300mhz_routed.tcl` | Hard gate route, DRC, setup và hold trên routed DCP |
 
 ## Kiến trúc dữ liệu
@@ -181,25 +181,17 @@ một lần đầu invocation và ghi một lần cuối invocation.
 
 ## Floorplan PE/SLR và control KPN
 
-`timing_300mhz_pre_place.tcl` hard-anchor các miền sở hữu của mỗi PE vào đúng
-SLR:
+`timing_300mhz_pre_place.tcl` chỉ hard-anchor bốn hierarchy root
+`int4_run_local_pe_0_U0` .. `int4_run_local_pe_3_U0` lần lượt vào SLR0..SLR3.
+Mỗi root bao gồm command split, weight reader, compute pipeline và AXI-facing
+logic của PE. Memory ngoài root, FIFO biên, join, reduction và control logic
+không bị neo thủ công; `SSI_BalanceSLLs` được tự do đặt chúng ở phía tốt nhất của
+mỗi SLR crossing. Build kiểm tra marker `PE_ROOTS_APPLIED`.
 
-- AXI/DDR endpoint;
-- local memories;
-- local linear, RMS, SwiGLU, residual và SwiftKV compute.
-- persistent KPN worker cùng command/data/completion FIFO PE-local.
-
-Ba FIFO biên `01`, `12`, `23` được đặt lần lượt tại SLR1, SLR2, SLR3. Cây gom
-completion đặt theo topology gần nhất thay vì đưa `ap_done/ap_continue` của bốn
-PE về một FSM trung tâm. Build bắt buộc kiểm tra cả marker floorplan và marker
-`DATA_DRIVEN_TASK_ANCHORS_APPLIED`.
-
-Sau placement, `timing_300mhz_pre_physopt.tcl` chọn các net top-level
-`mode_reg`, `ap_CS_fsm`, `ap_sync` có ít nhất tám tải, ép Vivado replicate driver
-theo cụm tải vật lý, rồi chạy `bram_enable_opt` cùng
-`slr_crossing_opt -tns_cleanup`. Pass này xử lý phần control-to-memory còn lại
-mà HLS vẫn tạo để multiplex các cổng RAM dùng chung. Marker
-`CONTROL_MEMORY_PATH_OPT_APPLIED` là bắt buộc trước khi build được chấp nhận.
+`timing_300mhz_pre_physopt.tcl` không sửa netlist. Pass ép replication cũ đã làm
+WNS full-design xấu hơn và tăng số candidate cho SLR optimization, nên fanout,
+BRAM-enable và SLR crossing được giao cho strategy `AggressiveExplore` chuẩn của
+Vivado. Build kiểm tra marker `TOOL_DRIVEN_PHYSOPT`.
 
 ## Tổng hợp và build
 

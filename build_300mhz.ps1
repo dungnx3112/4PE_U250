@@ -116,8 +116,8 @@ $implementationLogs = @(
     Get-ChildItem -LiteralPath $tempDirectory -Filter "runme.log" -Recurse -File -ErrorAction SilentlyContinue
 )
 $floorplanMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: FLOORPLAN_APPLIED" -List
-$taskAnchorMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: DATA_DRIVEN_TASK_ANCHORS_APPLIED" -List
-$controlPhysoptMarker = $implementationLogs | Select-String -Pattern "300MHz control physopt: CONTROL_MEMORY_PATH_OPT_APPLIED" -List
+$peRootsMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: PE_ROOTS_APPLIED" -List
+$toolDrivenPhysoptMarker = $implementationLogs | Select-String -Pattern "300MHz physopt: TOOL_DRIVEN_PHYSOPT" -List
 
 if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
     -not $floorplanMarker) {
@@ -127,18 +127,18 @@ if ($floorplanMarker) {
     Write-Host "Verified: 300 MHz PE/SLR floorplan hook was applied."
 }
 if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
-    -not $taskAnchorMarker) {
-    throw "Vivado implementation ran without the PE-local KPN and registered boundary anchors."
+    -not $peRootsMarker) {
+    throw "Vivado implementation ran without the four PE-root SLR assignments."
 }
-if ($taskAnchorMarker) {
-    Write-Host "Verified: PE-local KPN workers and registered SLR boundaries were anchored."
+if ($peRootsMarker) {
+    Write-Host "Verified: only the four PE roots were assigned to SLR0-SLR3."
 }
 if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
-    -not $controlPhysoptMarker) {
-    throw "Vivado implementation ran without the scheduler-to-memory control physopt pass."
+    -not $toolDrivenPhysoptMarker) {
+    throw "Vivado implementation ran without the tool-driven physopt hook."
 }
-if ($controlPhysoptMarker) {
-    Write-Host "Verified: top scheduler-to-memory control paths were replicated and optimized."
+if ($toolDrivenPhysoptMarker) {
+    Write-Host "Verified: custom physopt mutations were disabled in favor of the Vivado strategy."
 }
 if ($linkExitCode -ne 0) {
     exit $linkExitCode

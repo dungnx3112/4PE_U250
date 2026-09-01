@@ -228,11 +228,11 @@ if (( ${#implementation_logs[@]} > 0 || link_exit_code == 0 )); then
         "300MHz floorplan: FLOORPLAN_APPLIED" \
         "the pre-place PE/SLR floorplan ran"
     require_marker \
-        "300MHz floorplan: DATA_DRIVEN_TASK_ANCHORS_APPLIED" \
-        "the PE-local KPN workers and registered SLR boundaries were anchored"
+        "300MHz floorplan: PE_ROOTS_APPLIED" \
+        "only the four PE roots were assigned to SLR0-SLR3"
     require_marker \
-        "300MHz control physopt: CONTROL_MEMORY_PATH_OPT_APPLIED" \
-        "top scheduler-to-memory control nets were replicated and optimized"
+        "300MHz physopt: TOOL_DRIVEN_PHYSOPT" \
+        "custom physopt mutations were disabled in favor of the Vivado strategy"
 fi
 
 if (( validation_failed != 0 )); then

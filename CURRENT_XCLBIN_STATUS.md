@@ -1,6 +1,6 @@
 # Trạng thái hiện tại — bản sửa critical path 300 MHz
 
-Ngày kiểm chứng: 2026-08-31
+Ngày kiểm chứng: 2026-09-01
 
 Checkpoint `../level0_wrapper_routed.dcp` là implementation của RTL cũ. Nó fail
 setup rất nặng: WNS `-13.105 ns`, TNS `-118341.414 ns`, 70,322 endpoint fail;
@@ -11,8 +11,9 @@ hold sạch với WHS `+0.009 ns`. Đường xấu nhất có 15.631/16.027 ns l
 
 - Bốn PE chạy bằng persistent `hls::task`; completion đi qua FIFO token và cây
   gom có đăng ký, không còn fan-in `ap_done/ap_continue` trực tiếp giữa bốn PE.
-- Command/data/completion FIFO qua biên SLR có ownership rõ ràng; pre-place Tcl
-  neo worker, local memory, AXI endpoint và các FIFO biên vào SLR tương ứng.
+- Command/data/completion FIFO qua biên SLR có ownership rõ ràng. Pre-place Tcl
+  chỉ neo bốn root `int4_run_local_pe_0..3` vào SLR0..3; các cell còn lại do
+  placer tự bố trí.
 - Critical DSP preadder/multiply 3.333 ns được thay bằng phép cộng fabric.
 - Vitis HLS 2023.2 C-synthesis thành công, không có `ERROR` hay
   `CRITICAL WARNING`; tất cả loop constraint đạt.
@@ -27,13 +28,11 @@ hold sạch với WHS `+0.009 ns`. Đường xấu nhất có 15.631/16.027 ns l
   `verify_300mhz_routed.tcl`. Build fail nếu route chưa đủ, có routing/DRC Error,
   WNS/WHS âm hoặc còn setup/hold path fail; XCLBIN chỉ được nhận khi có marker
   `TIMING_CLOSED`.
-- Pass `timing_300mhz_pre_physopt.tcl` ép replicate các top-level
-  `mode_reg/ap_CS_fsm/ap_sync` theo cụm tải sau placement, rồi chạy riêng
-  BRAM-enable và SLR-crossing optimization. Build fail nếu thiếu marker
-  `CONTROL_MEMORY_PATH_OPT_APPLIED`.
-- Hook physopt đã được smoke-test bằng Vivado 2023.2 trên đúng part
-  `xcu250-figd2104-2L-e`: 3/3 control net được replicate, cả pass BRAM và SLR/TNS
-  chạy thành công, exit code 0.
+- Full implementation ngày 2026-09-01 cho thấy pass ép replication cũ làm WNS
+  từ `-10.188 ns` xuống `-11.035 ns`. Sau ba pass tùy chỉnh, WNS chỉ đạt
+  `-10.021 ns`; riêng SLR cleanup mất khoảng 2 giờ 40 phút.
+- `timing_300mhz_pre_physopt.tcl` hiện là no-op. Build kiểm tra marker
+  `TOOL_DRIVEN_PHYSOPT`; physical optimization do strategy Vivado thực hiện.
 - Timing gate đã được thử trên checkpoint cũ và trả exit code 1 đúng như yêu cầu.
 
 ## Chưa thể khẳng định trên máy này

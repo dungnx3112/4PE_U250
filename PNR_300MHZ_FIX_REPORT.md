@@ -37,14 +37,12 @@ Máy hiện tại không có U250 `.xpfm`, nên chưa thể tạo routed DCP m�
 - `int4_decoder_blocks.cpp`: RMSNorm, SwiGLU và residual add dùng task/FIFO
   completion thay cho fan-in `ap_done`.
 - `swiftkv_attention.cpp`: pipeline constraint khớp recurrence và số cổng AXI.
-- `timing_300mhz_pre_place.tcl`: neo PE0..3 lần lượt vào SLR0..3; neo AXI,
-  memory, workers, FIFO biên và completion joins theo ownership.
-- `timing_300mhz_pre_physopt.tcl`: sau placement, ép replicate các net
-  `mode_reg/ap_CS_fsm/ap_sync` còn lại theo cụm tải; chạy `bram_enable_opt`,
-  fanout/critical-cell/placement optimization và
-  `slr_crossing_opt -tns_cleanup` trước pass AggressiveExplore chuẩn.
-  Hook đã được chạy thử bằng Vivado 2023.2 trên đúng part U250: 3 control net
-  thử nghiệm tạo 3 replica, các pass BRAM và SLR/TNS đều hoàn tất với exit code 0.
+- `timing_300mhz_pre_place.tcl`: chỉ neo bốn hierarchy root
+  `int4_run_local_pe_0..3` lần lượt vào SLR0..3. Memory ngoài root, FIFO biên,
+  join/reduction và control logic được để placer tự bố trí.
+- `timing_300mhz_pre_physopt.tcl`: no-op. Full implementation cho thấy forced
+  replication cũ làm WNS xấu từ `-10.188 ns` thành `-11.035 ns`, vì vậy
+  AggressiveExplore chuẩn chịu trách nhiệm toàn bộ physical optimization.
 - `link_300mhz.cfg`: 4 AXI master ánh xạ DDR0..3; dùng SSI BalanceSLLs,
   Performance Explore và aggressive physical optimization.
 - `build_300mhz.sh`/`.ps1`: run directory riêng, `--save-temps`, kiểm marker,
