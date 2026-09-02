@@ -27,19 +27,46 @@ proc timing300::unique {items} {
     return [lsort -unique $items]
 }
 
-# A replicated SRL/register can be named
+# A replicated SRL/register can be named either
 #   <real_instance>___<flattened_source_hierarchy>
+# or
+#   <real_instance>_KPN_<flattened_source_hierarchy>
 # by Vivado.  The suffix is provenance only: it may mention PE0 even when the
 # actual cell is below PE1.  Never use that suffix to determine SLR ownership.
 proc timing300::semantic_segment {segment} {
-    set provenance [string first "___" $segment]
-    if {$provenance >= 0} {
+    set provenance [string length $segment]
+    foreach delimiter [list "___" "_KPN_"] {
+        set candidate [string first $delimiter $segment]
+        if {$candidate >= 0 && $candidate < $provenance} {
+            set provenance $candidate
+        }
+    }
+    if {$provenance < [string length $segment]} {
         return [string range $segment 0 [expr {$provenance - 1}]]
     }
     return $segment
 }
 
-proc timing300::name_matches_pattern {name pattern} {
+proc timing300::local_pe_owner {name} {
+    foreach raw_segment [split $name /] {
+        set segment [semantic_segment $raw_segment]
+        if {[regexp {^int4_decoder_local_pe_([0-3])_U0$} $segment -> pe]} {
+            return $pe
+        }
+    }
+    return ""
+}
+
+proc timing300::name_matches_pattern {name pattern {expected_pe ""}} {
+    # The explicit destination hierarchy is authoritative.  This guard also
+    # protects ownership if a future Vivado release uses another replication
+    # suffix spelling which has not yet been added to semantic_segment.
+    if {$expected_pe ne ""} {
+        set actual_pe [local_pe_owner $name]
+        if {$actual_pe ne "" && $actual_pe ne $expected_pe} {
+            return 0
+        }
+    }
     foreach raw_segment [split $name /] {
         if {[string match $pattern [semantic_segment $raw_segment]]} {
             return 1
@@ -96,7 +123,7 @@ proc timing300::initialize {} {
     puts "INFO: 300MHz ownership: cached [llength $kernel_hier] hierarchy cells and [llength $kernel_leaves] leaf primitives"
 }
 
-proc timing300::match_patterns {patterns primitive} {
+proc timing300::match_patterns {patterns primitive {expected_pe ""}} {
     variable kernel_name
     variable kernel_hier
     variable kernel_leaves
@@ -105,12 +132,13 @@ proc timing300::match_patterns {patterns primitive} {
     if {$primitive} { set universe $kernel_leaves } else { set universe $kernel_hier }
     set matches {}
     foreach pattern $patterns {
-        if {$primitive && [info exists pattern_leaf_cache($pattern)]} {
-            set matches [concat $matches $pattern_leaf_cache($pattern)]
+        set cache_key [list $expected_pe $pattern]
+        if {$primitive && [info exists pattern_leaf_cache($cache_key)]} {
+            set matches [concat $matches $pattern_leaf_cache($cache_key)]
             continue
         }
-        if {!$primitive && [info exists pattern_hier_cache($pattern)]} {
-            set matches [concat $matches $pattern_hier_cache($pattern)]
+        if {!$primitive && [info exists pattern_hier_cache($cache_key)]} {
+            set matches [concat $matches $pattern_hier_cache($cache_key)]
             continue
         }
         set full_pattern "${kernel_name}/${pattern}"
@@ -122,15 +150,15 @@ proc timing300::match_patterns {patterns primitive} {
             # complete hierarchy segment itself matches the requested HLS
             # instance pattern.
             set name [get_property NAME $object]
-            if {[name_matches_pattern $name $pattern]} {
+            if {[name_matches_pattern $name $pattern $expected_pe]} {
                 lappend resolved $object
             }
         }
         set resolved [unique $resolved]
         if {$primitive} {
-            set pattern_leaf_cache($pattern) $resolved
+            set pattern_leaf_cache($cache_key) $resolved
         } else {
-            set pattern_hier_cache($pattern) $resolved
+            set pattern_hier_cache($cache_key) $resolved
         }
         set matches [concat $matches $resolved]
     }
@@ -139,8 +167,10 @@ proc timing300::match_patterns {patterns primitive} {
 
 proc timing300::discover_group {slr description patterns mandatory} {
     variable owner
-    set hierarchy [match_patterns $patterns 0]
-    set leaves [match_patterns $patterns 1]
+    set expected_pe ""
+    regexp {^PE([0-3]) } $description -> expected_pe
+    set hierarchy [match_patterns $patterns 0 $expected_pe]
+    set leaves [match_patterns $patterns 1 $expected_pe]
     if {[llength $hierarchy] == 0 && [llength $leaves] == 0} {
         if {$mandatory} {
             error "300MHz ownership: missing mandatory group '$description' for $slr"

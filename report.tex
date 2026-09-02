@@ -127,6 +127,28 @@ Hai trọng số INT4 của hai hàng ngõ ra chia sẻ chung một giá trị k
 \end{equation}
 Khoảng cách 23-bit đủ lớn để chứa tổng có dấu của một group 32 phần tử (tương ứng với một SIMD lane) mà không bị tràn (overflow). Điều này cho phép một khối DSP48 xử lý đồng thời 2 phép tính, nâng cao thông lượng lên 128 phép nhân scalar mỗi chu kỳ cho một PE, mà chỉ chiếm 7\% tài nguyên DSP của chip.
 
+\subsection{Cơ chế Nhân Ma Trận với Vector (GEMV) trên Phần Cứng}
+Mạng nơ-ron thực chất là các phép nhân ma trận trọng số $W (M \times N)$ với vector kích hoạt $x (N \times 1)$. Trên FPGA, thay vì dùng các vòng lặp phần mềm chậm chạp, phép toán GEMV (General Matrix-Vector Multiplication) được chuyển hóa thành mạch logic không gian (Spatial Computing) cực kỳ song song:
+
+\begin{itemize}
+    \item \textbf{Cấu trúc dữ liệu siêu rộng (Wide Memory Access):} Trọng số INT4 không được lưu trữ theo mảng 1D thông thường, mà được tổ chức theo bố cục \textit{Transposed G32}. Mỗi từ nhớ (word) đọc từ DDR có kích thước khổng lồ 512-bit, chứa dữ liệu của 4 hàng và 32 cột ($4 \times 32 \times 4\text{-bit} = 512\text{-bit}$). Nghĩa là mỗi nhịp clock, FPGA nạp vào trọn vẹn 128 trọng số.
+    \item \textbf{Mở phẳng vòng lặp (Loop Unrolling):} Vòng lặp tính toán dọc theo chiều cột (K-dimension) được mở phẳng hoàn toàn (\texttt{\#pragma HLS UNROLL}). Phần cứng sinh ra 32 làn (lane) nhân-cộng hoạt động hoàn toàn song song.
+    \item \textbf{Triển khai trên Mạch:} Trong một chu kỳ xung nhịp (clock cycle), 1 vector kích hoạt (gồm 32 phần tử) và 1 word trọng số 512-bit được đưa vào 64 khối DSP48 (mỗi khối xử lý 2 hàng nhờ DSP Packing). FPGA thực hiện đồng thời $32 \times 4 = 128$ phép nhân-cộng (MAC).
+    \item \textbf{Cây cộng (Adder Tree):} Kết quả của 32 phép nhân không dùng vòng lặp để cộng dồn, mà đi qua một cấu trúc mạch "Cây cộng" (Adder Tree) để ra ngay tổng tích lũy của 4 hàng trong cùng một chu kỳ, rồi cập nhật vào BRAM. Quá trình này duy trì thông lượng 1 vòng lặp / chu kỳ (Initiation Interval II=1).
+\end{itemize}
+
+\subsection{Kỹ thuật Che Khuất Độ Trễ và Gối Đầu (Overlapping bằng DATAFLOW)}
+Rào cản lớn nhất trong suy luận LLM là thời gian chờ dữ liệu từ bộ nhớ DDR (Memory Latency), thường được gọi là "Memory-bound". Để phần cứng luôn đạt 100% công suất (không bị stall), hệ thống áp dụng kỹ thuật \textbf{Pipelining mức Task} thông qua chỉ thị \texttt{\#pragma HLS DATAFLOW}.
+
+Quá trình nhân một khối ma trận (Tile) được cắt thành 3 tiến trình (Task) hoạt động độc lập và nối với nhau bằng các ống nước (hls::stream FIFO):
+\begin{enumerate}
+    \item \textbf{Tiến trình Load (Đọc):} Module \texttt{stream\_weight\_tiles} liên tục gửi lệnh AXI Burst để hút dữ liệu từ DDR, đẩy vào một FIFO đệm (\texttt{weight\_stream}) có độ sâu 512 words (đủ chứa 2 Tile ma trận).
+    \item \textbf{Tiến trình Compute (Tính toán):} Module lõi \texttt{compute\_streamed\_mvm} không quan tâm đến DDR. Nó chỉ lấy trọng số từ FIFO và kích hoạt từ BRAM cục bộ, sau đó vắt kiệt sức mạnh của DSP ở tốc độ II=1.
+    \item \textbf{Tiến trình Store (Ghi/Reduce):} Lấy kết quả đã cộng (partial sums) đẩy ra mạng Reduction liên SLR.
+\end{enumerate}
+
+\textbf{Hiệu ứng Overlap (Gối đầu):} Nhờ DATAFLOW và FIFO đủ lớn (Elastic Buffer), 3 tiến trình này chạy song song chồng lấn lên nhau. Tại bất kỳ thời điểm nào, phần cứng cũng đang: \textbf{Load dữ liệu cho Tile $n+1$}, đồng thời \textbf{Compute Tile $n$}, và \textbf{Store kết quả của Tile $n-1$}. Độ trễ biến động của DDR (Burst Jitter) hoàn toàn bị "nuốt chửng" bởi các FIFO, giúp lõi tính toán không bao giờ phải chờ đợi (zero-idle).
+
 \subsection{Các Khối Xử lý Khác}
 \begin{itemize}
     \item \textbf{\texttt{int4\_rmsnorm\_quantize\_shards}:} Thực hiện chuẩn hóa RMS. Đây là khối duy nhất truyền dữ liệu liên SLR gồm 1 số FP32 (tổng bình phương) và 1 nghịch đảo căn bậc hai. Sau khi chuẩn hóa, kết quả được lượng tử hóa sang dạng INT4.
@@ -223,7 +245,7 @@ tại tầng reduction.
     \draw[cmdline] (1.65,1.85) -- (6.15,1.85);
     \draw[cmdline] (6.35,1.85) -- (10.65,1.85);
     \draw[cmdline] (10.85,1.85) -- (15.05,1.85);
-    \node[font=\scriptsize, fill=white, inner sep=1pt] at (6.75,1.85)
+    \node[font=\scriptsize, fill=white, inner sep=2pt] at (6.75,2.15)
         {chuỗi lệnh scalar: PE0 $\rightarrow$ PE1 $\rightarrow$ PE2 $\rightarrow$ PE3};
 
     % Mạng cộng logic: chỉ các gói partial đi qua biên SLR.
@@ -257,55 +279,55 @@ $n$ đang tính và packet trước đó đang được reduction/ghi ra.
     \node[font=\bfseries, anchor=west] at (-0.1,6.35)
         {(a) Signed W4A15 packing trong một DSP48E2};
 
-    \node[hwbox, fill=u250red, minimum width=1.55cm] (wh) at (0.8,5.15)
+    \node[hwbox, fill=u250red, minimum width=1.55cm] (wh) at (0.8,5.5)
         {$w_{\mathrm{hi}}$\\signed W4};
-    \node[hwbox, fill=u250red, minimum width=1.55cm] (wl) at (0.8,3.85)
+    \node[hwbox, fill=u250red, minimum width=1.55cm] (wl) at (0.8,3.5)
         {$w_{\mathrm{lo}}$\\signed W4};
-    \node[hwbox, fill=u250blue, minimum width=3.55cm] (pack) at (4.0,4.5)
+    \node[hwbox, fill=u250blue, minimum width=3.55cm] (pack) at (4.5,4.5)
         {$P=(w_{\mathrm{hi}}\ll23)+w_{\mathrm{lo}}$\\signed 27 bit};
-    \node[hwbox, fill=u250green, minimum width=2.25cm] (act) at (4.0,2.95)
+    \node[hwbox, fill=u250green, minimum width=2.25cm] (act) at (4.5,2.0)
         {$x$ signed A15\\sign-extend 18 bit};
-    \node[dspbox] (dsp) at (7.6,4.25)
+    \node[dspbox] (dsp) at (9.5,4.5)
         {DSP48E2\\$27\times18$ MAC};
-    \node[hwbox, fill=u250orange, minimum width=2.65cm] (acc) at (11.0,4.25)
+    \node[hwbox, fill=u250orange, minimum width=2.65cm] (acc) at (13.5,4.5)
         {packed accumulator\\signed 48 bit};
     \node[hwbox, fill=u250purple, minimum width=4.15cm, minimum height=1.55cm]
-        (split) at (15.5,4.25)
+        (split) at (18.5,4.5)
         {$y_{\mathrm{lo}}=\mathrm{acc}[22{:}0]$\\
          $y_{\mathrm{hi}}=\mathrm{acc}[45{:}23]+\mathrm{acc}[22]$\\
          hai tích vô hướng signed độc lập};
 
-    \draw[dataline] (wh.east) -- (pack.west);
-    \draw[dataline] (wl.east) -- (pack.west);
+    \draw[dataline] (wh.east) -| (pack.north);
+    \draw[dataline] (wl.east) -| (pack.south);
     \draw[dataline] (pack.east) -- node[above, font=\scriptsize] {operand A} (dsp.west);
     \draw[dataline] (act.east) -| node[below right, font=\scriptsize] {operand B} (dsp.south);
     \draw[dataline] (dsp.east) -- (acc.west);
     \draw[dataline] (acc.east) -- (split.west);
-    \node[font=\small, align=center, text=u250navy] at (7.6,2.85)
+    \node[font=\small, align=center, text=u250navy] at (9.5,2.0)
         {2 phép nhân W4$\times$A15/DSP\\32 lane $\times$ 2 DSP/lane = 64 DSP/PE};
 
-    \draw[black!35, thick] (-0.1,2.25) -- (19.5,2.25);
-    \node[font=\bfseries, anchor=west] at (-0.1,1.85)
+    \draw[black!35, thick] (-0.1,1.0) -- (21.5,1.0);
+    \node[font=\bfseries, anchor=west] at (-0.1,0.5)
         {(b) DATAFLOW load--compute--write của linear PE $n$};
 
-    \node[streambox, fill=u250gray] (ddr) at (0.55,0.35)
+    \node[streambox, fill=u250gray] (ddr) at (0.55,-0.5)
         {DDR$n$\\weight W4};
-    \node[streambox] (load) at (2.75,0.35)
-        {AXI load\\512 bit/cycle};
-    \node[streambox, fill=u250blue] (fifo) at (5.3,0.35)
-        {BRAM FIFO\\depth 512\\$\geq 2$ tile};
-    \node[streambox, fill=u250orange, minimum width=2.2cm] (mac) at (8.5,0.35)
-        {32 lane unroll\\64 packed DSP\\row-block II=1};
-    \node[streambox, fill=u250purple] (partial) at (11.5,0.35)
-        {partial FP32\\packet 128 bit};
-    \node[streambox, fill=u250purple] (reduce) at (14.2,0.35)
+    \node[streambox] (load) at (2.75,-0.5)
+        {AXI load\\512b/cycle};
+    \node[streambox, fill=u250blue] (fifo) at (5.3,-0.5)
+        {BRAM FIFO\\d:512 ($\ge 2$ tile)};
+    \node[streambox, fill=u250orange, minimum width=2.0cm] (mac) at (8.5,-0.5)
+        {32 lane unroll\\64 DSP (II=1)};
+    \node[streambox, fill=u250purple] (partial) at (11.5,-0.5)
+        {partial FP32\\128 bit pkt};
+    \node[streambox, fill=u250purple] (reduce) at (14.2,-0.5)
         {pair/global\\reduction};
-    \node[streambox] (store) at (16.8,0.35)
+    \node[streambox] (store) at (16.8,-0.5)
         {store local\\output};
-    \node[streambox, fill=u250gray] (proj) at (19.4,0.35)
+    \node[streambox, fill=u250gray] (proj) at (19.4,-0.5)
         {projection\\BRAM};
     \node[streambox, fill=u250green, minimum width=2.8cm, minimum height=0.75cm]
-        (as) at (8.5,1.45) {activation A15 + scale\\BRAM/URAM cục bộ};
+        (as) at (8.5,0.7) {activation A15 + scale\\BRAM/URAM cục bộ};
 
     \draw[dataline] (ddr) -- (load);
     \draw[dataline] (load) -- (fifo);
@@ -318,7 +340,7 @@ $n$ đang tính và packet trước đó đang được reduction/ghi ra.
 
     \node[draw=u250navy, thick, rounded corners=2pt, fill=white,
         minimum width=16.8cm, minimum height=0.62cm, align=center,
-        font=\small] at (10.0,-1.05)
+        font=\small] at (10.0,-2.0)
         {Trạng thái ổn định: \textbf{load tile $n+1$}\quad$\parallel$\quad
          \textbf{compute tile $n$}\quad$\parallel$\quad
          \textbf{reduce/write packet $n-1$}};
@@ -371,23 +393,48 @@ Khi \texttt{mode = O}, khối \texttt{ATTENTION\_STAGE} (\texttt{int4\_swiftkv\_
 
 \begin{figure}[H]
 \centering
-\resizebox{0.8\textwidth}{!}{
+\resizebox{\textwidth}{!}{
 \begin{tikzpicture}[x=1cm,y=1cm]
-    \node[localbox, fill=u250orange] (qkv) at (0, 0) {BRAM\\\texttt{q, k, v}};
-    \node[pebox, minimum width=2.5cm] (attn) at (4, 0) {SwiftKV Attention\\\& RoPE};
-    \node[ddrbox] (rope) at (4, 2) {DDR\\RoPE LUT};
-    \node[ddrbox] (kv) at (4, -2) {DDR\\KV Cache};
-    \node[pebox, minimum width=2.5cm] (lin_o) at (8, 0) {Linear\\(O)};
-    \node[reducebox, minimum width=2.5cm] (add) at (12, 0) {Residual\\Add};
+    % Memories
+    \node[localbox, fill=u250orange] (bram_qkv) at (0, 1.5) {\texttt{BRAM q, k, v}};
+    \node[ddrbox, minimum width=3cm] (ddr_rope) at (0, 3) {\texttt{DDR rope\_lut}};
+    \node[ddrbox, minimum width=3cm] (ddr_kv) at (0, -1.5) {\texttt{DDR kv\_cache}};
     
-    \draw[dataline] (qkv) -- (attn);
-    \draw[dataline] (rope) -- (attn);
-    \draw[bothline] (kv) -- (attn);
-    \draw[dataline] (attn) -- node[above, font=\scriptsize] {\texttt{act\_q}} (lin_o);
-    \draw[dataline] (lin_o) -- node[above, font=\scriptsize] {\texttt{projection}} (add);
+    % Attention module detailed
+    \node[pebox, fill=u250blue, minimum width=3cm, minimum height=4cm] (attn_mod) at (5.5, 0) {};
+    \node[font=\bfseries, text=u250navy, align=center] at (5.5, 1.4) {\texttt{int4\_swiftkv\_}\\\texttt{attention\_pe}};
+    
+    \node[hwbox, fill=white, minimum width=2.5cm, font=\scriptsize] (rope) at (5.5, 0.4) {RoPE\\Apply};
+    \node[hwbox, fill=white, minimum width=2.5cm, font=\scriptsize] (kv_update) at (5.5, -0.6) {KV Cache\\Update};
+    \node[hwbox, fill=white, minimum width=2.5cm, font=\scriptsize] (softmax) at (5.5, -1.6) {Online Softmax\\\& Mac};
+    
+    % Out memories
+    \node[localbox, fill=u250orange] (bram_act_q) at (10.5, 0.5) {\texttt{BRAM activation\_q}\\(INT4)};
+    \node[localbox, fill=u250orange] (bram_act_s) at (10.5, -0.5) {\texttt{BRAM activation\_scale}\\(FP32)};
+    
+    % Linear O
+    \node[pebox, fill=u250blue, minimum width=2.5cm, align=center] (lin_o) at (15, 0) {\texttt{int4\_sharded\_}\\\texttt{linear\_4pe}\\\texttt{(mode = O)}};
+    \node[localbox, fill=u250orange, align=center] (bram_proj) at (19.5, 0) {\texttt{BRAM projection}\\(INT4\_output\_word\_t)};
+    \node[pebox, fill=u250green, minimum width=2.5cm] (add) at (19.5, -2.5) {\texttt{int4\_residual\_}\\\texttt{add\_shards}};
+    \node[localbox, fill=u250orange] (bram_res) at (15, -2.5) {\texttt{BRAM residual}};
+    
+    % Lines
+    \draw[dataline] (bram_qkv.east) -- node[above, font=\scriptsize] {Q, K, V} (attn_mod.west |- bram_qkv.east);
+    \draw[dataline] (ddr_rope.east) -| (rope.north);
+    \draw[bothline] (ddr_kv.east) -| (kv_update.south);
+    
+    \draw[dataline] (attn_mod.east |- bram_act_q.west) -- (bram_act_q.west);
+    \draw[dataline] (attn_mod.east |- bram_act_s.west) -- (bram_act_s.west);
+    
+    \draw[dataline] (bram_act_q.east) -- (lin_o.west |- bram_act_q.east);
+    \draw[dataline] (bram_act_s.east) -- (lin_o.west |- bram_act_s.east);
+    
+    \draw[dataline] (lin_o.east) -- (bram_proj.west);
+    \draw[dataline] (bram_proj.south) -- (add.north);
+    \draw[bothline] (bram_res.east) -- (add.west);
 \end{tikzpicture}
 }
-\caption{Luồng thực thi của khối Attention và chiếu Linear O.}
+\caption{Chi tiết interface và luồng dữ liệu cấp module của khối Attention và Linear O.}
 \end{figure}
 
 \subsection{4. Khối Chiếu Đầu Ra (Linear O) và Cộng Residual Đầu Tiên}
@@ -397,7 +444,6 @@ Ngay sau đó, khối \texttt{RESIDUAL\_ADD} được gọi: \texttt{residual = 
 \subsection{5. Khối Mạng Truyền Thẳng (FFN: Gate, Up, SwiGLU, Down)}
 
 Nửa sau của layer là khối FFN. Nó bắt đầu bằng một bước RMSNorm thứ hai để sinh ra \texttt{activation\_q}.
-Khối FFN trong Llama là sự kết hợp cực kỳ tối ưu về bộ nhớ nhờ thực thi tuần tự:
 \begin{enumerate}
     \item \textbf{Mode GATE:} \texttt{LINEAR\_STAGE} tính toán ma trận Gate, lưu tạm vào BRAM \texttt{projection}. Sau đó hàm save chép nó sang BRAM \texttt{gate} chuyên dụng.
     \item \textbf{Mode UP:} \texttt{LINEAR\_STAGE} tính toán ma trận Up, ghi đè lên BRAM \texttt{projection}. Không cần chép đi đâu nữa.
@@ -408,39 +454,88 @@ Khối FFN trong Llama là sự kết hợp cực kỳ tối ưu về bộ nhớ
 
 \begin{figure}[H]
 \centering
-\resizebox{0.95\textwidth}{!}{
+\resizebox{\textwidth}{!}{
 \begin{tikzpicture}[x=1cm,y=1cm]
-    \node[pebox, minimum width=2cm] (rms) at (0, 0) {RMSNorm\\(FFN)};
-    \node[pebox, minimum width=2.2cm] (gate) at (3.5, 1.5) {Linear\\(Gate)};
-    \node[pebox, minimum width=2.2cm] (up) at (3.5, -1.5) {Linear\\(Up)};
-    \node[localbox, fill=u250orange] (gate_mem) at (7, 1.5) {BRAM\\\texttt{gate}};
-    \node[localbox, fill=u250orange] (proj_mem) at (7, -1.5) {BRAM\\\texttt{projection} (chứa Up)};
-    \node[pebox, minimum width=2cm] (swiglu) at (11, 0) {SwiGLU\\\& Lượng tử};
-    \node[pebox, minimum width=2.2cm] (down) at (14.5, 0) {Linear\\(Down)};
-    \node[reducebox, minimum width=2cm] (add) at (18, 0) {Residual\\Add};
+    \node[localbox, fill=u250orange] (bram_res) at (0, 0) {\texttt{BRAM residual}};
+    \node[pebox, minimum width=2.5cm, align=center] (rms) at (4.5, 0) {\texttt{int4\_rmsnorm\_}\\\texttt{quantize\_shards}};
+    \node[localbox, fill=u250orange, align=center] (bram_act) at (9.0, 0) {\texttt{BRAM activation\_q/scale}\\(Dùng chung)};
     
-    \draw[dataline] (-2, 0) -- node[above, font=\scriptsize] {residual} (rms);
-    \draw[dataline] (rms) -- ++(1,0) |- (gate);
-    \draw[dataline] (rms) -- ++(1,0) |- (up);
+    \node[pebox, minimum width=2.5cm, align=center] (gate) at (14.0, 1.5) {\texttt{int4\_sharded\_}\\\texttt{linear\_4pe}\\\texttt{(mode = GATE)}};
+    \node[pebox, minimum width=2.5cm, align=center] (up) at (14.0, -1.5) {\texttt{int4\_sharded\_}\\\texttt{linear\_4pe}\\\texttt{(mode = UP)}};
     
-    \draw[dataline] (gate) -- (gate_mem);
-    \draw[dataline] (up) -- (proj_mem);
+    \node[localbox, fill=u250orange, align=center] (bram_gate) at (18.5, 1.5) {\texttt{BRAM gate}};
+    \node[localbox, fill=u250orange, align=center] (bram_proj) at (18.5, -1.5) {\texttt{BRAM projection}\\(Chứa giá trị Up)};
     
-    \draw[dataline] (gate_mem) -| (swiglu);
-    \draw[dataline] (proj_mem) -| (swiglu);
+    \node[pebox, minimum width=2.5cm, align=center] (swiglu) at (23.0, 0) {\texttt{int4\_swiglu\_}\\\texttt{quantize\_shards}};
     
-    \draw[dataline] (swiglu) -- node[above, font=\scriptsize] {\texttt{act\_q}} (down);
-    \draw[dataline] (down) -- node[above, font=\scriptsize] {\texttt{projection}} (add);
+    \draw[dataline] (bram_res) -- (rms);
+    \draw[dataline] (rms) -- (bram_act);
+    \draw[dataline] (bram_act.east) -- ++(1.5,0) |- (gate.west);
+    \draw[dataline] (bram_act.east) -- ++(1.5,0) |- (up.west);
     
-    \draw[dataline] (-1, 0) -- ++(0,-3) -| (add);
-    \node[font=\scriptsize, align=center] at (8.5, -3.2) {Đường truyền residual (skip connection)};
+    \draw[dataline] (gate) -- (bram_gate);
+    \draw[dataline] (up) -- (bram_proj);
+    
+    \draw[dataline] (bram_gate.east) -| node[above left, font=\scriptsize] {\texttt{gate[i]}} (swiglu.north);
+    \draw[dataline] (bram_proj.east) -| node[below left, font=\scriptsize] {\texttt{up[i]}} (swiglu.south);
+    
+    \node[localbox, fill=u250orange, align=center] (bram_act2) at (23.0, -3.5) {\texttt{BRAM activation\_q/scale}\\(Ghi đè)};
+    \node[pebox, minimum width=2.5cm, align=center] (down) at (18.5, -3.5) {\texttt{int4\_sharded\_}\\\texttt{linear\_4pe}\\\texttt{(mode = DOWN)}};
+    \node[localbox, fill=u250orange, align=center] (bram_proj2) at (13.0, -3.5) {\texttt{BRAM projection}\\(Ghi đè)};
+    \node[pebox, minimum width=2.5cm, align=center, fill=u250green] (add) at (6.5, -3.5) {\texttt{int4\_residual\_}\\\texttt{add\_shards}};
+    
+    \draw[dataline] (swiglu) -- (bram_act2);
+    \draw[dataline] (bram_act2) -- (down);
+    \draw[dataline] (down) -- (bram_proj2);
+    \draw[dataline] (bram_proj2) -- (add);
+    
+    \draw[dataline] (bram_res.south) |- node[below right, font=\scriptsize] {\texttt{residual[i]}} (add.west);
+    \draw[dataline] (add.north) -- ++(0,1.2) -| node[above, font=\scriptsize] {Ghi đè cập nhật} (bram_res.south east);
 \end{tikzpicture}
 }
-\caption{Luồng thực thi tuần tự của khối FFN tiết kiệm bộ nhớ trên FPGA.}
+\caption{Chi tiết interface và luồng dữ liệu cấp module của khối FFN.}
 \end{figure}
 
 \subsection{6. Logits Head}
 Sau 32 layer, \texttt{mode = LOGITS} được gọi. Khối tính thêm một lớp RMSNorm cuối cùng, chạy Linear Logits và lưu mảng xác suất token ra bộ nhớ DDR thông qua \texttt{logits\_pe}.
+
+\section{Giao tiếp Hệ thống, Điều khiển và Ràng buộc Vật lý (Floorplan)}
+
+\subsection{1. Giao tiếp giữa CPU (Host) và FPGA Kernel}
+CPU giao tiếp với kernel FPGA thông qua một cổng điều khiển chuẩn \textbf{AXI4-Lite} (\texttt{s\_axilite}). 
+Thông qua cổng này, CPU truyền các tham số vô hướng (scalar) và địa chỉ bộ nhớ DDR:
+\begin{itemize}
+    \item \textbf{Tham số suy luận:} \texttt{position} (vị trí token hiện tại cần giải mã).
+    \item \textbf{Địa chỉ vùng nhớ (Pointers):} Địa chỉ vật lý của các băng bộ nhớ \texttt{model\_bank}, \texttt{rope\_lut}, \texttt{kv\_cache}, \texttt{residual} và \texttt{logits}.
+    \item \textbf{Tín hiệu Handshake:} Thanh ghi \texttt{ap\_ctrl\_hs} để CPU ra lệnh \textbf{Start} cho kernel và chờ tín hiệu \textbf{Done} khi hoàn thành 32 layer.
+\end{itemize}
+Khi Kernel đang chạy, nó hoạt động hoàn toàn tự trị (đọc lệnh, giải mã toàn bộ mạng) mà không cần CPU can thiệp cho đến khi sinh ra được token logit cuối cùng.
+
+\subsection{2. Mạng lưới Điều khiển Nội bộ và Giao tiếp Liên SLR}
+Nếu sử dụng một Máy trạng thái trung tâm (Central FSM) để phát tín hiệu điều khiển (ví dụ: \texttt{start\_layer\_1}, \texttt{mode=Q}) tới toàn bộ 4 PE trên 4 SLR, tín hiệu sẽ chịu hiệu ứng \textbf{Fan-out toàn cục} khổng lồ, làm sập xung nhịp (timing violation).
+
+Thay vào đó, kiến trúc này sử dụng \textbf{Mạng chuỗi Token (Token Control Chain)}:
+\begin{itemize}
+    \item \textbf{Lệnh nối tiếp (Relay):} Lệnh vị trí (\texttt{position}) hoặc tín hiệu bắt đầu khối (\texttt{block\_token}) được đưa vào SLR0. SLR0 đọc lệnh, đồng thời chuyển tiếp (relay) lệnh đó sang SLR1 qua một FIFO nhỏ (sâu 2 phần tử). SLR1 lại chuyển tiếp cho SLR2, v.v.
+    \item \textbf{Token Hoàn thành (Completion):} Khi một PE tính xong, nó nhả ra một \texttt{completion\_token} (1-bit). Token của PE0 và PE1 được gộp (Join) tại SLR1. Token của PE2 và PE3 được gộp tại SLR2. Cuối cùng, hai tín hiệu gộp này lại hội tụ về SLR1 để xác nhận toàn bộ 4 PE đã xong.
+    \item \textbf{Lợi ích:} Nhờ cơ chế chuyền tay (như chạy tiếp sức), không có bất kỳ dây điều khiển nào chạy xuyên qua nhiều hơn 1 biên giới SLR. Các controller của các SLR hoàn toàn tách rời và tự kích hoạt khi có token đẩy vào FIFO của nó.
+\end{itemize}
+
+\subsection{3. Chiến lược Floorplan Hạn chế SLL và Tối ưu Timing (Fmax > 270 MHz)}
+Kiến trúc FPGA ghép mảnh (Multi-SLR) giao tiếp với nhau qua các đường Super Long Lines (SLL). Nếu các logic bị bộ tổng hợp (Synthesis) vứt rải rác lộn xộn qua các SLR, số lượng SLL sẽ bùng nổ, gây nghẽn định tuyến (routing congestion) và tụt Fmax thảm hại.
+
+Dự án này giải quyết bài toán Fmax $\geq$ 300MHz bằng cách áp dụng \textbf{Hard Floorplan} thông qua các file cấu hình TCL (\texttt{timing\_300mhz\_domains.tcl} và \texttt{link\_300mhz.cfg}):
+\begin{enumerate}
+    \item \textbf{Giới nghiêm (Containment) bằng Pblock:} Script TCL sẽ chủ động duyệt cây phân cấp (hierarchy) của file RTL sau khi Vitis HLS sinh ra. Nó gom tất cả logic, BRAM, URAM, DSP thuộc về \texttt{PE0} và ép cứng (assign) vào vùng \texttt{pblock\_dynamic\_SLR0}. Tương tự cho \texttt{PE1} vào SLR1, \texttt{PE2} vào SLR2, \texttt{PE3} vào SLR3.
+    \item \textbf{Gắn chặt AXI với DDR vật lý:} Cổng \texttt{m\_axi\_gmem0} được ép kết nối trực tiếp với bộ nhớ DDR[0] nằm ngay trên cùng một SLR0, loại bỏ hoàn toàn việc đường truyền AXI 512-bit bị vắt chéo SLR.
+    \item \textbf{Kiểm soát chặt chẽ biên giới SLR:} Các điểm cắt SLL duy nhất được phép tồn tại là:
+    \begin{itemize}
+        \item Đường truyền Token điều khiển hẹp (12-bit cho position, 1-bit cho completion).
+        \item Đường truyền Partial Sum (128-bit) của mạng Reduction. 
+    \end{itemize}
+    Tất cả các đường này đều được ép phải đi qua thanh ghi chốt (Pipeline Registers / FIFO \texttt{impl=bram}) ngay tại biên giới SLR.
+\end{enumerate}
+Nhờ việc định hướng trước mọi đường đi (Data-driven KPN) và ép cứng vị trí linh kiện (Strict Floorplanning), bộ định tuyến (Router) của Vivado không phải đoán mò. SLL được giảm thiểu tối đa, giúp luồng thiết kế dễ dàng vượt mốc tần số \textbf{300 MHz} mà không vi phạm timing.
 
 \section{Kết luận}
 Kiến trúc phần cứng được hiện thực hóa mang tính tối ưu cao cho luồng xử lý suy luận LLM theo phương thức memory-bound. Việc tái sử dụng lõi tính toán, kết hợp lượng tử hóa INT4 và đóng gói hiệu năng vào DSP48 biến Alveo U250 trở thành một cỗ máy gia tốc mạnh mẽ cho mô hình Llama-2 7B.

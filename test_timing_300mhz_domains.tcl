@@ -26,9 +26,9 @@ proc group_patterns {description} {
     error "No ownership group named '$description'"
 }
 
-proc matches_any {name patterns} {
+proc matches_any {name patterns {expected_pe ""}} {
     foreach pattern $patterns {
-        if {[timing300::name_matches_pattern $name $pattern]} {
+        if {[timing300::name_matches_pattern $name $pattern $expected_pe]} {
             return 1
         }
     }
@@ -41,10 +41,32 @@ set reported_name [join [list \
     root KPN_1255_1_U0 int4_decoder_local_pe_1_U0 \
     grp_int4_local_residual_add_pe1_fu_411 \
     {ap_enable_reg_pp0_iter7_reg_srl6___KPN_1255_1_U0_int4_decoder_local_pe_0_U0_grp_int4_local_swiglu_stage_pe0_fu_370_ap_enable_reg}] /]
-check {[matches_any $reported_name [group_patterns "PE1 local compute anchor"]]} \
+check {[matches_any $reported_name [group_patterns "PE1 local compute anchor"] 1]} \
     "reported PE1 cell must belong to PE1"
-check {![matches_any $reported_name [group_patterns "PE0 local compute anchor"]]} \
+check {![matches_any $reported_name [group_patterns "PE0 local compute anchor"] 0]} \
     "PE0 text in a provenance suffix must not claim the reported PE1 cell"
+
+# Vivado also emits the same provenance without the triple-underscore marker.
+set reported_kpn_name [join [list \
+    root KPN_1255_1_U0 int4_decoder_local_pe_1_U0 \
+    grp_int4_local_residual_add_pe1_fu_411 \
+    {ap_enable_reg_pp0_iter8_reg_KPN_1255_1_U0_int4_decoder_local_pe_0_U0_grp_int4_local_swiglu_stage_pe0_fu_370_ap_enable_reg}] /]
+check {[matches_any $reported_kpn_name [group_patterns "PE1 local compute anchor"] 1]} \
+    "reported _KPN_ PE1 cell must belong to PE1"
+check {![matches_any $reported_kpn_name [group_patterns "PE0 local compute anchor"] 0]} \
+    "PE0 text in an _KPN_ provenance suffix must not claim the PE1 cell"
+
+# Even an unknown future separator cannot override an explicit destination PE
+# hierarchy.  This exercises the hierarchy guard independently of suffix
+# recognition.
+set reported_unknown_suffix [join [list \
+    root KPN_1255_1_U0 int4_decoder_local_pe_1_U0 \
+    grp_int4_local_residual_add_pe1_fu_411 \
+    {ap_enable_reg_FUTURE_NAMING_int4_decoder_local_pe_0_U0_ap_enable_reg}] /]
+check {[matches_any $reported_unknown_suffix [group_patterns "PE1 local compute anchor"] 1]} \
+    "explicit PE1 hierarchy must survive an unknown provenance separator"
+check {![matches_any $reported_unknown_suffix [group_patterns "PE0 local compute anchor"] 0]} \
+    "unknown provenance spelling must not override explicit PE1 hierarchy"
 
 # Exercise every PE pair for every PE-specific ownership class.  The suffix
 # intentionally names every possible foreign PE, including the real PE.
@@ -63,12 +85,15 @@ foreach class $pe_classes {
         for {set provenance 0} {$provenance < 4} {incr provenance} {
             set actual_instance [format $instance_format $actual]
             set source_instance [format $instance_format $provenance]
-            set name "root/$actual_instance/cell___flattened_${source_instance}_source"
-            for {set expected 0} {$expected < 4} {incr expected} {
-                set description "PE${expected} $group_suffix"
-                set matched [matches_any $name [group_patterns $description]]
-                check {$matched == ($expected == $actual)} \
-                    "$description incorrectly classified actual PE$actual with PE$provenance provenance"
+            foreach name [list \
+                    "root/$actual_instance/cell___flattened_${source_instance}_source" \
+                    "root/$actual_instance/cell_KPN_1255_1_U0_${source_instance}_source"] {
+                for {set expected 0} {$expected < 4} {incr expected} {
+                    set description "PE${expected} $group_suffix"
+                    set matched [matches_any $name [group_patterns $description] $expected]
+                    check {$matched == ($expected == $actual)} \
+                        "$description incorrectly classified actual PE$actual with PE$provenance provenance"
+                }
             }
         }
     }
@@ -98,9 +123,14 @@ foreach record $representatives {
     check {$matched_slrs eq [list $owner_slr]} \
         "pattern $pattern from '$description' resolves across SLRs: $matched_slrs"
 
-    # A pattern appearing only after ___ is provenance, never ownership.
-    check {![timing300::name_matches_pattern "root/unrelated_cell___$representative" $pattern]} \
-        "pattern $pattern matched provenance-only text"
+    # A pattern appearing only in either known provenance suffix is never
+    # ownership, including position and pair-reduction patterns.
+    foreach provenance_name [list \
+            "root/unrelated_cell___$representative" \
+            "root/unrelated_cell_KPN_1255_1_U0_$representative"] {
+        check {![timing300::name_matches_pattern $provenance_name $pattern]} \
+            "pattern $pattern matched provenance-only text in $provenance_name"
+    }
 }
 
 if {$failures != 0} {
