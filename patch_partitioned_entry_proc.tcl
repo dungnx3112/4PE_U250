@@ -60,6 +60,7 @@ proc partition_decoder_entry_proc {verilog_directory} {
     close $handle
     if {[string first PARTITIONED_PE_CONFIG_LAUNCH $text] >= 0} {
         puts "INFO: partitioned entry process already present: $entry_path"
+        puts "INFO: 300MHz RTL gate: PARTITIONED_PE_CONFIG_LAUNCH"
         return $entry_path
     }
 
@@ -182,6 +183,7 @@ assign kv_cache_pe0_c_din}
     puts -nonewline $handle $patched
     close $handle
     puts "INFO: partitioned 20-address entry process into four five-address PE groups: $entry_path"
+    puts "INFO: 300MHz RTL gate: PARTITIONED_PE_CONFIG_LAUNCH"
     return $entry_path
 }
 

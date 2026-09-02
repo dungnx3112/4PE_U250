@@ -17,6 +17,8 @@ $workspaceDirectory = Split-Path -Parent $sourceDirectory
 $xoPath = Join-Path $sourceDirectory "int4_decoder_token_controller_300mhz.xo"
 $baseConfigPath = Join-Path $sourceDirectory "link_300mhz.cfg"
 $prePlacePath = Join-Path $sourceDirectory "timing_300mhz_pre_place.tcl"
+$postPlacePath = Join-Path $sourceDirectory "timing_300mhz_post_place.tcl"
+$slrDomainsPath = Join-Path $sourceDirectory "timing_300mhz_domains.tcl"
 $prePhysoptPath = Join-Path $sourceDirectory "timing_300mhz_pre_physopt.tcl"
 $timingGatePath = Join-Path $sourceDirectory "verify_300mhz_routed.tcl"
 $postRouteReportPath = Join-Path $sourceDirectory "report_300mhz_post_route.tcl"
@@ -29,6 +31,7 @@ $tempDirectory = Join-Path $runDirectory "temp"
 $logDirectory = Join-Path $runDirectory "logs"
 $reportDirectory = Join-Path $runDirectory "reports"
 $resolvedConfigPath = Join-Path $runDirectory "link_300mhz.resolved.cfg"
+$candidateOutput = Join-Path $runDirectory "int4_decoder_token_controller_300mhz.candidate.xclbin"
 
 foreach ($requiredPath in @(
     $VppPath,
@@ -37,6 +40,8 @@ foreach ($requiredPath in @(
     $xoPath,
     $baseConfigPath,
     $prePlacePath,
+    $postPlacePath,
+    $slrDomainsPath,
     $prePhysoptPath,
     $timingGatePath,
     $postRouteReportPath
@@ -44,6 +49,22 @@ foreach ($requiredPath in @(
     if (-not (Test-Path -LiteralPath $requiredPath)) {
         throw "Required build input does not exist: $requiredPath"
     }
+}
+
+$xoTimestamp = (Get-Item -LiteralPath $xoPath).LastWriteTimeUtc
+$newerHlsInputs = @(
+    Get-ChildItem -LiteralPath $sourceDirectory -File |
+        Where-Object {
+            $_.Extension -in @(".cpp", ".hpp") -or
+            $_.Name -in @(
+                "run_hls_300mhz.tcl",
+                "patch_partitioned_entry_proc.tcl",
+                "verify_generated_rtl_300mhz.tcl")
+        } |
+        Where-Object { $_.LastWriteTimeUtc -gt $xoTimestamp }
+)
+if ($newerHlsInputs.Count -gt 0) {
+    throw "XO is stale relative to HLS source. Rebuild int4_decoder_token_controller_300mhz.xo before linking."
 }
 
 New-Item -ItemType Directory -Force -Path $buildDirectory | Out-Null
@@ -57,11 +78,14 @@ New-Item -ItemType Directory -Force -Path $reportDirectory | Out-Null
 # immediately before every link so the floorplan cannot disappear when the
 # project moves or when the build runs on a different host.
 $vivadoPrePlacePath = (Resolve-Path -LiteralPath $prePlacePath).Path.Replace("\", "/")
+$vivadoPostPlacePath = (Resolve-Path -LiteralPath $postPlacePath).Path.Replace("\", "/")
 $vivadoPrePhysoptPath = (Resolve-Path -LiteralPath $prePhysoptPath).Path.Replace("\", "/")
 $prePlaceProperty =
     "prop=run.impl_1.STEPS.PLACE_DESIGN.TCL.PRE=$vivadoPrePlacePath"
 $prePhysoptProperty =
     "prop=run.impl_1.STEPS.PHYS_OPT_DESIGN.TCL.PRE=$vivadoPrePhysoptPath"
+$postPlaceProperty =
+    "prop=run.impl_1.STEPS.PLACE_DESIGN.TCL.POST=$vivadoPostPlacePath"
 $baseConfig = Get-Content -LiteralPath $baseConfigPath
 $expectedFrequencyProperty = "freqhz=$targetFrequencyHz`:$kernelClock"
 if (@($baseConfig | Where-Object { $_ -eq $expectedFrequencyProperty }).Count -ne 1) {
@@ -69,12 +93,16 @@ if (@($baseConfig | Where-Object { $_ -eq $expectedFrequencyProperty }).Count -n
 }
 $resolvedConfig = $baseConfig `
     -replace '^prop=run\.impl_1\.STEPS\.PLACE_DESIGN\.TCL\.PRE=.*$', $prePlaceProperty `
+    -replace '^prop=run\.impl_1\.STEPS\.PLACE_DESIGN\.TCL\.POST=.*$', $postPlaceProperty `
     -replace '^prop=run\.impl_1\.STEPS\.PHYS_OPT_DESIGN\.TCL\.PRE=.*$', $prePhysoptProperty
 if (@($resolvedConfig | Where-Object { $_ -eq $prePlaceProperty }).Count -ne 1) {
     throw "Could not inject exactly one Vivado pre-place hook into the resolved link config."
 }
 if (@($resolvedConfig | Where-Object { $_ -eq $prePhysoptProperty }).Count -ne 1) {
     throw "Could not inject exactly one Vivado pre-physopt hook into the resolved link config."
+}
+if (@($resolvedConfig | Where-Object { $_ -eq $postPlaceProperty }).Count -ne 1) {
+    throw "Could not inject exactly one Vivado post-place hook into the resolved link config."
 }
 $resolvedConfig | Set-Content -LiteralPath $resolvedConfigPath -Encoding Ascii
 Write-Host "Build run directory: $runDirectory"
@@ -99,7 +127,7 @@ $vppArguments = @(
     "--temp_dir", $tempDirectory,
     "--log_dir", $logDirectory,
     "--report_dir", $reportDirectory,
-    "--output", $resolvedOutput,
+    "--output", $candidateOutput,
     $xoPath
 )
 
@@ -120,6 +148,8 @@ $implementationLogs = @(
 $floorplanMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: FLOORPLAN_APPLIED" -List
 $localDomainsMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: LOCAL_DOMAINS_APPLIED" -List
 $registeredBoundariesMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: REGISTERED_BOUNDARIES_APPLIED" -List
+$leafFloorplanMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: LEAF_PRIMITIVE_OWNERSHIP_APPLIED" -List
+$leafPlacementMarker = $implementationLogs | Select-String -Pattern "300MHz post-place: LEAF_OWNERSHIP_VERIFIED" -List
 $toolDrivenPhysoptMarker = $implementationLogs | Select-String -Pattern "300MHz physopt: TOOL_DRIVEN_PHYSOPT" -List
 
 if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
@@ -144,6 +174,17 @@ if ($registeredBoundariesMarker) {
     Write-Host "Verified: position, pair-reduction and completion boundaries were localized."
 }
 if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
+    -not $leafFloorplanMarker) {
+    throw "Vivado implementation ran without leaf-primitive SLR ownership."
+}
+if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
+    -not $leafPlacementMarker) {
+    throw "Vivado placement did not verify physical leaf ownership."
+}
+if ($leafPlacementMarker) {
+    Write-Host "Verified: every owned PE/AXI/memory leaf stayed in its assigned SLR."
+}
+if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
     -not $toolDrivenPhysoptMarker) {
     throw "Vivado implementation ran without the tool-driven physopt hook."
 }
@@ -154,9 +195,9 @@ if ($linkExitCode -ne 0) {
     exit $linkExitCode
 }
 
-if (-not (Test-Path -LiteralPath $resolvedOutput -PathType Leaf) -or
-    (Get-Item -LiteralPath $resolvedOutput).Length -eq 0) {
-    throw "v++ returned success but XCLBIN is missing or empty: $resolvedOutput"
+if (-not (Test-Path -LiteralPath $candidateOutput -PathType Leaf) -or
+    (Get-Item -LiteralPath $candidateOutput).Length -eq 0) {
+    throw "v++ returned success but candidate XCLBIN is missing or empty: $candidateOutput"
 }
 
 $routedCheckpoints = @(
@@ -193,6 +234,10 @@ if (-not (Select-String -LiteralPath $timingGateLog `
         -Pattern "300MHz timing gate: TIMING_CLOSED" -Quiet)) {
     throw "Vivado timing gate did not emit TIMING_CLOSED. See: $timingGateLog"
 }
+if (-not (Select-String -LiteralPath $timingGateLog `
+        -Pattern "300MHz timing gate: ROUTED_LEAF_OWNERSHIP_CLEAN" -Quiet)) {
+    throw "Vivado timing gate did not verify routed leaf ownership. See: $timingGateLog"
+}
 
 $postRouteLog = Join-Path $logDirectory "post_route_slr_audit.log"
 $postRouteArguments = @(
@@ -211,8 +256,15 @@ if (-not (Select-String -LiteralPath $postRouteLog `
         -Pattern "300MHz post-route: SLR_PATH_AUDIT_COMPLETE" -Quiet)) {
     throw "Vivado post-route report did not complete the SLR path audit. See: $postRouteLog"
 }
+if (-not (Select-String -LiteralPath $postRouteLog `
+        -Pattern "300MHz post-route: INTERNAL_SLR_TOPOLOGY_CLEAN" -Quiet)) {
+    throw "Vivado post-route audit found a kernel-internal SLR detour. See: $postRouteLog"
+}
 
+# Preserve any previously accepted image until every gate for this run passes.
+Move-Item -LiteralPath $candidateOutput -Destination $resolvedOutput -Force
 $outputHash = Get-FileHash -LiteralPath $resolvedOutput -Algorithm SHA256
+Write-Host "300MHz build gate: ACCEPTED_XCLBIN_PUBLISHED"
 Write-Host "XCLBIN build completed: $resolvedOutput"
 Write-Host "SHA-256: $($outputHash.Hash)"
 Write-Host "Reports: $reportDirectory"

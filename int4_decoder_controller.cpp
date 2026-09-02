@@ -269,26 +269,26 @@ void int4_decoder_token_controller(
     int4_output_word_t* kv_cache_pe1,
     int4_output_word_t* kv_cache_pe2,
     int4_output_word_t* kv_cache_pe3) {
-#pragma HLS INTERFACE m_axi port=model_bank0 bundle=gmem0 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=256 num_read_outstanding=16
-#pragma HLS INTERFACE m_axi port=rope_lut_pe0 bundle=gmem0 offset=slave depth=SWIFTKV_ROPE_DDR_WORDS latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=16 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=residual_pe0 bundle=gmem0 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=16 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=logits_pe0 bundle=gmem0 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=16 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=kv_cache_pe0 bundle=gmem0 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=16 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=model_bank1 bundle=gmem1 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=256 num_read_outstanding=16
-#pragma HLS INTERFACE m_axi port=rope_lut_pe1 bundle=gmem1 offset=slave depth=SWIFTKV_ROPE_DDR_WORDS latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=16 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=residual_pe1 bundle=gmem1 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=16 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=logits_pe1 bundle=gmem1 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=16 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=kv_cache_pe1 bundle=gmem1 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=16 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=model_bank2 bundle=gmem2 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=256 num_read_outstanding=16
-#pragma HLS INTERFACE m_axi port=rope_lut_pe2 bundle=gmem2 offset=slave depth=SWIFTKV_ROPE_DDR_WORDS latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=16 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=residual_pe2 bundle=gmem2 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=16 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=logits_pe2 bundle=gmem2 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=16 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=kv_cache_pe2 bundle=gmem2 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=16 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=model_bank3 bundle=gmem3 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=256 num_read_outstanding=16
-#pragma HLS INTERFACE m_axi port=rope_lut_pe3 bundle=gmem3 offset=slave depth=SWIFTKV_ROPE_DDR_WORDS latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=16 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=residual_pe3 bundle=gmem3 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=16 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=logits_pe3 bundle=gmem3 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=16 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=kv_cache_pe3 bundle=gmem3 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=256 max_write_burst_length=64 num_read_outstanding=16 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=model_bank0 bundle=gmem0 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=64 num_read_outstanding=4
+#pragma HLS INTERFACE m_axi port=rope_lut_pe0 bundle=gmem0 offset=slave depth=SWIFTKV_ROPE_DDR_WORDS latency=64 max_read_burst_length=64 max_write_burst_length=64 num_read_outstanding=4 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=residual_pe0 bundle=gmem0 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=64 num_read_outstanding=4 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=logits_pe0 bundle=gmem0 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=64 num_read_outstanding=4 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=kv_cache_pe0 bundle=gmem0 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=64 max_write_burst_length=64 num_read_outstanding=4 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=model_bank1 bundle=gmem1 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=64 num_read_outstanding=4
+#pragma HLS INTERFACE m_axi port=rope_lut_pe1 bundle=gmem1 offset=slave depth=SWIFTKV_ROPE_DDR_WORDS latency=64 max_read_burst_length=64 max_write_burst_length=64 num_read_outstanding=4 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=residual_pe1 bundle=gmem1 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=64 num_read_outstanding=4 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=logits_pe1 bundle=gmem1 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=64 num_read_outstanding=4 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=kv_cache_pe1 bundle=gmem1 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=64 max_write_burst_length=64 num_read_outstanding=4 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=model_bank2 bundle=gmem2 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=64 num_read_outstanding=4
+#pragma HLS INTERFACE m_axi port=rope_lut_pe2 bundle=gmem2 offset=slave depth=SWIFTKV_ROPE_DDR_WORDS latency=64 max_read_burst_length=64 max_write_burst_length=64 num_read_outstanding=4 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=residual_pe2 bundle=gmem2 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=64 num_read_outstanding=4 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=logits_pe2 bundle=gmem2 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=64 num_read_outstanding=4 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=kv_cache_pe2 bundle=gmem2 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=64 max_write_burst_length=64 num_read_outstanding=4 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=model_bank3 bundle=gmem3 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=64 num_read_outstanding=4
+#pragma HLS INTERFACE m_axi port=rope_lut_pe3 bundle=gmem3 offset=slave depth=SWIFTKV_ROPE_DDR_WORDS latency=64 max_read_burst_length=64 max_write_burst_length=64 num_read_outstanding=4 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=residual_pe3 bundle=gmem3 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=64 num_read_outstanding=4 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=logits_pe3 bundle=gmem3 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=64 num_read_outstanding=4 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=kv_cache_pe3 bundle=gmem3 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=64 max_write_burst_length=64 num_read_outstanding=4 num_write_outstanding=2
 
 #pragma HLS INTERFACE s_axilite port=position bundle=control
 #pragma HLS INTERFACE s_axilite port=model_bank0 bundle=control

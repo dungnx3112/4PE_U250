@@ -63,6 +63,8 @@ workspace_dir=$(cd -- "$source_dir/.." && pwd -P)
 xo_path=$source_dir/int4_decoder_token_controller_300mhz.xo
 base_config_path=$source_dir/link_300mhz.cfg
 pre_place_path=$source_dir/timing_300mhz_pre_place.tcl
+post_place_path=$source_dir/timing_300mhz_post_place.tcl
+slr_domains_path=$source_dir/timing_300mhz_domains.tcl
 pre_physopt_path=$source_dir/timing_300mhz_pre_physopt.tcl
 hls_script_path=$source_dir/run_hls_300mhz.tcl
 timing_gate_path=$source_dir/verify_300mhz_routed.tcl
@@ -73,10 +75,13 @@ temp_dir=$run_dir/temp
 log_dir=$run_dir/logs
 report_dir=$run_dir/reports
 resolved_config_path=$run_dir/link_300mhz.resolved.cfg
+candidate_output=$run_dir/int4_decoder_token_controller_300mhz.candidate.xclbin
 
 for required_path in \
     "$base_config_path" \
     "$pre_place_path" \
+    "$post_place_path" \
+    "$slr_domains_path" \
     "$pre_physopt_path" \
     "$timing_gate_path" \
     "$post_route_report_path"; do
@@ -90,6 +95,14 @@ mkdir -p -- "$temp_dir" "$log_dir" "$report_dir"
 
 if [[ ! -f $xo_path ]]; then
     echo "XO does not exist; enabling REBUILD_XO=1: $xo_path"
+    rebuild_xo=1
+elif find "$source_dir" -maxdepth 1 -type f \
+        \( -name '*.cpp' -o -name '*.hpp' -o \
+           -name 'run_hls_300mhz.tcl' -o \
+           -name 'patch_partitioned_entry_proc.tcl' -o \
+           -name 'verify_generated_rtl_300mhz.tcl' \) \
+        -newer "$xo_path" -print -quit | grep -q .; then
+    echo "XO is older than its HLS inputs; enabling REBUILD_XO=1."
     rebuild_xo=1
 fi
 
@@ -117,6 +130,15 @@ if (( rebuild_xo == 1 )); then
         cd -- "$source_dir"
         "$hls" -f "$hls_script_path"
     ) 2>&1 | tee "$log_dir/vitis_hls.log"
+    for marker in \
+        "PARTITIONED_PE_CONFIG_LAUNCH" \
+        "LOCAL_WEIGHT_REQUEST_PIPELINES_VERIFIED" \
+        "AXI_READ_WINDOWS_4X64_VERIFIED"; do
+        if ! grep -Fq -- "$marker" "$log_dir/vitis_hls.log"; then
+            echo "HLS completed without required architecture marker: $marker" >&2
+            exit 1
+        fi
+    done
 fi
 
 if [[ ! -s $xo_path ]]; then
@@ -150,11 +172,16 @@ fi
 
 # Generate a run-local config. The absolute Linux paths remain valid after
 # Vitis changes directory into its generated Vivado implementation project.
-if ! awk -v pre="$pre_place_path" -v phys="$pre_physopt_path" '
-    BEGIN { pre_count = 0; phys_count = 0 }
+if ! awk -v pre="$pre_place_path" -v post="$post_place_path" -v phys="$pre_physopt_path" '
+    BEGIN { pre_count = 0; post_count = 0; phys_count = 0 }
     /^prop=run\.impl_1\.STEPS\.PLACE_DESIGN\.TCL\.PRE=/ {
         print "prop=run.impl_1.STEPS.PLACE_DESIGN.TCL.PRE=" pre
         pre_count++
+        next
+    }
+    /^prop=run\.impl_1\.STEPS\.PLACE_DESIGN\.TCL\.POST=/ {
+        print "prop=run.impl_1.STEPS.PLACE_DESIGN.TCL.POST=" post
+        post_count++
         next
     }
     /^prop=run\.impl_1\.STEPS\.PHYS_OPT_DESIGN\.TCL\.PRE=/ {
@@ -164,12 +191,12 @@ if ! awk -v pre="$pre_place_path" -v phys="$pre_physopt_path" '
     }
     { print }
     END {
-        if (pre_count != 1 || phys_count != 1) {
+        if (pre_count != 1 || post_count != 1 || phys_count != 1) {
             exit 42
         }
     }
 ' "$base_config_path" > "$resolved_config_path"; then
-    echo "Could not inject exactly one pre-place hook." >&2
+    echo "Could not inject exactly one pre-place, post-place and pre-physopt hook." >&2
     exit 1
 fi
 
@@ -199,7 +226,7 @@ set +e
     --temp_dir "$temp_dir" \
     --log_dir "$log_dir" \
     --report_dir "$report_dir" \
-    --output "$resolved_output" \
+    --output "$candidate_output" \
     "$xo_path"
 link_exit_code=$?
 set -e
@@ -236,6 +263,12 @@ if (( ${#implementation_logs[@]} > 0 || link_exit_code == 0 )); then
         "300MHz floorplan: REGISTERED_BOUNDARIES_APPLIED" \
         "position, pair-reduction and completion boundaries were localized"
     require_marker \
+        "300MHz floorplan: LEAF_PRIMITIVE_OWNERSHIP_APPLIED" \
+        "optimized leaf primitives were assigned to their owning SLR"
+    require_marker \
+        "300MHz post-place: LEAF_OWNERSHIP_VERIFIED" \
+        "placed PE/AXI/memory primitives stayed in their owning SLR"
+    require_marker \
         "300MHz physopt: TOOL_DRIVEN_PHYSOPT" \
         "custom physopt mutations were disabled in favor of the Vivado strategy"
 fi
@@ -247,8 +280,8 @@ if (( link_exit_code != 0 )); then
     exit "$link_exit_code"
 fi
 
-if [[ ! -s $resolved_output ]]; then
-    echo "v++ returned success but XCLBIN is missing or empty: $resolved_output" >&2
+if [[ ! -s $candidate_output ]]; then
+    echo "v++ returned success but candidate XCLBIN is missing or empty: $candidate_output" >&2
     exit 1
 fi
 
@@ -287,6 +320,11 @@ if ! grep -Fq -- "300MHz timing gate: TIMING_CLOSED" \
     echo "Vivado timing gate did not emit TIMING_CLOSED." >&2
     exit 1
 fi
+if ! grep -Fq -- "300MHz timing gate: ROUTED_LEAF_OWNERSHIP_CLEAN" \
+        "$log_dir/timing_gate.log"; then
+    echo "Vivado timing gate did not verify routed leaf ownership." >&2
+    exit 1
+fi
 
 echo "Running full SLR-sequence audit on: $routed_dcp"
 "$vivado" -mode batch -notrace \
@@ -298,12 +336,22 @@ if ! grep -Fq -- "300MHz post-route: SLR_PATH_AUDIT_COMPLETE" \
     echo "Vivado post-route report did not complete the SLR path audit." >&2
     exit 1
 fi
+if ! grep -Fq -- "300MHz post-route: INTERNAL_SLR_TOPOLOGY_CLEAN" \
+        "$log_dir/post_route_slr_audit.log"; then
+    echo "Vivado post-route audit found a kernel-internal SLR detour." >&2
+    exit 1
+fi
 
+# Never publish a timing-failing image.  The previous accepted XCLBIN remains
+# untouched until placement ownership, setup/hold and routed SLR topology have
+# all passed for this exact run.
+mv -f -- "$candidate_output" "$resolved_output"
 sha256sum -- "$resolved_output"
 if command -v xclbinutil >/dev/null 2>&1; then
     xclbinutil --input "$resolved_output" --info \
         > "$report_dir/xclbin.info.txt"
 fi
 
+echo "300MHz build gate: ACCEPTED_XCLBIN_PUBLISHED"
 echo "XCLBIN build completed: $resolved_output"
 echo "Reports: $report_dir"

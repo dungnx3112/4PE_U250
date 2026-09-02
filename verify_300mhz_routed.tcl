@@ -18,6 +18,23 @@ file mkdir $report_dir
 
 open_checkpoint $dcp_path
 
+# Recheck physical ownership after both phys_opt passes.  Post-place checking
+# alone is insufficient because phys_opt may replicate a cell after placement.
+set script_directory [file dirname [file normalize [info script]]]
+set ownership_script [file join $script_directory timing_300mhz_domains.tcl]
+if {![file exists $ownership_script]} {
+    error "Timing gate is missing ownership library: $ownership_script"
+}
+source $ownership_script
+lassign [timing300::verify_placement \
+    [file join $report_dir routed_leaf_ownership.csv]] \
+    owned_leaves wrong_leaves
+if {$wrong_leaves != 0} {
+    close_design
+    error "300MHz routed ownership failed: $wrong_leaves local primitives escaped their SLR"
+}
+puts "INFO: 300MHz timing gate: ROUTED_LEAF_OWNERSHIP_CLEAN ($owned_leaves leaves)"
+
 set setup_paths [get_timing_paths -quiet -delay_type max -max_paths 1 -nworst 1]
 set hold_paths [get_timing_paths -quiet -delay_type min -max_paths 1 -nworst 1]
 if {[llength $setup_paths] != 1} {
@@ -65,6 +82,8 @@ puts $result "routable_nets=$routable_nets"
 puts $result "fully_routed_nets=$fully_routed_nets"
 puts $result "route_errors=$route_errors"
 puts $result "drc_errors=$drc_errors"
+puts $result "owned_leaves=$owned_leaves"
+puts $result "wrong_owned_leaves=$wrong_leaves"
 close $result
 
 puts "INFO: 300MHz timing gate: WNS=$wns WHS=$whs routed=$fully_routed_nets/$routable_nets route_errors=$route_errors drc_errors=$drc_errors"

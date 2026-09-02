@@ -127,6 +127,9 @@ static void int4_unpack_packed_acc(
 }
 
 using int4_linear_command_t = ap_uint<64>;
+// A PE-local, registered request boundary separates schedule decoding from the
+// AXI address counter.  18 bits cover the largest request (258048 words).
+using int4_weight_request_t = ap_uint<42>;
 
 static int4_linear_command_t int4_pack_linear_command(
     ap_uint<3> mode,
@@ -244,23 +247,46 @@ static void int4_seed_local_linear_command(
 }
 
 template <int PE_ID>
-static void int4_stream_local_weights(
-    const int4_weight_word_t* weight_mem,
+static void int4_prepare_local_weight_request(
     hls::stream<int4_linear_command_t>& command_stream,
+    hls::stream<int4_weight_request_t>& request_stream) {
+#pragma HLS INLINE off
+#pragma HLS PIPELINE II=1
+    const int4_linear_command_t command = command_stream.read();
+    const ap_uint<8> output_tiles =
+        (ap_uint<8>)int4_command_output_tiles(command);
+    const ap_uint<4> local_input_tiles =
+        (ap_uint<4>)int4_command_local_input_tiles(command);
+    const ap_uint<18> total_words = (ap_uint<18>)(
+        output_tiles * local_input_tiles * INT4_WEIGHT_WORDS_PER_TILE);
+    int4_weight_request_t request = 0;
+    request.range(23, 0) = command.range(26, 3);
+    request.range(41, 24) = total_words;
+    request_stream.write(request);
+}
+
+template <int PE_ID>
+static void int4_read_local_weights(
+    const int4_weight_word_t* weight_mem,
+    hls::stream<int4_weight_request_t>& request_stream,
     hls::stream<int4_weight_word_t>& weight_stream) {
 #pragma HLS INLINE off
-    const int4_linear_command_t command = command_stream.read();
-    const int output_tiles = int4_command_output_tiles(command);
-    const int local_input_tiles = int4_command_local_input_tiles(command);
-    const int total_words =
-        output_tiles * local_input_tiles * INT4_WEIGHT_WORDS_PER_TILE;
-    const int base = (int)command.range(26, 3);
+    const int4_weight_request_t request = request_stream.read();
+    ap_uint<24> address = request.range(23, 0);
+    const ap_uint<18> total_words = request.range(41, 24);
 
 stream_local_weight_loop:
-    for (int word = 0; word < total_words; ++word) {
+    for (ap_uint<19> remaining = total_words;
+         remaining != 0;
+         --remaining) {
 #pragma HLS PIPELINE II=1
 #pragma HLS LOOP_TRIPCOUNT min=32768 max=258048
-        weight_stream.write(weight_mem[base + word]);
+        // The old expression weight_mem[base + word] produced one wide adder
+        // whose CARRY8 chain was hoisted out of PE0, routed SLR0->SLR2->SLR0
+        // and consumed over 6.6 ns.  This narrow registered counter remains in
+        // the local reader and exposes a sequential burst to the AXI adapter.
+        weight_stream.write(weight_mem[(unsigned int)address]);
+        ++address;
     }
 }
 
@@ -395,20 +421,25 @@ static void int4_run_local_pe(
 #pragma HLS DATAFLOW disable_start_propagation
     hls::stream<int4_linear_command_t> reader_command;
     hls::stream<int4_linear_command_t> compute_command;
+    hls::stream<int4_weight_request_t> weight_request;
     hls::stream<int4_weight_word_t> weight_stream;
 #pragma HLS STREAM variable=reader_command depth=3
 #pragma HLS STREAM variable=compute_command depth=3
+#pragma HLS STREAM variable=weight_request depth=2
     // Two complete 128x256 tiles absorb one AXI command/latency bubble while
     // the reusable MAC consumes the previous tile at one 512-bit word/cycle.
 #pragma HLS STREAM variable=weight_stream depth=512
 #pragma HLS BIND_STORAGE variable=reader_command type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=compute_command type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=weight_request type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=weight_stream type=fifo impl=bram
 
     int4_split_local_command(
         command_stream, reader_command, compute_command);
-    int4_stream_local_weights<PE_ID>(
-        weight_mem, reader_command, weight_stream);
+    int4_prepare_local_weight_request<PE_ID>(
+        reader_command, weight_request);
+    int4_read_local_weights<PE_ID>(
+        weight_mem, weight_request, weight_stream);
     int4_compute_local_partials<PE_ID>(
         scale_mem, activation_q, activation_scale,
         compute_command, weight_stream, partial_stream);

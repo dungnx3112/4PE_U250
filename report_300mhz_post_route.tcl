@@ -165,13 +165,18 @@ run_report methodology [list report_methodology] $report_dir
 # in SLR0 while physically travelling SLR0->SLR2->SLR1->SLR0->SLR3->SLR0.
 # Record the complete collapsed SLR sequence and flag detours/revisits.
 set path_csv [open [file join $report_dir "timing_path_slr_audit.csv"] w]
-puts $path_csv "index,slack,datapath_delay,logic_delay,route_delay,route_ratio,logic_levels,start_slr,end_slr,slr_sequence,crossing_count,max_hop,revisit,same_slr_detour,category,flags,transition_cells,startpoint,endpoint"
+puts $path_csv "index,slack,datapath_delay,logic_delay,route_delay,route_ratio,logic_levels,start_slr,end_slr,slr_sequence,crossing_count,max_hop,revisit,same_slr_detour,kernel_internal,category,flags,transition_cells,startpoint,endpoint"
 set path_index 0
 set suspicious_count 0
 set revisit_count 0
 set same_slr_detour_count 0
 set nonadjacent_count 0
 set route_dominated_failing_count 0
+set internal_path_count 0
+set internal_multiple_count 0
+set internal_revisit_count 0
+set internal_same_slr_detour_count 0
+set internal_nonadjacent_count 0
 foreach path [get_timing_paths -quiet -delay_type max -max_paths 1000 \
         -nworst 1 -sort_by group] {
     incr path_index
@@ -179,6 +184,10 @@ foreach path [get_timing_paths -quiet -delay_type max -max_paths 1000 \
     set end_pin [get_property ENDPOINT_PIN $path]
     set start_name [pin_name $start_pin]
     set end_name [pin_name $end_pin]
+    set kernel_internal [expr {
+        [string match "*/int4_decoder_token_controller_1/inst/*" $start_name] &&
+        [string match "*/int4_decoder_token_controller_1/inst/*" $end_name]}]
+    if {$kernel_internal} { incr internal_path_count }
     lassign [pin_slr_and_cell $start_pin] start_slr unused_start_cell
     lassign [pin_slr_and_cell $end_pin] end_slr unused_end_cell
     lassign [timing_path_slr_sequence $path] sequence transition_cells
@@ -231,18 +240,22 @@ foreach path [get_timing_paths -quiet -delay_type max -max_paths 1000 \
     set flags {}
     if {$crossings > 1} {
         lappend flags MULTIPLE_CROSSINGS
+        if {$kernel_internal} { incr internal_multiple_count }
     }
     if {$max_hop > 1} {
         lappend flags NONADJACENT_HOP
         incr nonadjacent_count
+        if {$kernel_internal} { incr internal_nonadjacent_count }
     }
     if {$revisit} {
         lappend flags SLR_REVISIT
         incr revisit_count
+        if {$kernel_internal} { incr internal_revisit_count }
     }
     if {$same_slr_detour} {
         lappend flags SAME_SLR_DETOUR
         incr same_slr_detour_count
+        if {$kernel_internal} { incr internal_same_slr_detour_count }
     }
     if {[string is double -strict $slack] && $slack < 0.0 &&
             [string is double -strict $route_ratio] && $route_ratio > 0.8} {
@@ -256,7 +269,8 @@ foreach path [get_timing_paths -quiet -delay_type max -max_paths 1000 \
     set category [classify_timing_path $start_name $end_name]
     set row [list $path_index $slack $datapath $logic $route $route_ratio \
         $levels $start_slr $end_slr [join $sequence {->}] $crossings \
-        $max_hop $revisit $same_slr_detour $category [join $flags {|}] \
+        $max_hop $revisit $same_slr_detour $kernel_internal \
+        $category [join $flags {|}] \
         [join $transition_cells {|}] $start_name $end_name]
     set quoted_row {}
     foreach value $row {
@@ -274,6 +288,11 @@ puts $audit_summary "slr_revisit_paths,$revisit_count"
 puts $audit_summary "same_slr_detour_paths,$same_slr_detour_count"
 puts $audit_summary "nonadjacent_hop_paths,$nonadjacent_count"
 puts $audit_summary "route_dominated_failing_paths,$route_dominated_failing_count"
+puts $audit_summary "kernel_internal_paths_checked,$internal_path_count"
+puts $audit_summary "kernel_internal_multiple_crossing_paths,$internal_multiple_count"
+puts $audit_summary "kernel_internal_slr_revisit_paths,$internal_revisit_count"
+puts $audit_summary "kernel_internal_same_slr_detour_paths,$internal_same_slr_detour_count"
+puts $audit_summary "kernel_internal_nonadjacent_hop_paths,$internal_nonadjacent_count"
 close $audit_summary
 
 # Count placed URAM primitives by physical SLR. This specifically checks the
@@ -348,11 +367,20 @@ foreach resource {LUT FF BRAM URAM DSP} {
 }
 close $resource_csv
 
-# QoR assessment can be much slower than the other reports for this design.
-# Run it last so the timing, congestion, and physical-balance evidence above
-# is already safely on disk if that optional analysis is interrupted.
-run_report qor_assessment [list report_qor_assessment] $report_dir
-
 puts "INFO: 300 MHz post-route reports written to $report_dir"
+if {$internal_multiple_count != 0 || $internal_revisit_count != 0 ||
+        $internal_same_slr_detour_count != 0 ||
+        $internal_nonadjacent_count != 0} {
+    close_design
+    error "300MHz internal SLR topology failed: multiple=$internal_multiple_count revisit=$internal_revisit_count same_slr_detour=$internal_same_slr_detour_count nonadjacent=$internal_nonadjacent_count"
+}
+puts "INFO: 300MHz post-route: INTERNAL_SLR_TOPOLOGY_CLEAN"
 puts "INFO: 300MHz post-route: SLR_PATH_AUDIT_COMPLETE"
+
+# QoR assessment is optional because it takes much longer than the topology
+# and timing reports and does not participate in acceptance.
+if {[info exists ::env(RUN_QOR_ASSESSMENT)] &&
+        $::env(RUN_QOR_ASSESSMENT) eq "1"} {
+    run_report qor_assessment [list report_qor_assessment] $report_dir
+}
 close_design
