@@ -27,6 +27,27 @@ proc timing300::unique {items} {
     return [lsort -unique $items]
 }
 
+# A replicated SRL/register can be named
+#   <real_instance>___<flattened_source_hierarchy>
+# by Vivado.  The suffix is provenance only: it may mention PE0 even when the
+# actual cell is below PE1.  Never use that suffix to determine SLR ownership.
+proc timing300::semantic_segment {segment} {
+    set provenance [string first "___" $segment]
+    if {$provenance >= 0} {
+        return [string range $segment 0 [expr {$provenance - 1}]]
+    }
+    return $segment
+}
+
+proc timing300::name_matches_pattern {name pattern} {
+    foreach raw_segment [split $name /] {
+        if {[string match $pattern [semantic_segment $raw_segment]]} {
+            return 1
+        }
+    }
+    return 0
+}
+
 proc timing300::initialize {} {
     variable initialized
     variable kernel_name
@@ -101,11 +122,8 @@ proc timing300::match_patterns {patterns primitive} {
             # complete hierarchy segment itself matches the requested HLS
             # instance pattern.
             set name [get_property NAME $object]
-            foreach segment [split $name /] {
-                if {[string match $pattern $segment]} {
-                    lappend resolved $object
-                    break
-                }
+            if {[name_matches_pattern $name $pattern]} {
+                lappend resolved $object
             }
         }
         set resolved [unique $resolved]

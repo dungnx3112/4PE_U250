@@ -328,6 +328,120 @@ $n$ đang tính và packet trước đó đang được reduction/ghi ra.
 \label{fig:w4a15-dataflow}
 \end{figure}
 
+\section{Chi Tiết Kiến Trúc Từng Khối Theo Luồng Suy Luận Llama}
+
+Kiến trúc phần cứng được thiết kế tinh gọn để thực thi chính xác luồng suy luận (inference flow) của mô hình Llama-2. Thay vì dùng các module rời rạc cho từng lớp, lõi \texttt{int4\_decoder\_local\_pe} thi hành một vòng lặp gồm 32 lớp (layer), mỗi lớp lặp qua nhiều giai đoạn (stage) tuần tự. 
+
+Mỗi giai đoạn được quyết định bởi một \texttt{mode} tĩnh (Q, K, V, O, Gate, Up, Down, Logits). Cấu trúc \texttt{if-else} trong kernel sẽ tự động bật/tắt các khối xử lý phần cứng phù hợp với \texttt{mode} đó. Dưới đây là phân tích chi tiết từng khối theo đúng chu trình chảy của dữ liệu.
+
+\subsection{1. Khối Chuẩn Hóa RMSNorm và Lượng Tử Hóa (RMS\_STAGE)}
+
+Trước khi đi vào khối Attention hay FFN, tensor đầu vào (residual) phải đi qua RMSNorm. Khối \texttt{int4\_rmsnorm\_quantize\_shards} đảm nhận nhiệm vụ này.
+
+\textbf{Quá trình thực thi:}
+\begin{enumerate}
+    \item \textbf{Tính tổng bình phương (SumSq):} Mỗi PE tự đọc BRAM \texttt{residual} cục bộ, bình phương các phần tử và tính tổng cục bộ (\texttt{partial\_stream}).
+    \item \textbf{Mạng lưới Reduction (Global Sum):} Tổng của PE0+PE1 và PE2+PE3 được cộng chéo giữa các SLR để tạo ra tổng toàn cục, sau đó tính nghịch đảo căn bậc hai ($1/\sqrt{x}$) bằng hàm \texttt{hls::rsqrtf}. Kết quả được phát ngược lại (broadcast) về 4 PE.
+    \item \textbf{Chuẩn hóa và Lượng tử hóa INT4:} Mỗi PE dùng giá trị nghịch đảo này nhân với \texttt{residual} và tham số $\gamma$ (được lưu trong URAM \texttt{norm\_cache}). Kết quả FP32 lập tức được lượng tử hóa nhóm (Group Quantization - block size 32) để sinh ra \texttt{activation\_q} (chuẩn INT4) và \texttt{activation\_scale} (FP32).
+\end{enumerate}
+
+\subsection{2. Khối Chiếu Tuyến Tính Q, K, V và Lưư BRAM}
+
+Khi \texttt{activation\_q} đã sẵn sàng, hàm \texttt{LINEAR\_STAGE} được gọi 3 lần tuần tự với các \texttt{mode = Q, K, V}.
+
+\textbf{Quá trình thực thi:}
+\begin{enumerate}
+    \item Động cơ tính toán \texttt{int4\_sharded\_linear\_4pe} nạp trọng số INT4 từ DDR cục bộ.
+    \item Thực hiện nhân ma trận (MAC) trên DSP48E2. Partial sums được truyền qua mạng Reduction (chỉ 128-bit đi qua biên SLR).
+    \item Kết quả hoàn chỉnh được nạp vào BRAM nháp \texttt{projection}.
+    \item Hàm \texttt{int4\_save\_local\_projection} sẽ sao chép kết quả từ \texttt{projection} sang các BRAM chuyên dụng \texttt{q, k, v}.
+\end{enumerate}
+
+\subsection{3. Khối Attention (SwiftKV) và Cập Nhật KV Cache}
+
+Khi \texttt{mode = O}, khối \texttt{ATTENTION\_STAGE} (\texttt{int4\_swiftkv\_attention\_pe}) được kích hoạt.
+
+\textbf{Quá trình thực thi:}
+\begin{enumerate}
+    \item \textbf{RoPE (Rotary Positional Embedding):} Áp dụng biến đổi xoay vị trí cho Q và K bằng các hệ số lượng giác nạp từ \texttt{rope\_lut} (DDR).
+    \item \textbf{Cập nhật KV Cache:} K và V mới được ghi thẳng ra bộ nhớ DDR (\texttt{kv\_cache}). Trạng thái Cache của các token trước cũng được nạp song song vào FPGA.
+    \item \textbf{Online Softmax Attention:} Phép tính $Q \times K^T$ và $\times V$ được chạy cục bộ trên mỗi SLR. Do kiến trúc Tensor Parallel đã chia head đều cho 4 SLR, bước Attention không cần liên lạc xuyên SLR.
+    \item Đầu ra của Attention được lượng tử hóa trực tiếp thành \texttt{activation\_q} mới, chuẩn bị cho lớp Linear O.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.8\textwidth}{!}{
+\begin{tikzpicture}[x=1cm,y=1cm]
+    \node[localbox, fill=u250orange] (qkv) at (0, 0) {BRAM\\\texttt{q, k, v}};
+    \node[pebox, minimum width=2.5cm] (attn) at (4, 0) {SwiftKV Attention\\\& RoPE};
+    \node[ddrbox] (rope) at (4, 2) {DDR\\RoPE LUT};
+    \node[ddrbox] (kv) at (4, -2) {DDR\\KV Cache};
+    \node[pebox, minimum width=2.5cm] (lin_o) at (8, 0) {Linear\\(O)};
+    \node[reducebox, minimum width=2.5cm] (add) at (12, 0) {Residual\\Add};
+    
+    \draw[dataline] (qkv) -- (attn);
+    \draw[dataline] (rope) -- (attn);
+    \draw[bothline] (kv) -- (attn);
+    \draw[dataline] (attn) -- node[above, font=\scriptsize] {\texttt{act\_q}} (lin_o);
+    \draw[dataline] (lin_o) -- node[above, font=\scriptsize] {\texttt{projection}} (add);
+\end{tikzpicture}
+}
+\caption{Luồng thực thi của khối Attention và chiếu Linear O.}
+\end{figure}
+
+\subsection{4. Khối Chiếu Đầu Ra (Linear O) và Cộng Residual Đầu Tiên}
+Tiếp tục trong \texttt{mode = O}, \texttt{LINEAR\_STAGE} nhận \texttt{activation\_q} (kết quả Attention) và nhân với trọng số $W_O$. Kết quả được xuất ra BRAM \texttt{projection}.
+Ngay sau đó, khối \texttt{RESIDUAL\_ADD} được gọi: \texttt{residual = residual + projection}.
+
+\subsection{5. Khối Mạng Truyền Thẳng (FFN: Gate, Up, SwiGLU, Down)}
+
+Nửa sau của layer là khối FFN. Nó bắt đầu bằng một bước RMSNorm thứ hai để sinh ra \texttt{activation\_q}.
+Khối FFN trong Llama là sự kết hợp cực kỳ tối ưu về bộ nhớ nhờ thực thi tuần tự:
+\begin{enumerate}
+    \item \textbf{Mode GATE:} \texttt{LINEAR\_STAGE} tính toán ma trận Gate, lưu tạm vào BRAM \texttt{projection}. Sau đó hàm save chép nó sang BRAM \texttt{gate} chuyên dụng.
+    \item \textbf{Mode UP:} \texttt{LINEAR\_STAGE} tính toán ma trận Up, ghi đè lên BRAM \texttt{projection}. Không cần chép đi đâu nữa.
+    \item \textbf{Mode DOWN (Kích hoạt SwiGLU):} Lúc này, khối \texttt{SWIGLU\_STAGE} được gọi. Nó lấy dữ liệu từ BRAM \texttt{gate} và BRAM \texttt{projection} (đang chứa Up) để tính $\text{Gate} \times \sigma(\text{Gate}) \times \text{Up}$. Kết quả lập tức được lượng tử hóa thành \texttt{activation\_q}.
+    \item \textbf{Mode DOWN (Chiếu tuyến tính):} \texttt{LINEAR\_STAGE} nhân \texttt{activation\_q} với trọng số $W_{\text{Down}}$, lưu vào BRAM \texttt{projection}.
+    \item Cuối cùng, \texttt{RESIDUAL\_ADD} cộng \texttt{projection} vào dòng chảy chính \texttt{residual}.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{
+\begin{tikzpicture}[x=1cm,y=1cm]
+    \node[pebox, minimum width=2cm] (rms) at (0, 0) {RMSNorm\\(FFN)};
+    \node[pebox, minimum width=2.2cm] (gate) at (3.5, 1.5) {Linear\\(Gate)};
+    \node[pebox, minimum width=2.2cm] (up) at (3.5, -1.5) {Linear\\(Up)};
+    \node[localbox, fill=u250orange] (gate_mem) at (7, 1.5) {BRAM\\\texttt{gate}};
+    \node[localbox, fill=u250orange] (proj_mem) at (7, -1.5) {BRAM\\\texttt{projection} (chứa Up)};
+    \node[pebox, minimum width=2cm] (swiglu) at (11, 0) {SwiGLU\\\& Lượng tử};
+    \node[pebox, minimum width=2.2cm] (down) at (14.5, 0) {Linear\\(Down)};
+    \node[reducebox, minimum width=2cm] (add) at (18, 0) {Residual\\Add};
+    
+    \draw[dataline] (-2, 0) -- node[above, font=\scriptsize] {residual} (rms);
+    \draw[dataline] (rms) -- ++(1,0) |- (gate);
+    \draw[dataline] (rms) -- ++(1,0) |- (up);
+    
+    \draw[dataline] (gate) -- (gate_mem);
+    \draw[dataline] (up) -- (proj_mem);
+    
+    \draw[dataline] (gate_mem) -| (swiglu);
+    \draw[dataline] (proj_mem) -| (swiglu);
+    
+    \draw[dataline] (swiglu) -- node[above, font=\scriptsize] {\texttt{act\_q}} (down);
+    \draw[dataline] (down) -- node[above, font=\scriptsize] {\texttt{projection}} (add);
+    
+    \draw[dataline] (-1, 0) -- ++(0,-3) -| (add);
+    \node[font=\scriptsize, align=center] at (8.5, -3.2) {Đường truyền residual (skip connection)};
+\end{tikzpicture}
+}
+\caption{Luồng thực thi tuần tự của khối FFN tiết kiệm bộ nhớ trên FPGA.}
+\end{figure}
+
+\subsection{6. Logits Head}
+Sau 32 layer, \texttt{mode = LOGITS} được gọi. Khối tính thêm một lớp RMSNorm cuối cùng, chạy Linear Logits và lưu mảng xác suất token ra bộ nhớ DDR thông qua \texttt{logits\_pe}.
+
 \section{Kết luận}
 Kiến trúc phần cứng được hiện thực hóa mang tính tối ưu cao cho luồng xử lý suy luận LLM theo phương thức memory-bound. Việc tái sử dụng lõi tính toán, kết hợp lượng tử hóa INT4 và đóng gói hiệu năng vào DSP48 biến Alveo U250 trở thành một cỗ máy gia tốc mạnh mẽ cho mô hình Llama-2 7B.
 
