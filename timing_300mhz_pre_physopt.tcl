@@ -1,13 +1,20 @@
-# Deliberately do not mutate the placed netlist here.
+# Re-constrain any kernel leaves that escaped their SLR pblock during
+# placement or incremental optimisation.  The pre-place hook assigns
+# ownership, but opt_design / place_design may flatten hierarchy and
+# create new cells (e.g. CARRY8 adders) that inherit no pblock.
 #
-# The implementation strategy already runs AggressiveExplore phys_opt_design.
-# A previous hook force-replicated top-level scheduler nets, including nets that
-# were themselves replicas. On the full U250 design that pass worsened WNS and
-# increased the work presented to the following SLR-crossing optimization.
-# Leave fanout replication, BRAM-enable optimization and SLR-crossing placement
-# to the configured Vivado strategy, which has complete path and congestion
-# context.
+# This hook re-discovers ownership from the same domain_specs used at
+# pre-place time, then force-adds any misplaced leaf back into its
+# correct pblock BEFORE phys_opt_design runs its SLR-crossing pass.
 
 puts "INFO: loading [file normalize [info script]]"
-puts "INFO: 300MHz physopt: no custom netlist transformations"
-puts "INFO: 300MHz physopt: TOOL_DRIVEN_PHYSOPT"
+set script_directory [file dirname [file normalize [info script]]]
+set ownership_script [file join $script_directory timing_300mhz_domains.tcl]
+if {![file exists $ownership_script]} {
+    error "300MHz pre-physopt: missing ownership library $ownership_script"
+}
+source $ownership_script
+
+set rescued [timing300::rescue_escaped_cells]
+puts "INFO: 300MHz pre-physopt: rescued $rescued escaped cells"
+puts "INFO: 300MHz pre-physopt: SLR_OWNERSHIP_REINFORCED"

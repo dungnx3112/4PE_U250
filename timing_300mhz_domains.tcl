@@ -50,7 +50,14 @@ proc timing300::semantic_segment {segment} {
 proc timing300::local_pe_owner {name} {
     foreach raw_segment [split $name /] {
         set segment [semantic_segment $raw_segment]
+        # Primary: explicit PE wrapper created by HLS.
         if {[regexp {^int4_decoder_local_pe_([0-3])_U0$} $segment -> pe]} {
+            return $pe
+        }
+        # Secondary: Vivado may flatten a PE-specific engine out of its
+        # parent wrapper.  Recognise the PE index from the module name
+        # itself so that the ownership guard still works correctly.
+        if {[regexp {^int4_(?:stream_local_weights|run_local_pe|compute_local_partials|store_local_output|prepare_local_weight_request|read_local_weights|swiftkv_attention_pe)_?([0-3])_(?:U0|s)$} $segment -> pe]} {
             return $pe
         }
     }
@@ -343,6 +350,47 @@ proc timing300::apply_floorplan {} {
         lassign $spec slr description mandatory patterns
         claim_group $slr $description $patterns $mandatory
     }
+}
+
+# Re-constrain cells that have been created or moved by phys_opt_design
+# outside their assigned SLR pblock.  Call from the phys_opt pre-hook.
+proc timing300::rescue_escaped_cells {} {
+    variable pblocks
+    variable owner
+    variable kernel_leaves
+
+    # Re-initialise so kernel_leaves picks up any new cells.
+    variable initialized
+    set initialized 0
+    initialize
+
+    # Re-discover ownership from the current netlist.
+    foreach spec [domain_specs] {
+        lassign $spec slr description mandatory patterns
+        set expected_pe ""
+        regexp {^PE([0-3]) } $description -> expected_pe
+        set leaves [match_patterns [lindex $spec 3] 1 $expected_pe]
+        foreach leaf $leaves {
+            set lname [get_property NAME $leaf]
+            if {![info exists owner($lname)]} {
+                set owner($lname) $slr
+            }
+        }
+    }
+
+    set rescued 0
+    foreach leaf_name [array names owner] {
+        set expected_slr $owner($leaf_name)
+        set leaf_obj [get_cells -quiet $leaf_name]
+        if {[llength $leaf_obj] != 1} { continue }
+        set actual [cell_slr [lindex $leaf_obj 0]]
+        if {$actual eq $expected_slr} { continue }
+        # Cell is in the wrong SLR — add it to the correct pblock.
+        add_cells_to_pblock $pblocks($expected_slr) [lindex $leaf_obj 0]
+        incr rescued
+    }
+    puts "INFO: 300MHz rescue: re-constrained $rescued cells to their assigned SLR pblocks"
+    return $rescued
 }
 
 proc timing300::verify_placement {report_path} {
