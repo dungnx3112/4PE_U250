@@ -28,7 +28,7 @@ shard logits.
 | `int4_model_layout.hpp` | Shape, padding và offset cố định của mỗi DDR |
 | `int4_weight_packer.cpp/.hpp` | Packer offline tạo bốn model image input-column-sharded |
 | `link_300mhz.cfg` | Ánh xạ `gmem0..3` tới `DDR[0]..DDR[3]` |
-| `timing_300mhz_pre_place.tcl` | Chỉ gán các cell còn tồn tại của PE1 vào SLR1 |
+| `timing_300mhz_pre_place.tcl` | Áp ownership cứng PE0..3/gmem0..3 vào SLR0..3 |
 | `verify_300mhz_routed.tcl` | Hard gate route, DRC, setup và hold trên routed DCP |
 
 ## Kiến trúc dữ liệu
@@ -179,12 +179,16 @@ void int4_decoder_token_controller(
 Metadata scale và norm được preload vào URAM persistent khi `position == 0`.
 Residual chỉ đọc một lần đầu invocation và ghi một lần cuối invocation.
 
-## Gán PE1/SLR1 và control KPN
+## Locality cho DDR/control và control KPN
 
-`timing_300mhz_pre_place.tcl` chỉ đặt `USER_SLR_ASSIGNMENT=SLR1` cho các cell còn
-tồn tại bên dưới PE1 (root ngoài có thể bị Vivado flatten). Không còn pblock,
-ownership map, post-place ownership check hay custom pre-physopt hook. Vivado
-tự quyết định placement và physical optimization cho toàn bộ phần còn lại.
+`timing_300mhz_pre_place.tcl` là một hook độc lập, đặt cứng bốn AXI adapter
+`gmem0..3` vào SLR chứa DDR tương ứng và đặt
+`control_s_axi_U` cạnh AXI-Lite shell ở SLR0. Các PE compute lớn vẫn để placer
+tối ưu theo timing. Routed DCP ngày 2026-09-03 chứng minh hint mềm có thể bị bỏ
+qua và làm `gmem0` đi SLR0→SLR2; ngược lại, run ép ownership toàn bộ khoảng
+442k primitive từng có post-place WNS `-4.900 ns`, nên không dùng lại.
+
+Số liệu và critical-path chi tiết nằm trong `NEW_DCP_TIMING_FIX.md`.
 
 Vitis HLS 2023.2 tự sinh một `entry_proc` AND đồng thời 20 tín hiệu `full_n`
 của các FIFO địa chỉ. `patch_partitioned_entry_proc.tcl` được gọi tự động sau
@@ -250,7 +254,7 @@ REBUILD_XO=1 bash source/build_300mhz.sh
 ```
 
 Script tự source Vitis, tạo config theo từng run với đường dẫn Tcl tuyệt đối,
-chạy `v++ --link --target hw --save-temps`, kiểm tra gán PE1/SLR1 đã chạy rồi mở
+chạy `v++ --link --target hw --save-temps`, kiểm tra marker locality interface rồi mở
 routed DCP bằng Vivado. XCLBIN chỉ được chấp nhận khi route đầy đủ, không có
 routing/DRC Error, không còn setup/hold path âm và log có marker
 `300MHz timing gate: TIMING_CLOSED`.

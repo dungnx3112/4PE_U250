@@ -66,7 +66,7 @@ New-Item -ItemType Directory -Force -Path $logDirectory | Out-Null
 New-Item -ItemType Directory -Force -Path $reportDirectory | Out-Null
 
 # Relative Tcl hooks are interpreted inside Vitis' generated Vivado project.
-# Resolve the one lightweight PE1 placement hook immediately before each link.
+# Resolve the DDR/control interface-locality hook immediately before each link.
 $vivadoPrePlacePath = (Resolve-Path -LiteralPath $prePlacePath).Path.Replace("\", "/")
 $prePlaceProperty =
     "prop=run.impl_1.STEPS.PLACE_DESIGN.TCL.PRE=$vivadoPrePlacePath"
@@ -116,18 +116,18 @@ try {
 }
 
 # Only inspect logs from this unique invocation so an old marker cannot make a
-# later link pass when its PE1 placement hook did not run.
+# later link pass when its ownership hook did not run.
 $implementationLogs = @(
     Get-ChildItem -LiteralPath $tempDirectory -Filter "runme.log" -Recurse -File -ErrorAction SilentlyContinue
 )
-$pe1PlacementMarker = $implementationLogs | Select-String -Pattern "300MHz placement: PE1_SLR1_APPLIED" -List
+$floorplanMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: INTERFACE_LOCALITY_APPLIED" -List
 
 if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
-    -not $pe1PlacementMarker) {
-    throw "Vivado implementation ran without assigning PE1 to SLR1."
+    -not $floorplanMarker) {
+    throw "Vivado implementation ran without applying the DDR/control interface-locality floorplan."
 }
-if ($pe1PlacementMarker) {
-    Write-Host "Verified: PE1 was assigned to SLR1; remaining placement is tool-driven."
+if ($floorplanMarker) {
+    Write-Host "Verified: DDR/control interface-locality floorplan was applied."
 }
 if ($linkExitCode -ne 0) {
     exit $linkExitCode

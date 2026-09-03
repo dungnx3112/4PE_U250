@@ -42,9 +42,9 @@ Máy hiện tại không có U250 `.xpfm`, nên chưa thể tạo routed DCP m�
 - `int4_decoder_blocks.cpp`: RMSNorm, SwiGLU và residual add nằm dưới local PE;
   chỉ partial/reciprocal FP32 đi qua hai RMS pair service.
 - `swiftkv_attention.cpp`: pipeline constraint khớp recurrence và số cổng AXI.
-- `timing_300mhz_pre_place.tcl`: chỉ neo bốn hierarchy root hoàn chỉnh
-  `int4_decoder_local_pe_0..3` lần lượt vào SLR0..3. FIFO biên và pair
-  reduction được để placer tự bố trí.
+- `timing_300mhz_pre_place.tcl`: hard-anchor bốn AXI adapter `gmem0..3` cạnh
+  DDR0..3 và AXI-Lite slave cạnh shell control ở SLR0. Compute PE, FIFO biên và
+  pair reduction được để placer timing-driven.
 - `timing_300mhz_pre_physopt.tcl`: no-op. Full implementation cho thấy forced
   replication cũ làm WNS xấu từ `-10.188 ns` thành `-11.035 ns`, vì vậy
   AggressiveExplore chuẩn chịu trách nhiệm toàn bộ physical optimization.

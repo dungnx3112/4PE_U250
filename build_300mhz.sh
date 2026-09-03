@@ -178,7 +178,7 @@ if ! awk -v pre="$pre_place_path" '
         }
     }
 ' "$base_config_path" > "$resolved_config_path"; then
-    echo "Could not inject exactly one PE1 pre-place hook." >&2
+    echo "Could not inject exactly one DDR/control interface-locality pre-place hook." >&2
     exit 1
 fi
 
@@ -236,8 +236,8 @@ require_marker() {
 
 if (( ${#implementation_logs[@]} > 0 || link_exit_code == 0 )); then
     require_marker \
-        "300MHz placement: PE1_SLR1_APPLIED" \
-        "PE1 was assigned to SLR1; remaining placement is tool-driven"
+        "300MHz floorplan: INTERFACE_LOCALITY_APPLIED" \
+        "DDR/control interface-locality floorplan was applied"
 fi
 
 if (( validation_failed != 0 )); then

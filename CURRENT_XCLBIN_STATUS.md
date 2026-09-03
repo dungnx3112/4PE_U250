@@ -1,14 +1,15 @@
-# Trạng thái hiện tại — bản sửa critical path 300 MHz
+# Trạng thái hiện tại — routed DCP 2026-09-03 và fix locality 300 MHz
 
-Ngày kiểm chứng: 2026-09-01
+Ngày kiểm chứng: 2026-09-04
 
-> XO đã được export lại từ source local-controller. XCLBIN/routed DCP hiện vẫn là
-> artifact cũ; phải link và route lại trước khi đánh giá timing vật lý.
+> Routed DCP mới đã được STA trực tiếp. Nó cải thiện mạnh so với artifact cũ nhưng
+> vẫn chưa đóng timing. Constraint locality đã được sửa; phải route lại để xác nhận.
 
-Checkpoint `../level0_wrapper_routed.dcp` là implementation của RTL cũ. Nó fail
-setup rất nặng: WNS `-13.105 ns`, TNS `-118341.414 ns`, 70,322 endpoint fail;
-hold sạch với WHS `+0.009 ns`. Đường xấu nhất có 15.631/16.027 ns là routing và
-đi qua control `ap_done/ap_sync/ap_continue` giữa nhiều SLR.
+Checkpoint `../level0_wrapper_routed.dcp` mới có WNS `-2.213 ns`, TNS
+`-30169.711 ns`, 55,200 setup endpoint fail trên clock kernel; WHS kernel
+`+0.009 ns` và không có hold endpoint fail. Route hoàn tất 855,055/855,055 net,
+không có route error. Worst path là DDR0 → `gmem0_m_axi_U`, có 4.901/5.031 ns
+là routing và đi sai từ SLR0 tới SLR2.
 
 ## Đã sửa và xác minh
 
@@ -16,8 +17,8 @@ hold sạch với WHS `+0.009 ns`. Đường xấu nhất có 15.631/16.027 ns l
   hữu local scheduler, BRAM/URAM, attention, linear và AXI của đúng SLR.
 - Top không còn phát `mode/state/address` tới bốn PE. Qua biên SLR chỉ còn
   position token 12-bit, RMS FP32, linear packet 128-bit và completion 1-bit.
-- Pre-place Tcl neo bốn root `int4_decoder_local_pe_0..3` vào SLR0..3; FIFO biên
-  và pair reduction do placer tự bố trí.
+- Pre-place Tcl đặt cứng `gmem0..3_m_axi_U` cạnh DDR0..3 và
+  `control_s_axi_U` cạnh shell control ở SLR0; compute PE vẫn timing-driven.
 - Critical DSP preadder/multiply 3.333 ns được thay bằng phép cộng fabric.
 - Vitis HLS 2023.2 C-synthesis thành công, không có `ERROR` hay
   `CRITICAL WARNING`; tất cả loop constraint đạt.
@@ -35,11 +36,11 @@ hold sạch với WHS `+0.009 ns`. Đường xấu nhất có 15.631/16.027 ns l
 - Full implementation ngày 2026-09-01 cho thấy pass ép replication cũ làm WNS
   từ `-10.188 ns` xuống `-11.035 ns`. Sau ba pass tùy chỉnh, WNS chỉ đạt
   `-10.021 ns`; riêng SLR cleanup mất khoảng 2 giờ 40 phút.
-- Build hiện chỉ gán các cell PE1 vào SLR1; bốn top-kernel AXI bundle
-  `gmem0..3` vẫn ánh xạ tương ứng tới `DDR[0]..DDR[3]`. Không còn ownership map,
-  pblock nhiều PE, post-place ownership gate hay custom pre-physopt hook; các
-  placement còn lại do Vivado tự quyết định.
-- Timing gate đã được thử trên checkpoint cũ và trả exit code 1 đúng như yêu cầu.
+- Pre-place hiện chỉ thêm leaf primitive của bốn AXI master và AXI-Lite slave
+  vào pblock SLR tương ứng. Đây là fix trực tiếp cho DCP mới, nơi gmem0/1/2 bị
+  dồn vào SLR2 và worst AXI path đi SLR0→SLR2. Không ép lại toàn bộ 441,617 leaf
+  của kernel vì run đó từng có post-place WNS `-4.900 ns`.
+- Timing gate đã được thử trên checkpoint mới và trả exit code 1 đúng như yêu cầu.
 
 ## Chưa thể khẳng định trên máy này
 
