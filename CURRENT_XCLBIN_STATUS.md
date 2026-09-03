@@ -35,8 +35,10 @@ hold sạch với WHS `+0.009 ns`. Đường xấu nhất có 15.631/16.027 ns l
 - Full implementation ngày 2026-09-01 cho thấy pass ép replication cũ làm WNS
   từ `-10.188 ns` xuống `-11.035 ns`. Sau ba pass tùy chỉnh, WNS chỉ đạt
   `-10.021 ns`; riêng SLR cleanup mất khoảng 2 giờ 40 phút.
-- `timing_300mhz_pre_physopt.tcl` hiện là no-op. Build kiểm tra marker
-  `TOOL_DRIVEN_PHYSOPT`; physical optimization do strategy Vivado thực hiện.
+- Build hiện chỉ gán các cell PE1 vào SLR1; bốn top-kernel AXI bundle
+  `gmem0..3` vẫn ánh xạ tương ứng tới `DDR[0]..DDR[3]`. Không còn ownership map,
+  pblock nhiều PE, post-place ownership gate hay custom pre-physopt hook; các
+  placement còn lại do Vivado tự quyết định.
 - Timing gate đã được thử trên checkpoint cũ và trả exit code 1 đúng như yêu cầu.
 
 ## Chưa thể khẳng định trên máy này

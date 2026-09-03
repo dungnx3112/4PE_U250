@@ -1,14 +1,13 @@
-# Mandatory four-SLR leaf floorplan for the 300 MHz U250 build.
+# Keep only PE1 close to its DDR1 interface.  Vivado is free to place every
+# other hierarchy and to perform all detailed placement/physical optimisation.
 puts "INFO: loading [file normalize [info script]]"
-set script_directory [file dirname [file normalize [info script]]]
-set ownership_script [file join $script_directory timing_300mhz_domains.tcl]
-if {![file exists $ownership_script]} {
-    error "300MHz floorplan: missing ownership library $ownership_script"
-}
-source $ownership_script
-timing300::apply_floorplan
 
-puts "INFO: 300MHz floorplan: LEAF_PRIMITIVE_OWNERSHIP_APPLIED"
-puts "INFO: 300MHz floorplan: LOCAL_DOMAINS_APPLIED"
-puts "INFO: 300MHz floorplan: REGISTERED_BOUNDARIES_APPLIED"
-puts "INFO: 300MHz floorplan: FLOORPLAN_APPLIED"
+set pe1_cells [get_cells -quiet -hierarchical -filter {
+    NAME =~ */int4_decoder_token_controller_1/inst/*/int4_decoder_local_pe_1_U0/*}]
+if {[llength $pe1_cells] == 0} {
+    error "300MHz placement: no surviving PE1 cells were found"
+}
+
+set_property USER_SLR_ASSIGNMENT SLR1 $pe1_cells
+puts "INFO: 300MHz placement: assigned [llength $pe1_cells] PE1 cells to SLR1"
+puts "INFO: 300MHz placement: PE1_SLR1_APPLIED"

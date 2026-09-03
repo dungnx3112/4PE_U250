@@ -27,9 +27,8 @@ shard logits.
 | `swiftkv_attention.cpp/.hpp` | RoPE, KV cache INT8 và online-softmax attention cục bộ |
 | `int4_model_layout.hpp` | Shape, padding và offset cố định của mỗi DDR |
 | `int4_weight_packer.cpp/.hpp` | Packer offline tạo bốn model image input-column-sharded |
-| `link_300mhz.cfg` | Ánh xạ `gmem0..3` tới `DDR[0]..3` |
-| `timing_300mhz_pre_place.tcl` | Chỉ gán bốn hierarchy root PE0..3 vào SLR0..3 |
-| `timing_300mhz_pre_physopt.tcl` | Hook no-op; để strategy Vivado tự physical optimization |
+| `link_300mhz.cfg` | Ánh xạ `gmem0..3` tới `DDR[0]..DDR[3]` |
+| `timing_300mhz_pre_place.tcl` | Chỉ gán các cell còn tồn tại của PE1 vào SLR1 |
 | `verify_300mhz_routed.tcl` | Hard gate route, DRC, setup và hold trên routed DCP |
 
 ## Kiến trúc dữ liệu
@@ -176,28 +175,22 @@ void int4_decoder_token_controller(
     int4_output_word_t* kv_cache_pe3);
 ```
 
-`gmem0..gmem3` nối với `DDR[0]..DDR[3]` trong `link_300mhz.cfg`. Metadata scale
-và norm được preload vào URAM persistent khi `position == 0`. Residual chỉ đọc
-một lần đầu invocation và ghi một lần cuối invocation.
+`gmem0..gmem3` được nối tương ứng với `DDR[0]..DDR[3]` trong `link_300mhz.cfg`.
+Metadata scale và norm được preload vào URAM persistent khi `position == 0`.
+Residual chỉ đọc một lần đầu invocation và ghi một lần cuối invocation.
 
-## Floorplan PE/SLR và control KPN
+## Gán PE1/SLR1 và control KPN
 
-`timing_300mhz_pre_place.tcl` hard-anchor từng local PE, AXI adapter và năm FIFO
-địa chỉ của PE đó vào SLR0..SLR3. Position relay được xếp thành chuỗi
-SLR0 -> SLR1 -> SLR2 -> SLR3. RMS/linear/completion pair01 nằm ở SLR1, pair23
-nằm ở SLR2; FIFO crossing được đặt tại phía producer. Build kiểm tra marker
-`LOCAL_DOMAINS_APPLIED` và `REGISTERED_BOUNDARIES_APPLIED`.
+`timing_300mhz_pre_place.tcl` chỉ đặt `USER_SLR_ASSIGNMENT=SLR1` cho các cell còn
+tồn tại bên dưới PE1 (root ngoài có thể bị Vivado flatten). Không còn pblock,
+ownership map, post-place ownership check hay custom pre-physopt hook. Vivado
+tự quyết định placement và physical optimization cho toàn bộ phần còn lại.
 
 Vitis HLS 2023.2 tự sinh một `entry_proc` AND đồng thời 20 tín hiệu `full_n`
 của các FIFO địa chỉ. `patch_partitioned_entry_proc.tcl` được gọi tự động sau
 `csynth_design` và trước `export_design`: nó thay cone 20 ngõ bằng bốn launcher
 5 ngõ độc lập, mỗi launcher vẫn ghi nguyên tử đủ năm địa chỉ của một PE. Script
 fail build nếu không tìm đúng một entry process hoặc nếu cone toàn cục vẫn còn.
-
-`timing_300mhz_pre_physopt.tcl` không sửa netlist. Pass ép replication cũ đã làm
-WNS full-design xấu hơn và tăng số candidate cho SLR optimization, nên fanout,
-BRAM-enable và SLR crossing được giao cho strategy `AggressiveExplore` chuẩn của
-Vivado. Build kiểm tra marker `TOOL_DRIVEN_PHYSOPT`.
 
 ## Tổng hợp và build
 
@@ -257,10 +250,9 @@ REBUILD_XO=1 bash source/build_300mhz.sh
 ```
 
 Script tự source Vitis, tạo config theo từng run với đường dẫn Tcl tuyệt đối,
-chạy `v++ --link --target hw --save-temps`, kiểm tra pre-place floorplan đã chạy,
-rồi kiểm tra pass control/memory phys-opt đã chạy trước khi mở routed DCP bằng
-Vivado. XCLBIN chỉ được chấp nhận khi route đầy đủ, không có routing/DRC Error,
-không còn setup/hold path âm và log có marker
+chạy `v++ --link --target hw --save-temps`, kiểm tra gán PE1/SLR1 đã chạy rồi mở
+routed DCP bằng Vivado. XCLBIN chỉ được chấp nhận khi route đầy đủ, không có
+routing/DRC Error, không còn setup/hold path âm và log có marker
 `300MHz timing gate: TIMING_CLOSED`.
 
 Artifact mặc định và log được ghi tại:

@@ -63,12 +63,8 @@ workspace_dir=$(cd -- "$source_dir/.." && pwd -P)
 xo_path=$source_dir/int4_decoder_token_controller_300mhz.xo
 base_config_path=$source_dir/link_300mhz.cfg
 pre_place_path=$source_dir/timing_300mhz_pre_place.tcl
-post_place_path=$source_dir/timing_300mhz_post_place.tcl
-slr_domains_path=$source_dir/timing_300mhz_domains.tcl
-pre_physopt_path=$source_dir/timing_300mhz_pre_physopt.tcl
 hls_script_path=$source_dir/run_hls_300mhz.tcl
 timing_gate_path=$source_dir/verify_300mhz_routed.tcl
-post_route_report_path=$source_dir/report_300mhz_post_route.tcl
 run_id=$(date +%Y%m%d-%H%M%S)-$$
 run_dir=$workspace_dir/build_300mhz/runs/$run_id
 temp_dir=$run_dir/temp
@@ -80,11 +76,7 @@ candidate_output=$run_dir/int4_decoder_token_controller_300mhz.candidate.xclbin
 for required_path in \
     "$base_config_path" \
     "$pre_place_path" \
-    "$post_place_path" \
-    "$slr_domains_path" \
-    "$pre_physopt_path" \
-    "$timing_gate_path" \
-    "$post_route_report_path"; do
+    "$timing_gate_path"; do
     if [[ ! -f $required_path ]]; then
         echo "Required build input does not exist: $required_path" >&2
         exit 1
@@ -170,33 +162,23 @@ if [[ $(grep -Fxc -- "$expected_frequency" "$base_config_path") -ne 1 ]]; then
     exit 1
 fi
 
-# Generate a run-local config. The absolute Linux paths remain valid after
+# Generate a run-local config. The absolute Linux path remains valid after
 # Vitis changes directory into its generated Vivado implementation project.
-if ! awk -v pre="$pre_place_path" -v post="$post_place_path" -v phys="$pre_physopt_path" '
-    BEGIN { pre_count = 0; post_count = 0; phys_count = 0 }
+if ! awk -v pre="$pre_place_path" '
+    BEGIN { pre_count = 0 }
     /^prop=run\.impl_1\.STEPS\.PLACE_DESIGN\.TCL\.PRE=/ {
         print "prop=run.impl_1.STEPS.PLACE_DESIGN.TCL.PRE=" pre
         pre_count++
         next
     }
-    /^prop=run\.impl_1\.STEPS\.PLACE_DESIGN\.TCL\.POST=/ {
-        print "prop=run.impl_1.STEPS.PLACE_DESIGN.TCL.POST=" post
-        post_count++
-        next
-    }
-    /^prop=run\.impl_1\.STEPS\.PHYS_OPT_DESIGN\.TCL\.PRE=/ {
-        print "prop=run.impl_1.STEPS.PHYS_OPT_DESIGN.TCL.PRE=" phys
-        phys_count++
-        next
-    }
     { print }
     END {
-        if (pre_count != 1 || post_count != 1 || phys_count != 1) {
+        if (pre_count != 1) {
             exit 42
         }
     }
 ' "$base_config_path" > "$resolved_config_path"; then
-    echo "Could not inject exactly one pre-place, post-place and pre-physopt hook." >&2
+    echo "Could not inject exactly one PE1 pre-place hook." >&2
     exit 1
 fi
 
@@ -254,23 +236,8 @@ require_marker() {
 
 if (( ${#implementation_logs[@]} > 0 || link_exit_code == 0 )); then
     require_marker \
-        "300MHz floorplan: FLOORPLAN_APPLIED" \
-        "the pre-place PE/SLR floorplan ran"
-    require_marker \
-        "300MHz floorplan: LOCAL_DOMAINS_APPLIED" \
-        "four local PE/AXI/config domains were assigned to SLR0-SLR3"
-    require_marker \
-        "300MHz floorplan: REGISTERED_BOUNDARIES_APPLIED" \
-        "position, pair-reduction and completion boundaries were localized"
-    require_marker \
-        "300MHz floorplan: LEAF_PRIMITIVE_OWNERSHIP_APPLIED" \
-        "optimized leaf primitives were assigned to their owning SLR"
-    require_marker \
-        "300MHz post-place: LEAF_OWNERSHIP_VERIFIED" \
-        "placed PE/AXI/memory primitives stayed in their owning SLR"
-    require_marker \
-        "300MHz physopt: TOOL_DRIVEN_PHYSOPT" \
-        "custom physopt mutations were disabled in favor of the Vivado strategy"
+        "300MHz placement: PE1_SLR1_APPLIED" \
+        "PE1 was assigned to SLR1; remaining placement is tool-driven"
 fi
 
 if (( validation_failed != 0 )); then
@@ -320,31 +287,8 @@ if ! grep -Fq -- "300MHz timing gate: TIMING_CLOSED" \
     echo "Vivado timing gate did not emit TIMING_CLOSED." >&2
     exit 1
 fi
-if ! grep -Fq -- "300MHz timing gate: ROUTED_LEAF_OWNERSHIP_CLEAN" \
-        "$log_dir/timing_gate.log"; then
-    echo "Vivado timing gate did not verify routed leaf ownership." >&2
-    exit 1
-fi
-
-echo "Running full SLR-sequence audit on: $routed_dcp"
-"$vivado" -mode batch -notrace \
-    -source "$post_route_report_path" \
-    -tclargs "$routed_dcp" "$report_dir" \
-    2>&1 | tee "$log_dir/post_route_slr_audit.log"
-if ! grep -Fq -- "300MHz post-route: SLR_PATH_AUDIT_COMPLETE" \
-        "$log_dir/post_route_slr_audit.log"; then
-    echo "Vivado post-route report did not complete the SLR path audit." >&2
-    exit 1
-fi
-if ! grep -Fq -- "300MHz post-route: INTERNAL_SLR_TOPOLOGY_CLEAN" \
-        "$log_dir/post_route_slr_audit.log"; then
-    echo "Vivado post-route audit found a kernel-internal SLR detour." >&2
-    exit 1
-fi
-
 # Never publish a timing-failing image.  The previous accepted XCLBIN remains
-# untouched until placement ownership, setup/hold and routed SLR topology have
-# all passed for this exact run.
+# untouched until setup/hold, routing and DRC have passed for this exact run.
 mv -f -- "$candidate_output" "$resolved_output"
 sha256sum -- "$resolved_output"
 if command -v xclbinutil >/dev/null 2>&1; then
