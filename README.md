@@ -271,6 +271,14 @@ bash build_300mhz.sh
 REBUILD_XO=1 bash build_300mhz.sh
 ```
 
+Nếu XO đã được build và kiểm tra đúng phiên bản, có thể bỏ qua kiểm tra timestamp và chỉ link lại XCLBIN:
+
+```bash
+REUSE_XO=1 bash build_300mhz.sh
+```
+
+`REUSE_XO=1` không tắt floorplan hoặc timing gate; nó chỉ ngăn script gọi lại Vitis HLS.
+
 Script tự source Vitis, tạo config theo từng run với đường dẫn Tcl tuyệt đối,
 chạy `v++ --link --target hw --save-temps`, kiểm tra marker locality interface rồi mở
 routed DCP bằng Vivado. XCLBIN chỉ được chấp nhận khi route đầy đủ, không có

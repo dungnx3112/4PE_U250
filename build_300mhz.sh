@@ -17,6 +17,7 @@ Environment overrides:
   VPP=<v++ executable>
   VIVADO=<vivado executable> hard-gate the retained routed DCP
   REBUILD_XO=1              rebuild the XO from the checked-in HLS source
+  REUSE_XO=1                link the existing XO without the timestamp check
   VITIS_HLS=<vitis_hls>     HLS executable used with REBUILD_XO=1
 EOF
 }
@@ -34,16 +35,24 @@ output=${2:-${XCLBIN_OUTPUT:-int4_decoder_token_controller_300mhz.xclbin}}
 vpp=${3:-${VPP:-v++}}
 vitis_settings=${VITIS_SETTINGS:-$default_vitis_settings}
 rebuild_xo=${REBUILD_XO:-0}
+reuse_xo=${REUSE_XO:-0}
 target_frequency_hz=300000000
 kernel_clock=int4_decoder_token_controller_1.ap_clk
 
-case $rebuild_xo in
-    0|1) ;;
-    *)
-        echo "REBUILD_XO must be 0 or 1, got: $rebuild_xo" >&2
+for binary_setting in rebuild_xo reuse_xo; do
+    binary_value=${!binary_setting}
+    case $binary_value in
+        0|1) ;;
+        *)
+            echo "${binary_setting^^} must be 0 or 1, got: $binary_value" >&2
+            exit 2
+            ;;
+    esac
+done
+if (( rebuild_xo == 1 && reuse_xo == 1 )); then
+        echo "REBUILD_XO=1 and REUSE_XO=1 are mutually exclusive." >&2
         exit 2
-        ;;
-esac
+fi
 
 if [[ ! -f $vitis_settings ]]; then
     echo "Vitis settings file does not exist: $vitis_settings" >&2
@@ -86,9 +95,13 @@ done
 mkdir -p -- "$temp_dir" "$log_dir" "$report_dir"
 
 if [[ ! -f $xo_path ]]; then
+    if (( reuse_xo == 1 )); then
+        echo "REUSE_XO=1 requested, but XO does not exist: $xo_path" >&2
+        exit 1
+    fi
     echo "XO does not exist; enabling REBUILD_XO=1: $xo_path"
     rebuild_xo=1
-elif find "$source_dir" -maxdepth 1 -type f \
+elif (( reuse_xo == 0 )) && find "$source_dir" -maxdepth 1 -type f \
         \( -name '*.cpp' -o -name '*.hpp' -o \
            -name 'run_hls_300mhz.tcl' -o \
            -name 'patch_partitioned_entry_proc.tcl' -o \
@@ -96,6 +109,10 @@ elif find "$source_dir" -maxdepth 1 -type f \
         -newer "$xo_path" -print -quit | grep -q .; then
     echo "XO is older than its HLS inputs; enabling REBUILD_XO=1."
     rebuild_xo=1
+fi
+
+if (( reuse_xo == 1 )); then
+    echo "REUSE_XO=1: using the existing XO without rebuilding it."
 fi
 
 if (( rebuild_xo == 1 )); then
