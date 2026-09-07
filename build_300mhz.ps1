@@ -13,7 +13,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $sourceDirectory = $PSScriptRoot
-$workspaceDirectory = Split-Path -Parent $sourceDirectory
+$workspaceDirectory = $sourceDirectory
 $xoPath = Join-Path $sourceDirectory "int4_decoder_token_controller_300mhz.xo"
 $baseConfigPath = Join-Path $sourceDirectory "link_300mhz.cfg"
 $prePlacePath = Join-Path $sourceDirectory "timing_300mhz_pre_place.tcl"

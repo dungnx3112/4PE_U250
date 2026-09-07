@@ -23,13 +23,19 @@ shard logits.
 | `int4_decoder_schedule.hpp` | Lịch cố định dùng riêng trong từng local controller/reducer |
 | `int4_linear_controller.cpp/.hpp` | Linear cục bộ từng PE và hai pair reducer 128-bit |
 | `int4_decoder_blocks.cpp/.hpp` | RMSNorm, SwiGLU, residual cục bộ và RMS pair service |
+| `int4_types.hpp` | Kiểu dữ liệu, hằng model/tile và shape dùng chung, không phụ thuộc controller |
+| `int4_numeric.hpp` | Chuyển đổi FP32/bit dùng chung, bảo toàn bit pattern |
 | `int4_task_control.hpp` | Completion token, pair join và final wait dùng chung |
 | `swiftkv_attention.cpp/.hpp` | RoPE, KV cache INT8 và online-softmax attention cục bộ |
 | `int4_model_layout.hpp` | Shape, padding và offset cố định của mỗi DDR |
 | `int4_weight_packer.cpp/.hpp` | Packer offline tạo bốn model image input-column-sharded |
 | `link_300mhz.cfg` | Ánh xạ `gmem0..3` tới `DDR[0]..DDR[3]` |
-| `timing_300mhz_pre_place.tcl` | Áp ownership cứng PE0..3/gmem0..3 vào SLR0..3 |
+| `timing_300mhz_pre_place.tcl` | Neo bốn AXI adapter vào SLR của DDR tương ứng và AXI-Lite vào SLR0 |
 | `verify_300mhz_routed.tcl` | Hard gate route, DRC, setup và hold trên routed DCP |
+| `tests/`, `run_hls_unit_tests.tcl` | CSim cho shape, layout, schedule và FP32 bit conversion |
+
+Sơ đồ dependency, phạm vi production/legacy và contract khởi tạo được mô tả
+ngắn gọn trong [`HLS_SOURCE_GUIDE.md`](HLS_SOURCE_GUIDE.md).
 
 ## Kiến trúc dữ liệu
 
@@ -123,7 +129,7 @@ Mỗi PE unroll 32 activation lane và xử lý bốn output row mỗi cycle:
 
 RTL HLS sinh primitive dạng pre-adder `(A + D) * B`, đúng với datapath packing
 trên. Các DSP floating-point dùng cho scale, RMSNorm và attention được tính
-riêng, nên con số 916 DSP toàn kernel không chỉ gồm integer MAC.
+riêng, nên con số 900 DSP toàn kernel không chỉ gồm integer MAC.
 
 ## Layout mỗi DDR
 
@@ -178,6 +184,8 @@ void int4_decoder_token_controller(
 `gmem0..gmem3` được nối tương ứng với `DDR[0]..DDR[3]` trong `link_300mhz.cfg`.
 Metadata scale và norm được preload vào URAM persistent khi `position == 0`.
 Residual chỉ đọc một lần đầu invocation và ghi một lần cuối invocation.
+Invocation đầu tiên sau khi program/reprogram FPGA **phải** dùng `position == 0`;
+các position tiếp theo mới được phép tái sử dụng metadata persistent.
 
 ## Locality cho DDR/control và control KPN
 
@@ -201,7 +209,7 @@ fail build nếu không tìm đúng một entry process hoặc nếu cone toàn 
 Chạy HLS synthesis nhanh, không package XO:
 
 ```powershell
-Set-Location C:\KLTN\u250\source
+Set-Location C:\KLTN\4PE_U250
 & 'C:\Xilinx\Vitis_HLS\2023.2\bin\vitis_hls.bat' `
   -f run_hls_csynth_300mhz.tcl
 ```
@@ -211,6 +219,13 @@ Synthesize và export XO:
 ```powershell
 & 'C:\Xilinx\Vitis_HLS\2023.2\bin\vitis_hls.bat' `
   -f run_hls_300mhz.tcl
+```
+
+Chạy CSim regression:
+
+```powershell
+& 'C:\Xilinx\Vitis_HLS\2023.2\bin\vitis_hls.bat' `
+  -f run_hls_unit_tests.tcl
 ```
 
 XO đã export phải chứa marker `PARTITIONED_PE_CONFIG_LAUNCH` trong
@@ -223,8 +238,8 @@ Link XCLBIN bằng wrapper để absolute Tcl hooks và marker validation luôn 
 áp dụng:
 
 ```powershell
-Set-Location C:\KLTN\u250
-.\source\build_300mhz.ps1 `
+Set-Location C:\KLTN\4PE_U250
+.\build_300mhz.ps1 `
   -Platform '<U250 xpfm>' `
   -Output 'int4_decoder_token_controller_300mhz.xclbin'
 ```
@@ -240,17 +255,17 @@ U250 platform:
 xilinx_u250_gen3x16_xdma_4_1_202210_1.xpfm
 ```
 
-Từ thư mục workspace chứa `source/`, dùng XO hiện có và chạy full hardware
-link bằng một lệnh:
+Từ repository root, dùng XO đã kiểm chứng và chạy full hardware link bằng
+một lệnh:
 
 ```bash
-bash source/build_300mhz.sh
+bash build_300mhz.sh
 ```
 
 Để tổng hợp lại XO từ source trước khi link:
 
 ```bash
-REBUILD_XO=1 bash source/build_300mhz.sh
+REBUILD_XO=1 bash build_300mhz.sh
 ```
 
 Script tự source Vitis, tạo config theo từng run với đường dẫn Tcl tuyệt đối,
@@ -271,7 +286,8 @@ Có thể override mà không sửa script qua `VITIS_SETTINGS`, `U250_PLATFORM`
 
 ## Kết quả HLS đã xác minh
 
-C-synthesis Vitis HLS 2023.2 ngày 2026-09-01 hoàn tất với exit code 0:
+C-synthesis Vitis HLS 2023.2 ngày 2026-09-07 hoàn tất với exit code 0;
+CSim regression cũng pass với 0 lỗi:
 
 | Chỉ số | Kết quả |
 |---|---:|
@@ -284,20 +300,23 @@ C-synthesis Vitis HLS 2023.2 ngày 2026-09-01 hoàn tất với exit code 0:
 | Integer packed MAC / PE | 64 DSP48 = 128 scalar multiply/cycle |
 | BRAM18K | 1308 / 5376 (24%) |
 | DSP | 900 / 12288 (7%) |
-| FF | 362090 / 3456000 (10%) |
-| LUT | 394519 / 1728000 (22%) |
+| FF | 363118 / 3456000 (10%) |
+| LUT | 393387 / 1728000 (22%) |
 | URAM | 160 / 1280 (12%) |
 
 Đây là kết quả HLS trước place/route. Chỉ XCLBIN/routed DCP với WNS và WHS
 không âm mới chứng minh implementation thực sự chạy 300 MHz.
 
-XO tương ứng với source hiện tại:
+XO tương ứng với source hiện tại và được lưu trong Git:
 
 ```text
 int4_decoder_token_controller_300mhz.xo
-size:    8,864,862 byte
-SHA-256: C76827EF70E5FA88214E4B63C37FDB86AA212CE87AE933666F2183E70492AA0E
+size:    8,965,790 byte
+SHA-256: BE5B3ED2B261F8BD3B0C044B9EE02274142AAB769B7C5F02D468E5162BB67422
 ```
+
+Mỗi lần `run_hls_300mhz.tcl` hoặc `export_hls_300mhz.tcl` export thành công,
+file `.xo.sha256` được sinh lại tự động.
 
 Máy Windows hiện tại chưa cài U250 `.xpfm`, vì vậy chưa có routed DCP mới để
 báo WNS/WHS sau sửa. Dùng wrapper trên máy có platform; wrapper sẽ tự fail nếu

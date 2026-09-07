@@ -1,0 +1,32 @@
+# Vitis HLS and Vivado work directories
+.Xil/
+proj_*/
+build_*/
+_x/
+
+# Generated implementation artifacts
+*.dcp
+*.xclbin
+*.jou
+*.log
+*.str
+*.wdb
+clockInfo.txt
+/command.txt
+
+# Vivado project directories
+*.cache/
+*.hw/
+*.ip_user_files/
+*.runs/
+*.sim/
+*.srcs/
+
+# Crash diagnostics
+*.dmp
+
+# Editor/OS noise
+.vs/
+.vscode/
+Thumbs.db
+Desktop.ini

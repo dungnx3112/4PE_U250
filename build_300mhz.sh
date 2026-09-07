@@ -59,7 +59,7 @@ source "$vitis_settings"
 set -u
 
 source_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
-workspace_dir=$(cd -- "$source_dir/.." && pwd -P)
+workspace_dir=$source_dir
 xo_path=$source_dir/int4_decoder_token_controller_300mhz.xo
 base_config_path=$source_dir/link_300mhz.cfg
 pre_place_path=$source_dir/timing_300mhz_pre_place.tcl

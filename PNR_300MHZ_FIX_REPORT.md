@@ -1,6 +1,9 @@
 # Báo cáo sửa P&R 300 MHz
 
-Ngày: 2026-08-31  
+Ngày kiến trúc P&R: 2026-08-31
+
+HLS/XO kiểm chứng lại: 2026-09-07
+
 Target: Alveo U250, `xcu250-figd2104-2L-e`, 300 MHz
 
 > Số liệu HLS/XO bên dưới đã được sinh lại sau local-controller refactor. Chưa
@@ -68,8 +71,8 @@ Máy hiện tại không có U250 `.xpfm`, nên chưa thể tạo routed DCP m�
 | Worker `ap_done` tham gia control KPN | 0 |
 | BRAM18K | 1308 / 5376 (24%) |
 | DSP | 900 / 12288 (7%) |
-| FF | 362090 / 3456000 (10%) |
-| LUT | 394519 / 1728000 (22%) |
+| FF | 363118 / 3456000 (10%) |
+| LUT | 393387 / 1728000 (22%) |
 | URAM | 160 / 1280 (12%) |
 
 ## Phân loại toàn bộ warning còn lại
@@ -86,19 +89,23 @@ Các mục dưới đây là warning, không phải error. Không tắt warning 
 | `HLS 200-657` | 9 | Backward FIFO của reciprocal/output trong graph có chu kỳ; các channel đều có buffer và explicit token. |
 | `HLS 200-765` | 5 | Region throughput message; không phải constraint failure. |
 | `HLS 214-273`, `214-388` | 8 + 1 | Diagnostic từ vendor `hls_task.h` về pragma canonicalization; 5 KPN vẫn sinh đúng `ap_ctrl_none`. |
-| `RTGEN 206-101` | 671 | Child hierarchy port không dùng sau top-level merge/tie-off; top AXI/BRAM port ghi đã được xác nhận tồn tại. |
-| `SYN 201-103`, `201-303` | 174 + 8 | RTL synthesis message về module/port nội bộ; không có synth failure. |
+| `RTGEN 206-101` | 629 | Child hierarchy port không dùng sau top-level merge/tie-off; top AXI/BRAM port ghi đã được xác nhận tồn tại. |
+| `SYN 201-103`, `201-303` | 178 + 8 | RTL synthesis message về module/port nội bộ; không có synth failure. |
 | `BIND 205-102`, `ANALYSIS 214-52`, `XFORM 203-561`, `SYNCHK 200-23` | 19 + 16 + 8 + 1 | Binding/analysis transform thông tin của HLS; loop bounds và hardware binding đã phản ánh trong report cuối. |
 | `HLS 200-960` | 4 | Pair schedule không flatten vì có logic tính shape trước inner loop; chủ ý giữ controller nhỏ và không ảnh hưởng constraint. |
 
-Các warning nguy hiểm `HLS 200-656` về auto-rewind trong `ap_ctrl_none` đã về 0.
+Các warning nguy hiểm `HLS 200-656` về auto-rewind trong `ap_ctrl_none` và
+`HLS 200-1018` về FIFO depth dưới mức khuyến nghị đều đã về 0 trong lần
+C-synthesis 2026-09-07.
 
 ## Artifact
 
+Artifact dưới đây được export từ source hiện tại và lưu kèm checksum trong Git.
+
 ```text
-source/int4_decoder_token_controller_300mhz.xo
-size:    8,864,862 byte
-SHA-256: C76827EF70E5FA88214E4B63C37FDB86AA212CE87AE933666F2183E70492AA0E
+int4_decoder_token_controller_300mhz.xo
+size:    8,965,790 byte
+SHA-256: BE5B3ED2B261F8BD3B0C044B9EE02274142AAB769B7C5F02D468E5162BB67422
 ```
 
 HLS report:
@@ -109,8 +116,8 @@ HLS report:
 Trên máy Linux có platform mặc định:
 
 ```bash
-cd <workspace>
-bash source/build_300mhz.sh
+cd <repository-root>
+bash build_300mhz.sh
 ```
 
 Nếu đường dẫn khác:
@@ -118,7 +125,7 @@ Nếu đường dẫn khác:
 ```bash
 VITIS_SETTINGS=/path/to/settings64.sh \
 U250_PLATFORM=/path/to/xilinx_u250.xpfm \
-bash source/build_300mhz.sh
+REBUILD_XO=1 bash build_300mhz.sh
 ```
 
 Không nhận build chỉ vì `v++` trả 0. Điều kiện cuối là log có:

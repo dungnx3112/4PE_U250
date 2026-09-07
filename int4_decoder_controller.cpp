@@ -1,7 +1,9 @@
 #include "int4_decoder_controller.hpp"
 #include "int4_decoder_blocks.hpp"
 #include "int4_decoder_schedule.hpp"
+#include "int4_linear_controller.hpp"
 #include "int4_task_control.hpp"
+#include "swiftkv_attention.hpp"
 
 static constexpr int INT4_PROJECTION_SCRATCH_WORDS =
     INT4_MAX_LOCAL_OUTPUT_WORDS;

@@ -1,0 +1,15 @@
+* text=auto
+
+# Keep build and source files portable across Windows and Linux.
+*.sh text eol=lf
+*.tcl text eol=lf
+*.cfg text eol=lf
+*.cpp text eol=lf
+*.hpp text eol=lf
+*.md text eol=lf
+*.ps1 text eol=lf
+
+# Never apply line-ending conversion to binary artifacts.
+*.doc -text
+*.xo -text
+*.dmp -text

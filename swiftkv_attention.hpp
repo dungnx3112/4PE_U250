@@ -95,12 +95,12 @@ static_assert(
     SWIFTKV_KV_WORDS_PER_TOKEN_HEAD == 5,
     "INT8/G32 KV record must be metadata,K0,K1,V0,V1");
 
-// U250 mapping of SwiftKV:
+// Production U250 mapping of SwiftKV:
 //   - exact single-pass online (mu, Z, Y) recurrence;
 //   - one (K,V) read per cached token, no score materialization;
 //   - Q15.17 Q/K/V/score/exp boundary;
 //   - base-2 5-bit LUT + linear interpolation exp;
-//   - full 4096-position RoPE table preloaded by the controller into URAM;
+//   - eight 512-bit RoPE reads for the current position in each local PE;
 //   - four DDR-aligned KV banks, each with its own independent arithmetic
 //     engine so that PE0..PE3 can be placed locally in SLR0..SLR3.
 //
@@ -108,6 +108,9 @@ static_assert(
 //   [layer][local_head][token][metadata, K0, K1, V0, V1].
 //
 // The attention result is fused with A15/G32 quantization for O projection.
+// Legacy full-table RoPE preload API. The production local-PE path reads only
+// the current position from its own DDR bank.
+#ifdef INT4_ENABLE_LEGACY_GLOBAL_API
 void swiftkv_preload_rope_lut(
     const int4_output_word_t* rope_lut_ddr,
     swiftkv_rope_lut_word_t rope_lut_bank0[SWIFTKV_ROPE_BANK_WORDS],
@@ -155,6 +158,7 @@ void swiftkv_load_rope_bank3(
     swiftkv_rope_raw_t current_cos_pair23[SWIFTKV_ROPE_PAIRS],
     swiftkv_rope_raw_t current_sin_pair23[SWIFTKV_ROPE_PAIRS]
 );
+#endif
 
 // New local-ownership entry points.  Each PE consumes only its local Q/K/V
 // shard, RoPE image and KV cache.  The 64 RoPE pairs for the current token are
@@ -204,8 +208,9 @@ void int4_swiftkv_attention_pe3(
     ap_uint<6> layer_index,
     ap_uint<12> position);
 
-// Integrated dispatcher entry.  The global decoder controller terminates at
-// the caller; SwiftKV receives only the registered layer/position command.
+// Optional standalone and legacy dispatchers. They are excluded from the
+// production decoder build so the active API remains unambiguous.
+#ifdef INT4_ENABLE_LEGACY_GLOBAL_API
 #ifdef SWIFTKV_INTEGRATED_TOP
 void int4_swiftkv_attention_4pe_pair_halves_command(
     const int4_output_word_t* q_pe0,
@@ -312,4 +317,5 @@ void swiftkv_attention_latency_verify(
     int4_scale_word_t* activation_scale,
     ap_uint<12> position
 );
+#endif
 #endif

@@ -3,6 +3,7 @@
 #include "int4_model_layout.hpp"
 
 #include <ap_fixed.h>
+#include <hls_stream.h>
 
 using int4_fxp32_t = ap_fixed<32, 15, AP_RND_CONV, AP_SAT>;
 
@@ -15,8 +16,9 @@ static constexpr int INT4_HIDDEN_SCALE_WORDS =
     (INT4_HIDDEN_GROUPS + INT4_SCALE_ROWS_PER_WORD - 1) /
     INT4_SCALE_ROWS_PER_WORD;
 
-// The only cross-SLR operation in RMSNorm is a four-float sum followed by a
-// 32-bit reciprocal broadcast through registered neighbour FIFOs.
+// Legacy four-shard dispatchers retained only for standalone experiments.
+// The production decoder uses the local PE stages and pair services below.
+#ifdef INT4_ENABLE_LEGACY_GLOBAL_API
 void int4_rmsnorm_quantize_shards(
     const int4_output_word_t residual0[INT4_VECTOR_WORDS_PER_PE],
     const int4_output_word_t residual1[INT4_VECTOR_WORDS_PER_PE],
@@ -68,6 +70,7 @@ void int4_swiglu_quantize_shards(
     float activation_scale2[INT4_MAX_LOCAL_GROUPS],
     float activation_scale3[INT4_MAX_LOCAL_GROUPS]
 );
+#endif
 
 // Local building blocks used by the per-SLR decoder controllers. These APIs
 // keep all address generation and local memory selection below the PE root.

@@ -1,11 +1,12 @@
 #pragma once
 
 #include "int4_model_layout.hpp"
-#include "swiftkv_attention.hpp"
 
 // One invocation advances one already-embedded token through all decoder
-// layers. Port suffix N is a strict ownership rule: model, RoPE, residual,
-// logits and KV cache N are consumed only by PE N in SLR N.
+// layers. The first invocation after programming the FPGA must use position
+// zero; that call initializes the persistent scale and RMSNorm caches.
+// Port suffix N is a strict ownership rule: model, RoPE, residual, logits and
+// KV cache N are consumed only by PE N in SLR N.
 void int4_decoder_token_controller(
     ap_uint<12> position,
     const int4_weight_word_t* model_bank0,

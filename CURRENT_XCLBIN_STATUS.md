@@ -1,6 +1,8 @@
 # Trạng thái hiện tại — routed DCP 2026-09-03 và fix locality 300 MHz
 
-Ngày kiểm chứng: 2026-09-04
+Ngày kiểm chứng routed DCP: 2026-09-04
+
+Ngày kiểm chứng lại HLS/XO: 2026-09-07
 
 > Routed DCP mới đã được STA trực tiếp. Nó cải thiện mạnh so với artifact cũ nhưng
 > vẫn chưa đóng timing. Constraint locality đã được sửa; phải route lại để xác nhận.
@@ -25,9 +27,10 @@ là routing và đi sai từ SLR0 tới SLR2.
 - Estimated clock: `2.787 ns`, tương đương `358.84 MHz`, với target 3.333 ns.
 - RTL có 5 KPN; 23 worker đều có `ap_start=1`, `ap_continue=1`; `ap_done` của
   worker không tham gia logic điều khiển KPN.
-- XO cuối: `int4_decoder_token_controller_300mhz.xo`, 8,864,862 byte.
-- SHA-256: `C76827EF70E5FA88214E4B63C37FDB86AA212CE87AE933666F2183E70492AA0E`.
-- Resource HLS toàn U250: 1308 BRAM18K, 900 DSP, 362090 FF, 394519 LUT,
+- XO hiện tại được lưu trong Git:
+  `int4_decoder_token_controller_300mhz.xo`, 8,965,790 byte.
+- SHA-256: `BE5B3ED2B261F8BD3B0C044B9EE02274142AAB769B7C5F02D468E5162BB67422`.
+- Resource HLS toàn U250: 1308 BRAM18K, 900 DSP, 363118 FF, 393387 LUT,
   160 URAM.
 - `build_300mhz.sh` và `build_300mhz.ps1` đều giữ routed DCP và gọi
   `verify_300mhz_routed.tcl`. Build fail nếu route chưa đủ, có routing/DRC Error,
@@ -46,10 +49,10 @@ là routing và đi sai từ SLR0 tới SLR2.
 
 Máy hiện tại không có U250 `.xpfm`, nên chưa thể chạy full `v++ --link` để tạo
 routed DCP mới. HLS estimate không thay thế post-route STA. Trên máy Linux có
-platform mặc định, chạy từ workspace:
+platform mặc định, chạy từ repository root:
 
 ```bash
-bash source/build_300mhz.sh
+bash build_300mhz.sh
 ```
 
 Kết quả chỉ đạt khi cuối log có `300MHz timing gate: TIMING_CLOSED`. Chi tiết lỗi

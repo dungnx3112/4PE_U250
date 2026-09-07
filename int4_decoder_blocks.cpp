@@ -1,28 +1,9 @@
 #include "int4_decoder_blocks.hpp"
 #include "int4_decoder_schedule.hpp"
+#include "int4_numeric.hpp"
 #include "int4_task_control.hpp"
 
-#include <cstdint>
 #include <hls_math.h>
-
-union int4_block_fp32_bits_t {
-    std::uint32_t bits;
-    float value;
-};
-
-static float int4_block_bits_to_float(ap_uint<32> bits) {
-#pragma HLS INLINE
-    int4_block_fp32_bits_t converter;
-    converter.bits = (std::uint32_t)bits;
-    return converter.value;
-}
-
-static ap_uint<32> int4_block_float_to_bits(float value) {
-#pragma HLS INLINE
-    int4_block_fp32_bits_t converter;
-    converter.value = value;
-    return (ap_uint<32>)converter.bits;
-}
 
 static void int4_quantize_g32(
     const float values[INT4_GROUP_SIZE],
@@ -34,13 +15,13 @@ find_group_max_loop:
     for (int lane = 0; lane < INT4_GROUP_SIZE; ++lane) {
 #pragma HLS PIPELINE II=1
         const ap_uint<32> magnitude =
-            int4_block_float_to_bits(values[lane]) & 0x7fffffffU;
+            int4_fp32_to_bits(values[lane]) & 0x7fffffffU;
         if (magnitude > max_abs_bits) {
             max_abs_bits = magnitude;
         }
     }
 
-    const float max_abs = int4_block_bits_to_float(max_abs_bits);
+    const float max_abs = int4_fp32_from_bits(max_abs_bits);
     output_scale =
         max_abs == 0.0f ? 0.0f : max_abs * (1.0f / 16383.0f);
     const float inverse_scale =
@@ -78,13 +59,13 @@ local_sumsq_word_loop:
              block < INT4_OUTPUTS_PER_WORD / INT4_REDUCTION_LANES;
              ++block) {
 #pragma HLS PIPELINE II=4
-            const float value0 = int4_block_bits_to_float(
+            const float value0 = int4_fp32_from_bits(
                 packed.range(31, 0));
-            const float value1 = int4_block_bits_to_float(
+            const float value1 = int4_fp32_from_bits(
                 packed.range(63, 32));
-            const float value2 = int4_block_bits_to_float(
+            const float value2 = int4_fp32_from_bits(
                 packed.range(95, 64));
-            const float value3 = int4_block_bits_to_float(
+            const float value3 = int4_fp32_from_bits(
                 packed.range(127, 96));
             accumulator0 += value0 * value0;
             accumulator1 += value1 * value1;
@@ -190,9 +171,9 @@ local_rms_group_loop:
         local_rms_lane_loop:
             for (int lane = 0; lane < INT4_OUTPUTS_PER_WORD; ++lane) {
 #pragma HLS PIPELINE II=1
-                const float x = int4_block_bits_to_float(
+                const float x = int4_fp32_from_bits(
                     input_word.range(32 * lane + 31, 32 * lane));
-                const float weight = int4_block_bits_to_float(
+                const float weight = int4_fp32_from_bits(
                     gamma_word.range(32 * lane + 31, 32 * lane));
                 values[word_in_group * INT4_OUTPUTS_PER_WORD + lane] =
                     (x * reciprocal) * weight;
@@ -225,6 +206,7 @@ static void int4_local_rms_task(
     completion_stream.write(1);
 }
 
+#ifdef INT4_ENABLE_LEGACY_GLOBAL_API
 void int4_rmsnorm_quantize_shards(
     const int4_output_word_t residual0[INT4_VECTOR_WORDS_PER_PE],
     const int4_output_word_t residual1[INT4_VECTOR_WORDS_PER_PE],
@@ -330,6 +312,7 @@ void int4_rmsnorm_quantize_shards(
         completion2, completion3, completion23);
     int4_wait_task_completion_pairs<200>(completion01, completion23);
 }
+#endif
 
 typedef ap_uint<1> int4_block_token_t;
 
@@ -374,16 +357,16 @@ local_residual_word_loop:
         for (int lane = 0; lane < INT4_OUTPUTS_PER_WORD; ++lane) {
 #pragma HLS PIPELINE II=1
             sums[lane] =
-                int4_block_bits_to_float(
+                int4_fp32_from_bits(
                     residual_word.range(32 * lane + 31, 32 * lane)) +
-                int4_block_bits_to_float(
+                int4_fp32_from_bits(
                     branch_word.range(32 * lane + 31, 32 * lane));
         }
         int4_output_word_t output = 0;
         for (int lane = 0; lane < INT4_OUTPUTS_PER_WORD; ++lane) {
 #pragma HLS UNROLL
             output.range(32 * lane + 31, 32 * lane) =
-                int4_block_float_to_bits(sums[lane]);
+                int4_fp32_to_bits(sums[lane]);
         }
         residual[word] = output;
     }
@@ -401,6 +384,7 @@ static void int4_local_residual_add_commanded(
     completion_stream.write(1);
 }
 
+#ifdef INT4_ENABLE_LEGACY_GLOBAL_API
 void int4_residual_add_shards(
     int4_output_word_t residual0[INT4_VECTOR_WORDS_PER_PE],
     int4_output_word_t residual1[INT4_VECTOR_WORDS_PER_PE],
@@ -467,6 +451,7 @@ void int4_residual_add_shards(
         completion2, completion3, completion23);
     int4_wait_task_completion_pairs<210>(completion01, completion23);
 }
+#endif
 
 template <int PE_ID>
 static void int4_local_swiglu_quantize(
@@ -488,9 +473,9 @@ local_swiglu_group_loop:
         local_swiglu_lane_loop:
             for (int lane = 0; lane < INT4_OUTPUTS_PER_WORD; ++lane) {
 #pragma HLS PIPELINE II=1
-                const float gate_value = int4_block_bits_to_float(
+                const float gate_value = int4_fp32_from_bits(
                     gate_word.range(32 * lane + 31, 32 * lane));
-                const float up_value = int4_block_bits_to_float(
+                const float up_value = int4_fp32_from_bits(
                     up_word.range(32 * lane + 31, 32 * lane));
                 const float sigmoid =
                     1.0f / (1.0f + hls::expf(-gate_value));
@@ -518,6 +503,7 @@ static void int4_local_swiglu_quantize_commanded(
     completion_stream.write(1);
 }
 
+#ifdef INT4_ENABLE_LEGACY_GLOBAL_API
 void int4_swiglu_quantize_shards(
     const int4_output_word_t gate0[INT4_HIDDEN_WORDS_PER_PE],
     const int4_output_word_t gate1[INT4_HIDDEN_WORDS_PER_PE],
@@ -604,6 +590,7 @@ void int4_swiglu_quantize_shards(
         completion2, completion3, completion23);
     int4_wait_task_completion_pairs<220>(completion01, completion23);
 }
+#endif
 
 template <int PE_ID>
 static void int4_local_rms_stage(

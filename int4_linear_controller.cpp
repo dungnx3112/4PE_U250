@@ -1,27 +1,8 @@
+#include "int4_linear_controller.hpp"
 #include "int4_model_layout.hpp"
 #include "int4_decoder_schedule.hpp"
+#include "int4_numeric.hpp"
 #include "int4_task_control.hpp"
-
-#include <cstdint>
-
-union int4_fp32_bits_t {
-    std::uint32_t bits;
-    float value;
-};
-
-static float int4_bits_to_float(ap_uint<32> bits) {
-#pragma HLS INLINE
-    int4_fp32_bits_t converter;
-    converter.bits = (std::uint32_t)bits;
-    return converter.value;
-}
-
-static ap_uint<32> int4_float_to_bits(float value) {
-#pragma HLS INLINE
-    int4_fp32_bits_t converter;
-    converter.value = value;
-    return (ap_uint<32>)converter.bits;
-}
 
 static float int4_half_bits_to_float(ap_uint<16> bits) {
 #pragma HLS INLINE
@@ -58,12 +39,12 @@ static float int4_half_bits_to_float(ap_uint<16> bits) {
             (ap_uint<8>)((int)exponent - 15 + 127);
         fp32_bits.range(22, 13) = mantissa;
     }
-    return int4_bits_to_float(fp32_bits);
+    return int4_fp32_from_bits(fp32_bits);
 }
 
 static ap_uint<32> int4_float_to_fxp_bits(float value) {
 #pragma HLS INLINE
-    const ap_uint<32> bits = int4_float_to_bits(value);
+    const ap_uint<32> bits = int4_fp32_to_bits(value);
     const bool negative = bits[31];
     const ap_uint<8> exponent = bits.range(30, 23);
     const ap_uint<23> fraction = bits.range(22, 0);
@@ -251,7 +232,9 @@ static void int4_prepare_local_weight_request(
     hls::stream<int4_linear_command_t>& command_stream,
     hls::stream<int4_weight_request_t>& request_stream) {
 #pragma HLS INLINE off
-#pragma HLS PIPELINE II=1
+    // This process emits one request per projection stage. Function-level
+    // pipelining would auto-rewind inside an ap_ctrl_none task and triggers
+    // HLS 200-656 without improving the weight reader's one-word/cycle rate.
     const int4_linear_command_t command = command_stream.read();
     const ap_uint<8> output_tiles =
         (ap_uint<8>)int4_command_output_tiles(command);
@@ -401,7 +384,7 @@ local_partial_output_tile_loop:
             for (int lane = 0; lane < INT4_ROW_BLOCK; ++lane) {
 #pragma HLS UNROLL
                 packet.range(32 * lane + 31, 32 * lane) =
-                    int4_float_to_bits(
+                    int4_fp32_to_bits(
                         partial[row_block * INT4_ROW_BLOCK + lane]);
             }
             partial_stream.write(packet);
@@ -424,7 +407,7 @@ static void int4_run_local_pe(
     hls::stream<int4_weight_request_t> weight_request;
     hls::stream<int4_weight_word_t> weight_stream;
 #pragma HLS STREAM variable=reader_command depth=3
-#pragma HLS STREAM variable=compute_command depth=3
+#pragma HLS STREAM variable=compute_command depth=4
 #pragma HLS STREAM variable=weight_request depth=2
     // Two complete 128x256 tiles absorb one AXI command/latency bubble while
     // the reusable MAC consumes the previous tile at one 512-bit word/cycle.
@@ -452,12 +435,12 @@ static int4_reduction_packet_t int4_add_partial_packets(
     int4_reduction_packet_t result = 0;
     for (int lane = 0; lane < INT4_REDUCTION_LANES; ++lane) {
 #pragma HLS UNROLL
-        const float a = int4_bits_to_float(
+        const float a = int4_fp32_from_bits(
             first.range(32 * lane + 31, 32 * lane));
-        const float b = int4_bits_to_float(
+        const float b = int4_fp32_from_bits(
             second.range(32 * lane + 31, 32 * lane));
         result.range(32 * lane + 31, 32 * lane) =
-            int4_float_to_bits(a + b);
+            int4_fp32_to_bits(a + b);
     }
     return result;
 }
@@ -522,7 +505,7 @@ finalize_pair_packet_loop:
             for (int lane = 0; lane < INT4_REDUCTION_LANES; ++lane) {
 #pragma HLS UNROLL
                 completed.range(32 * lane + 31, 32 * lane) =
-                    int4_float_to_fxp_bits(int4_bits_to_float(
+                    int4_float_to_fxp_bits(int4_fp32_from_bits(
                         completed.range(32 * lane + 31, 32 * lane)));
             }
         }
@@ -717,7 +700,7 @@ decoder_finalize_schedule_layer_loop:
                          ++lane) {
 #pragma HLS UNROLL
                         completed.range(32 * lane + 31, 32 * lane) =
-                            int4_float_to_fxp_bits(int4_bits_to_float(
+                            int4_float_to_fxp_bits(int4_fp32_from_bits(
                                 completed.range(
                                     32 * lane + 31, 32 * lane)));
                     }
@@ -772,6 +755,7 @@ void int4_linear_finalize_pair23_schedule(
         local_sum, remote_sum, output2, output3);
 }
 
+#ifdef INT4_ENABLE_LEGACY_GLOBAL_API
 void int4_sharded_linear_4pe(
     const int4_weight_word_t* weight_pe0,
     const int4_weight_word_t* weight_pe1,
@@ -975,3 +959,4 @@ void int4_sharded_linear_4pe(
         completion2, completion3, completion23);
     int4_wait_task_completion_pairs<100>(completion01, completion23);
 }
+#endif

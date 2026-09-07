@@ -49,7 +49,7 @@ The top-level dataflow graph owns only:
 | `int4_decoder_controller.cpp` | Kernel interface, four local PE roots and narrow inter-SLR task graph |
 | `int4_linear_controller.cpp/.hpp` | PE-local linear stages and schedule-long pair reduction services |
 | `int4_decoder_blocks.cpp/.hpp` | PE-local RMS/SwiGLU/residual blocks and schedule-long RMS pair services |
-| `timing_300mhz_pre_place.tcl` | Assigns each complete local decoder root to its owning SLR |
+| `timing_300mhz_pre_place.tcl` | Anchors each AXI adapter by its DDR and AXI-Lite control in SLR0 |
 
 ## Inter-SLR interfaces
 
@@ -69,11 +69,12 @@ log, the top KPN must contain all four `int4_decoder_local_pe_N` processes and
 the pair services. After RTL generation, verify that the top module does not
 contain a global projection `mode_reg` driving four PE memory muxes.
 
-The full hardware link must use the updated pre-place Tcl. It expects exactly
-one `int4_decoder_local_pe_N_U0` hierarchy for every PE and assigns those roots
-to SLR0 through SLR3 respectively.
+The full hardware link must use the updated pre-place Tcl. It requires one AXI
+adapter for each `gmem0..3` interface and anchors those adapters beside DDR0..3.
+The large compute PE hierarchies remain timing-driven; forcing every primitive
+of a PE into one SLR was measured to make post-place timing worse.
 
-## Verified result (2026-09-01)
+## Verified result (2026-09-07)
 
 - C++ syntax check: pass.
 - Vitis HLS 2023.2 C-synthesis: pass, no error or critical warning.
@@ -83,8 +84,8 @@ to SLR0 through SLR3 respectively.
 - Top KPN workers: 15, all with constant `ap_start` and `ap_continue`.
 - All generated KPN workers: 23 across five KPN modules.
 - Auto-rewind deadlock warning `HLS 200-656`: zero.
-- New XO: 8,864,862 bytes, SHA-256
-  `C76827EF70E5FA88214E4B63C37FDB86AA212CE87AE933666F2183E70492AA0E`.
+- Current XO stored in Git: 8,965,790 bytes, SHA-256
+  `BE5B3ED2B261F8BD3B0C044B9EE02274142AAB769B7C5F02D468E5162BB67422`.
 
 Post-route WNS/WHS is intentionally not claimed here; it requires a new full
 U250 link using this XO and the updated floorplan.

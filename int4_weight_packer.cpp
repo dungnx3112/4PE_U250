@@ -1,4 +1,5 @@
 #include "int4_weight_packer.hpp"
+#include "int4_numeric.hpp"
 #include "swiftkv_attention.hpp"
 
 #include <algorithm>
@@ -6,27 +7,9 @@
 #include <cstdint>
 #include <limits>
 
-union int4_packer_fp32_bits_t {
-    std::uint32_t bits;
-    float value;
-};
-
-static ap_uint<32> int4_packer_float_to_bits(float value) {
-    int4_packer_fp32_bits_t converter;
-    converter.value = value;
-    return (ap_uint<32>)converter.bits;
-}
-
-static float int4_packer_bits_to_float(ap_uint<32> bits) {
-    int4_packer_fp32_bits_t converter;
-    converter.bits = (std::uint32_t)bits;
-    return converter.value;
-}
-
 static ap_uint<16> int4_packer_float_to_half_bits(float value) {
-    int4_packer_fp32_bits_t converter;
-    converter.value = value;
-    const std::uint32_t bits = converter.bits;
+    const std::uint32_t bits =
+        (std::uint32_t)int4_fp32_to_bits(value);
     const std::uint32_t sign = (bits >> 16) & 0x8000U;
     const int exponent = (int)((bits >> 23) & 0xffU) - 127 + 15;
     std::uint32_t mantissa = bits & 0x7fffffU;
@@ -288,7 +271,7 @@ void int4_pack_norm_vector(
                     pe * INT4_LOCAL_DIM +
                     word * INT4_OUTPUTS_PER_WORD + lane;
                 packed.range(32 * lane + 31, 32 * lane) =
-                    int4_packer_float_to_bits(gamma[global_index]);
+                    int4_fp32_to_bits(gamma[global_index]);
             }
             bank[base + word] = packed;
         }
@@ -311,7 +294,7 @@ void int4_pack_input_residual(
                     pe * INT4_LOCAL_DIM +
                     word * INT4_OUTPUTS_PER_WORD + lane;
                 packed.range(32 * lane + 31, 32 * lane) =
-                    int4_packer_float_to_bits(input[global_index]);
+                    int4_fp32_to_bits(input[global_index]);
             }
             bank[word] = packed;
         }
@@ -340,7 +323,7 @@ void int4_unpack_fp32_linear_output(
                     pe * local_rows +
                     word * INT4_OUTPUTS_PER_WORD + lane;
                 if (global_index < valid_rows) {
-                    output[global_index] = int4_packer_bits_to_float(
+                    output[global_index] = int4_fp32_from_bits(
                         packed.range(32 * lane + 31, 32 * lane));
                 }
             }

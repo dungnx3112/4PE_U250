@@ -1,6 +1,6 @@
 #pragma once
 
-#include "int4_linear_controller.hpp"
+#include "int4_types.hpp"
 
 // Input-column-sharded model layout. Every DDR contains the columns consumed
 // by its local PE for every global output tile. Matrix spans are identical in

@@ -1,3 +1,6 @@
+set script_directory [file dirname [file normalize [info script]]]
+cd $script_directory
+
 # Fast verification flow: synthesize and generate reports without packaging XO.
 open_project -reset proj_int4_decoder_300mhz
 set_top int4_decoder_token_controller

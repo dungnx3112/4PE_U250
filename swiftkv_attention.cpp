@@ -1,26 +1,7 @@
 #include "swiftkv_attention.hpp"
+#include "int4_numeric.hpp"
 
-#include <cstdint>
 #include <hls_stream.h>
-
-union swiftkv_fp32_bits_t {
-    std::uint32_t bits;
-    float value;
-};
-
-static float swiftkv_bits_to_float(ap_uint<32> bits) {
-#pragma HLS INLINE
-    swiftkv_fp32_bits_t converter;
-    converter.bits = (std::uint32_t)bits;
-    return converter.value;
-}
-
-static ap_uint<32> swiftkv_float_to_bits(float value) {
-#pragma HLS INLINE
-    swiftkv_fp32_bits_t converter;
-    converter.value = value;
-    return (ap_uint<32>)converter.bits;
-}
 
 static int4_fxp32_t swiftkv_bits_to_fxp(ap_uint<32> bits) {
 #pragma HLS INLINE
@@ -1867,6 +1848,7 @@ static swiftkv_rope_lut_word_t swiftkv_read_rope_lut_word(
     return packed;
 }
 
+#ifdef INT4_ENABLE_LEGACY_GLOBAL_API
 static void swiftkv_preload_rope_reader_bank0(
     const int4_output_word_t* rope_lut_ddr,
     swiftkv_rope_lut_word_t rope_lut_bank0[SWIFTKV_ROPE_BANK_WORDS],
@@ -2125,7 +2107,9 @@ void swiftkv_load_rope_bank3(
         current_cos_pair01, current_sin_pair01,
         current_cos_pair23, current_sin_pair23);
 }
+#endif
 
+#ifdef INT4_ENABLE_LEGACY_GLOBAL_API
 static void swiftkv_broadcast_rope_pair01(
     const swiftkv_rope_raw_t current_cos_pair01[SWIFTKV_ROPE_PAIRS],
     const swiftkv_rope_raw_t current_sin_pair01[SWIFTKV_ROPE_PAIRS],
@@ -2167,6 +2151,7 @@ rope_broadcast_pair23_loop:
         sin_pe3.write(sine);
     }
 }
+#endif
 
 // The global decoder controller is intentionally terminated in the shared
 // SLR1 control island.  Each SwiftKV PE receives only one 18-bit command via
@@ -2187,6 +2172,7 @@ static swiftkv_pe_command_t swiftkv_pack_pe_command(
     return command;
 }
 
+#ifdef INT4_ENABLE_LEGACY_GLOBAL_API
 static void swiftkv_broadcast_pe_commands_pair01(
     hls::stream<swiftkv_pe_command_t>& swiftkv_command_pe0,
     hls::stream<swiftkv_pe_command_t>& swiftkv_command_pe1,
@@ -2212,6 +2198,7 @@ static void swiftkv_broadcast_pe_commands_pair23(
     swiftkv_command_pe2.write(command);
     swiftkv_command_pe3.write(command);
 }
+#endif
 
 static void swiftkv_run_bank(
     const int4_output_word_t* q,
@@ -2388,6 +2375,7 @@ static void swiftkv_run_pe(
 // Completion follows the physical SLR chain instead of letting one generated
 // pf_all_done cone directly observe all four PE FSMs.  The token echoes the
 // local 18-bit command, so the join also detects a stale/mismatched worker.
+#ifdef INT4_ENABLE_LEGACY_GLOBAL_API
 static void swiftkv_join_done01(
     hls::stream<swiftkv_completion_t>& done0,
     hls::stream<swiftkv_completion_t>& done1,
@@ -2430,6 +2418,7 @@ static void swiftkv_join_all_done(
     all_done = token01 == expected_completion &&
                token23 == expected_completion;
 }
+#endif
 
 template <int PE_ID>
 static void swiftkv_collect_pe_output(
@@ -2609,6 +2598,7 @@ void int4_swiftkv_attention_pe3(
         activation_q, activation_scale, layer_index, position);
 }
 
+#ifdef INT4_ENABLE_LEGACY_GLOBAL_API
 static void swiftkv_gather_attention_buffers(
     const int4_quant_word_t quantized_pe0[32],
     const int4_quant_word_t quantized_pe1[32],
@@ -2657,7 +2647,7 @@ attention_gather_local_head_loop:
                 activation_q[global_group] = quantized;
                 packed_scales >>= 32;
                 packed_scales.range(511, 480) =
-                    swiftkv_float_to_bits(scale);
+                    int4_fp32_to_bits(scale);
             }
         }
         activation_scale[local_head] = packed_scales;
@@ -2865,7 +2855,7 @@ store_attention_group_loop:
             merged_quantized_stream.read();
         packed_scales >>= 32;
         packed_scales.range(511, 480) =
-            swiftkv_float_to_bits(merged_scale_stream.read());
+            int4_fp32_to_bits(merged_scale_stream.read());
         if (scale_lane == INT4_OUTPUTS_PER_WORD - 1) {
             activation_scale[
                 global_group / INT4_OUTPUTS_PER_WORD] =
@@ -3398,4 +3388,5 @@ void swiftkv_attention_latency_verify(
         activation_q, activation_scale,
         0, position);
 }
+#endif
 #endif
