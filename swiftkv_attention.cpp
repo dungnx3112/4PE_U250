@@ -136,6 +136,10 @@ static constexpr int SWIFTKV_UPDATE_PHASES =
     SWIFTKV_HEAD_SIZE / SWIFTKV_UPDATE_LANES;
 static constexpr int SWIFTKV_UPDATE_ENGINE_VALUES =
     SWIFTKV_HEAD_SIZE / SWIFTKV_UPDATE_ENGINES;
+static constexpr int SWIFTKV_UPDATE_GROUP_PHASES =
+    INT4_GROUP_SIZE / SWIFTKV_UPDATE_LANES;
+static constexpr int SWIFTKV_UPDATE_GROUP_ENGINE_VALUES =
+    SWIFTKV_UPDATE_GROUP_PHASES * SWIFTKV_UPDATE_ENGINE_LANES;
 static constexpr int SWIFTKV_UPDATE_ENGINE_WORD_BITS =
     SWIFTKV_KV_VALUES_PER_WORD * SWIFTKV_KV_CACHE_BITS /
     SWIFTKV_UPDATE_ENGINES;
@@ -166,8 +170,9 @@ static_assert(
 static_assert(
     SWIFTKV_UPDATE_LANES ==
         SWIFTKV_UPDATE_ENGINES * SWIFTKV_UPDATE_ENGINE_LANES &&
-        (SWIFTKV_UPDATE_PHASES & (SWIFTKV_UPDATE_PHASES - 1)) == 0,
-    "the banked SwiftKV update engine requires a power-of-two phase count");
+        (SWIFTKV_UPDATE_PHASES & (SWIFTKV_UPDATE_PHASES - 1)) == 0 &&
+        (INT4_GROUP_SIZE % SWIFTKV_UPDATE_LANES) == 0,
+    "the banked SwiftKV update engine requires aligned groups and a power-of-two phase count");
 
 static const ap_uint<32> SWIFTKV_EXP2_LUT_Q30[33] = {
     1073741824U, 1097253708U, 1121280436U, 1145833280U,
@@ -732,6 +737,47 @@ static void swiftkv_emit_current_record(
     current_record_stream.write(value1);
 }
 
+// Terminate the complete-partitioned five-word record at a BRAM FIFO before
+// it reaches the AXI store engine. Keeping the inputs scalar avoids recreating
+// the wide PIPO ready/valid cone that an array argument produced in earlier
+// implementations, while the fixed writes remove the variable 5:1 selector
+// from the 512-bit AXI WDATA path.
+static void swiftkv_buffer_kv_write_record(
+    int4_output_word_t metadata,
+    int4_output_word_t key0,
+    int4_output_word_t key1,
+    int4_output_word_t value0,
+    int4_output_word_t value1,
+    hls::stream<int4_output_word_t>& kv_write_stream
+) {
+#pragma HLS INLINE off
+    kv_write_stream.write(metadata);
+    kv_write_stream.write(key0);
+    kv_write_stream.write(key1);
+    kv_write_stream.write(value0);
+    kv_write_stream.write(value1);
+}
+
+// Give the AXI requester a single registered/FIFO source. This process no
+// longer indexes a complete-partitioned 5x512-bit array, so its WDATA cone is
+// independent of the quantizer's record-selection logic.
+static void swiftkv_write_buffered_kv_record(
+    int4_output_word_t* kv_cache,
+    int current_token_base,
+    hls::stream<int4_output_word_t>& kv_write_stream
+) {
+#pragma HLS INLINE off
+write_buffered_kv_record_loop:
+    for (int word = 0;
+         word < SWIFTKV_KV_WORDS_PER_TOKEN_HEAD;
+         ++word) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=5 max=5
+        const int4_output_word_t write_word = kv_write_stream.read();
+        kv_cache[current_token_base + word] = write_word;
+    }
+}
+
 static void swiftkv_route_compressed_kv_cache(
     ap_uint<12> position,
     hls::stream<int4_output_word_t>& cached_kv_word_stream,
@@ -956,11 +1002,9 @@ static void swiftkv_process_compressed_kv(
     hls::stream<swiftkv_update_engine_word_t>& key1_chunk2_stream,
     hls::stream<swiftkv_update_engine_word_t>& key1_chunk3_stream,
     ap_uint<12> position,
-    hls::stream<int4_fxp32_t>& score_stream
+    hls::stream<swiftkv_dot_t>& unscaled_score_stream
 ) {
 #pragma HLS INLINE off
-    const int4_fxp32_t score_scale =
-        (int4_fxp32_t)0.08838834764831845;
     // The old single phase loop performed three blocking FIFO reads in phase
     // zero.  Its stall enable was consequently replicated into 1,044--1,097
     // arithmetic registers per PE in the routed DCP.  Read one complete key
@@ -1001,7 +1045,9 @@ compressed_dot_token_loop:
 // The record reads already sit outside this fixed phase loop.  FRP therefore
 // adds no useful decoupling here, but HLS estimates a 7,360-load global
 // control net for it.  The standard II=1 controller keeps backpressure local
-// to score_stream and lets RTL synthesis replicate the small stage enables.
+// to unscaled_score_stream and lets RTL synthesis replicate the small stage
+// enables. Score scaling lives in a separate process so the pipelined DSP no
+// longer shares this loop's phase and FIFO-stall controller.
 #pragma HLS PIPELINE II=1 style=stp
 #pragma HLS LOOP_TRIPCOUNT min=8 max=8
             const int group = phase >> 1;
@@ -1028,13 +1074,35 @@ compressed_dot_token_loop:
                         : (swiftkv_dot_t)(token_dot + group_dot);
                 token_dot = next_dot;
                 if (group == SWIFTKV_KV_GROUPS_PER_HEAD - 1) {
-                    const int4_fxp32_t score =
-                        (int4_fxp32_t)(next_dot * score_scale);
-#pragma HLS BIND_OP variable=score op=mul impl=dsp latency=4
-                    score_stream.write(score);
+                    unscaled_score_stream.write(next_dot);
                 }
             }
         }
+    }
+}
+
+// Isolate the 44x15 score multiplier from the compressed-dot controller. The
+// producer emits one dot every eight cycles, so this fixed-latency DSP stage
+// has ample throughput while its input/output FIFOs localize back-pressure.
+static void swiftkv_scale_dot_scores(
+    hls::stream<swiftkv_dot_t>& unscaled_score_stream,
+    ap_uint<12> position,
+    hls::stream<int4_fxp32_t>& score_stream
+) {
+#pragma HLS INLINE off
+    const int4_fxp32_t score_scale =
+        (int4_fxp32_t)0.08838834764831845;
+
+scale_dot_score_loop:
+    for (int token = 0; token <= (int)position; ++token) {
+#pragma HLS PIPELINE II=1 style=stp
+#pragma HLS LOOP_TRIPCOUNT min=1 max=SWIFTKV_MAX_SEQ_LEN
+        const swiftkv_dot_t unscaled_score =
+            unscaled_score_stream.read();
+        const int4_fxp32_t score =
+            (int4_fxp32_t)(unscaled_score * score_scale);
+#pragma HLS BIND_OP variable=score op=mul impl=dsp latency=4
+        score_stream.write(score);
     }
 }
 
@@ -1543,6 +1611,42 @@ static void swiftkv_accumulate_values_split(
         weighted_value_engine3);
 }
 
+// Copy one fixed state bank into its lanes in the current 32-value output
+// group. ENGINE_ID is a compile-time constant, so no four-bank selector is
+// generated on the state-data path. The following normalization loop reads
+// only weighted_group and therefore starts after a local BRAM boundary.
+template<int ENGINE_ID>
+static void swiftkv_stage_weighted_group_engine(
+    const swiftkv_state_t
+        weighted_value_engine[SWIFTKV_UPDATE_ENGINE_VALUES],
+    int group,
+    swiftkv_state_t weighted_group[INT4_GROUP_SIZE]
+) {
+#pragma HLS INLINE
+
+stage_weighted_group_engine_loop:
+    for (int local_value = 0;
+         local_value < SWIFTKV_UPDATE_GROUP_ENGINE_VALUES;
+         ++local_value) {
+#pragma HLS PIPELINE II=1
+        const int phase_in_group =
+            local_value / SWIFTKV_UPDATE_ENGINE_LANES;
+        const int lane_in_engine =
+            local_value & (SWIFTKV_UPDATE_ENGINE_LANES - 1);
+        const int update_phase =
+            group * SWIFTKV_UPDATE_GROUP_PHASES + phase_in_group;
+        const int engine_index =
+            update_phase * SWIFTKV_UPDATE_ENGINE_LANES +
+            lane_in_engine;
+        const int group_lane =
+            phase_in_group * SWIFTKV_UPDATE_LANES +
+            ENGINE_ID * SWIFTKV_UPDATE_ENGINE_LANES +
+            lane_in_engine;
+        weighted_group[group_lane] =
+            weighted_value_engine[engine_index];
+    }
+}
+
 static void swiftkv_update_values_and_quantize(
     hls::stream<ap_uint<40> >& value_metadata_stream,
     hls::stream<swiftkv_update_engine_word_t>& value0_engine0_stream,
@@ -1600,7 +1704,9 @@ static void swiftkv_update_values_and_quantize(
 
     const int4_fxp32_t inverse_normalization =
         inverse_normalization_stream.read();
+    swiftkv_state_t weighted_group[INT4_GROUP_SIZE];
     int4_fxp32_t attention_group[INT4_GROUP_SIZE];
+#pragma HLS BIND_STORAGE variable=weighted_group type=ram_1p impl=bram latency=1
 #pragma HLS BIND_STORAGE variable=attention_group type=ram_1p impl=bram
 
 attention_quant_group_loop:
@@ -1609,28 +1715,20 @@ attention_quant_group_loop:
          ++group) {
         int4_fxp32_t max_abs = 0;
 
+        swiftkv_stage_weighted_group_engine<0>(
+            weighted_value_engine0, group, weighted_group);
+        swiftkv_stage_weighted_group_engine<1>(
+            weighted_value_engine1, group, weighted_group);
+        swiftkv_stage_weighted_group_engine<2>(
+            weighted_value_engine2, group, weighted_group);
+        swiftkv_stage_weighted_group_engine<3>(
+            weighted_value_engine3, group, weighted_group);
+
     attention_normalize_lane_loop:
         for (int lane = 0; lane < INT4_GROUP_SIZE; ++lane) {
 #pragma HLS PIPELINE II=1
-            const int index = group * INT4_GROUP_SIZE + lane;
-            const int update_phase = index / SWIFTKV_UPDATE_LANES;
-            const int update_lane = index & (SWIFTKV_UPDATE_LANES - 1);
-            const int update_engine =
-                update_lane / SWIFTKV_UPDATE_ENGINE_LANES;
-            const int engine_index =
-                update_phase * SWIFTKV_UPDATE_ENGINE_LANES +
-                (update_lane &
-                 (SWIFTKV_UPDATE_ENGINE_LANES - 1));
-            swiftkv_state_t weighted_value = 0;
-            if (update_engine == 0) {
-                weighted_value = weighted_value_engine0[engine_index];
-            } else if (update_engine == 1) {
-                weighted_value = weighted_value_engine1[engine_index];
-            } else if (update_engine == 2) {
-                weighted_value = weighted_value_engine2[engine_index];
-            } else {
-                weighted_value = weighted_value_engine3[engine_index];
-            }
+            const swiftkv_state_t weighted_value =
+                weighted_group[lane];
             const swiftkv_state_product_t normalized_value =
                 (swiftkv_state_product_t)(
                     weighted_value *
@@ -1698,6 +1796,7 @@ static void swiftkv_attention_head(
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW disable_start_propagation
 
+    hls::stream<swiftkv_dot_t> unscaled_score_stream;
     hls::stream<int4_fxp32_t> score_stream;
     hls::stream<int4_output_word_t> cached_kv_word_stream;
     hls::stream<int4_output_word_t> current_record_stream;
@@ -1723,6 +1822,7 @@ static void swiftkv_attention_head(
     hls::stream<swiftkv_update_engine_word_t> value1_engine3_stream;
     hls::stream<swiftkv_update_control_t> control_stream;
     hls::stream<int4_fxp32_t> inverse_normalization_stream;
+#pragma HLS STREAM variable=unscaled_score_stream depth=4
 #pragma HLS STREAM variable=score_stream depth=4
     // A 64-beat elastic window lets the AXI loop run independently of the
     // five-word record router.  BRAM is deliberate: an SRL FIFO this wide
@@ -1751,6 +1851,7 @@ static void swiftkv_attention_head(
 #pragma HLS STREAM variable=value1_engine3_stream depth=SWIFTKV_KV_TILE_TOKENS
 #pragma HLS STREAM variable=control_stream depth=16
 #pragma HLS STREAM variable=inverse_normalization_stream depth=2
+#pragma HLS BIND_STORAGE variable=unscaled_score_stream type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=score_stream type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=cached_kv_word_stream type=fifo impl=bram
     // The routed checkpoint measured 605 sinks on each emitter push net and
@@ -1817,7 +1918,9 @@ static void swiftkv_attention_head(
         key0_chunk2_stream, key0_chunk3_stream,
         key1_chunk0_stream, key1_chunk1_stream,
         key1_chunk2_stream, key1_chunk3_stream,
-        position, score_stream);
+        position, unscaled_score_stream);
+    swiftkv_scale_dot_scores(
+        unscaled_score_stream, position, score_stream);
     swiftkv_coefficient_producer(
         score_stream, position,
         control_stream, inverse_normalization_stream);
@@ -2215,6 +2318,14 @@ static void swiftkv_run_bank(
 #pragma HLS INLINE off
 #pragma HLS ALLOCATION function instances=swiftkv_rotate_rope_word limit=1
 
+    // The FIFO is deliberately deep enough to hold one complete compressed
+    // record because the producer and AXI writer execute sequentially in this
+    // non-DATAFLOW wrapper. BRAM supplies the physical 512-bit register/memory
+    // boundary that was missing from the old record[word] -> WDATA path.
+    hls::stream<int4_output_word_t> kv_write_stream;
+#pragma HLS STREAM variable=kv_write_stream depth=8
+#pragma HLS BIND_STORAGE variable=kv_write_stream type=fifo impl=bram
+
     swiftkv_rope_raw_t local_cosine[SWIFTKV_ROPE_PAIRS];
     swiftkv_rope_raw_t local_sine[SWIFTKV_ROPE_PAIRS];
 #pragma HLS BIND_STORAGE variable=local_cosine type=ram_1p impl=lutram latency=1
@@ -2315,14 +2426,15 @@ pe_head_loop:
         swiftkv_quantize_kv_record(
             rotated_k_words, v_words, compressed_kv_record);
 
-    pe_write_kv_word_loop:
-        for (int word = 0;
-             word < SWIFTKV_KV_WORDS_PER_TOKEN_HEAD;
-             ++word) {
-#pragma HLS PIPELINE II=1
-            kv_cache[current_token_base + word] =
-                compressed_kv_record[word];
-        }
+        swiftkv_buffer_kv_write_record(
+            compressed_kv_record[0],
+            compressed_kv_record[1],
+            compressed_kv_record[2],
+            compressed_kv_record[3],
+            compressed_kv_record[4],
+            kv_write_stream);
+        swiftkv_write_buffered_kv_record(
+            kv_cache, current_token_base, kv_write_stream);
 
         swiftkv_attention_head(
             query, kv_cache, cache_head_base,

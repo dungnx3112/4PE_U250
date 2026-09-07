@@ -36,6 +36,9 @@ shard logits.
 
 Sơ đồ dependency, phạm vi production/legacy và contract khởi tạo được mô tả
 ngắn gọn trong [`HLS_SOURCE_GUIDE.md`](HLS_SOURCE_GUIDE.md).
+Datapath RMSNorm, GEMV INT4, reduction tree và cách chia logic theo SLR được
+mô tả chi tiết trong
+[`RMSNORM_MATMUL_HARDWARE.md`](RMSNORM_MATMUL_HARDWARE.md).
 
 ## Kiến trúc dữ liệu
 
