@@ -8,6 +8,20 @@
 static constexpr int INT4_PROJECTION_SCRATCH_WORDS =
     INT4_MAX_LOCAL_OUTPUT_WORDS;
 using int4_position_command_t = ap_uint<12>;
+using int4_local_stage_flags_t = ap_uint<8>;
+
+// Decode the compact schedule mode once at a registered function boundary.
+// Downstream RAM owners consume independent one-hot bits, so the three-bit
+// mode register is confined to address/linear-command generation instead of
+// fanning out through every PE FSM predicate and memory-port mux.
+static int4_local_stage_flags_t int4_decode_local_stage_flags(
+    ap_uint<3> mode) {
+#pragma HLS INLINE off
+#pragma HLS PIPELINE II=1
+    int4_local_stage_flags_t flags = 0;
+    flags[(int)mode] = 1;
+    return flags;
+}
 
 static void int4_seed_position_chain(
     ap_uint<12> position,
@@ -91,18 +105,18 @@ static void int4_save_local_projection(
     int4_output_word_t k[INT4_VECTOR_WORDS_PER_PE],
     int4_output_word_t v[INT4_VECTOR_WORDS_PER_PE],
     int4_output_word_t gate[INT4_HIDDEN_WORDS_PER_PE],
-    ap_uint<3> mode) {
+    int4_local_stage_flags_t stage_flags) {
 #pragma HLS INLINE off
-    const int words = mode == INT4_LINEAR_GATE
+    const int words = stage_flags[INT4_LINEAR_GATE]
         ? INT4_HIDDEN_WORDS_PER_PE
         : INT4_VECTOR_WORDS_PER_PE;
 save_local_projection_loop:
     for (int word = 0; word < words; ++word) {
 #pragma HLS PIPELINE II=1
         const int4_output_word_t value = scratch[word];
-        if (mode == INT4_LINEAR_Q) q[word] = value;
-        else if (mode == INT4_LINEAR_K) k[word] = value;
-        else if (mode == INT4_LINEAR_V) v[word] = value;
+        if (stage_flags[INT4_LINEAR_Q]) q[word] = value;
+        else if (stage_flags[INT4_LINEAR_K]) k[word] = value;
+        else if (stage_flags[INT4_LINEAR_V]) v[word] = value;
         else gate[word] = value;
     }
 }
@@ -180,14 +194,16 @@ local_projection_layer_loop_##PE:                                     \
             _Pragma("HLS LOOP_TRIPCOUNT min=1 max=7")                 \
             const ap_uint<3> mode = int4_decoder_stage_mode(          \
                 schedule_layer, stage);                               \
+            const int4_local_stage_flags_t stage_flags =              \
+                int4_decode_local_stage_flags(mode);                   \
             const int layer =                                        \
                 int4_decoder_model_layer(schedule_layer);             \
-            if (mode == INT4_LINEAR_Q ||                              \
-                mode == INT4_LINEAR_GATE ||                           \
-                mode == INT4_LINEAR_LOGITS) {                         \
-                const int norm_mode = mode == INT4_LINEAR_Q           \
+            if (stage_flags[INT4_LINEAR_Q] ||                          \
+                stage_flags[INT4_LINEAR_GATE] ||                       \
+                stage_flags[INT4_LINEAR_LOGITS]) {                     \
+                const int norm_mode = stage_flags[INT4_LINEAR_Q]      \
                     ? INT4_RMSNORM_ATTENTION                          \
-                    : (mode == INT4_LINEAR_GATE                       \
+                    : (stage_flags[INT4_LINEAR_GATE]                  \
                         ? INT4_RMSNORM_FFN                            \
                         : INT4_RMSNORM_FINAL);                        \
                 RMS_STAGE(                                            \
@@ -195,12 +211,12 @@ local_projection_layer_loop_##PE:                                     \
                     activation_q, activation_scale,                   \
                     int4_norm_offset(layer, norm_mode),               \
                     rms_partial, rms_reciprocal);                     \
-            } else if (mode == INT4_LINEAR_O) {                       \
+            } else if (stage_flags[INT4_LINEAR_O]) {                  \
                 ATTENTION_STAGE(                                      \
                     q, k, v, kv_cache, rope_lut,                      \
                     activation_q, activation_scale,                   \
                     (ap_uint<6>)layer, local_position);                \
-            } else if (mode == INT4_LINEAR_DOWN) {                    \
+            } else if (stage_flags[INT4_LINEAR_DOWN]) {               \
                 SWIGLU_STAGE(                                         \
                     gate, projection,                                \
                     activation_q, activation_scale);                  \
@@ -213,13 +229,14 @@ local_projection_layer_loop_##PE:                                     \
                 (ap_uint<16>)int4_weight_scale_offset(                \
                     layer, (int)mode),                                \
                 linear_partial, linear_completed);                    \
-            if (mode == INT4_LINEAR_Q || mode == INT4_LINEAR_K ||    \
-                mode == INT4_LINEAR_V ||                              \
-                mode == INT4_LINEAR_GATE) {                           \
+            if (stage_flags[INT4_LINEAR_Q] ||                         \
+                stage_flags[INT4_LINEAR_K] ||                         \
+                stage_flags[INT4_LINEAR_V] ||                         \
+                stage_flags[INT4_LINEAR_GATE]) {                      \
                 int4_save_local_projection<PE>(                       \
-                    projection, q, k, v, gate, mode);                 \
-            } else if (mode == INT4_LINEAR_O ||                       \
-                       mode == INT4_LINEAR_DOWN) {                    \
+                    projection, q, k, v, gate, stage_flags);          \
+            } else if (stage_flags[INT4_LINEAR_O] ||                  \
+                       stage_flags[INT4_LINEAR_DOWN]) {               \
                 RESIDUAL_ADD(residual, projection);                   \
             } else {                                                  \
                 int4_store_local_logits<PE>(projection, logits);      \

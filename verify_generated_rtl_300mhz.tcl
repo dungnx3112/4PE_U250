@@ -102,14 +102,25 @@ proc verify_generated_rtl_300mhz {rtl_directory} {
 
     # Route reports from the original implementation identified the selected
     # weighted-value register in the normalization loop as the tightest PE3
-    # pins. Require four fixed-bank staging loops and a normalize loop that
-    # reads only the local staged BRAM, not the four engine memories directly.
+    # pins. The update datapath now owns one state bank per DSP lane, so require
+    # all sixteen fixed-lane staging loops. Each loop must have exactly one
+    # state-data input; the normalize loop may read only the local staged BRAM.
     set state_stages [glob -nocomplain -directory $rtl_directory \
-        "*swiftkv_update_values_and_quantize_Pipeline_stage_weighted_group_engine_loop*.v"]
+        "*swiftkv_update_values_and_quantize_Pipeline_stage_weighted_group_lane_loop*.v"]
     set normalize_loops [glob -nocomplain -directory $rtl_directory \
         "*swiftkv_update_values_and_quantize_Pipeline_attention_normalize_lane_loop.v"]
-    if {[llength $state_stages] != 4 || [llength $normalize_loops] != 1} {
-        error "300MHz RTL gate: expected four state-bank staging loops and one normalize loop; stages=[llength $state_stages] normalize=[llength $normalize_loops]"
+    if {[llength $state_stages] != 16 || [llength $normalize_loops] != 1} {
+        error "300MHz RTL gate: expected sixteen fixed-lane state staging loops and one normalize loop; stages=[llength $state_stages] normalize=[llength $normalize_loops]"
+    }
+    foreach stage_path $state_stages {
+        set handle [open $stage_path r]
+        set stage_text [read $handle]
+        close $handle
+        set state_data_inputs [count_matches $stage_text \
+            {input[[:space:]]+\[31:0\][[:space:]]+weighted_value_engine[[:alnum:]_]*_q0[[:space:]]*;}]
+        if {$state_data_inputs != 1} {
+            error "300MHz RTL gate: state staging loop is not lane-local: [file tail $stage_path] state_inputs=$state_data_inputs"
+        }
     }
     set handle [open [lindex $normalize_loops 0] r]
     set normalize_loop_text [read $handle]

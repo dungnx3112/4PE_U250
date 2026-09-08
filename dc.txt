@@ -1,0 +1,120 @@
+ĐẠI HỌC QUỐC GIA TP. HỒ CHÍ MINH
+TRƯỜNG ĐẠI HỌC
+CÔNG NGHỆ THÔNG TIN	CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+Độc Lập - Tự Do - Hạnh Phúc
+
+ĐỀ CƯƠNG CHI TIẾT
+
+TÊN ĐỀ TÀI TIẾNG VIỆT: Thiết kế và triển khai bộ tăng tốc giải mã Llama 2-7B lượng tử hóa trên FPGA Xilinx Alveo U250
+TÊN ĐỀ TÀI TIẾNG ANH: Design and Implementation of a Quantized Llama 2-7B Decoding Accelerator on the Xilinx Alveo U250 FPGA
+Cán bộ hướng dẫn: Th.s. Ngô Hiếu Trường
+Thời gian thực hiện: Từ ngày 21/09/2026 đến ngày 08/01/2027 
+Sinh viên thực hiện:
+Nguyễn Xuân Dũng – 23520339
+Nội dung đề tài:
+Tổng quan đề tài 
+Các mô hình ngôn ngữ lớn (Large Language Models - LLMs) dựa trên kiến trúc Transformer đã trở thành nền tảng cho nhiều bài toán sinh văn bản, hỏi đáp và xử lý ngôn ngữ tự nhiên [1],[2]. Đề tài lựa chọn Llama 2-7B vì đây là cấu hình nhỏ nhất của họ Llama 2 nhưng vẫn có khoảng 7 tỷ tham số, đủ để thể hiện các vấn đề về dung lượng trọng số, băng thông bộ nhớ và KV cache khi triển khai trên FPGA. Tuy nhiên, ngay cả ở quy mô 7 tỷ tham số, trọng số FP16 của mô hình vẫn cần xấp xỉ 14 GB bộ nhớ. Dung lượng này vượt xa tổng BRAM và URAM trên FPGA, do đó phần lớn trọng số phải được lưu trong bộ nhớ ngoài và truyền vào accelerator trong quá trình suy luận. Vì vậy, hiệu năng không chỉ phụ thuộc vào số lượng phép nhân-cộng có thể thực hiện mà còn phụ thuộc mạnh vào định dạng số học, cách bố trí dữ liệu và băng thông bộ nhớ ngoài [2], [3].
+Quá trình suy luận Llama 2 gồm hai giai đoạn chính: prefill và autoregressive decoding. Ở giai đoạn prefill, nhiều token đầu vào được xử lý đồng thời và các phép chiếu tuyến tính có thể khai thác dạng nhân ma trận-ma trận. Ngược lại, ở giai đoạn decoding với batch size bằng 1, mỗi token mới phải lần lượt đi qua toàn bộ các decoder layer. Các phép chiếu Q, K, V, O và các phép chiếu trong mạng feed-forward chủ yếu trở thành phép nhân ma trận-vectơ (GEMV), có mức tái sử dụng trọng số thấp. Phần lớn trọng số phải được đọc lại cho mỗi token nên arithmetic intensity thấp và hệ thống dễ rơi vào trạng thái memory-bound. Đồng thời, key-value cache (KV cache) tăng theo độ dài ngữ cảnh, khiến lượng dữ liệu cần đọc cho attention tăng dần theo vị trí token. Do đó, lưu lượng trọng số của GEMV và lưu lượng KV cache là hai vấn đề chính được xem xét trong đề tài.
+Đề tài sử dụng lượng tử hóa để giảm dung lượng trọng số và lưu lượng dữ liệu đọc từ DDR. Các phương pháp hậu lượng tử hóa như GPTQ, SmoothQuant, AWQ, Atom và APTQ cho thấy có thể giảm độ chính xác số học của trọng số hoặc activation trong khi vẫn duy trì chất lượng mô hình ở mức phù hợp [4]-[8]. Với FPGA, lượng tử hóa không chỉ giúp giảm kích thước mô hình mà còn cho phép thiết kế datapath chuyên biệt phù hợp với kích thước DSP và bề rộng giao tiếp bộ nhớ. Do đó, định dạng W4A15, kích thước nhóm và cách lưu scale được lựa chọn dựa trên datapath DSP48E2 và giao tiếp DDR của U250.
+Các công trình gần đây đã cho thấy tiềm năng của FPGA đối với suy luận LLM. FlightLLM xây dựng luồng ánh xạ hoàn chỉnh cho LLM trên FPGA và chú trọng phân vùng compute core theo SLR [9]. QLlama sử dụng microscaling quantization và các khối xử lý chuyên dụng cho Llama 2 trên U280 [10]. SwiftKV tập trung vào attention theo luồng và online normalization để giảm lưu lượng trung gian [11]. FlightOPU khai thác ánh xạ compute-memory theo nhiều die và bộ nhớ ngoài [12]. Từ các công trình trên, đề tài kế thừa ba ý chính: số học độ chính xác thấp, xử lý attention theo luồng và tổ chức dữ liệu theo tính cục bộ của bộ nhớ/SLR. Các kỹ thuật này được hiện thực trên Alveo U250 với bốn SLR, bốn DDR bank và DSP48E2 [13].
+
+Khảo sát một số hướng liên quan
+Công trình	 Đối tượng	Kỹ thuật chính	Liên hệ với đề tài
+FlightLLM [9]	FPGA, LLM	Mapping flow, low-bit data, compute core theo SLR	Tham khảo tổ chức compute và locality trên FPGA nhiều SLR.
+QLlama [10]	U280, Llama 2	Microscaling quantization, vector-matrix và basic-operator units	Tham khảo thiết kế định dạng số học và datapath.
+SwiftKV [11]	LLM attention	Online normalization và attention theo luồng	Tham khảo cơ chế xử lý attention theo luồng, tránh lưu toàn bộ vector attention score trước khi thực hiện chuẩn hóa.
+FlightOPU [12]	Multi-die FPGA	Compute-memory locality và SLR-aware execution	Tham khảo cách bố trí khối tính toán gần bộ nhớ và hạn chế truyền dữ liệu qua biên SLR.
+
+Đối tượng và phạm vi kỹ thuật
+Đối tượng nghiên cứu là kiến trúc tăng tốc phần cứng cho Llama 2-7B trong chế độ autoregressive decoding với batch size bằng 1. Cấu hình mô hình và phạm vi hiện thực được cố định để tập trung vào thiết kế datapath, tổ chức bộ nhớ và triển khai kiến trúc trên Alveo U250.
+Từ các phân tích trên, đề tài tập trung vào giai đoạn autoregressive decoding của Llama 2-7B trên Alveo U250. Kiến trúc được xây dựng theo hướng bốn processing element hoạt động song song, mỗi PE gắn với một DDR bank để khai thác băng thông độc lập. Phần tuyến tính sử dụng trọng số INT4 và activation signed INT15, trong đó hai trọng số INT4 được đóng gói để thực hiện đồng thời hai phép nhân với cùng một activation INT15 trên một DSP48E2 rồi cộng dồn theo nhóm lượng tử 32 phần tử. Phần attention sử dụng K/V được lượng tử hóa xuống signed INT8 (KV8) trước khi lưu vào KV cache và online softmax để quét KV cache theo một lượt, tránh lưu toàn bộ vector attention score trung gian [11]. Các khối RMSNorm, RoPE [14], SwiGLU, residual và bộ điều khiển token được tích hợp để tạo thành luồng xử lý decoder hoàn chỉnh. FPGA nhận hidden state sau embedding từ host và thực hiện 32 decoder layer, final RMSNorm và vocabulary projection để tạo logits [2].
+ 
+Hình 1. Kiến trúc tổng quan của bộ tăng tốc Llama 2-7B trên Alveo U250.
+
+Các hướng tối ưu chính của kiến trúc đề xuất
+Thứ nhất, phần tuyến tính được tối ưu theo số học W4A15 và đặc tính DSP48E2. Việc đóng gói hai trọng số INT4 cùng nhân với một activation A15 vào một phép nhân DSP làm giảm số DSP của inner-product core mà vẫn duy trì hai dot product độc lập sau G32 accumulation. Tối ưu này phù hợp với decoding vì GEMV bị giới hạn nhiều bởi lưu lượng weight hơn là peak compute; mục tiêu không phải tăng số DSP bằng mọi giá mà là tạo datapath có tỷ lệ tính toán/băng thông hợp lý.
+Thứ hai, kiến trúc khai thác bốn DDR bank bằng bốn PE hoạt động song song. Mỗi PE sở hữu weight tile và tập KV head tương ứng trong DDR bank của mình; activation, RoPE coefficient và command được phân phối với lưu lượng nhỏ hơn và được replay cục bộ. Cách phân bố này giúp tăng tổng băng thông payload, hạn chế tranh chấp một cổng nhớ và tạo điều kiện cho việc phân vùng vật lý theo SLR khi triển khai [13].
+Thứ ba, attention đọc trực tiếp K/V INT8 từ DDR và xử lý tuần tự theo token. K/V được lượng tử hóa xuống INT8 trước khi lưu vào KV cache và được quét một lần với online softmax, do đó accelerator không cần tạo rồi ghi ra bộ nhớ toàn bộ attention-score vector. Lưu lượng truy cập KV cache vẫn tăng theo độ dài ngữ cảnh; KV8 giảm lượng dữ liệu K/V trên mỗi token, còn online softmax tránh lưu và đọc lại toàn bộ attention-score vector [11].
+
+Mục tiêu của đề tài
+Mục tiêu của đề tài là hiện thực một decoder accelerator cho Llama 2-7B trên Alveo U250 và đánh giá ảnh hưởng của W4A15, tổ chức bốn DDR bank và KV8 attention đến tài nguyên, timing và tốc độ giải mã. Đề tài được chia thành bốn mục tiêu chính, tương ứng với bốn giai đoạn thực hiện:
+• Mục tiêu 1 - Xây dựng mô hình tham chiếu và định dạng dữ liệu: khảo sát Llama 2-7B trong chế độ autoregressive decoding, xây dựng phần mềm tham chiếu bit-true, chuẩn bị trọng số, lượng tử hóa và đóng gói dữ liệu. Trọng số được biểu diễn bằng INT4; activation của các phép chiếu tuyến tính được lượng tử hóa trực tuyến sang signed INT15 theo nhóm 32 phần tử; K và V được lượng tử hóa xuống signed INT8 (KV8) trước khi lưu cache.
+• Mục tiêu 2 - Thiết kế các khối tính toán chính: xây dựng W4A15 linear engine dùng signed DSP packing, pipeline đọc dữ liệu - tính toán - ghi kết quả với các FIFO trung gian, cùng các khối RMSNorm, RoPE, SwiGLU, residual và KV8 online-attention engine.
+• Mục tiêu 3 - Tích hợp kiến trúc accelerator trên Alveo U250: tổ chức bốn PE khai thác đồng thời bốn DDR bank, tích hợp 32 decoder layer, final normalization và vocabulary projection thành một kernel thống nhất. Quá trình hiện thực tập trung vào tính cục bộ dữ liệu, giảm giao tiếp liên SLR và tối ưu timing sau tổng hợp.
+• Mục tiêu 4 - Kiểm chứng và đánh giá hệ thống: tổng hợp, place-and-route, triển khai trên board và đánh giá kết quả. Các chỉ số gồm timing, latency/token, throughput, băng thông DDR, công suất, LUT, FF, DSP, BRAM, URAM, sai số logits, perplexity và tỷ lệ token dự đoán trùng với mô hình tham chiếu. Mục tiêu là đạt timing closure trên 260 MHz; 300 MHz được xem là mục tiêu mở rộng nếu P&R cho phép.
+
+Kết quả mong đợi
+Hạng mục	Kết quả mong đợi	Cách đánh giá
+Mô hình và số học	Llama 2-7B, batch=1; W4A15; KV8; context tối đa theo cấu hình hệ thống	So sánh với FP16 và quantized software reference trên cùng checkpoint và tokenizer.
+Linear engine	DSP packing cho hai W4 product dùng chung A15; pipeline đọc-tính-ghi	HLS co-simulation, số chu kỳ, mức sử dụng DSP.
+Attention/KV cache	Lượng tử KV và online softmax trong một lượt quét KV cache, không cần lưu toàn bộ vector attention score	Sai số attention, bandwidth và latency theo sequence position.
+FPGA implementation	Thiết kế hoàn chỉnh trên U250, hướng tới >260 MHz	Post-route timing, resource utilization, on-board execution.
+Hiệu năng hệ thống	Báo cáo latency/token, token/s, bandwidth và power	Đo trên board; thực hiện nhiều lần và lấy trung bình theo kịch bản cố định.
+
+Phương pháp thực hiện
+1. Phân tích mô hình và xây dựng phần mềm tham chiếu
+Phân tích cấu trúc và luồng tính toán của Llama 2-7B, tập trung vào các phép toán chính trong quá trình giải mã token như linear projection, attention, RMSNorm và SwiGLU. Xây dựng mô hình phần mềm tham chiếu sử dụng cùng định dạng dữ liệu với phần cứng để tạo dữ liệu kiểm chứng cho quá trình thiết kế.
+2. Thiết kế linear engine W4A15
+      Xây dựng linear engine thực hiện các phép nhân ma trận–vectơ với trọng số INT4 và activation INT15. Thiết kế áp dụng kỹ thuật đóng gói hai phép nhân trên một DSP48E2, kết hợp xử lý song song và pipeline nhằm tăng hiệu quả sử dụng tài nguyên và che giấu một phần độ trễ truy cập DDR.
+Linear PE được tổ chức thành các stage tách bằng FIFO. Trong trạng thái ổn định, DDR reader có thể đọc tile T+1 trong khi packed MAC xử lý tile T và stage phía sau dequantize rồi ghi kết quả của tile T-1. Mục tiêu của cách tổ chức này là che một phần độ trễ truyền dữ liệu và duy trì dòng dữ liệu liên tục. Kết quả integer của từng nhóm được nhân với activation scale và weight scale trước khi cộng dồn vào output ở độ chính xác cao hơn. Các output dùng cho residual path được giữ ở định dạng phù hợp, còn input của phép chiếu kế tiếp được requantize sang A15.
+3. Tổ chức bốn PE và bốn DDR bank
+Kiến trúc sử dụng bốn PE hoạt động song song, mỗi PE gắn với một DDR bank và một SLR riêng. Trọng số được phân mảnh theo chiều input; mỗi PE tính partial output cục bộ, sau đó các kết quả được cộng lại. Dữ liệu lớn được giữ trong từng SLR, trong khi chỉ partial result và tín hiệu điều khiển cần thiết được truyền giữa các SLR.
+4. Thiết kế KV8 online-attention engine
+K và V được lượng tử hóa xuống INT8 trước khi lưu vào KV cache nhằm giảm dung lượng và băng thông DDR. Attention được xử lý theo luồng bằng online softmax, không cần lưu toàn bộ vector score trung gian [11]. Mỗi PE xử lý một nhóm attention head và truy cập KV cache trong DDR bank cục bộ.
+5. Tích hợp decoder và kiểm chứng hệ thống
+Các khối linear, RMSNorm, RoPE [14], attention, SwiGLU, residual và controller được tích hợp thành pipeline hoàn chỉnh. Một lần gọi kernel xử lý một hidden state qua toàn bộ 32 decoder layer, sau đó thực hiện final RMSNorm và vocabulary projection để tạo logits. Host đảm nhiệm tokenizer, embedding lookup, sampling và quản lý chuỗi sinh token
+ 
+Hình 2. Luồng giao tiếp giữa host và bộ tăng tốc trên Alveo U250.
+
+6. Hiện thực trên FPGA và tối ưu timing
+Thiết kế được tổng hợp và place-and-route trên Alveo U250 bằng Vitis 2023.2. Quá trình tối ưu tập trung vào việc giữ PE và DDR trong cùng SLR, giảm dữ liệu truyền liên SLR, sử dụng FIFO và pipeline, đồng thời hạn chế các tín hiệu điều khiển có fanout lớn. Floorplan được điều chỉnh dựa trên báo cáo timing và congestion, hướng tới tần số hoạt động từ 260 đến 300 MHz.
+
+Các nội dung chính và giới hạn của đề tài
+Các nội dung chính
+• Nội dung 1: Khảo sát kiến trúc Llama 2-7B, đặc điểm batch-one decoding, quantization cho LLM và các công trình FPGA accelerator liên quan; xây dựng mô hình tham chiếu bit-true và định dạng dữ liệu đầu vào.
+• Nội dung 2: Thiết kế các khối tính toán chính gồm W4A15 linear engine, signed DSP packing, KV8 online-attention engine, RoPE, RMSNorm, SwiGLU và residual.
+• Nội dung 3: Tích hợp bốn PE với bốn DDR bank trên Alveo U250, xây dựng kernel decoder hoàn chỉnh, tổng hợp HLS, place-and-route và tối ưu timing/floorplan.
+• Nội dung 4: Kiểm chứng chức năng và đánh giá hệ thống trên phần mềm tham chiếu và FPGA, gồm sai số logits, perplexity, tỷ lệ token dự đoán trùng nhau, latency/token, throughput, băng thông DDR, công suất và tài nguyên phần cứng; hoàn thiện demo và báo cáo khóa luận.
+Giới hạn của đề tài
+• Đề tài tập trung vào inference của Llama 2-7B và không thực hiện training hoặc fine-tuning mô hình.
+• Workload chính là autoregressive decoding với batch size bằng 1. Prefill không phải đối tượng tối ưu chính của kiến trúc.
+• Phần FPGA bắt đầu từ embedded hidden state và kết thúc sau final RMSNorm/vocabulary projection. Tokenizer, embedding lookup sampling không nằm trong latency kernel.
+• Nền tảng thực nghiệm được giới hạn ở Xilinx Alveo U250 và bốn DDR bank của board. Đề tài không mở rộng sang multi-FPGA hoặc hệ thống phục vụ nhiều người dùng đồng thời.
+Phương pháp đánh giá và hệ thống demo dự kiến
+Hệ thống demo gồm host PC cài XRT/Vitis runtime và card Alveo U250. Host đọc checkpoint đã được lượng tử hóa, nạp dữ liệu vào các DDR bank, chuẩn bị hidden state đầu vào và phát command cho kernel. FPGA thực hiện các decoder layer, final normalization và vocabulary projection; host nhận logits để thực hiện sampling và hiển thị token. Demo không nhằm xây dựng chatbot hoàn chỉnh mà nhằm chứng minh luồng inference, tính đúng của kết quả và khả năng chạy lặp qua nhiều token trên phần cứng thực tế.
+Chất lượng mô hình được đánh giá trên WikiText-2 hoặc tập dữ liệu tương đương với cùng tokenizer và context policy. Quantized software reference được so sánh với FP16 reference. Về hiệu năng, latency được đo tại một số sequence position đại diện để quan sát ảnh hưởng của KV cache, đồng thời báo cáo throughput, bandwidth và power. Về implementation, báo cáo post-route resource utilization và các vấn đề congestion đáng chú ý nếu có.
+
+Tài liệu tham khảo
+[1] A. Vaswani et al., “Attention Is All You Need,” Advances in Neural Information Processing Systems, vol. 30, pp. 5998-6008, 2017.
+[2] H. Touvron et al., “Llama 2: Open Foundation and Fine-Tuned Chat Models,” arXiv:2307.09288, 2023.
+[3] Z. Yuan et al., “LLM Inference Unveiled: Survey and Roofline Model Insights,” arXiv:2402.16363, 2024.
+[4] E. Frantar, S. Ashkboos, T. Hoefler, and D. Alistarh, “GPTQ: Accurate Post-Training Quantization for Generative Pre-Trained Transformers,” International Conference on Learning Representations, 2023.
+[5] G. Xiao, J. Lin, M. Seznec, H. Wu, J. Demouth, and S. Han, “SmoothQuant: Accurate and Efficient Post-Training Quantization for Large Language Models,” International Conference on Machine Learning, pp. 38087-38099, 2023.
+[6] J. Lin et al., “AWQ: Activation-Aware Weight Quantization for On-Device LLM Compression and Acceleration,” Proceedings of Machine Learning and Systems, vol. 6, pp. 87-100, 2024.
+[7] Y. Zhao et al., “Atom: Low-Bit Quantization for Efficient and Accurate LLM Serving,” Proceedings of Machine Learning and Systems, vol. 6, pp. 196-209, 2024.
+[8] Z. Guan, H. Huang, Y. Su, H. Huang, N. Wong, and H. Yu, “APTQ: Attention-Aware Post-Training Mixed-Precision Quantization for Large Language Models,” 61st ACM/IEEE Design Automation Conference, 2024, doi: 10.1145/3649329.3658498.
+[9] S. Zeng et al., “FlightLLM: Efficient Large Language Model Inference with a Complete Mapping Flow on FPGAs,” ACM/SIGDA International Symposium on Field-Programmable Gate Arrays, 2024, doi: 10.1145/3626202.3637562.
+[10] H. Wen et al., “QLlama: An FPGA-Based Microscaling Quantization Accelerator for Energy-Efficient Llama2 Inference,” IEEE Embedded Systems Letters, vol. 17, no. 5, pp. 337-340, 2025, doi: 10.1109/LES.2025.3600563.
+[11] J. Zhang et al., “SwiftKV: An Edge-Oriented Attention Algorithm and Multi-Head Accelerator for Fast, Efficient LLM Decoding,” arXiv:2601.10953, 2026.
+[12] C. Wu et al., “FlightOPU: An FPGA Overlay Processor for LLM with HBM-Aware Multi-Die Architecture,” International Conference on Field-Programmable Technology, pp. 248-251, 2025, doi: 10.1109/ICFPT67023.2025.00048.
+[13] Advanced Micro Devices, “Alveo U200 and U250 Data Center Accelerator Cards Data Sheet,” DS962, Rev. 1.7, Jun. 2023.
+[14] J. Su, Y. Lu, S. Pan, A. Murtadha, B. Wen, and Y. Liu, “RoFormer: Enhanced Transformer with Rotary Position Embedding,” arXiv:2104.09864, 2021.
+
+Kế hoạch thực hiện: 
+STT	Mục tiêu	Công việc chính	Thời gian
+1	Mục tiêu 1	Khảo sát Llama 2-7B, batch-one decoding, quantization và related work; xây dựng mô hình tham chiếu bit-true, chuẩn bị trọng số, lượng tử hóa và đóng gói dữ liệu.	21/09/2026 - 20/10/2026
+2	Mục tiêu 2	Thiết kế W4A15 linear engine, signed DSP packing, KV8 online-attention engine, RoPE, RMSNorm, SwiGLU, residual và các FIFO/pipeline trung gian.	21/10/2026 - 20/11/2026
+3	Mục tiêu 3	Tích hợp bốn PE với bốn DDR bank trên Alveo U250, xây dựng kernel decoder hoàn chỉnh, tổng hợp HLS, place-and-route và tối ưu timing/floorplan.	21/11/2026 - 20/12/2026
+4	Mục tiêu 4	Kiểm chứng chức năng, chạy thử trên board, đo latency/token, throughput, băng thông DDR, công suất, tài nguyên phần cứng và chất lượng mô hình; hoàn thiện báo cáo, demo và bảo vệ.	21/12/2026 - 08/01/2027
+
+Xác nhận của CBHD
+(Ký tên và ghi rõ họ tên)	TP. HCM, ngày….tháng …..năm…..
+Sinh viên
+(Ký tên và ghi rõ họ tên)
+
+
+
+
+
+
+
