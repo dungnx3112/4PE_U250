@@ -121,6 +121,8 @@ $implementationLogs = @(
     Get-ChildItem -LiteralPath $tempDirectory -Filter "runme.log" -Recurse -File -ErrorAction SilentlyContinue
 )
 $floorplanMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: INTERFACE_LOCALITY_APPLIED" -List
+$bridgeFloorplanMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: PE_AXI_BRIDGE_LOCALITY_APPLIED" -List
+$handshakeFloorplanMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: PE_AXI_HANDSHAKE_DRIVERS_APPLIED" -List
 
 if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
     -not $floorplanMarker) {
@@ -128,6 +130,20 @@ if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
 }
 if ($floorplanMarker) {
     Write-Host "Verified: DDR/control interface-locality floorplan was applied."
+}
+if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
+    -not $bridgeFloorplanMarker) {
+    throw "Vivado implementation ran without applying the PE-local AXI bridge floorplan."
+}
+if ($bridgeFloorplanMarker) {
+    Write-Host "Verified: PE-local AXI reader/writer bridge floorplan was applied."
+}
+if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
+    -not $handshakeFloorplanMarker) {
+    throw "Vivado implementation ran without applying PE-local AXI handshake driver placement."
+}
+if ($handshakeFloorplanMarker) {
+    Write-Host "Verified: PE-local AXI handshake driver placement was applied."
 }
 if ($linkExitCode -ne 0) {
     exit $linkExitCode

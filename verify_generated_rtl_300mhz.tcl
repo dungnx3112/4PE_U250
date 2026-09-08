@@ -16,9 +16,20 @@ proc verify_generated_rtl_300mhz {rtl_directory} {
     set read_burst_count [count_matches $top_text \
         {\.MAX_READ_BURST_LENGTH\([[:space:]]*64[[:space:]]*\)}]
     set read_outstanding_count [count_matches $top_text \
-        {\.NUM_READ_OUTSTANDING\([[:space:]]*4[[:space:]]*\)}]
-    if {$read_burst_count != 4 || $read_outstanding_count != 4} {
-        error "300MHz RTL gate: expected four AXI windows of 4x64; burst=$read_burst_count outstanding=$read_outstanding_count"
+        {\.NUM_READ_OUTSTANDING\([[:space:]]*2[[:space:]]*\)}]
+    set read_request_depth_count [count_matches $top_text \
+        {\.USER_MAXREQS\([[:space:]]*38[[:space:]]*\)}]
+    if {$read_burst_count != 4 || $read_outstanding_count != 4 ||
+        $read_request_depth_count != 4} {
+        error "300MHz RTL gate: expected four AXI windows of 2x64 with request depth 38; burst=$read_burst_count outstanding=$read_outstanding_count request_depth=$read_request_depth_count"
+    }
+
+    set write_burst_count [count_matches $top_text \
+        {\.MAX_WRITE_BURST_LENGTH\([[:space:]]*16[[:space:]]*\)}]
+    set write_outstanding_count [count_matches $top_text \
+        {\.NUM_WRITE_OUTSTANDING\([[:space:]]*2[[:space:]]*\)}]
+    if {$write_burst_count != 4 || $write_outstanding_count != 4} {
+        error "300MHz RTL gate: expected four AXI write windows of 2x16; burst=$write_burst_count outstanding=$write_outstanding_count"
     }
 
     foreach pe {0 1 2 3} {
@@ -26,8 +37,21 @@ proc verify_generated_rtl_300mhz {rtl_directory} {
             "*int4_prepare_local_weight_request_${pe}*.v"]
         set reader [glob -nocomplain -directory $rtl_directory \
             "*int4_read_local_weights_${pe}*.v"]
-        if {[llength $prepare] == 0 || [llength $reader] == 0} {
-            error "300MHz RTL gate: PE${pe} registered weight request/reader boundary is missing"
+        set buffer [glob -nocomplain -directory $rtl_directory \
+            "*int4_buffer_local_weights_${pe}*.v"]
+        set run_local [glob -nocomplain -directory $rtl_directory \
+            "*int4_run_local_pe_${pe}_s.v"]
+        if {[llength $prepare] == 0 || [llength $reader] == 0 ||
+            [llength $buffer] == 0 || [llength $run_local] != 1} {
+            error "300MHz RTL gate: PE${pe} registered AXI/BRAM weight boundary is missing"
+        }
+        set handle [open [lindex $run_local 0] r]
+        set run_local_text [read $handle]
+        close $handle
+        if {![regexp -- {weight_ingress_U} $run_local_text] ||
+            ![regexp -- {weight_buffer_U} $run_local_text] ||
+            [regexp -- {weight_stream_U} $run_local_text]} {
+            error "300MHz RTL gate: PE${pe} weight FIFO backpressure boundary was not generated"
         }
     }
 
@@ -96,7 +120,9 @@ proc verify_generated_rtl_300mhz {rtl_directory} {
     }
 
     puts "INFO: 300MHz RTL gate: LOCAL_WEIGHT_REQUEST_PIPELINES_VERIFIED"
-    puts "INFO: 300MHz RTL gate: AXI_READ_WINDOWS_4X64_VERIFIED"
+    puts "INFO: 300MHz RTL gate: LOCAL_WEIGHT_BACKPRESSURE_BOUNDARY_VERIFIED"
+    puts "INFO: 300MHz RTL gate: AXI_READ_WINDOWS_2X64_VERIFIED"
+    puts "INFO: 300MHz RTL gate: AXI_WRITE_WINDOWS_2X16_VERIFIED"
     puts "INFO: 300MHz RTL gate: ATTENTION_KV_WRITE_BOUNDARY_VERIFIED"
     puts "INFO: 300MHz RTL gate: ATTENTION_SCORE_MULTIPLIER_ISOLATED"
     puts "INFO: 300MHz RTL gate: ATTENTION_NORMALIZATION_STAGING_VERIFIED"

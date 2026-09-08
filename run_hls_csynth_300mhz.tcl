@@ -17,7 +17,7 @@ foreach source_file [list \
 open_solution -reset solution1 -flow_target vitis
 set_part {xcu250-figd2104-2L-e}
 create_clock -period 3.333 -name default
-config_interface -m_axi_latency 64
+config_interface -m_axi_latency 32
 config_interface -m_axi_alignment_byte_size 64
 config_interface -m_axi_max_widen_bitwidth 512
 config_rtl -register_reset_num 3

@@ -142,7 +142,9 @@ if (( rebuild_xo == 1 )); then
     for marker in \
         "PARTITIONED_PE_CONFIG_LAUNCH" \
         "LOCAL_WEIGHT_REQUEST_PIPELINES_VERIFIED" \
-        "AXI_READ_WINDOWS_4X64_VERIFIED"; do
+        "LOCAL_WEIGHT_BACKPRESSURE_BOUNDARY_VERIFIED" \
+        "AXI_READ_WINDOWS_2X64_VERIFIED" \
+        "AXI_WRITE_WINDOWS_2X16_VERIFIED"; do
         if ! grep -Fq -- "$marker" "$log_dir/vitis_hls.log"; then
             echo "HLS completed without required architecture marker: $marker" >&2
             exit 1
@@ -255,6 +257,12 @@ if (( ${#implementation_logs[@]} > 0 || link_exit_code == 0 )); then
     require_marker \
         "300MHz floorplan: INTERFACE_LOCALITY_APPLIED" \
         "DDR/control interface-locality floorplan was applied"
+    require_marker \
+        "300MHz floorplan: PE_AXI_BRIDGE_LOCALITY_APPLIED" \
+        "PE-local AXI reader/writer bridge floorplan was applied"
+    require_marker \
+        "300MHz floorplan: PE_AXI_HANDSHAKE_DRIVERS_APPLIED" \
+        "PE-local AXI handshake driver placement was applied"
 fi
 
 if (( validation_failed != 0 )); then

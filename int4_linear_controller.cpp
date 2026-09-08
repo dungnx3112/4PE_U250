@@ -230,7 +230,8 @@ static void int4_seed_local_linear_command(
 template <int PE_ID>
 static void int4_prepare_local_weight_request(
     hls::stream<int4_linear_command_t>& command_stream,
-    hls::stream<int4_weight_request_t>& request_stream) {
+    hls::stream<int4_weight_request_t>& reader_request_stream,
+    hls::stream<int4_weight_request_t>& buffer_request_stream) {
 #pragma HLS INLINE off
     // This process emits one request per projection stage. Function-level
     // pipelining would auto-rewind inside an ap_ctrl_none task and triggers
@@ -245,14 +246,18 @@ static void int4_prepare_local_weight_request(
     int4_weight_request_t request = 0;
     request.range(23, 0) = command.range(26, 3);
     request.range(41, 24) = total_words;
-    request_stream.write(request);
+    // Duplicate the small request token so the AXI reader and the BRAM relay
+    // have independent registered control.  This prevents the deep BRAM
+    // full_n signal from feeding the reader's pipelined AXI control directly.
+    reader_request_stream.write(request);
+    buffer_request_stream.write(request);
 }
 
 template <int PE_ID>
 static void int4_read_local_weights(
     const int4_weight_word_t* weight_mem,
     hls::stream<int4_weight_request_t>& request_stream,
-    hls::stream<int4_weight_word_t>& weight_stream) {
+    hls::stream<int4_weight_word_t>& weight_ingress) {
 #pragma HLS INLINE off
     const int4_weight_request_t request = request_stream.read();
     ap_uint<24> address = request.range(23, 0);
@@ -268,8 +273,30 @@ stream_local_weight_loop:
         // whose CARRY8 chain was hoisted out of PE0, routed SLR0->SLR2->SLR0
         // and consumed over 6.6 ns.  This narrow registered counter remains in
         // the local reader and exposes a sequential burst to the AXI adapter.
-        weight_stream.write(weight_mem[(unsigned int)address]);
+        weight_ingress.write(weight_mem[(unsigned int)address]);
         ++address;
+    }
+}
+
+template <int PE_ID>
+static void int4_buffer_local_weights(
+    hls::stream<int4_weight_request_t>& request_stream,
+    hls::stream<int4_weight_word_t>& weight_ingress,
+    hls::stream<int4_weight_word_t>& weight_buffer) {
+#pragma HLS INLINE off
+    const int4_weight_request_t request = request_stream.read();
+    const ap_uint<18> total_words = request.range(41, 24);
+
+buffer_local_weight_loop:
+    for (ap_uint<19> remaining = total_words;
+         remaining != 0;
+         --remaining) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=32768 max=258048
+        // A shallow SRL ingress is the timing boundary.  The deep BRAM FIFO
+        // can still absorb compute pauses, but its full_n control terminates
+        // in this local relay instead of propagating into ARVALID/ap_block.
+        weight_buffer.write(weight_ingress.read());
     }
 }
 
@@ -404,28 +431,40 @@ static void int4_run_local_pe(
 #pragma HLS DATAFLOW disable_start_propagation
     hls::stream<int4_linear_command_t> reader_command;
     hls::stream<int4_linear_command_t> compute_command;
-    hls::stream<int4_weight_request_t> weight_request;
-    hls::stream<int4_weight_word_t> weight_stream;
+    hls::stream<int4_weight_request_t> reader_request;
+    hls::stream<int4_weight_request_t> buffer_request;
+    hls::stream<int4_weight_word_t> weight_ingress;
+    hls::stream<int4_weight_word_t> weight_buffer;
 #pragma HLS STREAM variable=reader_command depth=3
-#pragma HLS STREAM variable=compute_command depth=4
-#pragma HLS STREAM variable=weight_request depth=2
-    // Two complete 128x256 tiles absorb one AXI command/latency bubble while
-    // the reusable MAC consumes the previous tile at one 512-bit word/cycle.
-#pragma HLS STREAM variable=weight_stream depth=512
+#pragma HLS STREAM variable=compute_command depth=5
+#pragma HLS STREAM variable=reader_request depth=2
+#pragma HLS STREAM variable=buffer_request depth=3
+    // Four words are enough for a registered one-word/cycle skid boundary.
+    // Keep this FIFO in SRLs so it stays beside the AXI reader.
+#pragma HLS STREAM variable=weight_ingress depth=4
+    // One complete 128x256 tile absorbs the two 64-beat outstanding AXI read
+    // windows while the reusable MAC consumes one 512-bit word/cycle.  The
+    // former 512-word FIFO doubled the BRAM control cone and put full_n on the
+    // post-place critical path without increasing the adapter read window.
+#pragma HLS STREAM variable=weight_buffer depth=256
 #pragma HLS BIND_STORAGE variable=reader_command type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=compute_command type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=weight_request type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=weight_stream type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=reader_request type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=buffer_request type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=weight_ingress type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=weight_buffer type=fifo impl=bram
 
     int4_split_local_command(
         command_stream, reader_command, compute_command);
     int4_prepare_local_weight_request<PE_ID>(
-        reader_command, weight_request);
+        reader_command, reader_request, buffer_request);
     int4_read_local_weights<PE_ID>(
-        weight_mem, weight_request, weight_stream);
+        weight_mem, reader_request, weight_ingress);
+    int4_buffer_local_weights<PE_ID>(
+        buffer_request, weight_ingress, weight_buffer);
     int4_compute_local_partials<PE_ID>(
         scale_mem, activation_q, activation_scale,
-        compute_command, weight_stream, partial_stream);
+        compute_command, weight_buffer, partial_stream);
 }
 
 static int4_reduction_packet_t int4_add_partial_packets(

@@ -260,9 +260,9 @@ tile và cờ output fixed-point. Request rút gọn còn base address 24-bit v�
 word 18-bit.
 
 AXI reader dùng một address counter tuần tự và đọc một word 512-bit mỗi cycle
-ở II=1. FIFO weight được bind BRAM, sâu 512 word, bằng đúng hai tile. Nó cho
-reader chạy trước và hấp thụ AXI latency hoặc khoảng dừng khi compute đang
-emit partial packet.
+ở II=1. Một skid FIFO SRL 4 word và relay II=1 tách reader khỏi FIFO weight
+BRAM sâu 256 word. BRAM chứa được hai cửa sổ đọc AXI 64-beat, nhưng `full_n`
+của BRAM chỉ dừng relay cục bộ thay vì đi thẳng về điều khiển AXI reader.
 
 Reader và compute nằm trong vùng `DATAFLOW disable_start_propagation`. Mỗi PE
 chỉ đọc `gmemN`, nên bốn DDR có thể cấp bốn luồng 512-bit độc lập.
@@ -378,7 +378,7 @@ khi ghi scratch BRAM cục bộ.
 | Linear pair-half cross | 128 bit | 16 | BRAM FIFO |
 | Linear completed output | 128 bit | 32 | buffer trước local store |
 | Completion | 1 bit | 4 | pair join/final wait |
-| PE-local weight FIFO | 512 bit | 512 | BRAM, overlap DDR/compute |
+| PE-local weight FIFO | 512 bit | 256 | BRAM, hai cửa sổ đọc 64-beat |
 
 Depth ở biên không thay đổi thuật toán; chúng tạo elasticity để AXI latency,
 floating-point latency và đường qua SLR không biến thành một combinational

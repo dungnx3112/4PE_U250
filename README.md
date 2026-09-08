@@ -78,10 +78,10 @@ Mỗi PE linear có hai process DATAFLOW độc lập:
 2. `int4_compute_local_partials` tiêu thụ đúng một word 512-bit mỗi cycle với
    II=1.
 
-Giữa hai process là FIFO BRAM sâu 512 word, bằng hai tile `128 x 256`. Vì tốc độ
-producer và consumer đều một word/cycle, FIFO hấp thụ latency/command bubble
-của AXI mà không tạo chênh lệch throughput dài hạn. HLS đã infer burst cho các
-đường model, metadata, residual, RoPE, KV và logits.
+Giữa hai process là skid FIFO SRL 4 word và FIFO BRAM sâu 256 word, bằng một
+tile `128 x 256`. Relay II=1 giữa hai FIFO cắt đường backpressure từ BRAM
+`full_n` về AXI reader; BRAM vẫn hấp thụ hai cửa sổ đọc AXI 64-beat. HLS đã
+infer burst cho các đường model, metadata, residual, RoPE, KV và logits.
 
 Mỗi local SwiftKV PE đọc tám word RoPE của đúng vị trí từ DDR của nó, sau đó
 quét KV cache một lần bằng online-softmax recurrence. RoPE và KV dùng chung AXI
