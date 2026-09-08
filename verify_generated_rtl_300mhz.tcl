@@ -61,6 +61,25 @@ proc verify_generated_rtl_300mhz {rtl_directory} {
         error "300MHz RTL gate: legacy base+word weight reader is still present: $legacy"
     }
 
+    # Vitis HLS 2023.2 can emit invalid Verilog for a dynamic assignment to a
+    # bit of a function return value: ap_return is declared as a wire but is
+    # assigned inside an always block. Require the local mode decoder to remain
+    # a continuous-assignment datapath so this is caught before XO packaging.
+    set stage_decoders [glob -nocomplain -directory $rtl_directory \
+        "*int4_decode_local_stage_flags.v"]
+    if {[llength $stage_decoders] != 1} {
+        error "300MHz RTL gate: expected one local-stage decoder RTL module; decoders=[llength $stage_decoders]"
+    }
+    set handle [open [lindex $stage_decoders 0] r]
+    set stage_decoder_text [read $handle]
+    close $handle
+    if {![regexp -- {assign[[:space:]]+ap_return[[:space:]]*=} \
+              $stage_decoder_text] ||
+        [regexp -line -- {^[[:space:]]*ap_return[[:space:]]*=} \
+              $stage_decoder_text]} {
+        error "300MHz RTL gate: local-stage decoder does not drive ap_return with a valid continuous assignment"
+    }
+
     # The five 512-bit compressed-KV words must cross a FIFO boundary before
     # reaching the AXI writer. Reintroducing the old indexed write loop builds
     # a wide selector/control cone on WDATA and was the primary attention path.

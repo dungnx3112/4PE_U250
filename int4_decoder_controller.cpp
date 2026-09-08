@@ -18,9 +18,11 @@ static int4_local_stage_flags_t int4_decode_local_stage_flags(
     ap_uint<3> mode) {
 #pragma HLS INLINE off
 #pragma HLS PIPELINE II=1
-    int4_local_stage_flags_t flags = 0;
-    flags[(int)mode] = 1;
-    return flags;
+    // Express the decoder as a pure shift. A dynamic bit assignment makes
+    // Vitis HLS 2023.2 emit an invalid procedural assignment to the wire
+    // ap_return, which passes HLS synthesis but fails later in Vivado.
+    return (int4_local_stage_flags_t)(
+        (int4_local_stage_flags_t)1 << mode);
 }
 
 static void int4_seed_position_chain(
