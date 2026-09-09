@@ -53,6 +53,7 @@ static void int4_local_sumsq(
 
 local_sumsq_word_loop:
     for (int word = 0; word < INT4_VECTOR_WORDS_PER_PE; ++word) {
+        #pragma HLS PIPELINE II=1
         int4_output_word_t packed = residual[word];
     local_sumsq_block_loop:
         for (int block = 0;
@@ -165,12 +166,13 @@ local_rms_group_loop:
 #pragma HLS LOOP_FLATTEN off
     local_rms_word_loop:
         for (int word_in_group = 0; word_in_group < 2; ++word_in_group) {
-            const int word_index = group * 2 + word_in_group;
+            #pragma HLS PIPELINE II=1
+        const int word_index = group * 2 + word_in_group;
             const int4_output_word_t input_word = residual[word_index];
             const int4_output_word_t gamma_word = gamma[word_index];
         local_rms_lane_loop:
             for (int lane = 0; lane < INT4_OUTPUTS_PER_WORD; ++lane) {
-#pragma HLS PIPELINE II=1
+#pragma HLS UNROLL
                 const float x = int4_fp32_from_bits(
                     input_word.range(32 * lane + 31, 32 * lane));
                 const float weight = int4_fp32_from_bits(
@@ -349,13 +351,14 @@ static void int4_local_residual_add(
 #pragma HLS INLINE off
 local_residual_word_loop:
     for (int word = 0; word < INT4_VECTOR_WORDS_PER_PE; ++word) {
+        #pragma HLS PIPELINE II=1
         const int4_output_word_t residual_word = residual[word];
         const int4_output_word_t branch_word = branch[word];
         float sums[INT4_OUTPUTS_PER_WORD];
 #pragma HLS ARRAY_PARTITION variable=sums complete
     local_residual_add_lane_loop:
         for (int lane = 0; lane < INT4_OUTPUTS_PER_WORD; ++lane) {
-#pragma HLS PIPELINE II=1
+#pragma HLS UNROLL
             sums[lane] =
                 int4_fp32_from_bits(
                     residual_word.range(32 * lane + 31, 32 * lane)) +
@@ -467,12 +470,13 @@ local_swiglu_group_loop:
 #pragma HLS LOOP_FLATTEN off
     local_swiglu_word_loop:
         for (int word_in_group = 0; word_in_group < 2; ++word_in_group) {
-            const int word_index = group * 2 + word_in_group;
+            #pragma HLS PIPELINE II=1
+        const int word_index = group * 2 + word_in_group;
             const int4_output_word_t gate_word = gate[word_index];
             const int4_output_word_t up_word = up[word_index];
         local_swiglu_lane_loop:
             for (int lane = 0; lane < INT4_OUTPUTS_PER_WORD; ++lane) {
-#pragma HLS PIPELINE II=1
+#pragma HLS UNROLL
                 const float gate_value = int4_fp32_from_bits(
                     gate_word.range(32 * lane + 31, 32 * lane));
                 const float up_value = int4_fp32_from_bits(
@@ -685,3 +689,4 @@ rms_pair23_schedule_loop:
         reciprocal3.write(reciprocal);
     }
 }
+

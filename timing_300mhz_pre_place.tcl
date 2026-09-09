@@ -110,10 +110,24 @@ place_axi_interface gmem2_m_axi_U SLR2
 place_axi_interface gmem3_m_axi_U SLR3
 place_axi_interface control_s_axi_U SLR0
 
+
+proc place_pe_core {pe slr} {
+    set pe_pattern "*/int4_decoder_token_controller_1/inst/*/int4_decoder_local_pe_$pe_U0"
+    set leaves [get_cells -quiet -hierarchical -filter "NAME =~ $pe_pattern/* && IS_PRIMITIVE == 1 && REF_NAME != VCC && REF_NAME != GND"]
+    set pblock [get_pblocks -quiet "pblock_dynamic_$slr"]
+    
+    if {[llength $pblock] == 1 && [llength $leaves] > 0} {
+        add_cells_to_pblock $pblock $leaves
+        puts "INFO: 300MHz floorplan: PE$pe CORE -> $slr ([llength $leaves] leaves)"
+    }
+}
+
 foreach pe {0 1 2 3} slr {SLR0 SLR1 SLR2 SLR3} {
     place_pe_axi_bridges $pe $slr
+    place_pe_core $pe $slr
 }
 
 puts "INFO: 300MHz floorplan: INTERFACE_LOCALITY_APPLIED"
 puts "INFO: 300MHz floorplan: PE_AXI_BRIDGE_LOCALITY_APPLIED"
 puts "INFO: 300MHz floorplan: PE_AXI_HANDSHAKE_DRIVERS_APPLIED"
+
