@@ -68,6 +68,27 @@ check {[matches_any $reported_unknown_suffix [group_patterns "PE1 local compute 
 check {![matches_any $reported_unknown_suffix [group_patterns "PE0 local compute anchor"] 0]} \
     "unknown provenance spelling must not override explicit PE1 hierarchy"
 
+# The AXI-Lite controller generates synchronizer primitives whose leaf names
+# embed the task they synchronize.  The final completion selector must match
+# the real root-level task hierarchy, not that incidental text inside a
+# control_s_axi_U leaf (the latter is already owned by SLR0).
+set final_wait_patterns [group_patterns "final two-input completion wait"]
+set control_sync_name \
+    "root/control_s_axi_U/ap_sync_reg_int4_wait_task_completion_pairs_300_U0_ap_start_i_1"
+check {[matches_any \
+    "root/int4_wait_task_completion_pairs_300_U0/ap_done_reg" \
+    $final_wait_patterns]} \
+    "root-level final completion task must remain selectable"
+check {![matches_any \
+    $control_sync_name \
+    $final_wait_patterns]} \
+    "final completion selector must not claim an AXI-Lite synchronizer leaf"
+check {[timing300::is_control_axi_descendant $control_sync_name]} \
+    "AXI-Lite synchronizer leaf must be recognized as control_s_axi_U-owned"
+check {![timing300::is_control_axi_descendant \
+    "root/int4_wait_task_completion_pairs_300_U0/ap_done_reg"]} \
+    "real completion task must not be classified as AXI-Lite control"
+
 # Exercise every PE pair for every PE-specific ownership class.  The suffix
 # intentionally names every possible foreign PE, including the real PE.
 set pe_classes {

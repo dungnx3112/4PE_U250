@@ -124,6 +124,19 @@ proc timing300::name_matches_pattern {name pattern {expected_pe ""}} {
     return 0
 }
 
+# control_s_axi_U is placed as one complete AXI-Lite interface in SLR0 by the
+# pre-place hook.  HLS synchronizer leaf names embed the downstream task name
+# (for example ap_sync_reg_<task>_ap_start_i_1), so ordinary task wildcards
+# must never use incidental text inside this already-owned subtree.
+proc timing300::is_control_axi_descendant {name} {
+    foreach raw_segment [split $name /] {
+        if {[semantic_segment $raw_segment] eq "control_s_axi_U"} {
+            return 1
+        }
+    }
+    return 0
+}
+
 proc timing300::initialize {} {
     variable initialized
     variable kernel_name
@@ -378,6 +391,9 @@ proc timing300::match_patterns {patterns primitive {expected_pe ""}} {
             # complete hierarchy segment itself matches the requested HLS
             # instance pattern.
             set name [get_property NAME $object]
+            if {[is_control_axi_descendant $name]} {
+                continue
+            }
             if {[name_matches_pattern $name $pattern $expected_pe]} {
                 lappend resolved $object
             }
@@ -570,8 +586,13 @@ proc timing300::domain_specs {} {
         "*linear_output2_U*" "*linear_output3_U*" \
         "*int4_join_task_completion_pair_301_U0*" \
         "*completion2_U*" "*completion3_U*" "*completion23_U*"]]
+    # This task is emitted directly below the kernel root.  Keep the selector
+    # anchored there: control_s_axi_U contains HLS synchronizer primitives
+    # named ap_sync_reg_int4_wait_task_completion_pairs_300_U0_*, and a leading
+    # wildcard would incorrectly claim those AXI-Lite leaves for SLR1 even
+    # though the complete control interface is intentionally owned by SLR0.
     lappend specs [list SLR1 "final two-input completion wait" 1 [list \
-        "*int4_wait_task_completion_pairs_300_U0*"]]
+        "int4_wait_task_completion_pairs_300_U0*"]]
     return $specs
 }
 
