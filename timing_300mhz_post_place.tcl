@@ -5,7 +5,9 @@ set ownership_script [file join $script_directory timing_300mhz_domains.tcl]
 if {![file exists $ownership_script]} {
     error "300MHz post-place: missing ownership library $ownership_script"
 }
-source $ownership_script
+if {[llength [info commands timing300::verify_placement]] == 0} {
+    source $ownership_script
+}
 
 set report_path [file normalize "timing_300mhz_post_place_ownership.csv"]
 lassign [timing300::verify_placement $report_path] owned_leaves wrong_leaves

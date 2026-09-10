@@ -50,16 +50,19 @@ static void int4_local_sumsq(
     float accumulator1 = 0.0f;
     float accumulator2 = 0.0f;
     float accumulator3 = 0.0f;
+#pragma HLS BIND_OP variable=accumulator0 op=fadd impl=fulldsp latency=7
+#pragma HLS BIND_OP variable=accumulator1 op=fadd impl=fulldsp latency=7
+#pragma HLS BIND_OP variable=accumulator2 op=fadd impl=fulldsp latency=7
+#pragma HLS BIND_OP variable=accumulator3 op=fadd impl=fulldsp latency=7
 
 local_sumsq_word_loop:
     for (int word = 0; word < INT4_VECTOR_WORDS_PER_PE; ++word) {
-        #pragma HLS PIPELINE II=1
         int4_output_word_t packed = residual[word];
     local_sumsq_block_loop:
         for (int block = 0;
              block < INT4_OUTPUTS_PER_WORD / INT4_REDUCTION_LANES;
              ++block) {
-#pragma HLS PIPELINE II=4
+#pragma HLS PIPELINE II=8
             const float value0 = int4_fp32_from_bits(
                 packed.range(31, 0));
             const float value1 = int4_fp32_from_bits(
@@ -68,10 +71,18 @@ local_sumsq_word_loop:
                 packed.range(95, 64));
             const float value3 = int4_fp32_from_bits(
                 packed.range(127, 96));
-            accumulator0 += value0 * value0;
-            accumulator1 += value1 * value1;
-            accumulator2 += value2 * value2;
-            accumulator3 += value3 * value3;
+            const float square0 = value0 * value0;
+            const float square1 = value1 * value1;
+            const float square2 = value2 * value2;
+            const float square3 = value3 * value3;
+#pragma HLS BIND_OP variable=square0 op=fmul impl=maxdsp latency=4
+#pragma HLS BIND_OP variable=square1 op=fmul impl=maxdsp latency=4
+#pragma HLS BIND_OP variable=square2 op=fmul impl=maxdsp latency=4
+#pragma HLS BIND_OP variable=square3 op=fmul impl=maxdsp latency=4
+            accumulator0 += square0;
+            accumulator1 += square1;
+            accumulator2 += square2;
+            accumulator3 += square3;
             packed >>= 128;
         }
     }

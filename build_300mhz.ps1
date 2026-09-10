@@ -16,7 +16,10 @@ $sourceDirectory = $PSScriptRoot
 $workspaceDirectory = $sourceDirectory
 $xoPath = Join-Path $sourceDirectory "int4_decoder_token_controller_300mhz.xo"
 $baseConfigPath = Join-Path $sourceDirectory "link_300mhz.cfg"
+$preOptPath = Join-Path $sourceDirectory "timing_300mhz_pre_opt.tcl"
 $prePlacePath = Join-Path $sourceDirectory "timing_300mhz_pre_place.tcl"
+$prePhysoptPath = Join-Path $sourceDirectory "timing_300mhz_pre_physopt.tcl"
+$postPlacePath = Join-Path $sourceDirectory "timing_300mhz_post_place.tcl"
 $timingGatePath = Join-Path $sourceDirectory "verify_300mhz_routed.tcl"
 $targetFrequencyHz = 300000000
 $kernelClock = "int4_decoder_token_controller_1.ap_clk"
@@ -35,7 +38,10 @@ foreach ($requiredPath in @(
     $Platform,
     $xoPath,
     $baseConfigPath,
+    $preOptPath,
     $prePlacePath,
+    $prePhysoptPath,
+    $postPlacePath,
     $timingGatePath
 )) {
     if (-not (Test-Path -LiteralPath $requiredPath)) {
@@ -66,19 +72,28 @@ New-Item -ItemType Directory -Force -Path $logDirectory | Out-Null
 New-Item -ItemType Directory -Force -Path $reportDirectory | Out-Null
 
 # Relative Tcl hooks are interpreted inside Vitis' generated Vivado project.
-# Resolve the DDR/control interface-locality hook immediately before each link.
-$vivadoPrePlacePath = (Resolve-Path -LiteralPath $prePlacePath).Path.Replace("\", "/")
-$prePlaceProperty =
-    "prop=run.impl_1.STEPS.PLACE_DESIGN.TCL.PRE=$vivadoPrePlacePath"
+# Resolve every ownership hook immediately before each link.
+$hookProperties = [ordered]@{
+    "run.impl_1.STEPS.OPT_DESIGN.TCL.PRE" = $preOptPath
+    "run.impl_1.STEPS.PLACE_DESIGN.TCL.PRE" = $prePlacePath
+    "run.impl_1.STEPS.PHYS_OPT_DESIGN.TCL.PRE" = $prePhysoptPath
+    "run.impl_1.STEPS.PHYS_OPT_DESIGN.TCL.POST" = $postPlacePath
+}
 $baseConfig = Get-Content -LiteralPath $baseConfigPath
 $expectedFrequencyProperty = "freqhz=$targetFrequencyHz`:$kernelClock"
 if (@($baseConfig | Where-Object { $_ -eq $expectedFrequencyProperty }).Count -ne 1) {
     throw "Base config must contain exactly one '$expectedFrequencyProperty' entry."
 }
-$resolvedConfig = $baseConfig `
-    -replace '^prop=run\.impl_1\.STEPS\.PLACE_DESIGN\.TCL\.PRE=.*$', $prePlaceProperty
-if (@($resolvedConfig | Where-Object { $_ -eq $prePlaceProperty }).Count -ne 1) {
-    throw "Could not inject exactly one Vivado pre-place hook into the resolved link config."
+$resolvedConfig = $baseConfig
+foreach ($entry in $hookProperties.GetEnumerator()) {
+    $propertyName = $entry.Key
+    $resolvedHookPath = (Resolve-Path -LiteralPath $entry.Value).Path.Replace("\", "/")
+    $resolvedProperty = "prop=$propertyName=$resolvedHookPath"
+    $propertyPattern = "^prop=$([regex]::Escape($propertyName))=.*$"
+    $resolvedConfig = $resolvedConfig -replace $propertyPattern, $resolvedProperty
+    if (@($resolvedConfig | Where-Object { $_ -eq $resolvedProperty }).Count -ne 1) {
+        throw "Could not inject exactly one Vivado hook for $propertyName."
+    }
 }
 $resolvedConfig | Set-Content -LiteralPath $resolvedConfigPath -Encoding Ascii
 Write-Host "Build run directory: $runDirectory"
@@ -123,6 +138,10 @@ $implementationLogs = @(
 $floorplanMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: INTERFACE_LOCALITY_APPLIED" -List
 $bridgeFloorplanMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: PE_AXI_BRIDGE_LOCALITY_APPLIED" -List
 $handshakeFloorplanMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: PE_AXI_HANDSHAKE_DRIVERS_APPLIED" -List
+$preOptOwnershipMarker = $implementationLogs | Select-String -Pattern "300MHz pre-opt: PRE_OPT_OWNERSHIP_APPLIED" -List
+$coneOwnershipMarker = $implementationLogs | Select-String -Pattern "300MHz critical-cone closure: CRITICAL_CONES_CLAIMED" -List
+$rescueMarker = $implementationLogs | Select-String -Pattern "300MHz pre-physopt: SLR_OWNERSHIP_REINFORCED" -List
+$postPlaceMarker = $implementationLogs | Select-String -Pattern "300MHz post-place: LEAF_OWNERSHIP_VERIFIED" -List
 
 if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
     -not $floorplanMarker) {
@@ -144,6 +163,20 @@ if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
 }
 if ($handshakeFloorplanMarker) {
     Write-Host "Verified: PE-local AXI handshake driver placement was applied."
+}
+foreach ($requiredMarker in @(
+    @{ Match = $preOptOwnershipMarker; Description = "pre-opt PE/SLR ownership" },
+    @{ Match = $coneOwnershipMarker; Description = "post-opt critical-cone closure" },
+    @{ Match = $rescueMarker; Description = "pre-physopt ownership rescue" },
+    @{ Match = $postPlaceMarker; Description = "post-physopt leaf ownership verification" }
+)) {
+    if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
+        -not $requiredMarker.Match) {
+        throw "Vivado implementation ran without $($requiredMarker.Description)."
+    }
+    if ($requiredMarker.Match) {
+        Write-Host "Verified: $($requiredMarker.Description)."
+    }
 }
 if ($linkExitCode -ne 0) {
     exit $linkExitCode

@@ -671,7 +671,7 @@ static void swiftkv_route_compressed_kv_record(
     hls::stream<swiftkv_update_engine_word_t>& value1_engine2_stream,
     hls::stream<swiftkv_update_engine_word_t>& value1_engine3_stream
 ) {
-#pragma HLS INLINE
+#pragma HLS INLINE off
     const int4_output_word_t metadata_word = record_stream.read();
     const ap_uint<40> metadata = metadata_word.range(39, 0);
     key_metadata_stream.write(metadata);
@@ -1766,7 +1766,7 @@ static void swiftkv_update_values_and_quantize(
     swiftkv_state_t weighted_group[INT4_GROUP_SIZE];
     int4_fxp32_t attention_group[INT4_GROUP_SIZE];
 #pragma HLS BIND_STORAGE variable=weighted_group type=ram_1p impl=bram latency=1
-#pragma HLS BIND_STORAGE variable=attention_group type=ram_1p impl=bram
+#pragma HLS BIND_STORAGE variable=attention_group type=ram_1p impl=bram latency=2
 
 attention_quant_group_loop:
     for (int group = 0;
@@ -3561,3 +3561,4 @@ void swiftkv_attention_latency_verify(
 }
 #endif
 #endif
+

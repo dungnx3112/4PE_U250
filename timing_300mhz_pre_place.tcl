@@ -112,7 +112,7 @@ place_axi_interface control_s_axi_U SLR0
 
 
 proc place_pe_core {pe slr} {
-    set pe_pattern "*/int4_decoder_token_controller_1/inst/*/int4_decoder_local_pe_$pe_U0"
+    set pe_pattern "*/int4_decoder_token_controller_1/inst/*/int4_decoder_local_pe_${pe}_U0"
     set leaves [get_cells -quiet -hierarchical -filter "NAME =~ $pe_pattern/* && IS_PRIMITIVE == 1 && REF_NAME != VCC && REF_NAME != GND"]
     set pblock [get_pblocks -quiet "pblock_dynamic_$slr"]
     
@@ -126,6 +126,25 @@ foreach pe {0 1 2 3} slr {SLR0 SLR1 SLR2 SLR3} {
     place_pe_axi_bridges $pe $slr
     place_pe_core $pe $slr
 }
+
+# Re-apply the shared ownership model after opt_design, then close the
+# timing-critical combinational cones by connectivity.  The latter is what
+# captures promoted LUT/CARRY/MUX cells whose optimized names no longer carry
+# int4_decoder_local_pe_N_U0.
+set timing_script_directory [file dirname [file normalize [info script]]]
+set timing_ownership_script [file join $timing_script_directory timing_300mhz_domains.tcl]
+if {![file exists $timing_ownership_script]} {
+    error "300MHz floorplan: missing ownership library $timing_ownership_script"
+}
+if {[llength [info commands timing300::apply_floorplan]] == 0} {
+    source $timing_ownership_script
+}
+timing300::apply_floorplan
+set cone_report [file normalize "timing_300mhz_pre_place_cone_ownership.csv"]
+lassign [timing300::claim_same_owner_critical_cones 80000 $cone_report] \
+    cone_paths cone_primitives cone_conflicts
+puts "INFO: 300MHz floorplan: cone_paths=$cone_paths cone_primitives=$cone_primitives cone_conflicts=$cone_conflicts"
+puts "INFO: 300MHz floorplan: OWNERSHIP_APPLIED"
 
 puts "INFO: 300MHz floorplan: INTERFACE_LOCALITY_APPLIED"
 puts "INFO: 300MHz floorplan: PE_AXI_BRIDGE_LOCALITY_APPLIED"

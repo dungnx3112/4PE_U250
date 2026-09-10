@@ -71,7 +71,10 @@ source_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 workspace_dir=$source_dir
 xo_path=$source_dir/int4_decoder_token_controller_300mhz.xo
 base_config_path=$source_dir/link_300mhz.cfg
+pre_opt_path=$source_dir/timing_300mhz_pre_opt.tcl
 pre_place_path=$source_dir/timing_300mhz_pre_place.tcl
+pre_physopt_path=$source_dir/timing_300mhz_pre_physopt.tcl
+post_place_path=$source_dir/timing_300mhz_post_place.tcl
 hls_script_path=$source_dir/run_hls_300mhz.tcl
 timing_gate_path=$source_dir/verify_300mhz_routed.tcl
 run_id=$(date +%Y%m%d-%H%M%S)-$$
@@ -84,7 +87,10 @@ candidate_output=$run_dir/int4_decoder_token_controller_300mhz.candidate.xclbin
 
 for required_path in \
     "$base_config_path" \
+    "$pre_opt_path" \
     "$pre_place_path" \
+    "$pre_physopt_path" \
+    "$post_place_path" \
     "$timing_gate_path"; do
     if [[ ! -f $required_path ]]; then
         echo "Required build input does not exist: $required_path" >&2
@@ -183,21 +189,45 @@ fi
 
 # Generate a run-local config. The absolute Linux path remains valid after
 # Vitis changes directory into its generated Vivado implementation project.
-if ! awk -v pre="$pre_place_path" '
-    BEGIN { pre_count = 0 }
+if ! awk -v pre_opt="$pre_opt_path" \
+        -v pre_place="$pre_place_path" \
+        -v pre_physopt="$pre_physopt_path" \
+        -v post_place="$post_place_path" '
+    BEGIN {
+        pre_opt_count = 0
+        pre_place_count = 0
+        pre_physopt_count = 0
+        post_place_count = 0
+    }
+    /^prop=run\.impl_1\.STEPS\.OPT_DESIGN\.TCL\.PRE=/ {
+        print "prop=run.impl_1.STEPS.OPT_DESIGN.TCL.PRE=" pre_opt
+        pre_opt_count++
+        next
+    }
     /^prop=run\.impl_1\.STEPS\.PLACE_DESIGN\.TCL\.PRE=/ {
-        print "prop=run.impl_1.STEPS.PLACE_DESIGN.TCL.PRE=" pre
-        pre_count++
+        print "prop=run.impl_1.STEPS.PLACE_DESIGN.TCL.PRE=" pre_place
+        pre_place_count++
+        next
+    }
+    /^prop=run\.impl_1\.STEPS\.PHYS_OPT_DESIGN\.TCL\.PRE=/ {
+        print "prop=run.impl_1.STEPS.PHYS_OPT_DESIGN.TCL.PRE=" pre_physopt
+        pre_physopt_count++
+        next
+    }
+    /^prop=run\.impl_1\.STEPS\.PHYS_OPT_DESIGN\.TCL\.POST=/ {
+        print "prop=run.impl_1.STEPS.PHYS_OPT_DESIGN.TCL.POST=" post_place
+        post_place_count++
         next
     }
     { print }
     END {
-        if (pre_count != 1) {
+        if (pre_opt_count != 1 || pre_place_count != 1 ||
+                pre_physopt_count != 1 || post_place_count != 1) {
             exit 42
         }
     }
 ' "$base_config_path" > "$resolved_config_path"; then
-    echo "Could not inject exactly one DDR/control interface-locality pre-place hook." >&2
+    echo "Could not inject every required Vivado ownership hook exactly once." >&2
     exit 1
 fi
 
@@ -263,6 +293,18 @@ if (( ${#implementation_logs[@]} > 0 || link_exit_code == 0 )); then
     require_marker \
         "300MHz floorplan: PE_AXI_HANDSHAKE_DRIVERS_APPLIED" \
         "PE-local AXI handshake driver placement was applied"
+    require_marker \
+        "300MHz pre-opt: PRE_OPT_OWNERSHIP_APPLIED" \
+        "pre-opt PE/SLR ownership was applied"
+    require_marker \
+        "300MHz critical-cone closure: CRITICAL_CONES_CLAIMED" \
+        "post-opt critical-cone closure was applied"
+    require_marker \
+        "300MHz pre-physopt: SLR_OWNERSHIP_REINFORCED" \
+        "pre-physopt ownership rescue was applied"
+    require_marker \
+        "300MHz post-place: LEAF_OWNERSHIP_VERIFIED" \
+        "post-physopt leaf ownership was verified"
 fi
 
 if (( validation_failed != 0 )); then

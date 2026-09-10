@@ -99,6 +99,19 @@ foreach class $pe_classes {
     }
 }
 
+# opt_design can promote PE0 SwiftKV arithmetic directly below the kernel,
+# removing every PE wrapper from the visible instance name.  Claim that case,
+# but never let the fallback pattern steal an explicitly named foreign PE.
+set promoted_patterns [group_patterns "PE0 promoted SwiftKV critical arithmetic"]
+check {[matches_any \
+    "root/grp_swiftkv_quantize_kv_record_fu_123/add_ln456_reg" \
+    $promoted_patterns 0]} \
+    "name-less promoted SwiftKV arithmetic must be claimed by PE0"
+check {![matches_any \
+    "root/int4_decoder_local_pe_1_U0/grp_swiftkv_quantize_kv_record_fu_123/add_ln456_reg" \
+    $promoted_patterns 0]} \
+    "PE0 promoted fallback must not steal explicit PE1 arithmetic"
+
 # Audit every declared pattern, including position and reduction domains.
 # A representative semantic segment must never resolve to two SLRs.
 set representatives {}

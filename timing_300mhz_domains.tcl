@@ -60,6 +60,35 @@ proc timing300::local_pe_owner {name} {
         if {[regexp {^int4_(?:stream_local_weights|run_local_pe|compute_local_partials|store_local_output|prepare_local_weight_request|read_local_weights|swiftkv_attention_pe)_?([0-3])_(?:U0|s)$} $segment -> pe]} {
             return $pe
         }
+        if {[regexp {^gmem([0-3])_m_axi_U$} $segment -> pe]} {
+            return $pe
+        }
+        if {[regexp {^(?:model_bank|rope_lut_pe|residual_pe|logits_pe|kv_cache_pe)([0-3])_c_U$} $segment -> pe]} {
+            return $pe
+        }
+    }
+    return ""
+}
+
+proc timing300::slr_for_pe {pe} {
+    if {![string is integer -strict $pe] || $pe < 0 || $pe > 3} {
+        error "300MHz ownership: invalid PE index '$pe'"
+    }
+    return "SLR${pe}"
+}
+
+proc timing300::pin_pe_owner {pin_value} {
+    variable owner
+    if {[llength $pin_value] == 0} { return "" }
+    set pin [lindex $pin_value 0]
+    set cells [get_cells -quiet -of_objects $pin]
+    if {[llength $cells] != 1} { return "" }
+    set cell_name [get_property NAME [lindex $cells 0]]
+    set pe [local_pe_owner $cell_name]
+    if {$pe ne ""} { return $pe }
+    if {[info exists owner($cell_name)] &&
+            [regexp {^SLR([0-3])$} $owner($cell_name) -> pe]} {
+        return $pe
     }
     return ""
 }
@@ -126,8 +155,106 @@ proc timing300::initialize {} {
     array set pattern_hier_cache {}
     array unset pattern_leaf_cache
     array set pattern_leaf_cache {}
+    # Critical-cone closure records its assignments on promoted primitive
+    # cells.  Re-seed those assignments whenever another implementation hook
+    # reloads this library so rescue/verification covers the same cells.
+    foreach leaf $kernel_leaves {
+        set assigned ""
+        catch {set assigned [get_property USER_SLR_ASSIGNMENT $leaf]}
+        if {[regexp {^SLR[0-3]$} $assigned]} {
+            set owner([get_property NAME $leaf]) $assigned
+        }
+    }
     set initialized 1
     puts "INFO: 300MHz ownership: cached [llength $kernel_hier] hierarchy cells and [llength $kernel_leaves] leaf primitives"
+}
+
+# Close the physical ownership of timing cones whose sequential endpoints both
+# belong to the same PE.  This deliberately uses timing connectivity rather
+# than hierarchy names: opt_design can promote LUT/CARRY/MUX primitives to the
+# kernel root and erase the PE marker that the ordinary selectors rely on.
+proc timing300::claim_same_owner_critical_cones {max_paths report_path} {
+    variable kernel_name
+    variable pblocks
+    variable owner
+    initialize
+
+    if {![string is integer -strict $max_paths] || $max_paths <= 0} {
+        error "300MHz critical-cone closure: max_paths must be positive"
+    }
+
+    array set claimed {SLR0 {} SLR1 {} SLR2 {} SLR3 {}}
+    set inspected 0
+    set same_owner_paths 0
+    set claimed_points 0
+    set conflicts 0
+    set paths [get_timing_paths -quiet -delay_type max \
+        -max_paths $max_paths -nworst 1]
+    foreach path $paths {
+        incr inspected
+        set start_pe [pin_pe_owner [get_property STARTPOINT_PIN $path]]
+        set end_pe [pin_pe_owner [get_property ENDPOINT_PIN $path]]
+        if {$start_pe eq "" || $start_pe ne $end_pe} { continue }
+        incr same_owner_paths
+        set expected_slr [slr_for_pe $start_pe]
+
+        set points ""
+        catch {set points [get_property PATH $path]}
+        if {[llength $points] == 0} {
+            set points [get_pins -quiet -of_objects $path]
+        }
+        foreach point $points {
+            set pin ""
+            catch {set pin [get_property PIN $point]}
+            if {$pin eq ""} { set pin $point }
+            set cells [get_cells -quiet -of_objects $pin -filter {
+                IS_PRIMITIVE == 1 && REF_NAME != VCC && REF_NAME != GND}]
+            foreach cell $cells {
+                set cell_name [get_property NAME $cell]
+                if {![string match "${kernel_name}/*" $cell_name]} { continue }
+
+                set explicit_pe [local_pe_owner $cell_name]
+                if {$explicit_pe ne "" && $explicit_pe ne $start_pe} {
+                    incr conflicts
+                    continue
+                }
+                if {[info exists owner($cell_name)] &&
+                        $owner($cell_name) ne $expected_slr} {
+                    incr conflicts
+                    continue
+                }
+
+                set owner($cell_name) $expected_slr
+                dict set claimed($expected_slr) $cell_name $cell
+                catch {set_property USER_SLR_ASSIGNMENT $expected_slr $cell}
+                incr claimed_points
+            }
+        }
+    }
+
+    set unique_claims 0
+    foreach slr {SLR0 SLR1 SLR2 SLR3} {
+        set cells [dict values $claimed($slr)]
+        if {[llength $cells] == 0} { continue }
+        add_cells_to_pblock $pblocks($slr) $cells
+        incr unique_claims [llength $cells]
+        puts "INFO: 300MHz critical-cone closure: $slr claimed [llength $cells] primitives"
+    }
+
+    set report [open $report_path w]
+    puts $report "metric,value"
+    puts $report "paths_inspected,$inspected"
+    puts $report "same_owner_paths,$same_owner_paths"
+    puts $report "unique_primitive_claims,$unique_claims"
+    puts $report "path_point_claims,$claimed_points"
+    puts $report "ownership_conflicts_skipped,$conflicts"
+    close $report
+
+    if {$same_owner_paths == 0 || $unique_claims == 0} {
+        error "300MHz critical-cone closure found no same-PE timing cones"
+    }
+    puts "INFO: 300MHz critical-cone closure: CRITICAL_CONES_CLAIMED paths=$same_owner_paths primitives=$unique_claims conflicts=$conflicts"
+    return [list $same_owner_paths $unique_claims $conflicts]
 }
 
 proc timing300::match_patterns {patterns primitive {expected_pe ""}} {
@@ -303,8 +430,18 @@ proc timing300::domain_specs {} {
         lappend specs [list $slr "PE${pe} AXI config FIFOs" 1 [list \
             "*model_bank${pe}_c_U*" "*rope_lut_pe${pe}_c_U*" \
             "*residual_pe${pe}_c_U*" "*logits_pe${pe}_c_U*" \
-            "*kv_cache_pe${pe}_c_U*"]]
+            "*kv_cache_pe${pe}_c_U*" \
+            "*ap_start_pe${pe}*"]]
     }
+
+    # The integrated design has one PE0 SwiftKV instance whose arithmetic is
+    # promoted directly below the kernel root by opt_design.  The expected-PE
+    # guard prevents these patterns from stealing explicitly named PE1..PE3
+    # descendants while still claiming the name-less promoted PE0 primitives.
+    lappend specs [list SLR0 "PE0 promoted SwiftKV critical arithmetic" 1 [list \
+        "*grp_swiftkv_quantize_kv_record*" \
+        "*grp_swiftkv_update_values_and_quantize*" \
+        "*grp_swiftkv_write_buffered_kv_record3*"]]
 
     lappend specs [list SLR0 "position stage 0" 1 [list \
         "*int4_seed_position_chain_U0*" "*position_pe0_U*" "*position_01_U*"]]
@@ -361,8 +498,17 @@ proc timing300::rescue_escaped_cells {} {
 
     # Re-initialise so kernel_leaves picks up any new cells.
     variable initialized
+    set saved_owner [array get owner]
     set initialized 0
     initialize
+
+    # Preserve connectivity-derived cone claims even if a Vivado release does
+    # not retain USER_SLR_ASSIGNMENT on an individual optimized primitive.
+    foreach {leaf_name expected_slr} $saved_owner {
+        if {[llength [get_cells -quiet $leaf_name]] == 1} {
+            set owner($leaf_name) $expected_slr
+        }
+    }
 
     # Re-discover ownership from the current netlist.
     foreach spec [domain_specs] {
@@ -404,6 +550,21 @@ proc timing300::verify_placement {report_path} {
         lassign $spec slr description mandatory patterns
         set must_survive [routed_mandatory $description $mandatory]
         lassign [verify_group $slr $description $patterns $must_survive $report] count bad
+    }
+    # Connectivity-derived promoted cells do not necessarily match a stable
+    # hierarchy selector. Verify every remembered owner as well as each named
+    # domain so a same-SLR endpoint detour cannot escape this gate.
+    foreach leaf_name [array names owner] {
+        set leaf [get_cells -quiet $leaf_name]
+        if {[llength $leaf] != 1} { continue }
+        set expected $owner($leaf_name)
+        set actual [cell_slr [lindex $leaf 0]]
+        if {$actual ne $expected && ![info exists wrong_owner($leaf_name)]} {
+            set wrong_owner($leaf_name) 1
+            if {[array size wrong_owner] <= $wrong_report_limit} {
+                puts $report "WRONG,$expected,$actual,connectivity-derived critical cone,$leaf_name"
+            }
+        }
     }
     # A leaf can intentionally be covered by a broad PE domain and a narrower
     # local-memory/engine domain. Report unique physical primitives, not the

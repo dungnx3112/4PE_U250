@@ -13,6 +13,26 @@ proc verify_generated_rtl_300mhz {rtl_directory} {
     set top_text [read $handle]
     close $handle
 
+    set partitioned_entries {}
+    foreach entry_path [glob -nocomplain -directory $rtl_directory *_entry_proc*.v] {
+        set handle [open $entry_path r]
+        set entry_text [read $handle]
+        close $handle
+        if {[string first PARTITIONED_PE_CONFIG_LAUNCH $entry_text] >= 0} {
+            lappend partitioned_entries [list $entry_path $entry_text]
+        }
+    }
+    if {[llength $partitioned_entries] != 1} {
+        error "300MHz RTL gate: expected one partitioned decoder entry process, found [llength $partitioned_entries]"
+    }
+    lassign [lindex $partitioned_entries 0] partitioned_entry_path partitioned_entry_text
+    foreach pe {0 1 2 3} {
+        if {[string first "reg ap_start_pe${pe};" $partitioned_entry_text] < 0 ||
+                [string first "assign config_fire_pe${pe} = ap_start_pe${pe}" $partitioned_entry_text] < 0} {
+            error "300MHz RTL gate: PE${pe} does not use a registered local start in [file tail $partitioned_entry_path]"
+        }
+    }
+
     set read_burst_count [count_matches $top_text \
         {\.MAX_READ_BURST_LENGTH\([[:space:]]*64[[:space:]]*\)}]
     set read_outstanding_count [count_matches $top_text \
@@ -149,6 +169,12 @@ proc verify_generated_rtl_300mhz {rtl_directory} {
         error "300MHz RTL gate: attention normalization still selects engine state directly"
     }
 
+    set kv_quantizers [glob -nocomplain -directory $rtl_directory \
+        "*swiftkv_quantize_kv_record.v"]
+    if {[llength $kv_quantizers] == 0} {
+        error "300MHz RTL gate: swiftkv_quantize_kv_record hierarchy boundary is missing"
+    }
+
     puts "INFO: 300MHz RTL gate: LOCAL_WEIGHT_REQUEST_PIPELINES_VERIFIED"
     puts "INFO: 300MHz RTL gate: LOCAL_WEIGHT_BACKPRESSURE_BOUNDARY_VERIFIED"
     puts "INFO: 300MHz RTL gate: AXI_READ_WINDOWS_2X64_VERIFIED"
@@ -156,6 +182,8 @@ proc verify_generated_rtl_300mhz {rtl_directory} {
     puts "INFO: 300MHz RTL gate: ATTENTION_KV_WRITE_BOUNDARY_VERIFIED"
     puts "INFO: 300MHz RTL gate: ATTENTION_SCORE_MULTIPLIER_ISOLATED"
     puts "INFO: 300MHz RTL gate: ATTENTION_NORMALIZATION_STAGING_VERIFIED"
+    puts "INFO: 300MHz RTL gate: REGISTERED_LOCAL_STARTS_VERIFIED"
+    puts "INFO: 300MHz RTL gate: KV_QUANTIZER_HIERARCHY_PRESERVED"
 }
 
 set validator_directory [file dirname [file normalize [info script]]]

@@ -71,6 +71,13 @@ proc partition_decoder_entry_proc {verilog_directory} {
 // cone; on a four-SLR U250 that cone pulls placement in four directions.
 (* dont_touch = "yes" *) reg [3:0] config_sent;
 reg done_hold;
+// Register the global start once per PE.  The four registers are constrained
+// to their corresponding SLR by timing_300mhz_domains.tcl, so int_ap_start no
+// longer directly drives configuration logic distributed across the device.
+(* dont_touch = "yes" *) reg ap_start_pe0;
+(* dont_touch = "yes" *) reg ap_start_pe1;
+(* dont_touch = "yes" *) reg ap_start_pe2;
+(* dont_touch = "yes" *) reg ap_start_pe3;
 (* keep = "yes" *) wire config_ready_pe0;
 (* keep = "yes" *) wire config_ready_pe1;
 (* keep = "yes" *) wire config_ready_pe2;
@@ -100,13 +107,13 @@ assign config_ready_pe3 = model_bank3_c_full_n & rope_lut_pe3_c_full_n &
                           residual_pe3_c_full_n & logits_pe3_c_full_n &
                           kv_cache_pe3_c_full_n;
 
-assign config_fire_pe0 = ap_start & ~done_hold & ~config_sent[0] & config_ready_pe0;
-assign config_fire_pe1 = ap_start & ~done_hold & ~config_sent[1] & config_ready_pe1;
-assign config_fire_pe2 = ap_start & ~done_hold & ~config_sent[2] & config_ready_pe2;
-assign config_fire_pe3 = ap_start & ~done_hold & ~config_sent[3] & config_ready_pe3;
+assign config_fire_pe0 = ap_start_pe0 & ~done_hold & ~config_sent[0] & config_ready_pe0;
+assign config_fire_pe1 = ap_start_pe1 & ~done_hold & ~config_sent[1] & config_ready_pe1;
+assign config_fire_pe2 = ap_start_pe2 & ~done_hold & ~config_sent[2] & config_ready_pe2;
+assign config_fire_pe3 = ap_start_pe3 & ~done_hold & ~config_sent[3] & config_ready_pe3;
 assign config_sent_or_fire = config_sent |
     {config_fire_pe3, config_fire_pe2, config_fire_pe1, config_fire_pe0};
-assign config_complete = ap_start & ~done_hold & (&config_sent_or_fire);
+assign config_complete = ~done_hold & (&config_sent_or_fire);
 
 assign model_bank0_c_write = config_fire_pe0;
 assign rope_lut_pe0_c_write = config_fire_pe0;
@@ -136,27 +143,41 @@ assign ap_idle = ~ap_start & (config_sent == 4'b0000) & ~done_hold;
 initial begin
     #0 config_sent = 4'b0000;
     #0 done_hold = 1'b0;
+    #0 ap_start_pe0 = 1'b0;
+    #0 ap_start_pe1 = 1'b0;
+    #0 ap_start_pe2 = 1'b0;
+    #0 ap_start_pe3 = 1'b0;
 end
 
 always @(posedge ap_clk) begin
     if (ap_rst) begin
         config_sent <= 4'b0000;
         done_hold <= 1'b0;
-    end else if (done_hold) begin
-        if (ap_continue) begin
-            config_sent <= 4'b0000;
-            done_hold <= 1'b0;
-        end
-    end else if (config_complete) begin
-        if (ap_continue) begin
-            config_sent <= 4'b0000;
-            done_hold <= 1'b0;
-        end else begin
-            config_sent <= 4'b1111;
-            done_hold <= 1'b1;
-        end
+        ap_start_pe0 <= 1'b0;
+        ap_start_pe1 <= 1'b0;
+        ap_start_pe2 <= 1'b0;
+        ap_start_pe3 <= 1'b0;
     end else begin
-        config_sent <= config_sent_or_fire;
+        ap_start_pe0 <= ap_start;
+        ap_start_pe1 <= ap_start;
+        ap_start_pe2 <= ap_start;
+        ap_start_pe3 <= ap_start;
+        if (done_hold) begin
+            if (ap_continue) begin
+                config_sent <= 4'b0000;
+                done_hold <= 1'b0;
+            end
+        end else if (config_complete) begin
+            if (ap_continue) begin
+                config_sent <= 4'b0000;
+                done_hold <= 1'b0;
+            end else begin
+                config_sent <= 4'b1111;
+                done_hold <= 1'b1;
+            end
+        end else begin
+            config_sent <= config_sent_or_fire;
+        end
     end
 end
 
@@ -175,6 +196,10 @@ assign kv_cache_pe0_c_din}
     foreach pe {0 1 2 3} {
         if {[string first "assign config_fire_pe${pe} =" $patched] < 0} {
             error "Missing PE${pe} partition in patched entry process"
+        }
+        if {[string first "reg ap_start_pe${pe};" $patched] < 0 ||
+                [string first "assign config_fire_pe${pe} = ap_start_pe${pe}" $patched] < 0} {
+            error "Missing registered local start for PE${pe} in patched entry process"
         }
     }
 

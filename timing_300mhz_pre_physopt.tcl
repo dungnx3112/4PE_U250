@@ -13,7 +13,9 @@ set ownership_script [file join $script_directory timing_300mhz_domains.tcl]
 if {![file exists $ownership_script]} {
     error "300MHz pre-physopt: missing ownership library $ownership_script"
 }
-source $ownership_script
+if {[llength [info commands timing300::rescue_escaped_cells]] == 0} {
+    source $ownership_script
+}
 
 set rescued [timing300::rescue_escaped_cells]
 puts "INFO: 300MHz pre-physopt: rescued $rescued escaped cells"
