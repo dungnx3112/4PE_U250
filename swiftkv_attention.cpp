@@ -387,24 +387,23 @@ static ap_int<8> swiftkv_quantize_kv_raw(
     swiftkv_kv_shift_t shift
 ) {
 #pragma HLS INLINE
-    const ap_uint<32> magnitude = swiftkv_raw_magnitude(raw);
+    const bool is_neg = (raw < 0);
+    const ap_uint<32> magnitude =
+        is_neg ? (ap_uint<32>)(-raw) : (ap_uint<32>)raw;
     const ap_uint<32> rounding =
         shift == 0
             ? (ap_uint<32>)0
             : (ap_uint<32>)1 << ((int)shift - 1);
     const ap_uint<32> rounded_magnitude = magnitude + rounding;
 #pragma HLS BIND_OP variable=rounded_magnitude op=add impl=fabric latency=1
-    ap_uint<32> quantized_magnitude =
+
+    const ap_uint<32> quantized_magnitude =
         rounded_magnitude >> (int)shift;
-    if (quantized_magnitude > 127) {
-        quantized_magnitude = 127;
-    }
-    ap_int<9> signed_quantized =
-        (ap_int<9>)quantized_magnitude;
-    if (raw < 0) {
-        signed_quantized = (ap_int<9>)(-signed_quantized);
-    }
-    return (ap_int<8>)signed_quantized;
+    const ap_uint<8> clamped =
+        (quantized_magnitude > 127) ? (ap_uint<8>)127 : (ap_uint<8>)quantized_magnitude;
+    const ap_int<8> signed_quantized =
+        is_neg ? (ap_int<8>)(-clamped) : (ap_int<8>)clamped;
+    return signed_quantized;
 }
 
 static ap_int<32> swiftkv_dequantize_kv_raw(
@@ -438,12 +437,8 @@ quantize_kv_group_loop:
         ap_uint<32> maximum_v = 0;
         ap_int<32> raw_k[SWIFTKV_KV_GROUP_SIZE];
         ap_int<32> raw_v[SWIFTKV_KV_GROUP_SIZE];
-        ap_int<8> quantized_k_group[SWIFTKV_KV_GROUP_SIZE];
-        ap_int<8> quantized_v_group[SWIFTKV_KV_GROUP_SIZE];
 #pragma HLS ARRAY_PARTITION variable=raw_k complete
 #pragma HLS ARRAY_PARTITION variable=raw_v complete
-#pragma HLS ARRAY_PARTITION variable=quantized_k_group complete
-#pragma HLS ARRAY_PARTITION variable=quantized_v_group complete
         const int4_output_word_t k_lower = k_words[2 * group];
         const int4_output_word_t k_upper = k_words[2 * group + 1];
         const int4_output_word_t v_lower = v_words[2 * group];
@@ -531,35 +526,45 @@ quantize_kv_group_loop:
             v_shift_bit + SWIFTKV_KV_SCALE_SHIFT_BITS - 1,
             v_shift_bit) = shift_v;
 
-        ap_uint<256> packed_k_group = 0;
-        ap_uint<256> packed_v_group = 0;
+        ap_uint<128> packed_k_chunk[2];
+        ap_uint<128> packed_v_chunk[2];
+#pragma HLS ARRAY_PARTITION variable=packed_k_chunk complete
+#pragma HLS ARRAY_PARTITION variable=packed_v_chunk complete
 
-    quantize_kv_group_block_loop:
-        for (int block = 0;
-             block < SWIFTKV_KV_GROUP_SIZE / 4;
-             ++block) {
+    quantize_kv_group_chunk_loop:
+        for (int chunk = 0; chunk < 2; ++chunk) {
+            ap_uint<128> k_chunk_bits = 0;
+            ap_uint<128> v_chunk_bits = 0;
+        quantize_kv_group_block_loop:
+            for (int block = 0; block < 4; ++block) {
 #pragma HLS PIPELINE II=1
-        quantize_kv_group_lane_loop:
-            for (int lane = 0; lane < 4; ++lane) {
+                ap_uint<32> k_4bytes = 0;
+                ap_uint<32> v_4bytes = 0;
+            quantize_kv_group_lane_loop:
+                for (int lane = 0; lane < 4; ++lane) {
 #pragma HLS UNROLL
-                const int index = block * 4 + lane;
-                quantized_k_group[index] =
-                    swiftkv_quantize_kv_raw(raw_k[index], shift_k);
-                quantized_v_group[index] =
-                    swiftkv_quantize_kv_raw(raw_v[index], shift_v);
+                    const int index = chunk * 16 + block * 4 + lane;
+                    const ap_int<8> q_k =
+                        swiftkv_quantize_kv_raw(raw_k[index], shift_k);
+                    const ap_int<8> q_v =
+                        swiftkv_quantize_kv_raw(raw_v[index], shift_v);
+                    k_4bytes.range(8 * lane + 7, 8 * lane) = (ap_uint<8>)q_k;
+                    v_4bytes.range(8 * lane + 7, 8 * lane) = (ap_uint<8>)q_v;
+                }
+                k_chunk_bits.range(32 * block + 31, 32 * block) = k_4bytes;
+                v_chunk_bits.range(32 * block + 31, 32 * block) = v_4bytes;
             }
+            packed_k_chunk[chunk] = k_chunk_bits;
+            packed_v_chunk[chunk] = v_chunk_bits;
         }
 
-    pack_quantized_kv_group_loop:
-        for (int lane = 0;
-             lane < SWIFTKV_KV_GROUP_SIZE;
-             ++lane) {
-#pragma HLS UNROLL
-            packed_k_group.range(8 * lane + 7, 8 * lane) =
-                (ap_uint<8>)quantized_k_group[lane];
-            packed_v_group.range(8 * lane + 7, 8 * lane) =
-                (ap_uint<8>)quantized_v_group[lane];
-        }
+        ap_uint<256> packed_k_group;
+        packed_k_group.range(127, 0) = packed_k_chunk[0];
+        packed_k_group.range(255, 128) = packed_k_chunk[1];
+
+        ap_uint<256> packed_v_group;
+        packed_v_group.range(127, 0) = packed_v_chunk[0];
+        packed_v_group.range(255, 128) = packed_v_chunk[1];
 
         packed_k_group_all[group] = packed_k_group;
         packed_v_group_all[group] = packed_v_group;
@@ -1765,8 +1770,8 @@ static void swiftkv_update_values_and_quantize(
         inverse_normalization_stream.read();
     swiftkv_state_t weighted_group[INT4_GROUP_SIZE];
     int4_fxp32_t attention_group[INT4_GROUP_SIZE];
-#pragma HLS BIND_STORAGE variable=weighted_group type=ram_1p impl=bram latency=1
-#pragma HLS BIND_STORAGE variable=attention_group type=ram_1p impl=bram latency=2
+#pragma HLS BIND_STORAGE variable=weighted_group type=ram_1p impl=lutram
+#pragma HLS BIND_STORAGE variable=attention_group type=ram_1p impl=lutram
 
 attention_quant_group_loop:
     for (int group = 0;
@@ -1813,14 +1818,15 @@ attention_quant_group_loop:
             max_float == 0.0f ? 0.0f : 16383.0f / max_float;
         scale_stream.write(output_scale);
 
-        int4_quant_word_t quantized_word = 0;
-    attention_quantize_reverse_loop:
-        for (int lane = INT4_GROUP_SIZE - 1;
-             lane >= 0;
-             --lane) {
+        ap_int<15> quantized_lanes[INT4_GROUP_SIZE];
+#pragma HLS ARRAY_PARTITION variable=quantized_lanes complete
+
+    attention_quantize_loop:
+        for (int lane = 0; lane < INT4_GROUP_SIZE; ++lane) {
 #pragma HLS PIPELINE II=1
             const float scaled =
                 (float)attention_group[lane] * inverse_scale;
+#pragma HLS BIND_OP variable=scaled op=fmul impl=dsp latency=3
             float rounded =
                 scaled >= 0.0f ? scaled + 0.5f : scaled - 0.5f;
             if (rounded > 16383.0f) {
@@ -1829,11 +1835,19 @@ attention_quant_group_loop:
             if (rounded < -16383.0f) {
                 rounded = -16383.0f;
             }
-            const ap_int<15> quantized =
-                (ap_int<15>)(int)rounded;
-            quantized_word =
-                (quantized_word << 15) |
-                (ap_uint<15>)quantized;
+            quantized_lanes[lane] = (ap_int<15>)(int)rounded;
+        }
+
+        int4_quant_word_t quantized_word = 0;
+    attention_quantize_pack_chunk_loop:
+        for (int chunk = 0; chunk < 2; ++chunk) {
+#pragma HLS UNROLL
+            for (int sub = 0; sub < 16; ++sub) {
+#pragma HLS UNROLL
+                const int lane = chunk * 16 + sub;
+                quantized_word.range(15 * lane + 14, 15 * lane) =
+                    (ap_uint<15>)quantized_lanes[lane];
+            }
         }
         quantized_stream.write(quantized_word);
     }
@@ -1935,14 +1949,14 @@ static void swiftkv_attention_head(
 #pragma HLS BIND_STORAGE variable=key1_chunk1_stream type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=key1_chunk2_stream type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=key1_chunk3_stream type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=value0_engine0_stream type=fifo impl=uram
-#pragma HLS BIND_STORAGE variable=value0_engine1_stream type=fifo impl=uram
-#pragma HLS BIND_STORAGE variable=value0_engine2_stream type=fifo impl=uram
-#pragma HLS BIND_STORAGE variable=value0_engine3_stream type=fifo impl=uram
-#pragma HLS BIND_STORAGE variable=value1_engine0_stream type=fifo impl=uram
-#pragma HLS BIND_STORAGE variable=value1_engine1_stream type=fifo impl=uram
-#pragma HLS BIND_STORAGE variable=value1_engine2_stream type=fifo impl=uram
-#pragma HLS BIND_STORAGE variable=value1_engine3_stream type=fifo impl=uram
+#pragma HLS BIND_STORAGE variable=value0_engine0_stream type=fifo impl=uram latency=3
+#pragma HLS BIND_STORAGE variable=value0_engine1_stream type=fifo impl=uram latency=3
+#pragma HLS BIND_STORAGE variable=value0_engine2_stream type=fifo impl=uram latency=3
+#pragma HLS BIND_STORAGE variable=value0_engine3_stream type=fifo impl=uram latency=3
+#pragma HLS BIND_STORAGE variable=value1_engine0_stream type=fifo impl=uram latency=3
+#pragma HLS BIND_STORAGE variable=value1_engine1_stream type=fifo impl=uram latency=3
+#pragma HLS BIND_STORAGE variable=value1_engine2_stream type=fifo impl=uram latency=3
+#pragma HLS BIND_STORAGE variable=value1_engine3_stream type=fifo impl=uram latency=3
 #pragma HLS BIND_STORAGE variable=control_stream type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=inverse_normalization_stream type=fifo impl=srl
 

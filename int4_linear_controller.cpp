@@ -328,10 +328,16 @@ local_partial_output_tile_loop:
 #pragma HLS LOOP_TRIPCOUNT min=4 max=11
             const int matrix_tile =
                 output_tile * local_input_tiles + local_col_tile;
+            const ap_uint<16> raw_scale_addr =
+                (ap_uint<16>)scale_base +
+                (ap_uint<16>)(matrix_tile / INT4_WEIGHT_SCALES_PER_WORD);
+            ap_uint<16> scale_addr_pipeline[2];
+#pragma HLS ARRAY_PARTITION variable=scale_addr_pipeline complete
+            scale_addr_pipeline[0] = raw_scale_addr;
+            scale_addr_pipeline[1] = scale_addr_pipeline[0];
+
             if ((matrix_tile & (INT4_WEIGHT_SCALES_PER_WORD - 1)) == 0) {
-                packed_scales = scale_mem[
-                    scale_base +
-                    matrix_tile / INT4_WEIGHT_SCALES_PER_WORD];
+                packed_scales = scale_mem[scale_addr_pipeline[1]];
             }
             const int scale_lane =
                 matrix_tile & (INT4_WEIGHT_SCALES_PER_WORD - 1);

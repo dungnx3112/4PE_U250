@@ -165,16 +165,16 @@ static void int4_decoder_local_pe_##PE(                                \
     int4_output_word_t gate[INT4_HIDDEN_WORDS_PER_PE];                \
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS];            \
     float activation_scale[INT4_MAX_LOCAL_GROUPS];                    \
-    _Pragma("HLS BIND_STORAGE variable=scale_cache type=ram_2p impl=uram") \
-    _Pragma("HLS BIND_STORAGE variable=norm_cache type=ram_2p impl=uram") \
-    _Pragma("HLS BIND_STORAGE variable=residual type=ram_2p impl=bram") \
-    _Pragma("HLS BIND_STORAGE variable=projection type=ram_2p impl=bram") \
-    _Pragma("HLS BIND_STORAGE variable=q type=ram_2p impl=bram")       \
-    _Pragma("HLS BIND_STORAGE variable=k type=ram_2p impl=bram")       \
-    _Pragma("HLS BIND_STORAGE variable=v type=ram_2p impl=bram")       \
-    _Pragma("HLS BIND_STORAGE variable=gate type=ram_2p impl=bram")    \
-    _Pragma("HLS BIND_STORAGE variable=activation_q type=ram_2p impl=bram") \
-    _Pragma("HLS BIND_STORAGE variable=activation_scale type=ram_2p impl=bram") \
+    _Pragma("HLS BIND_STORAGE variable=scale_cache type=ram_2p impl=uram latency=3") \
+    _Pragma("HLS BIND_STORAGE variable=norm_cache type=ram_2p impl=uram latency=3") \
+    _Pragma("HLS BIND_STORAGE variable=residual type=ram_2p impl=bram latency=2") \
+    _Pragma("HLS BIND_STORAGE variable=projection type=ram_2p impl=bram latency=2") \
+    _Pragma("HLS BIND_STORAGE variable=q type=ram_2p impl=bram latency=2")       \
+    _Pragma("HLS BIND_STORAGE variable=k type=ram_2p impl=bram latency=2")       \
+    _Pragma("HLS BIND_STORAGE variable=v type=ram_2p impl=bram latency=2")       \
+    _Pragma("HLS BIND_STORAGE variable=gate type=ram_2p impl=bram latency=2")    \
+    _Pragma("HLS BIND_STORAGE variable=activation_q type=ram_2p impl=bram latency=2") \
+    _Pragma("HLS BIND_STORAGE variable=activation_scale type=ram_2p impl=bram latency=2") \
     const ap_uint<12> local_position = position_stream.read();         \
     if (local_position == 0) {                                        \
         int4_preload_local_metadata<PE>(                              \
