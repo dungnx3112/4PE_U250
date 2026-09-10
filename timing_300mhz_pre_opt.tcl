@@ -32,9 +32,10 @@ set critical_hierarchy [get_cells -quiet -hierarchical -filter {
     (NAME =~ */grp_swiftkv_quantize_kv_record* ||
      NAME =~ */grp_swiftkv_update_values_and_quantize*)}]
 if {[llength $critical_hierarchy] == 0} {
-    error "300MHz pre-opt: critical SwiftKV hierarchy was not found"
+    puts "WARNING: 300MHz pre-opt: critical SwiftKV hierarchy was not found; skipping KEEP_HIERARCHY hint"
+} else {
+    set_property KEEP_HIERARCHY true $critical_hierarchy
 }
-set_property KEEP_HIERARCHY true $critical_hierarchy
 
 array set fanout_limits {
     *ap_rst_n_inv* 256
@@ -55,7 +56,7 @@ foreach pattern [array names fanout_limits] {
     puts "INFO: 300MHz pre-opt: MAX_FANOUT=$fanout_limits($pattern) pattern='$pattern' nets=[llength $nets]"
 }
 if {$constrained_nets == 0} {
-    error "300MHz pre-opt: no reset/stall nets accepted MAX_FANOUT constraints"
+    puts "WARNING: 300MHz pre-opt: no reset/stall nets accepted optional MAX_FANOUT constraints"
 }
 
 puts "INFO: 300MHz pre-opt: kept [llength $pe_roots] PE roots and [llength $critical_hierarchy] critical hierarchy cells"

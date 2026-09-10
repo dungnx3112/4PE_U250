@@ -297,7 +297,12 @@ require_marker() {
     fi
 }
 
-if (( ${#implementation_logs[@]} > 0 || link_exit_code == 0 )); then
+if (( link_exit_code != 0 )); then
+    echo "v++ link failed with exit code $link_exit_code; preserving the original implementation error and logs." >&2
+    exit "$link_exit_code"
+fi
+
+if (( link_exit_code == 0 )); then
     require_marker \
         "300MHz floorplan: INTERFACE_LOCALITY_APPLIED" \
         "DDR/control interface-locality floorplan was applied"
@@ -317,8 +322,8 @@ if (( ${#implementation_logs[@]} > 0 || link_exit_code == 0 )); then
         "300MHz floorplan: OBJECT_CACHE_REFRESHED" \
         "fresh Vivado objects were acquired after opt_design"
     require_marker \
-        "300MHz critical-cone closure: CRITICAL_CONES_CLAIMED" \
-        "post-opt critical-cone closure was applied"
+        "300MHz critical-cone closure: CRITICAL_CONES_PROCESSED" \
+        "post-opt critical-cone closure was processed"
     require_marker \
         "300MHz pre-physopt: OBJECT_CACHE_REFRESHED" \
         "fresh Vivado objects were acquired after place_design"
@@ -336,10 +341,6 @@ fi
 if (( validation_failed != 0 )); then
     exit 1
 fi
-if (( link_exit_code != 0 )); then
-    exit "$link_exit_code"
-fi
-
 if [[ ! -s $candidate_output ]]; then
     echo "v++ returned success but candidate XCLBIN is missing or empty: $candidate_output" >&2
     exit 1

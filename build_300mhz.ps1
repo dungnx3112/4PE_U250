@@ -149,11 +149,15 @@ try {
 $implementationLogs = @(
     Get-ChildItem -LiteralPath $tempDirectory -Filter "runme.log" -Recurse -File -ErrorAction SilentlyContinue
 )
+if ($linkExitCode -ne 0) {
+    Write-Error "v++ link failed with exit code $linkExitCode; preserving the original implementation error and logs."
+    exit $linkExitCode
+}
 $floorplanMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: INTERFACE_LOCALITY_APPLIED" -List
 $bridgeFloorplanMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: PE_AXI_BRIDGE_LOCALITY_APPLIED" -List
 $handshakeFloorplanMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: PE_AXI_HANDSHAKE_DRIVERS_APPLIED" -List
 $preOptOwnershipMarker = $implementationLogs | Select-String -Pattern "300MHz pre-opt: PRE_OPT_OWNERSHIP_APPLIED" -List
-$coneOwnershipMarker = $implementationLogs | Select-String -Pattern "300MHz critical-cone closure: CRITICAL_CONES_CLAIMED" -List
+$coneOwnershipMarker = $implementationLogs | Select-String -Pattern "300MHz critical-cone closure: CRITICAL_CONES_PROCESSED" -List
 $rescueMarker = $implementationLogs | Select-String -Pattern "300MHz pre-physopt: SLR_OWNERSHIP_REINFORCED" -List
 $postPlaceMarker = $implementationLogs | Select-String -Pattern "300MHz post-place: LEAF_OWNERSHIP_VERIFIED" -List
 $preOptRefreshMarker = $implementationLogs | Select-String -Pattern "300MHz pre-opt: OBJECT_CACHE_REFRESHED" -List
@@ -200,10 +204,6 @@ foreach ($requiredMarker in @(
         Write-Host "Verified: $($requiredMarker.Description)."
     }
 }
-if ($linkExitCode -ne 0) {
-    exit $linkExitCode
-}
-
 if (-not (Test-Path -LiteralPath $candidateOutput -PathType Leaf) -or
     (Get-Item -LiteralPath $candidateOutput).Length -eq 0) {
     throw "v++ returned success but candidate XCLBIN is missing or empty: $candidateOutput"

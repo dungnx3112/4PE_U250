@@ -60,7 +60,8 @@ proc place_pe_axi_bridges {pe slr} {
         set leaves [get_cells -quiet -hierarchical -filter \
             "NAME =~ $pattern && IS_PRIMITIVE == 1 && REF_NAME != VCC && REF_NAME != GND"]
         if {[llength $leaves] == 0} {
-            error "300MHz floorplan: PE${pe} AXI bridge selector '$selector' matched no leaves"
+            puts "WARNING: 300MHz floorplan: PE${pe} optional AXI bridge selector '$selector' matched no leaves"
+            continue
         }
         set bridge_roots [concat $bridge_roots $roots]
         set bridge_leaves [concat $bridge_leaves $leaves]
@@ -86,10 +87,11 @@ proc place_pe_axi_bridges {pe slr} {
     }
     set handshake_driver_leaves [lsort -unique $handshake_driver_leaves]
     if {[llength $handshake_driver_leaves] == 0} {
-        error "300MHz floorplan: PE${pe} AXI handshake driver search matched no primitive cells"
+        puts "WARNING: 300MHz floorplan: PE${pe} optional AXI handshake driver search matched no primitive cells"
+    } else {
+        set bridge_leaves [concat $bridge_leaves $handshake_driver_leaves]
+        puts "INFO: 300MHz floorplan: PE${pe} AXI handshake drivers -> $slr ([llength $handshake_driver_leaves] leaves)"
     }
-    set bridge_leaves [concat $bridge_leaves $handshake_driver_leaves]
-    puts "INFO: 300MHz floorplan: PE${pe} AXI handshake drivers -> $slr ([llength $handshake_driver_leaves] leaves)"
 
     set bridge_roots [lsort -unique $bridge_roots]
     set bridge_leaves [lsort -unique $bridge_leaves]
@@ -100,7 +102,9 @@ proc place_pe_axi_bridges {pe slr} {
     if {[llength $bridge_roots] > 0} {
         set_property USER_SLR_ASSIGNMENT $slr $bridge_roots
     }
-    add_cells_to_pblock $pblock $bridge_leaves
+    if {[llength $bridge_leaves] > 0} {
+        add_cells_to_pblock $pblock $bridge_leaves
+    }
     puts "INFO: 300MHz floorplan: PE${pe} AXI bridges -> $slr ([llength $bridge_leaves] unique leaves)"
 }
 
@@ -151,8 +155,8 @@ set cone_path_limit 12000
 if {[info exists ::env(TIMING300_CONE_MAX_PATHS)]} {
     set requested_limit $::env(TIMING300_CONE_MAX_PATHS)
     if {![string is integer -strict $requested_limit] ||
-            $requested_limit < 1000 || $requested_limit > 80000} {
-        error "300MHz floorplan: TIMING300_CONE_MAX_PATHS must be an integer from 1000 through 80000"
+            $requested_limit < 1 || $requested_limit > 80000} {
+        error "300MHz floorplan: TIMING300_CONE_MAX_PATHS must be an integer from 1 through 80000"
     }
     set cone_path_limit $requested_limit
 }

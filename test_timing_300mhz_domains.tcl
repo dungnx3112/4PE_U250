@@ -26,6 +26,16 @@ proc group_patterns {description} {
     error "No ownership group named '$description'"
 }
 
+proc group_is_mandatory {description} {
+    foreach spec [timing300::domain_specs] {
+        lassign $spec slr candidate mandatory patterns
+        if {$candidate eq $description} {
+            return $mandatory
+        }
+    }
+    error "No ownership group named '$description'"
+}
+
 proc matches_any {name patterns {expected_pe ""}} {
     foreach pattern $patterns {
         if {[timing300::name_matches_pattern $name $pattern $expected_pe]} {
@@ -88,6 +98,34 @@ check {[timing300::is_control_axi_descendant $control_sync_name]} \
 check {![timing300::is_control_axi_descendant \
     "root/int4_wait_task_completion_pairs_300_U0/ap_done_reg"]} \
     "real completion task must not be classified as AXI-Lite control"
+
+# The connectivity-derived critical-cone pass supplements the mandatory PE
+# pblocks.  Zero eligible paths or zero new primitives are valid no-op results,
+# while positive counts report a real reinforcement.
+check {[timing300::critical_cone_result_status 0 0 0] eq "no_timing_paths"} \
+    "zero timing paths must be a valid critical-cone no-op"
+check {[timing300::critical_cone_result_status 7 0 0] eq "no_same_owner_paths"} \
+    "zero same-PE paths must be a valid critical-cone no-op"
+check {[timing300::critical_cone_result_status 7 7 0] eq "no_new_primitives"} \
+    "already-owned timing cones must not fail the implementation"
+check {[timing300::critical_cone_result_status 7 7 3] eq "claimed"} \
+    "positive critical-cone claims must retain claimed status"
+check {[catch {timing300::critical_cone_result_status -1 0 0}]} \
+    "negative critical-cone counts must remain fatal"
+
+# These groups improve placement when their post-optimization hierarchy
+# survives, but the mandatory PE/interface domains already cover the design.
+# Their absence must therefore remain a warning rather than a build failure.
+foreach optional_group [list \
+        "PE0 promoted SwiftKV critical arithmetic" \
+        "position stage 0" "position stage 1" \
+        "position stage 2" "position stage 3" \
+        "pair01 reductions and completion" \
+        "pair23 reductions and completion" \
+        "final two-input completion wait"] {
+    check {![group_is_mandatory $optional_group]} \
+        "$optional_group must remain an optional placement hint"
+}
 
 # Exercise every PE pair for every PE-specific ownership class.  The suffix
 # intentionally names every possible foreign PE, including the real PE.

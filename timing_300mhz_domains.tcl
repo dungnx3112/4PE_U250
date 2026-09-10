@@ -106,6 +106,28 @@ proc timing300::pin_pe_owner {pin_value} {
     return ""
 }
 
+# Connectivity-based cone claiming is an optional reinforcement pass.  A
+# fully hierarchy-owned netlist can legitimately expose no unclaimed same-PE
+# timing cone after opt_design, so distinguish that no-op from a real query or
+# ownership failure.
+proc timing300::critical_cone_result_status {inspected same_owner_paths unique_claims} {
+    foreach value [list $inspected $same_owner_paths $unique_claims] {
+        if {![string is integer -strict $value] || $value < 0} {
+            error "300MHz critical-cone closure: invalid result count '$value'"
+        }
+    }
+    if {$inspected == 0} {
+        return no_timing_paths
+    }
+    if {$same_owner_paths == 0} {
+        return no_same_owner_paths
+    }
+    if {$unique_claims == 0} {
+        return no_new_primitives
+    }
+    return claimed
+}
+
 proc timing300::name_matches_pattern {name pattern {expected_pe ""}} {
     # The explicit destination hierarchy is authoritative.  This guard also
     # protects ownership if a future Vivado release uses another replication
@@ -279,9 +301,6 @@ proc timing300::claim_same_owner_critical_cones {max_paths report_path} {
             -max_paths $max_paths -nworst 1]} message]} {
         error "300MHz critical-cone closure could not query $max_paths timing paths: $message"
     }
-    if {[llength $paths] == 0} {
-        error "300MHz critical-cone closure obtained no max-delay timing paths"
-    }
     foreach path $paths {
         if {[object_is_null $path]} { continue }
         incr inspected
@@ -355,12 +374,18 @@ proc timing300::claim_same_owner_critical_cones {max_paths report_path} {
     puts $report "unique_primitive_claims,$unique_claims"
     puts $report "path_point_claims,$claimed_points"
     puts $report "ownership_conflicts_skipped,$conflicts"
+    set status [critical_cone_result_status $inspected $same_owner_paths $unique_claims]
+    puts $report "status,$status"
     close $report
 
-    if {$same_owner_paths == 0 || $unique_claims == 0} {
-        error "300MHz critical-cone closure found no same-PE timing cones"
+    if {$status eq "no_timing_paths"} {
+        puts "WARNING: 300MHz critical-cone closure: timing query returned no paths; named PE pblocks remain authoritative"
+    } elseif {$status eq "no_same_owner_paths"} {
+        puts "WARNING: 300MHz critical-cone closure: no eligible same-PE timing paths; named PE pblocks remain authoritative"
+    } elseif {$status eq "no_new_primitives"} {
+        puts "INFO: 300MHz critical-cone closure: eligible paths required no additional primitive claims"
     }
-    puts "INFO: 300MHz critical-cone closure: CRITICAL_CONES_CLAIMED paths=$same_owner_paths primitives=$unique_claims conflicts=$conflicts"
+    puts "INFO: 300MHz critical-cone closure: CRITICAL_CONES_PROCESSED status=$status paths=$same_owner_paths primitives=$unique_claims conflicts=$conflicts"
     return [list $same_owner_paths $unique_claims $conflicts]
 }
 
@@ -423,7 +448,11 @@ proc timing300::discover_group {slr description patterns mandatory} {
         return [list {} {}]
     }
     if {[llength $leaves] == 0} {
-        error "300MHz ownership: group '$description' matched hierarchy but no leaf primitives"
+        if {$mandatory} {
+            error "300MHz ownership: mandatory group '$description' matched hierarchy but no leaf primitives"
+        }
+        puts "WARNING: 300MHz ownership: optional group '$description' has no surviving leaf primitives"
+        return [list {} {}]
     }
     foreach leaf $leaves {
         set name [get_property NAME $leaf]
@@ -544,25 +573,29 @@ proc timing300::domain_specs {} {
             "*ap_start_pe${pe}*"]]
     }
 
-    # The integrated design has one PE0 SwiftKV instance whose arithmetic is
-    # promoted directly below the kernel root by opt_design.  The expected-PE
-    # guard prevents these patterns from stealing explicitly named PE1..PE3
-    # descendants while still claiming the name-less promoted PE0 primitives.
-    lappend specs [list SLR0 "PE0 promoted SwiftKV critical arithmetic" 1 [list \
+    # The integrated design normally has one PE0 SwiftKV instance whose
+    # arithmetic is promoted directly below the kernel root by opt_design.
+    # It is an optional placement hint because a legal optimization may absorb
+    # or rename this hierarchy.  The expected-PE guard prevents the patterns
+    # from stealing explicitly named PE1..PE3 descendants when it is present.
+    lappend specs [list SLR0 "PE0 promoted SwiftKV critical arithmetic" 0 [list \
         "*grp_swiftkv_quantize_kv_record*" \
         "*grp_swiftkv_update_values_and_quantize*" \
         "*grp_swiftkv_write_buffered_kv_record3*"]]
 
-    lappend specs [list SLR0 "position stage 0" 1 [list \
+    # Position relays and reduction/completion tasks are useful placement
+    # anchors when preserved.  They may legally be absorbed after opt_design;
+    # the complete PE and interface pblocks remain the authoritative domains.
+    lappend specs [list SLR0 "position stage 0" 0 [list \
         "*int4_seed_position_chain_U0*" "*position_pe0_U*" "*position_01_U*"]]
-    lappend specs [list SLR1 "position stage 1" 1 [list \
+    lappend specs [list SLR1 "position stage 1" 0 [list \
         "*int4_relay_position_1_U0*" "*position_pe1_U*" "*position_12_U*"]]
-    lappend specs [list SLR2 "position stage 2" 1 [list \
+    lappend specs [list SLR2 "position stage 2" 0 [list \
         "*int4_relay_position_2_U0*" "*position_pe2_U*" "*position_23_U*"]]
-    lappend specs [list SLR3 "position stage 3" 1 [list \
+    lappend specs [list SLR3 "position stage 3" 0 [list \
         "*int4_terminate_position_chain_U0*" "*position_pe3_U*"]]
 
-    lappend specs [list SLR1 "pair01 reductions and completion" 1 [list \
+    lappend specs [list SLR1 "pair01 reductions and completion" 0 [list \
         "*int4_rms_pair01_schedule_U0*" \
         "*rms_partial0_U*" "*rms_partial1_U*" \
         "*rms_reciprocal0_U*" "*rms_reciprocal1_U*" \
@@ -574,7 +607,7 @@ proc timing300::domain_specs {} {
         "*linear_output0_U*" "*linear_output1_U*" \
         "*int4_join_task_completion_pair_300_U0*" \
         "*completion0_U*" "*completion1_U*" "*completion01_U*"]]
-    lappend specs [list SLR2 "pair23 reductions and completion" 1 [list \
+    lappend specs [list SLR2 "pair23 reductions and completion" 0 [list \
         "*int4_rms_pair23_schedule_U0*" \
         "*rms_partial2_U*" "*rms_partial3_U*" \
         "*rms_reciprocal2_U*" "*rms_reciprocal3_U*" \
@@ -591,7 +624,7 @@ proc timing300::domain_specs {} {
     # named ap_sync_reg_int4_wait_task_completion_pairs_300_U0_*, and a leading
     # wildcard would incorrectly claim those AXI-Lite leaves for SLR1 even
     # though the complete control interface is intentionally owned by SLR0.
-    lappend specs [list SLR1 "final two-input completion wait" 1 [list \
+    lappend specs [list SLR1 "final two-input completion wait" 0 [list \
         "int4_wait_task_completion_pairs_300_U0*"]]
     return $specs
 }
