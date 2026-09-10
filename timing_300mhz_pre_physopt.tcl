@@ -18,5 +18,6 @@ if {[llength [info commands timing300::rescue_escaped_cells]] == 0} {
 }
 
 set rescued [timing300::rescue_escaped_cells]
+puts "INFO: 300MHz pre-physopt: OBJECT_CACHE_REFRESHED"
 puts "INFO: 300MHz pre-physopt: rescued $rescued escaped cells"
 puts "INFO: 300MHz pre-physopt: SLR_OWNERSHIP_REINFORCED"

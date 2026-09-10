@@ -49,6 +49,20 @@ foreach ($requiredPath in @(
     }
 }
 
+$hookRefreshRequirements = @(
+    @{ Path = $preOptPath; Call = "timing300::refresh pre_opt" },
+    @{ Path = $prePlacePath; Call = "timing300::refresh pre_place" },
+    @{ Path = $prePhysoptPath; Call = "timing300::rescue_escaped_cells" },
+    @{ Path = $postPlacePath; Call = "timing300::refresh post_physopt" }
+)
+foreach ($requirement in $hookRefreshRequirements) {
+    $hookText = Get-Content -LiteralPath $requirement.Path -Raw
+    if (-not $hookText.Contains($requirement.Call)) {
+        throw "Implementation hook lacks mandatory object refresh '$($requirement.Call)': $($requirement.Path)"
+    }
+}
+Write-Host "Preflight verified: every implementation hook refreshes Vivado objects at its design-step boundary."
+
 $xoTimestamp = (Get-Item -LiteralPath $xoPath).LastWriteTimeUtc
 $newerHlsInputs = @(
     Get-ChildItem -LiteralPath $sourceDirectory -File |
@@ -142,6 +156,10 @@ $preOptOwnershipMarker = $implementationLogs | Select-String -Pattern "300MHz pr
 $coneOwnershipMarker = $implementationLogs | Select-String -Pattern "300MHz critical-cone closure: CRITICAL_CONES_CLAIMED" -List
 $rescueMarker = $implementationLogs | Select-String -Pattern "300MHz pre-physopt: SLR_OWNERSHIP_REINFORCED" -List
 $postPlaceMarker = $implementationLogs | Select-String -Pattern "300MHz post-place: LEAF_OWNERSHIP_VERIFIED" -List
+$preOptRefreshMarker = $implementationLogs | Select-String -Pattern "300MHz pre-opt: OBJECT_CACHE_REFRESHED" -List
+$prePlaceRefreshMarker = $implementationLogs | Select-String -Pattern "300MHz floorplan: OBJECT_CACHE_REFRESHED" -List
+$prePhysoptRefreshMarker = $implementationLogs | Select-String -Pattern "300MHz pre-physopt: OBJECT_CACHE_REFRESHED" -List
+$postPhysoptRefreshMarker = $implementationLogs | Select-String -Pattern "300MHz post-place: OBJECT_CACHE_REFRESHED" -List
 
 if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and
     -not $floorplanMarker) {
@@ -165,9 +183,13 @@ if ($handshakeFloorplanMarker) {
     Write-Host "Verified: PE-local AXI handshake driver placement was applied."
 }
 foreach ($requiredMarker in @(
+    @{ Match = $preOptRefreshMarker; Description = "fresh Vivado objects before opt_design" },
     @{ Match = $preOptOwnershipMarker; Description = "pre-opt PE/SLR ownership" },
+    @{ Match = $prePlaceRefreshMarker; Description = "fresh Vivado objects after opt_design" },
     @{ Match = $coneOwnershipMarker; Description = "post-opt critical-cone closure" },
+    @{ Match = $prePhysoptRefreshMarker; Description = "fresh Vivado objects after place_design" },
     @{ Match = $rescueMarker; Description = "pre-physopt ownership rescue" },
+    @{ Match = $postPhysoptRefreshMarker; Description = "fresh Vivado objects after phys_opt_design" },
     @{ Match = $postPlaceMarker; Description = "post-physopt leaf ownership verification" }
 )) {
     if (($implementationLogs.Count -gt 0 -or $linkExitCode -eq 0) -and

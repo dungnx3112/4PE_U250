@@ -77,13 +77,26 @@ proc timing300::slr_for_pe {pe} {
     return "SLR${pe}"
 }
 
+proc timing300::object_is_null {value} {
+    if {[llength $value] == 0} { return 1 }
+    set object [lindex $value 0]
+    return [expr {$object eq "" || [string equal -nocase $object "null"]}]
+}
+
 proc timing300::pin_pe_owner {pin_value} {
     variable owner
-    if {[llength $pin_value] == 0} { return "" }
+    if {[object_is_null $pin_value]} { return "" }
     set pin [lindex $pin_value 0]
-    set cells [get_cells -quiet -of_objects $pin]
-    if {[llength $cells] != 1} { return "" }
-    set cell_name [get_property NAME [lindex $cells 0]]
+    set cells {}
+    if {[catch {set cells [get_cells -quiet -of_objects $pin]}] ||
+            [llength $cells] != 1 || [object_is_null $cells]} {
+        return ""
+    }
+    set cell_name ""
+    if {[catch {set cell_name [get_property NAME [lindex $cells 0]]}] ||
+            $cell_name eq ""} {
+        return ""
+    }
     set pe [local_pe_owner $cell_name]
     if {$pe ne ""} { return $pe }
     if {[info exists owner($cell_name)] &&
@@ -159,14 +172,74 @@ proc timing300::initialize {} {
     # cells.  Re-seed those assignments whenever another implementation hook
     # reloads this library so rescue/verification covers the same cells.
     foreach leaf $kernel_leaves {
+        if {[object_is_null $leaf]} { continue }
         set assigned ""
         catch {set assigned [get_property USER_SLR_ASSIGNMENT $leaf]}
         if {[regexp {^SLR[0-3]$} $assigned]} {
-            set owner([get_property NAME $leaf]) $assigned
+            set leaf_name ""
+            catch {set leaf_name [get_property NAME $leaf]}
+            if {$leaf_name ne ""} {
+                set owner($leaf_name) $assigned
+            }
+        }
+    }
+    # add_cells_to_pblock does not guarantee that every primitive receives a
+    # USER_SLR_ASSIGNMENT property. Recover ownership from the four live
+    # pblock memberships as a bulk query, never from handles cached by an
+    # earlier implementation step.
+    foreach slr {SLR0 SLR1 SLR2 SLR3} {
+        set members {}
+        catch {set members [get_cells -quiet -of_objects $pblocks($slr) -filter {
+            IS_PRIMITIVE == 1 && REF_NAME != VCC && REF_NAME != GND}]}
+        foreach leaf $members {
+            if {[object_is_null $leaf]} { continue }
+            set leaf_name ""
+            catch {set leaf_name [get_property NAME $leaf]}
+            if {$leaf_name eq "" ||
+                    ![string match "${kernel_name}/*" $leaf_name]} {
+                continue
+            }
+            if {[info exists owner($leaf_name)] && $owner($leaf_name) ne $slr} {
+                error "300MHz ownership: live pblock conflict for $leaf_name ($owner($leaf_name) versus $slr)"
+            }
+            set owner($leaf_name) $slr
         }
     }
     set initialized 1
     puts "INFO: 300MHz ownership: cached [llength $kernel_hier] hierarchy cells and [llength $kernel_leaves] leaf primitives"
+}
+
+# Vivado collections are process-local object handles, not durable names.
+# opt_design/place_design/phys_opt_design may invalidate a previously cached
+# handle even when a logically equivalent cell survives.  Refresh all object
+# collections at every implementation-step boundary. Ownership is rebuilt from
+# current USER_SLR_ASSIGNMENT properties and current pblock membership; no
+# object or per-cell lookup from an earlier design generation is dereferenced.
+proc timing300::refresh {{phase "unspecified"}} {
+    variable initialized
+    variable owner
+    variable kernel_hier
+    variable kernel_leaves
+    variable pblocks
+
+    set previous_owner_count 0
+    if {[array exists owner]} { set previous_owner_count [array size owner] }
+
+    set initialized 0
+    initialize
+
+    foreach slr {SLR0 SLR1 SLR2 SLR3} {
+        if {![info exists pblocks($slr)] || [object_is_null $pblocks($slr)]} {
+            error "300MHz ownership refresh '$phase': pblock handle for $slr is null"
+        }
+    }
+    if {[llength $kernel_hier] == 0 || [llength $kernel_leaves] == 0} {
+        error "300MHz ownership refresh '$phase': refreshed kernel collection is empty"
+    }
+
+    set current_owner_count [array size owner]
+    puts "INFO: 300MHz ownership: OBJECT_CACHE_REFRESHED phase=$phase previous_owners=$previous_owner_count current_owners=$current_owner_count hierarchy=[llength $kernel_hier] leaves=[llength $kernel_leaves]"
+    return [list $previous_owner_count $current_owner_count]
 }
 
 # Close the physical ownership of timing cones whose sequential endpoints both
@@ -188,12 +261,23 @@ proc timing300::claim_same_owner_critical_cones {max_paths report_path} {
     set same_owner_paths 0
     set claimed_points 0
     set conflicts 0
-    set paths [get_timing_paths -quiet -delay_type max \
-        -max_paths $max_paths -nworst 1]
+    set paths {}
+    if {[catch {set paths [get_timing_paths -quiet -delay_type max \
+            -max_paths $max_paths -nworst 1]} message]} {
+        error "300MHz critical-cone closure could not query $max_paths timing paths: $message"
+    }
+    if {[llength $paths] == 0} {
+        error "300MHz critical-cone closure obtained no max-delay timing paths"
+    }
     foreach path $paths {
+        if {[object_is_null $path]} { continue }
         incr inspected
-        set start_pe [pin_pe_owner [get_property STARTPOINT_PIN $path]]
-        set end_pe [pin_pe_owner [get_property ENDPOINT_PIN $path]]
+        set start_pin ""
+        set end_pin ""
+        catch {set start_pin [get_property STARTPOINT_PIN $path]}
+        catch {set end_pin [get_property ENDPOINT_PIN $path]}
+        set start_pe [pin_pe_owner $start_pin]
+        set end_pe [pin_pe_owner $end_pin]
         if {$start_pe eq "" || $start_pe ne $end_pe} { continue }
         incr same_owner_paths
         set expected_slr [slr_for_pe $start_pe]
@@ -201,16 +285,26 @@ proc timing300::claim_same_owner_critical_cones {max_paths report_path} {
         set points ""
         catch {set points [get_property PATH $path]}
         if {[llength $points] == 0} {
-            set points [get_pins -quiet -of_objects $path]
+            catch {set points [get_pins -quiet -of_objects $path]}
         }
         foreach point $points {
+            if {[object_is_null $point]} { continue }
             set pin ""
             catch {set pin [get_property PIN $point]}
             if {$pin eq ""} { set pin $point }
-            set cells [get_cells -quiet -of_objects $pin -filter {
-                IS_PRIMITIVE == 1 && REF_NAME != VCC && REF_NAME != GND}]
+            if {[object_is_null $pin]} { continue }
+            set cells {}
+            if {[catch {set cells [get_cells -quiet -of_objects $pin -filter {
+                    IS_PRIMITIVE == 1 && REF_NAME != VCC && REF_NAME != GND}]}]} {
+                continue
+            }
             foreach cell $cells {
-                set cell_name [get_property NAME $cell]
+                if {[object_is_null $cell]} { continue }
+                set cell_name ""
+                if {[catch {set cell_name [get_property NAME $cell]}] ||
+                        $cell_name eq ""} {
+                    continue
+                }
                 if {![string match "${kernel_name}/*" $cell_name]} { continue }
 
                 set explicit_pe [local_pe_owner $cell_name]
@@ -496,19 +590,9 @@ proc timing300::rescue_escaped_cells {} {
     variable owner
     variable kernel_leaves
 
-    # Re-initialise so kernel_leaves picks up any new cells.
-    variable initialized
-    set saved_owner [array get owner]
-    set initialized 0
-    initialize
-
-    # Preserve connectivity-derived cone claims even if a Vivado release does
-    # not retain USER_SLR_ASSIGNMENT on an individual optimized primitive.
-    foreach {leaf_name expected_slr} $saved_owner {
-        if {[llength [get_cells -quiet $leaf_name]] == 1} {
-            set owner($leaf_name) $expected_slr
-        }
-    }
+    # Re-acquire every Vivado handle after placement while retaining ownership
+    # by stable cell name.  Never carry cached Tcl objects across design steps.
+    refresh pre_physopt
 
     # Re-discover ownership from the current netlist.
     foreach spec [domain_specs] {

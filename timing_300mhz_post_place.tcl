@@ -9,6 +9,8 @@ if {[llength [info commands timing300::verify_placement]] == 0} {
     source $ownership_script
 }
 
+timing300::refresh post_physopt
+puts "INFO: 300MHz post-place: OBJECT_CACHE_REFRESHED"
 set report_path [file normalize "timing_300mhz_post_place_ownership.csv"]
 lassign [timing300::verify_placement $report_path] owned_leaves wrong_leaves
 puts "INFO: 300MHz post-place: owned_leaves=$owned_leaves wrong_or_unplaced=$wrong_leaves"

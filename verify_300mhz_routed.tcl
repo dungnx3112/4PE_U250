@@ -16,19 +16,30 @@ if {![file exists $dcp_path]} {
 }
 file mkdir $report_dir
 
+proc require_numeric_path_slack {paths label} {
+    if {[llength $paths] != 1} {
+        error "Timing gate could not obtain exactly one $label path"
+    }
+    set path [lindex $paths 0]
+    if {$path eq "" || [string equal -nocase $path "null"]} {
+        error "Timing gate received a null Vivado object for the worst $label path"
+    }
+    set slack ""
+    if {[catch {set slack [get_property SLACK $path]} message]} {
+        error "Timing gate could not read $label slack from the current routed design: $message"
+    }
+    if {![string is double -strict $slack]} {
+        error "Timing gate received non-numeric $label slack '$slack'"
+    }
+    return $slack
+}
+
 open_checkpoint $dcp_path
 
 set setup_paths [get_timing_paths -quiet -delay_type max -max_paths 1 -nworst 1]
 set hold_paths [get_timing_paths -quiet -delay_type min -max_paths 1 -nworst 1]
-if {[llength $setup_paths] != 1} {
-    error "Timing gate could not obtain a worst setup path"
-}
-if {[llength $hold_paths] != 1} {
-    error "Timing gate could not obtain a worst hold path"
-}
-
-set wns [get_property SLACK [lindex $setup_paths 0]]
-set whs [get_property SLACK [lindex $hold_paths 0]]
+set wns [require_numeric_path_slack $setup_paths setup]
+set whs [require_numeric_path_slack $hold_paths hold]
 set setup_failing [llength [get_timing_paths -quiet -delay_type max \
     -slack_lesser_than 0.0 -max_paths 1 -nworst 1]]
 set hold_failing [llength [get_timing_paths -quiet -delay_type min \

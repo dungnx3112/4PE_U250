@@ -139,9 +139,25 @@ if {![file exists $timing_ownership_script]} {
 if {[llength [info commands timing300::apply_floorplan]] == 0} {
     source $timing_ownership_script
 }
+timing300::refresh pre_place
+puts "INFO: 300MHz floorplan: OBJECT_CACHE_REFRESHED"
 timing300::apply_floorplan
 set cone_report [file normalize "timing_300mhz_pre_place_cone_ownership.csv"]
-lassign [timing300::claim_same_owner_critical_cones 80000 $cone_report] \
+# A single 80k timing-path collection can consume several GB on this design.
+# The four full PE pblocks already constrain every named PE leaf; this pass is
+# only for promoted primitives on the worst connectivity cones. Keep a safe
+# default for 24 GB hosts and allow an explicit increase on larger machines.
+set cone_path_limit 12000
+if {[info exists ::env(TIMING300_CONE_MAX_PATHS)]} {
+    set requested_limit $::env(TIMING300_CONE_MAX_PATHS)
+    if {![string is integer -strict $requested_limit] ||
+            $requested_limit < 1000 || $requested_limit > 80000} {
+        error "300MHz floorplan: TIMING300_CONE_MAX_PATHS must be an integer from 1000 through 80000"
+    }
+    set cone_path_limit $requested_limit
+}
+puts "INFO: 300MHz floorplan: critical-cone timing path limit=$cone_path_limit"
+lassign [timing300::claim_same_owner_critical_cones $cone_path_limit $cone_report] \
     cone_paths cone_primitives cone_conflicts
 puts "INFO: 300MHz floorplan: cone_paths=$cone_paths cone_primitives=$cone_primitives cone_conflicts=$cone_conflicts"
 puts "INFO: 300MHz floorplan: OWNERSHIP_APPLIED"

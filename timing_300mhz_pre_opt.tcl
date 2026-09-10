@@ -12,6 +12,8 @@ if {[llength [info commands timing300::apply_floorplan]] == 0} {
     source $ownership_script
 }
 
+timing300::refresh pre_opt
+puts "INFO: 300MHz pre-opt: OBJECT_CACHE_REFRESHED"
 timing300::apply_floorplan
 
 set pe_roots {}

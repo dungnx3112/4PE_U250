@@ -98,6 +98,20 @@ for required_path in \
     fi
 done
 
+require_hook_call() {
+    local hook_path=$1
+    local required_call=$2
+    if ! grep -Fq -- "$required_call" "$hook_path"; then
+        echo "Implementation hook lacks mandatory object refresh '$required_call': $hook_path" >&2
+        exit 1
+    fi
+}
+require_hook_call "$pre_opt_path" "timing300::refresh pre_opt"
+require_hook_call "$pre_place_path" "timing300::refresh pre_place"
+require_hook_call "$pre_physopt_path" "timing300::rescue_escaped_cells"
+require_hook_call "$post_place_path" "timing300::refresh post_physopt"
+echo "Preflight verified: every implementation hook refreshes Vivado objects at its design-step boundary."
+
 mkdir -p -- "$temp_dir" "$log_dir" "$report_dir"
 
 if [[ ! -f $xo_path ]]; then
@@ -294,14 +308,26 @@ if (( ${#implementation_logs[@]} > 0 || link_exit_code == 0 )); then
         "300MHz floorplan: PE_AXI_HANDSHAKE_DRIVERS_APPLIED" \
         "PE-local AXI handshake driver placement was applied"
     require_marker \
+        "300MHz pre-opt: OBJECT_CACHE_REFRESHED" \
+        "fresh Vivado objects were acquired before opt_design"
+    require_marker \
         "300MHz pre-opt: PRE_OPT_OWNERSHIP_APPLIED" \
         "pre-opt PE/SLR ownership was applied"
+    require_marker \
+        "300MHz floorplan: OBJECT_CACHE_REFRESHED" \
+        "fresh Vivado objects were acquired after opt_design"
     require_marker \
         "300MHz critical-cone closure: CRITICAL_CONES_CLAIMED" \
         "post-opt critical-cone closure was applied"
     require_marker \
+        "300MHz pre-physopt: OBJECT_CACHE_REFRESHED" \
+        "fresh Vivado objects were acquired after place_design"
+    require_marker \
         "300MHz pre-physopt: SLR_OWNERSHIP_REINFORCED" \
         "pre-physopt ownership rescue was applied"
+    require_marker \
+        "300MHz post-place: OBJECT_CACHE_REFRESHED" \
+        "fresh Vivado objects were acquired after phys_opt_design"
     require_marker \
         "300MHz post-place: LEAF_OWNERSHIP_VERIFIED" \
         "post-physopt leaf ownership was verified"
