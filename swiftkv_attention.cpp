@@ -1949,14 +1949,14 @@ static void swiftkv_attention_head(
 #pragma HLS BIND_STORAGE variable=key1_chunk1_stream type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=key1_chunk2_stream type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=key1_chunk3_stream type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=value0_engine0_stream type=fifo impl=uram latency=3
-#pragma HLS BIND_STORAGE variable=value0_engine1_stream type=fifo impl=uram latency=3
-#pragma HLS BIND_STORAGE variable=value0_engine2_stream type=fifo impl=uram latency=3
-#pragma HLS BIND_STORAGE variable=value0_engine3_stream type=fifo impl=uram latency=3
-#pragma HLS BIND_STORAGE variable=value1_engine0_stream type=fifo impl=uram latency=3
-#pragma HLS BIND_STORAGE variable=value1_engine1_stream type=fifo impl=uram latency=3
-#pragma HLS BIND_STORAGE variable=value1_engine2_stream type=fifo impl=uram latency=3
-#pragma HLS BIND_STORAGE variable=value1_engine3_stream type=fifo impl=uram latency=3
+#pragma HLS BIND_STORAGE variable=value0_engine0_stream type=fifo impl=uram
+#pragma HLS BIND_STORAGE variable=value0_engine1_stream type=fifo impl=uram
+#pragma HLS BIND_STORAGE variable=value0_engine2_stream type=fifo impl=uram
+#pragma HLS BIND_STORAGE variable=value0_engine3_stream type=fifo impl=uram
+#pragma HLS BIND_STORAGE variable=value1_engine0_stream type=fifo impl=uram
+#pragma HLS BIND_STORAGE variable=value1_engine1_stream type=fifo impl=uram
+#pragma HLS BIND_STORAGE variable=value1_engine2_stream type=fifo impl=uram
+#pragma HLS BIND_STORAGE variable=value1_engine3_stream type=fifo impl=uram
 #pragma HLS BIND_STORAGE variable=control_stream type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=inverse_normalization_stream type=fifo impl=srl
 
