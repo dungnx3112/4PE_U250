@@ -423,6 +423,8 @@ void int4_decoder_token_controller(
 #pragma HLS STREAM variable=linear_output1 depth=32
 #pragma HLS STREAM variable=linear_output2 depth=32
 #pragma HLS STREAM variable=linear_output3 depth=32
+#pragma HLS BIND_STORAGE variable=rms_sum23_to01 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=rms_reciprocal01_to23 type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=linear_sum01_to23 type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=linear_sum23_to01 type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=linear_output0 type=fifo impl=bram

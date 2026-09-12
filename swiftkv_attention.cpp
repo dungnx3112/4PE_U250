@@ -134,8 +134,12 @@ static constexpr int SWIFTKV_UPDATE_LANES =
     SWIFTKV_UPDATE_ENGINES * SWIFTKV_UPDATE_ENGINE_LANES;
 static constexpr int SWIFTKV_UPDATE_PHASES =
     SWIFTKV_HEAD_SIZE / SWIFTKV_UPDATE_LANES;
+static constexpr int SWIFTKV_UPDATE_ENGINE_VALUES =
+    SWIFTKV_HEAD_SIZE / SWIFTKV_UPDATE_ENGINES;
 static constexpr int SWIFTKV_UPDATE_GROUP_PHASES =
     INT4_GROUP_SIZE / SWIFTKV_UPDATE_LANES;
+static constexpr int SWIFTKV_UPDATE_GROUP_ENGINE_VALUES =
+    SWIFTKV_UPDATE_GROUP_PHASES * SWIFTKV_UPDATE_ENGINE_LANES;
 static constexpr int SWIFTKV_UPDATE_ENGINE_WORD_BITS =
     SWIFTKV_KV_VALUES_PER_WORD * SWIFTKV_KV_CACHE_BITS /
     SWIFTKV_UPDATE_ENGINES;
@@ -146,25 +150,19 @@ using swiftkv_update_token_control_t =
     ap_uint<SWIFTKV_UPDATE_TOKEN_CONTROL_BITS>;
 static constexpr int SWIFTKV_UPDATE_ENGINE_VALUE_BITS =
     SWIFTKV_UPDATE_ENGINE_LANES * SWIFTKV_KV_CACHE_BITS;
-// Each recurrence lane gets its own narrow command FIFO.  Keeping the INT8
-// sample with only the control needed by one DSP prevents a single FIFO-empty
-// or pipeline-enable net from driving all four lanes in an update engine.
-static constexpr int SWIFTKV_UPDATE_LANE_VALUE_BITS =
-    SWIFTKV_KV_CACHE_BITS;
-static constexpr int SWIFTKV_UPDATE_LANE_SHIFT_LSB =
-    SWIFTKV_UPDATE_LANE_VALUE_BITS;
-static constexpr int SWIFTKV_UPDATE_LANE_COEFFICIENT_LSB =
-    SWIFTKV_UPDATE_LANE_SHIFT_LSB + SWIFTKV_KV_SCALE_SHIFT_BITS;
-static constexpr int SWIFTKV_UPDATE_LANE_RESCALE_BIT =
-    SWIFTKV_UPDATE_LANE_COEFFICIENT_LSB + 18;
-static constexpr int SWIFTKV_UPDATE_LANE_TOKEN_NONZERO_BIT =
-    SWIFTKV_UPDATE_LANE_RESCALE_BIT + 1;
-static constexpr int SWIFTKV_UPDATE_LANE_LAST_BIT =
-    SWIFTKV_UPDATE_LANE_TOKEN_NONZERO_BIT + 1;
-static constexpr int SWIFTKV_UPDATE_LANE_PACKET_BITS =
-    SWIFTKV_UPDATE_LANE_LAST_BIT + 1;
-using swiftkv_update_lane_packet_t =
-    ap_uint<SWIFTKV_UPDATE_LANE_PACKET_BITS>;
+static constexpr int SWIFTKV_UPDATE_ENGINE_PACKET_BITS =
+    SWIFTKV_UPDATE_ENGINE_VALUE_BITS +
+    SWIFTKV_KV_SCALE_SHIFT_BITS + 18 + 2;
+static constexpr int SWIFTKV_UPDATE_ENGINE_SHIFT_LSB =
+    SWIFTKV_UPDATE_ENGINE_VALUE_BITS;
+static constexpr int SWIFTKV_UPDATE_ENGINE_COEFFICIENT_LSB =
+    SWIFTKV_UPDATE_ENGINE_SHIFT_LSB + SWIFTKV_KV_SCALE_SHIFT_BITS;
+static constexpr int SWIFTKV_UPDATE_ENGINE_RESCALE_BIT =
+    SWIFTKV_UPDATE_ENGINE_COEFFICIENT_LSB + 18;
+static constexpr int SWIFTKV_UPDATE_ENGINE_TOKEN_NONZERO_BIT =
+    SWIFTKV_UPDATE_ENGINE_RESCALE_BIT + 1;
+using swiftkv_update_engine_packet_t =
+    ap_uint<SWIFTKV_UPDATE_ENGINE_PACKET_BITS>;
 static_assert(
     SWIFTKV_HEAD_SIZE == 2 * SWIFTKV_KV_VALUES_PER_WORD &&
         (SWIFTKV_KV_VALUES_PER_WORD % SWIFTKV_UPDATE_LANES) == 0,
@@ -387,23 +385,24 @@ static ap_int<8> swiftkv_quantize_kv_raw(
     swiftkv_kv_shift_t shift
 ) {
 #pragma HLS INLINE
-    const bool is_neg = (raw < 0);
-    const ap_uint<32> magnitude =
-        is_neg ? (ap_uint<32>)(-raw) : (ap_uint<32>)raw;
+    const ap_uint<32> magnitude = swiftkv_raw_magnitude(raw);
     const ap_uint<32> rounding =
         shift == 0
             ? (ap_uint<32>)0
             : (ap_uint<32>)1 << ((int)shift - 1);
     const ap_uint<32> rounded_magnitude = magnitude + rounding;
 #pragma HLS BIND_OP variable=rounded_magnitude op=add impl=fabric latency=1
-
-    const ap_uint<32> quantized_magnitude =
+    ap_uint<32> quantized_magnitude =
         rounded_magnitude >> (int)shift;
-    const ap_uint<8> clamped =
-        (quantized_magnitude > 127) ? (ap_uint<8>)127 : (ap_uint<8>)quantized_magnitude;
-    const ap_int<8> signed_quantized =
-        is_neg ? (ap_int<8>)(-clamped) : (ap_int<8>)clamped;
-    return signed_quantized;
+    if (quantized_magnitude > 127) {
+        quantized_magnitude = 127;
+    }
+    ap_int<9> signed_quantized =
+        (ap_int<9>)quantized_magnitude;
+    if (raw < 0) {
+        signed_quantized = (ap_int<9>)(-signed_quantized);
+    }
+    return (ap_int<8>)signed_quantized;
 }
 
 static ap_int<32> swiftkv_dequantize_kv_raw(
@@ -437,8 +436,12 @@ quantize_kv_group_loop:
         ap_uint<32> maximum_v = 0;
         ap_int<32> raw_k[SWIFTKV_KV_GROUP_SIZE];
         ap_int<32> raw_v[SWIFTKV_KV_GROUP_SIZE];
+        ap_int<8> quantized_k_group[SWIFTKV_KV_GROUP_SIZE];
+        ap_int<8> quantized_v_group[SWIFTKV_KV_GROUP_SIZE];
 #pragma HLS ARRAY_PARTITION variable=raw_k complete
 #pragma HLS ARRAY_PARTITION variable=raw_v complete
+#pragma HLS ARRAY_PARTITION variable=quantized_k_group complete
+#pragma HLS ARRAY_PARTITION variable=quantized_v_group complete
         const int4_output_word_t k_lower = k_words[2 * group];
         const int4_output_word_t k_upper = k_words[2 * group + 1];
         const int4_output_word_t v_lower = v_words[2 * group];
@@ -526,45 +529,35 @@ quantize_kv_group_loop:
             v_shift_bit + SWIFTKV_KV_SCALE_SHIFT_BITS - 1,
             v_shift_bit) = shift_v;
 
-        ap_uint<128> packed_k_chunk[2];
-        ap_uint<128> packed_v_chunk[2];
-#pragma HLS ARRAY_PARTITION variable=packed_k_chunk complete
-#pragma HLS ARRAY_PARTITION variable=packed_v_chunk complete
+        ap_uint<256> packed_k_group = 0;
+        ap_uint<256> packed_v_group = 0;
 
-    quantize_kv_group_chunk_loop:
-        for (int chunk = 0; chunk < 2; ++chunk) {
-            ap_uint<128> k_chunk_bits = 0;
-            ap_uint<128> v_chunk_bits = 0;
-        quantize_kv_group_block_loop:
-            for (int block = 0; block < 4; ++block) {
+    quantize_kv_group_block_loop:
+        for (int block = 0;
+             block < SWIFTKV_KV_GROUP_SIZE / 4;
+             ++block) {
 #pragma HLS PIPELINE II=1
-                ap_uint<32> k_4bytes = 0;
-                ap_uint<32> v_4bytes = 0;
-            quantize_kv_group_lane_loop:
-                for (int lane = 0; lane < 4; ++lane) {
+        quantize_kv_group_lane_loop:
+            for (int lane = 0; lane < 4; ++lane) {
 #pragma HLS UNROLL
-                    const int index = chunk * 16 + block * 4 + lane;
-                    const ap_int<8> q_k =
-                        swiftkv_quantize_kv_raw(raw_k[index], shift_k);
-                    const ap_int<8> q_v =
-                        swiftkv_quantize_kv_raw(raw_v[index], shift_v);
-                    k_4bytes.range(8 * lane + 7, 8 * lane) = (ap_uint<8>)q_k;
-                    v_4bytes.range(8 * lane + 7, 8 * lane) = (ap_uint<8>)q_v;
-                }
-                k_chunk_bits.range(32 * block + 31, 32 * block) = k_4bytes;
-                v_chunk_bits.range(32 * block + 31, 32 * block) = v_4bytes;
+                const int index = block * 4 + lane;
+                quantized_k_group[index] =
+                    swiftkv_quantize_kv_raw(raw_k[index], shift_k);
+                quantized_v_group[index] =
+                    swiftkv_quantize_kv_raw(raw_v[index], shift_v);
             }
-            packed_k_chunk[chunk] = k_chunk_bits;
-            packed_v_chunk[chunk] = v_chunk_bits;
         }
 
-        ap_uint<256> packed_k_group;
-        packed_k_group.range(127, 0) = packed_k_chunk[0];
-        packed_k_group.range(255, 128) = packed_k_chunk[1];
-
-        ap_uint<256> packed_v_group;
-        packed_v_group.range(127, 0) = packed_v_chunk[0];
-        packed_v_group.range(255, 128) = packed_v_chunk[1];
+    pack_quantized_kv_group_loop:
+        for (int lane = 0;
+             lane < SWIFTKV_KV_GROUP_SIZE;
+             ++lane) {
+#pragma HLS UNROLL
+            packed_k_group.range(8 * lane + 7, 8 * lane) =
+                (ap_uint<8>)quantized_k_group[lane];
+            packed_v_group.range(8 * lane + 7, 8 * lane) =
+                (ap_uint<8>)quantized_v_group[lane];
+        }
 
         packed_k_group_all[group] = packed_k_group;
         packed_v_group_all[group] = packed_v_group;
@@ -658,11 +651,9 @@ static void swiftkv_write_split_update_word(
     engine3_stream.write(engine3);
 }
 
-// Route one complete metadata,K0,K1,V0,V1 record with fixed operations.  The
-// word identity is encoded by the statement order, so HLS does not build a
-// 512-bit loop-carried value phi or a five-way record-word mux.
-static void swiftkv_route_compressed_kv_record(
-    hls::stream<int4_output_word_t>& record_stream,
+static void swiftkv_route_compressed_kv_word(
+    int record_word,
+    const int4_output_word_t value,
     hls::stream<ap_uint<40> >& key_metadata_stream,
     hls::stream<ap_uint<40> >& value_metadata_stream,
     hls::stream<int4_output_word_t>& key0_stream,
@@ -676,26 +667,26 @@ static void swiftkv_route_compressed_kv_record(
     hls::stream<swiftkv_update_engine_word_t>& value1_engine2_stream,
     hls::stream<swiftkv_update_engine_word_t>& value1_engine3_stream
 ) {
-#pragma HLS INLINE off
-    const int4_output_word_t metadata_word = record_stream.read();
-    const ap_uint<40> metadata = metadata_word.range(39, 0);
-    key_metadata_stream.write(metadata);
-    value_metadata_stream.write(metadata);
-
-    key0_stream.write(record_stream.read());
-    key1_stream.write(record_stream.read());
-
-    const int4_output_word_t value0 = record_stream.read();
-    swiftkv_write_split_update_word(
-        value0,
-        value0_engine0_stream, value0_engine1_stream,
-        value0_engine2_stream, value0_engine3_stream);
-
-    const int4_output_word_t value1 = record_stream.read();
-    swiftkv_write_split_update_word(
-        value1,
-        value1_engine0_stream, value1_engine1_stream,
-        value1_engine2_stream, value1_engine3_stream);
+#pragma HLS INLINE
+    if (record_word == 0) {
+        const ap_uint<40> metadata = value.range(39, 0);
+        key_metadata_stream.write(metadata);
+        value_metadata_stream.write(metadata);
+    } else if (record_word == 1) {
+        key0_stream.write(value);
+    } else if (record_word == 2) {
+        key1_stream.write(value);
+    } else if (record_word == 3) {
+        swiftkv_write_split_update_word(
+            value,
+            value0_engine0_stream, value0_engine1_stream,
+            value0_engine2_stream, value0_engine3_stream);
+    } else {
+        swiftkv_write_split_update_word(
+            value,
+            value1_engine0_stream, value1_engine1_stream,
+            value1_engine2_stream, value1_engine3_stream);
+    }
 }
 
 // Keep the AXI read engine local to its DDR/SLR and terminate it at a narrow
@@ -806,32 +797,39 @@ static void swiftkv_route_compressed_kv_cache(
 ) {
 #pragma HLS INLINE off
     const int cached_tokens = (int)position;
+    const int cached_words =
+        cached_tokens *
+        SWIFTKV_KV_WORDS_PER_TOKEN_HEAD;
+    const int total_words =
+        cached_words + SWIFTKV_KV_WORDS_PER_TOKEN_HEAD;
+    ap_uint<3> record_word = 0;
 
-    // Cached and current records deliberately occupy separate control regions.
-    // A record starts every five cycles, matching the one-word/cycle input
-    // rate, while each 512-bit word has one compile-time destination.
-route_cached_kv_record_loop:
-    for (int token = 0; token < cached_tokens; ++token) {
-#pragma HLS PIPELINE II=SWIFTKV_KV_WORDS_PER_TOKEN_HEAD style=stp
-#pragma HLS LOOP_TRIPCOUNT min=0 max=SWIFTKV_MAX_SEQ_LEN
-        swiftkv_route_compressed_kv_record(
-            cached_kv_word_stream,
+// Keep one word/cycle, but use the normal stallable pipeline.  The former FRP
+// implementation generated a 4,702-load initialization/control cone; its
+// replicated ap_loop_init/ap_start registers became routed critical paths in
+// PE3.  This loop has natural FIFO back-pressure, so FRP adds control without
+// adding useful throughput.
+route_all_compressed_kv_loop:
+    for (int word = 0; word < total_words; ++word) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=5 max=20480
+        const bool is_cached = word < cached_words;
+        const int4_output_word_t value = is_cached
+            ? cached_kv_word_stream.read()
+            : current_record_stream.read();
+        swiftkv_route_compressed_kv_word(
+            (int)record_word, value,
             key_metadata_stream, value_metadata_stream,
             key0_stream, key1_stream,
             value0_engine0_stream, value0_engine1_stream,
             value0_engine2_stream, value0_engine3_stream,
             value1_engine0_stream, value1_engine1_stream,
             value1_engine2_stream, value1_engine3_stream);
+        record_word =
+            record_word == SWIFTKV_KV_WORDS_PER_TOKEN_HEAD - 1
+                ? (ap_uint<3>)0
+                : (ap_uint<3>)(record_word + 1);
     }
-
-    swiftkv_route_compressed_kv_record(
-        current_record_stream,
-        key_metadata_stream, value_metadata_stream,
-        key0_stream, key1_stream,
-        value0_engine0_stream, value0_engine1_stream,
-        value0_engine2_stream, value0_engine3_stream,
-        value1_engine0_stream, value1_engine1_stream,
-        value1_engine2_stream, value1_engine3_stream);
 }
 
 static void swiftkv_split_packed_key_word(
@@ -1348,45 +1346,13 @@ broadcast_update_control_loop:
     }
 }
 
-template<int LANE_ID>
-static swiftkv_update_lane_packet_t swiftkv_pack_update_lane_packet(
-    ap_uint<SWIFTKV_UPDATE_ENGINE_VALUE_BITS> packed_values,
-    swiftkv_kv_shift_t value_shift,
-    swiftkv_coefficient_t coefficient,
-    bool rescale_history,
-    bool token_nonzero,
-    bool last_packet
-) {
-#pragma HLS INLINE
-    swiftkv_update_lane_packet_t packet = 0;
-    packet.range(SWIFTKV_UPDATE_LANE_VALUE_BITS - 1, 0) =
-        packed_values.range(
-            (LANE_ID + 1) * SWIFTKV_UPDATE_LANE_VALUE_BITS - 1,
-            LANE_ID * SWIFTKV_UPDATE_LANE_VALUE_BITS);
-    packet.range(
-        SWIFTKV_UPDATE_LANE_SHIFT_LSB +
-            SWIFTKV_KV_SCALE_SHIFT_BITS - 1,
-        SWIFTKV_UPDATE_LANE_SHIFT_LSB) = value_shift;
-    packet.range(
-        SWIFTKV_UPDATE_LANE_COEFFICIENT_LSB + 17,
-        SWIFTKV_UPDATE_LANE_COEFFICIENT_LSB) =
-        coefficient.range(17, 0);
-    packet[SWIFTKV_UPDATE_LANE_RESCALE_BIT] = rescale_history;
-    packet[SWIFTKV_UPDATE_LANE_TOKEN_NONZERO_BIT] = token_nonzero;
-    packet[SWIFTKV_UPDATE_LANE_LAST_BIT] = last_packet;
-    return packet;
-}
-
 template<int ENGINE_ID>
-static void swiftkv_prepare_update_engine_lanes(
+static void swiftkv_prepare_update_engine_phases(
     hls::stream<swiftkv_update_token_control_t>& token_control_stream,
     hls::stream<swiftkv_update_engine_word_t>& value0_stream,
     hls::stream<swiftkv_update_engine_word_t>& value1_stream,
     ap_uint<12> position,
-    hls::stream<swiftkv_update_lane_packet_t>& lane0_stream,
-    hls::stream<swiftkv_update_lane_packet_t>& lane1_stream,
-    hls::stream<swiftkv_update_lane_packet_t>& lane2_stream,
-    hls::stream<swiftkv_update_lane_packet_t>& lane3_stream
+    hls::stream<swiftkv_update_engine_packet_t>& phase_stream
 ) {
 #pragma HLS INLINE off
 
@@ -1398,7 +1364,7 @@ static void swiftkv_prepare_update_engine_lanes(
     swiftkv_update_engine_word_t value_word = 0;
 #pragma HLS ARRAY_PARTITION variable=value_shift complete
 
-prepare_update_engine_lane_phase_loop:
+prepare_update_engine_phase_loop:
     for (int update_phase = 0;
          update_phase < update_phase_count;
          ++update_phase) {
@@ -1441,93 +1407,113 @@ prepare_update_engine_lane_phase_loop:
             value_word.range(SWIFTKV_UPDATE_ENGINE_VALUE_BITS - 1, 0);
         value_word >>= SWIFTKV_UPDATE_ENGINE_VALUE_BITS;
 
-        const bool token_nonzero = token != 0;
-        const bool last_packet =
-            update_phase == update_phase_count - 1;
-        lane0_stream.write(swiftkv_pack_update_lane_packet<0>(
-            packed_values, value_shift[group], coefficient,
-            rescale_history, token_nonzero, last_packet));
-        lane1_stream.write(swiftkv_pack_update_lane_packet<1>(
-            packed_values, value_shift[group], coefficient,
-            rescale_history, token_nonzero, last_packet));
-        lane2_stream.write(swiftkv_pack_update_lane_packet<2>(
-            packed_values, value_shift[group], coefficient,
-            rescale_history, token_nonzero, last_packet));
-        lane3_stream.write(swiftkv_pack_update_lane_packet<3>(
-            packed_values, value_shift[group], coefficient,
-            rescale_history, token_nonzero, last_packet));
+        swiftkv_update_engine_packet_t packet = 0;
+        packet.range(SWIFTKV_UPDATE_ENGINE_VALUE_BITS - 1, 0) =
+            packed_values;
+        packet.range(
+            SWIFTKV_UPDATE_ENGINE_SHIFT_LSB +
+                SWIFTKV_KV_SCALE_SHIFT_BITS - 1,
+            SWIFTKV_UPDATE_ENGINE_SHIFT_LSB) = value_shift[group];
+        packet.range(
+            SWIFTKV_UPDATE_ENGINE_COEFFICIENT_LSB + 17,
+            SWIFTKV_UPDATE_ENGINE_COEFFICIENT_LSB) =
+            coefficient.range(17, 0);
+        packet[SWIFTKV_UPDATE_ENGINE_RESCALE_BIT] = rescale_history;
+        packet[SWIFTKV_UPDATE_ENGINE_TOKEN_NONZERO_BIT] = token != 0;
+        phase_stream.write(packet);
     }
 }
 
-// A lane owns one state value for each of the eight update phases and exactly
-// one DSP recurrence.  Its FIFO-empty and pipeline-enable controls therefore
-// stay within that lane instead of spanning four BRAM banks and four DSPs.
-template<int ENGINE_ID, int LANE_ID>
-static void swiftkv_update_value_lane(
-    hls::stream<swiftkv_update_lane_packet_t>& lane_stream,
-    swiftkv_state_t weighted_value[SWIFTKV_UPDATE_PHASES]
+template<int ENGINE_ID>
+static void swiftkv_update_value_engine(
+    hls::stream<swiftkv_update_engine_packet_t>& phase_stream,
+    ap_uint<12> position,
+    swiftkv_state_t weighted_value[SWIFTKV_UPDATE_ENGINE_VALUES]
 ) {
 #pragma HLS INLINE off
 
-initialize_weighted_value_lane_phase_loop:
+initialize_weighted_value_engine_phase_loop:
     for (int phase = 0; phase < SWIFTKV_UPDATE_PHASES; ++phase) {
 #pragma HLS PIPELINE II=1
-        weighted_value[phase] = 0;
+    initialize_weighted_value_engine_lane_loop:
+        for (int lane = 0;
+             lane < SWIFTKV_UPDATE_ENGINE_LANES;
+             ++lane) {
+#pragma HLS UNROLL
+            weighted_value[
+                phase * SWIFTKV_UPDATE_ENGINE_LANES + lane] = 0;
+        }
     }
 
-    ap_uint<3> phase = 0;
-    bool last_packet = false;
-update_value_lane_phase_loop:
-    do {
+    const int update_phase_count =
+        ((int)position + 1) * SWIFTKV_UPDATE_PHASES;
+
+update_value_engine_phase_loop:
+    for (int update_phase = 0;
+         update_phase < update_phase_count;
+         ++update_phase) {
 #pragma HLS PIPELINE II=1
 #pragma HLS DEPENDENCE variable=weighted_value inter false
-#pragma HLS LOOP_TRIPCOUNT min=SWIFTKV_UPDATE_PHASES max=32768
-        const swiftkv_update_lane_packet_t packet =
-            lane_stream.read();
-        const ap_int<8> quantized_value =
-            (ap_int<8>)packet.range(
-                SWIFTKV_UPDATE_LANE_VALUE_BITS - 1, 0);
+        const swiftkv_update_engine_packet_t packet =
+            phase_stream.read();
+        const int phase =
+            update_phase & (SWIFTKV_UPDATE_PHASES - 1);
+        const ap_uint<SWIFTKV_UPDATE_ENGINE_VALUE_BITS> packed_values =
+            packet.range(SWIFTKV_UPDATE_ENGINE_VALUE_BITS - 1, 0);
         const swiftkv_kv_shift_t value_shift = packet.range(
-            SWIFTKV_UPDATE_LANE_SHIFT_LSB +
+            SWIFTKV_UPDATE_ENGINE_SHIFT_LSB +
                 SWIFTKV_KV_SCALE_SHIFT_BITS - 1,
-            SWIFTKV_UPDATE_LANE_SHIFT_LSB);
+            SWIFTKV_UPDATE_ENGINE_SHIFT_LSB);
         swiftkv_coefficient_t coefficient = 0;
         coefficient.range(17, 0) = packet.range(
-            SWIFTKV_UPDATE_LANE_COEFFICIENT_LSB + 17,
-            SWIFTKV_UPDATE_LANE_COEFFICIENT_LSB);
+            SWIFTKV_UPDATE_ENGINE_COEFFICIENT_LSB + 17,
+            SWIFTKV_UPDATE_ENGINE_COEFFICIENT_LSB);
         const bool rescale_history =
-            packet[SWIFTKV_UPDATE_LANE_RESCALE_BIT];
+            packet[SWIFTKV_UPDATE_ENGINE_RESCALE_BIT];
         const bool token_nonzero =
-            packet[SWIFTKV_UPDATE_LANE_TOKEN_NONZERO_BIT];
-        last_packet = packet[SWIFTKV_UPDATE_LANE_LAST_BIT];
+            packet[SWIFTKV_UPDATE_ENGINE_TOKEN_NONZERO_BIT];
 
-        int4_fxp32_t value = 0;
-        value.range(31, 0) =
-            swiftkv_dequantize_kv_raw(
-                quantized_value, value_shift);
-        const swiftkv_state_t previous = weighted_value[phase];
-        swiftkv_state_t next_value = (swiftkv_state_t)value;
-        if (token_nonzero) {
-            const swiftkv_state_t multiply_operand =
-                rescale_history
-                    ? previous
-                    : (swiftkv_state_t)value;
-            const swiftkv_state_product_t scaled_operand =
-                (swiftkv_state_product_t)(
-                    multiply_operand * coefficient);
+    update_value_engine_lane_loop:
+        for (int lane = 0;
+             lane < SWIFTKV_UPDATE_ENGINE_LANES;
+             ++lane) {
+#pragma HLS UNROLL
+            const int index =
+                phase * SWIFTKV_UPDATE_ENGINE_LANES + lane;
+            const ap_int<8> quantized_value =
+                (ap_int<8>)packed_values.range(
+                    SWIFTKV_KV_CACHE_BITS * lane +
+                        SWIFTKV_KV_CACHE_BITS - 1,
+                    SWIFTKV_KV_CACHE_BITS * lane);
+            int4_fxp32_t value = 0;
+            value.range(31, 0) =
+                swiftkv_dequantize_kv_raw(
+                    quantized_value, value_shift);
+            const swiftkv_state_t previous =
+                weighted_value[index];
+            swiftkv_state_t next_value =
+                (swiftkv_state_t)value;
+            if (token_nonzero) {
+                const swiftkv_state_t multiply_operand =
+                    rescale_history
+                        ? previous
+                        : (swiftkv_state_t)value;
+                const swiftkv_state_product_t scaled_operand =
+                    (swiftkv_state_product_t)(
+                        multiply_operand * coefficient);
 #pragma HLS BIND_OP variable=scaled_operand op=mul impl=dsp latency=4
-            next_value =
-                rescale_history
-                    ? (swiftkv_state_t)(
-                          scaled_operand +
-                          (swiftkv_state_t)value)
-                    : (swiftkv_state_t)(
-                          previous +
-                          scaled_operand);
+                next_value =
+                    rescale_history
+                        ? (swiftkv_state_t)(
+                              scaled_operand +
+                              (swiftkv_state_t)value)
+                        : (swiftkv_state_t)(
+                               previous +
+                               scaled_operand);
+            }
+            weighted_value[index] = next_value;
         }
-        weighted_value[phase] = next_value;
-        phase = phase + 1;
-    } while (!last_packet);
+    }
 }
 
 static void swiftkv_accumulate_values_split(
@@ -1542,54 +1528,38 @@ static void swiftkv_accumulate_values_split(
     hls::stream<swiftkv_update_engine_word_t>& value1_engine3_stream,
     hls::stream<swiftkv_update_control_t>& control_stream,
     ap_uint<12> position,
-    swiftkv_state_t weighted_value_engine0
-        [SWIFTKV_UPDATE_ENGINE_LANES][SWIFTKV_UPDATE_PHASES],
-    swiftkv_state_t weighted_value_engine1
-        [SWIFTKV_UPDATE_ENGINE_LANES][SWIFTKV_UPDATE_PHASES],
-    swiftkv_state_t weighted_value_engine2
-        [SWIFTKV_UPDATE_ENGINE_LANES][SWIFTKV_UPDATE_PHASES],
-    swiftkv_state_t weighted_value_engine3
-        [SWIFTKV_UPDATE_ENGINE_LANES][SWIFTKV_UPDATE_PHASES]
+    swiftkv_state_t weighted_value_engine0[SWIFTKV_UPDATE_ENGINE_VALUES],
+    swiftkv_state_t weighted_value_engine1[SWIFTKV_UPDATE_ENGINE_VALUES],
+    swiftkv_state_t weighted_value_engine2[SWIFTKV_UPDATE_ENGINE_VALUES],
+    swiftkv_state_t weighted_value_engine3[SWIFTKV_UPDATE_ENGINE_VALUES]
 ) {
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW disable_start_propagation
-#pragma HLS ARRAY_PARTITION variable=weighted_value_engine0 complete dim=1
-#pragma HLS ARRAY_PARTITION variable=weighted_value_engine1 complete dim=1
-#pragma HLS ARRAY_PARTITION variable=weighted_value_engine2 complete dim=1
-#pragma HLS ARRAY_PARTITION variable=weighted_value_engine3 complete dim=1
 
     hls::stream<swiftkv_update_token_control_t> engine0_control_stream;
     hls::stream<swiftkv_update_token_control_t> engine1_control_stream;
     hls::stream<swiftkv_update_token_control_t> engine2_control_stream;
     hls::stream<swiftkv_update_token_control_t> engine3_control_stream;
-    hls::stream<swiftkv_update_lane_packet_t>
-        engine0_lane_stream[SWIFTKV_UPDATE_ENGINE_LANES];
-    hls::stream<swiftkv_update_lane_packet_t>
-        engine1_lane_stream[SWIFTKV_UPDATE_ENGINE_LANES];
-    hls::stream<swiftkv_update_lane_packet_t>
-        engine2_lane_stream[SWIFTKV_UPDATE_ENGINE_LANES];
-    hls::stream<swiftkv_update_lane_packet_t>
-        engine3_lane_stream[SWIFTKV_UPDATE_ENGINE_LANES];
-#pragma HLS ARRAY_PARTITION variable=engine0_lane_stream complete
-#pragma HLS ARRAY_PARTITION variable=engine1_lane_stream complete
-#pragma HLS ARRAY_PARTITION variable=engine2_lane_stream complete
-#pragma HLS ARRAY_PARTITION variable=engine3_lane_stream complete
+    hls::stream<swiftkv_update_engine_packet_t> engine0_phase_stream;
+    hls::stream<swiftkv_update_engine_packet_t> engine1_phase_stream;
+    hls::stream<swiftkv_update_engine_packet_t> engine2_phase_stream;
+    hls::stream<swiftkv_update_engine_packet_t> engine3_phase_stream;
 #pragma HLS STREAM variable=engine0_control_stream depth=4
 #pragma HLS STREAM variable=engine1_control_stream depth=4
 #pragma HLS STREAM variable=engine2_control_stream depth=4
 #pragma HLS STREAM variable=engine3_control_stream depth=4
-#pragma HLS STREAM variable=engine0_lane_stream depth=8
-#pragma HLS STREAM variable=engine1_lane_stream depth=8
-#pragma HLS STREAM variable=engine2_lane_stream depth=8
-#pragma HLS STREAM variable=engine3_lane_stream depth=8
+#pragma HLS STREAM variable=engine0_phase_stream depth=8
+#pragma HLS STREAM variable=engine1_phase_stream depth=8
+#pragma HLS STREAM variable=engine2_phase_stream depth=8
+#pragma HLS STREAM variable=engine3_phase_stream depth=8
 #pragma HLS BIND_STORAGE variable=engine0_control_stream type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=engine1_control_stream type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=engine2_control_stream type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=engine3_control_stream type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=engine0_lane_stream type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=engine1_lane_stream type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=engine2_lane_stream type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=engine3_lane_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=engine0_phase_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=engine1_phase_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=engine2_phase_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=engine3_phase_stream type=fifo impl=srl
 
     swiftkv_broadcast_update_controls(
         value_metadata_stream,
@@ -1599,112 +1569,82 @@ static void swiftkv_accumulate_values_split(
         engine1_control_stream,
         engine2_control_stream,
         engine3_control_stream);
-    swiftkv_prepare_update_engine_lanes<0>(
+    swiftkv_prepare_update_engine_phases<0>(
         engine0_control_stream,
         value0_engine0_stream,
         value1_engine0_stream,
         position,
-        engine0_lane_stream[0], engine0_lane_stream[1],
-        engine0_lane_stream[2], engine0_lane_stream[3]);
-    swiftkv_prepare_update_engine_lanes<1>(
+        engine0_phase_stream);
+    swiftkv_prepare_update_engine_phases<1>(
         engine1_control_stream,
         value0_engine1_stream,
         value1_engine1_stream,
         position,
-        engine1_lane_stream[0], engine1_lane_stream[1],
-        engine1_lane_stream[2], engine1_lane_stream[3]);
-    swiftkv_prepare_update_engine_lanes<2>(
+        engine1_phase_stream);
+    swiftkv_prepare_update_engine_phases<2>(
         engine2_control_stream,
         value0_engine2_stream,
         value1_engine2_stream,
         position,
-        engine2_lane_stream[0], engine2_lane_stream[1],
-        engine2_lane_stream[2], engine2_lane_stream[3]);
-    swiftkv_prepare_update_engine_lanes<3>(
+        engine2_phase_stream);
+    swiftkv_prepare_update_engine_phases<3>(
         engine3_control_stream,
         value0_engine3_stream,
         value1_engine3_stream,
         position,
-        engine3_lane_stream[0], engine3_lane_stream[1],
-        engine3_lane_stream[2], engine3_lane_stream[3]);
-
-    swiftkv_update_value_lane<0, 0>(
-        engine0_lane_stream[0], weighted_value_engine0[0]);
-    swiftkv_update_value_lane<0, 1>(
-        engine0_lane_stream[1], weighted_value_engine0[1]);
-    swiftkv_update_value_lane<0, 2>(
-        engine0_lane_stream[2], weighted_value_engine0[2]);
-    swiftkv_update_value_lane<0, 3>(
-        engine0_lane_stream[3], weighted_value_engine0[3]);
-    swiftkv_update_value_lane<1, 0>(
-        engine1_lane_stream[0], weighted_value_engine1[0]);
-    swiftkv_update_value_lane<1, 1>(
-        engine1_lane_stream[1], weighted_value_engine1[1]);
-    swiftkv_update_value_lane<1, 2>(
-        engine1_lane_stream[2], weighted_value_engine1[2]);
-    swiftkv_update_value_lane<1, 3>(
-        engine1_lane_stream[3], weighted_value_engine1[3]);
-    swiftkv_update_value_lane<2, 0>(
-        engine2_lane_stream[0], weighted_value_engine2[0]);
-    swiftkv_update_value_lane<2, 1>(
-        engine2_lane_stream[1], weighted_value_engine2[1]);
-    swiftkv_update_value_lane<2, 2>(
-        engine2_lane_stream[2], weighted_value_engine2[2]);
-    swiftkv_update_value_lane<2, 3>(
-        engine2_lane_stream[3], weighted_value_engine2[3]);
-    swiftkv_update_value_lane<3, 0>(
-        engine3_lane_stream[0], weighted_value_engine3[0]);
-    swiftkv_update_value_lane<3, 1>(
-        engine3_lane_stream[1], weighted_value_engine3[1]);
-    swiftkv_update_value_lane<3, 2>(
-        engine3_lane_stream[2], weighted_value_engine3[2]);
-    swiftkv_update_value_lane<3, 3>(
-        engine3_lane_stream[3], weighted_value_engine3[3]);
+        engine3_phase_stream);
+    swiftkv_update_value_engine<0>(
+        engine0_phase_stream,
+        position,
+        weighted_value_engine0);
+    swiftkv_update_value_engine<1>(
+        engine1_phase_stream,
+        position,
+        weighted_value_engine1);
+    swiftkv_update_value_engine<2>(
+        engine2_phase_stream,
+        position,
+        weighted_value_engine2);
+    swiftkv_update_value_engine<3>(
+        engine3_phase_stream,
+        position,
+        weighted_value_engine3);
 }
 
-// Copy one lane's two values for the current 32-value output group.  Both IDs
-// are compile-time constants, so the state read has no engine/lane selector.
-template<int ENGINE_ID, int LANE_ID>
-static void swiftkv_stage_weighted_group_lane(
-    const swiftkv_state_t weighted_value_lane[SWIFTKV_UPDATE_PHASES],
+// Copy one fixed state bank into its lanes in the current 32-value output
+// group. ENGINE_ID is a compile-time constant, so no four-bank selector is
+// generated on the state-data path. The following normalization loop reads
+// only weighted_group and therefore starts after a local BRAM boundary.
+template<int ENGINE_ID>
+static void swiftkv_stage_weighted_group_engine(
+    const swiftkv_state_t
+        weighted_value_engine[SWIFTKV_UPDATE_ENGINE_VALUES],
     int group,
     swiftkv_state_t weighted_group[INT4_GROUP_SIZE]
 ) {
 #pragma HLS INLINE
 
-stage_weighted_group_lane_loop:
-    for (int phase_in_group = 0;
-         phase_in_group < SWIFTKV_UPDATE_GROUP_PHASES;
-         ++phase_in_group) {
+stage_weighted_group_engine_loop:
+    for (int local_value = 0;
+         local_value < SWIFTKV_UPDATE_GROUP_ENGINE_VALUES;
+         ++local_value) {
 #pragma HLS PIPELINE II=1
+        const int phase_in_group =
+            local_value / SWIFTKV_UPDATE_ENGINE_LANES;
+        const int lane_in_engine =
+            local_value & (SWIFTKV_UPDATE_ENGINE_LANES - 1);
         const int update_phase =
             group * SWIFTKV_UPDATE_GROUP_PHASES + phase_in_group;
+        const int engine_index =
+            update_phase * SWIFTKV_UPDATE_ENGINE_LANES +
+            lane_in_engine;
         const int group_lane =
             phase_in_group * SWIFTKV_UPDATE_LANES +
             ENGINE_ID * SWIFTKV_UPDATE_ENGINE_LANES +
-            LANE_ID;
+            lane_in_engine;
         weighted_group[group_lane] =
-            weighted_value_lane[update_phase];
+            weighted_value_engine[engine_index];
     }
-}
-
-template<int ENGINE_ID>
-static void swiftkv_stage_weighted_group_engine(
-    const swiftkv_state_t weighted_value_engine
-        [SWIFTKV_UPDATE_ENGINE_LANES][SWIFTKV_UPDATE_PHASES],
-    int group,
-    swiftkv_state_t weighted_group[INT4_GROUP_SIZE]
-) {
-#pragma HLS INLINE
-#pragma HLS ARRAY_PARTITION variable=weighted_value_engine complete dim=1
-    swiftkv_stage_weighted_group_lane<ENGINE_ID, 0>(
-        weighted_value_engine[0], group, weighted_group);
-    swiftkv_stage_weighted_group_lane<ENGINE_ID, 1>(
-        weighted_value_engine[1], group, weighted_group);
-    swiftkv_stage_weighted_group_lane<ENGINE_ID, 2>(
-        weighted_value_engine[2], group, weighted_group);
-    swiftkv_stage_weighted_group_lane<ENGINE_ID, 3>(
-        weighted_value_engine[3], group, weighted_group);
 }
 
 static void swiftkv_update_values_and_quantize(
@@ -1725,25 +1665,21 @@ static void swiftkv_update_values_and_quantize(
 ) {
 #pragma HLS INLINE off
 
-    // Each engine is physically partitioned into four one-DSP lane memories.
-    // This preserves sixteen updates/cycle across the PE while confining each
-    // FIFO-empty/pipeline-enable cone to one lane.
+    // Four independent four-lane banks keep the recurrence local and make
+    // sixteen updates/cycle without creating an eight- or sixteen-lane
+    // control cone.  Each array owns exactly the dimensions of one engine.
     swiftkv_state_t
-        weighted_value_engine0
-            [SWIFTKV_UPDATE_ENGINE_LANES][SWIFTKV_UPDATE_PHASES];
+        weighted_value_engine0[SWIFTKV_UPDATE_ENGINE_VALUES];
     swiftkv_state_t
-        weighted_value_engine1
-            [SWIFTKV_UPDATE_ENGINE_LANES][SWIFTKV_UPDATE_PHASES];
+        weighted_value_engine1[SWIFTKV_UPDATE_ENGINE_VALUES];
     swiftkv_state_t
-        weighted_value_engine2
-            [SWIFTKV_UPDATE_ENGINE_LANES][SWIFTKV_UPDATE_PHASES];
+        weighted_value_engine2[SWIFTKV_UPDATE_ENGINE_VALUES];
     swiftkv_state_t
-        weighted_value_engine3
-            [SWIFTKV_UPDATE_ENGINE_LANES][SWIFTKV_UPDATE_PHASES];
-#pragma HLS ARRAY_PARTITION variable=weighted_value_engine0 complete dim=1
-#pragma HLS ARRAY_PARTITION variable=weighted_value_engine1 complete dim=1
-#pragma HLS ARRAY_PARTITION variable=weighted_value_engine2 complete dim=1
-#pragma HLS ARRAY_PARTITION variable=weighted_value_engine3 complete dim=1
+        weighted_value_engine3[SWIFTKV_UPDATE_ENGINE_VALUES];
+#pragma HLS ARRAY_PARTITION variable=weighted_value_engine0 cyclic factor=SWIFTKV_UPDATE_ENGINE_LANES
+#pragma HLS ARRAY_PARTITION variable=weighted_value_engine1 cyclic factor=SWIFTKV_UPDATE_ENGINE_LANES
+#pragma HLS ARRAY_PARTITION variable=weighted_value_engine2 cyclic factor=SWIFTKV_UPDATE_ENGINE_LANES
+#pragma HLS ARRAY_PARTITION variable=weighted_value_engine3 cyclic factor=SWIFTKV_UPDATE_ENGINE_LANES
 #pragma HLS BIND_STORAGE variable=weighted_value_engine0 type=ram_2p impl=bram latency=1
 #pragma HLS BIND_STORAGE variable=weighted_value_engine1 type=ram_2p impl=bram latency=1
 #pragma HLS BIND_STORAGE variable=weighted_value_engine2 type=ram_2p impl=bram latency=1
@@ -1769,9 +1705,16 @@ static void swiftkv_update_values_and_quantize(
     const int4_fxp32_t inverse_normalization =
         inverse_normalization_stream.read();
     swiftkv_state_t weighted_group[INT4_GROUP_SIZE];
+    // attention_group: 32 x 32-bit = 1024 bits total.
+    // Previously ram_2p bram latency=2; that 2-cycle read latency sat on the
+    // critical path of attention_quantize_reverse_loop alongside fmul(2)+fadd(7),
+    // producing a 4.084 ns estimated path that prevented HLS from meeting 3.0 ns.
+    // Full partition into registers (1024 FFs) eliminates the memory read latency
+    // entirely and allows fmul and fadd to dominate — both are already DSP-bound
+    // and fit inside the 3.0 ns budget after register retiming.
     int4_fxp32_t attention_group[INT4_GROUP_SIZE];
-#pragma HLS BIND_STORAGE variable=weighted_group type=ram_1p impl=lutram
-#pragma HLS BIND_STORAGE variable=attention_group type=ram_1p impl=lutram
+#pragma HLS BIND_STORAGE variable=weighted_group type=ram_1p impl=bram latency=1
+#pragma HLS ARRAY_PARTITION variable=attention_group complete
 
 attention_quant_group_loop:
     for (int group = 0;
@@ -1818,15 +1761,30 @@ attention_quant_group_loop:
             max_float == 0.0f ? 0.0f : 16383.0f / max_float;
         scale_stream.write(output_scale);
 
-        ap_int<15> quantized_lanes[INT4_GROUP_SIZE];
-#pragma HLS ARRAY_PARTITION variable=quantized_lanes complete
-
-    attention_quantize_loop:
+        // Pre-convert attention_group[] from ap_fixed<32,15> to float in a
+        // dedicated II=1 pipeline loop.  Previously the (float)attention_group[lane]
+        // conversion (CLZ + 32-bit barrel shift + exponent adder, ~3.5 ns of fabric)
+        // sat inside attention_quantize_reverse_loop on the same clock edge as the
+        // DSP fmul input, producing the 4.084 ns critical path.
+        // Moving it to its own loop lets HLS split the conversion into 2-3 pipeline
+        // stages automatically (each ≤ 3.0 ns), breaking the bottleneck entirely.
+        float attention_group_f[INT4_GROUP_SIZE];
+#pragma HLS ARRAY_PARTITION variable=attention_group_f complete
+    pre_convert_to_float_loop:
         for (int lane = 0; lane < INT4_GROUP_SIZE; ++lane) {
 #pragma HLS PIPELINE II=1
+            attention_group_f[lane] = (float)attention_group[lane];
+        }
+
+        ap_int<15> quantized_lanes[INT4_GROUP_SIZE];
+#pragma HLS ARRAY_PARTITION variable=quantized_lanes complete
+    attention_quantize_reverse_loop:
+        for (int lane = 0; lane < INT4_GROUP_SIZE; ++lane) {
+#pragma HLS PIPELINE II=1
+            // Read from float register — zero conversion overhead on this path.
             const float scaled =
-                (float)attention_group[lane] * inverse_scale;
-#pragma HLS BIND_OP variable=scaled op=fmul impl=dsp latency=3
+                attention_group_f[lane] * inverse_scale;
+#pragma HLS BIND_OP variable=scaled op=fmul impl=dsp latency=2
             float rounded =
                 scaled >= 0.0f ? scaled + 0.5f : scaled - 0.5f;
             if (rounded > 16383.0f) {
@@ -1835,19 +1793,20 @@ attention_quant_group_loop:
             if (rounded < -16383.0f) {
                 rounded = -16383.0f;
             }
-            quantized_lanes[lane] = (ap_int<15>)(int)rounded;
+            // Use (short) not (int) for float-to-int: rounded is saturated to
+            // [-16383, 16383] which fits in short (16-bit, range ±32767).
+            // This shrinks the HLS-generated barrel shift from 79-bit/242 LUT
+            // to roughly 40-bit, cutting the critical path from ~4.084 ns.
+            quantized_lanes[lane] = (ap_int<15>)(short)rounded;
         }
 
         int4_quant_word_t quantized_word = 0;
-    attention_quantize_pack_chunk_loop:
-        for (int chunk = 0; chunk < 2; ++chunk) {
+    pack_quantized_lanes_loop:
+        for (int lane = INT4_GROUP_SIZE - 1; lane >= 0; --lane) {
 #pragma HLS UNROLL
-            for (int sub = 0; sub < 16; ++sub) {
-#pragma HLS UNROLL
-                const int lane = chunk * 16 + sub;
-                quantized_word.range(15 * lane + 14, 15 * lane) =
-                    (ap_uint<15>)quantized_lanes[lane];
-            }
+            quantized_word =
+                (quantized_word << 15) |
+                (ap_uint<15>)quantized_lanes[lane];
         }
         quantized_stream.write(quantized_word);
     }
@@ -3575,4 +3534,3 @@ void swiftkv_attention_latency_verify(
 }
 #endif
 #endif
-
