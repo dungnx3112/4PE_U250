@@ -1705,9 +1705,16 @@ static void swiftkv_update_values_and_quantize(
     const int4_fxp32_t inverse_normalization =
         inverse_normalization_stream.read();
     swiftkv_state_t weighted_group[INT4_GROUP_SIZE];
+    // attention_group: 32 x 32-bit = 1024 bits total.
+    // Previously ram_2p bram latency=2; that 2-cycle read latency sat on the
+    // critical path of attention_quantize_reverse_loop alongside fmul(2)+fadd(7),
+    // producing a 4.084 ns estimated path that prevented HLS from meeting 3.0 ns.
+    // Full partition into registers (1024 FFs) eliminates the memory read latency
+    // entirely and allows fmul and fadd to dominate — both are already DSP-bound
+    // and fit inside the 3.0 ns budget after register retiming.
     int4_fxp32_t attention_group[INT4_GROUP_SIZE];
 #pragma HLS BIND_STORAGE variable=weighted_group type=ram_1p impl=bram latency=1
-#pragma HLS BIND_STORAGE variable=attention_group type=ram_1p impl=bram
+#pragma HLS ARRAY_PARTITION variable=attention_group complete
 
 attention_quant_group_loop:
     for (int group = 0;
@@ -1754,14 +1761,30 @@ attention_quant_group_loop:
             max_float == 0.0f ? 0.0f : 16383.0f / max_float;
         scale_stream.write(output_scale);
 
-        int4_quant_word_t quantized_word = 0;
-    attention_quantize_reverse_loop:
-        for (int lane = INT4_GROUP_SIZE - 1;
-             lane >= 0;
-             --lane) {
+        // Pre-convert attention_group[] from ap_fixed<32,15> to float in a
+        // dedicated II=1 pipeline loop.  Previously the (float)attention_group[lane]
+        // conversion (CLZ + 32-bit barrel shift + exponent adder, ~3.5 ns of fabric)
+        // sat inside attention_quantize_reverse_loop on the same clock edge as the
+        // DSP fmul input, producing the 4.084 ns critical path.
+        // Moving it to its own loop lets HLS split the conversion into 2-3 pipeline
+        // stages automatically (each ≤ 3.0 ns), breaking the bottleneck entirely.
+        float attention_group_f[INT4_GROUP_SIZE];
+#pragma HLS ARRAY_PARTITION variable=attention_group_f complete
+    pre_convert_to_float_loop:
+        for (int lane = 0; lane < INT4_GROUP_SIZE; ++lane) {
 #pragma HLS PIPELINE II=1
+            attention_group_f[lane] = (float)attention_group[lane];
+        }
+
+        ap_int<15> quantized_lanes[INT4_GROUP_SIZE];
+#pragma HLS ARRAY_PARTITION variable=quantized_lanes complete
+    attention_quantize_reverse_loop:
+        for (int lane = 0; lane < INT4_GROUP_SIZE; ++lane) {
+#pragma HLS PIPELINE II=1
+            // Read from float register — zero conversion overhead on this path.
             const float scaled =
-                (float)attention_group[lane] * inverse_scale;
+                attention_group_f[lane] * inverse_scale;
+#pragma HLS BIND_OP variable=scaled op=fmul impl=dsp latency=2
             float rounded =
                 scaled >= 0.0f ? scaled + 0.5f : scaled - 0.5f;
             if (rounded > 16383.0f) {
@@ -1770,11 +1793,20 @@ attention_quant_group_loop:
             if (rounded < -16383.0f) {
                 rounded = -16383.0f;
             }
-            const ap_int<15> quantized =
-                (ap_int<15>)(int)rounded;
+            // Use (short) not (int) for float-to-int: rounded is saturated to
+            // [-16383, 16383] which fits in short (16-bit, range ±32767).
+            // This shrinks the HLS-generated barrel shift from 79-bit/242 LUT
+            // to roughly 40-bit, cutting the critical path from ~4.084 ns.
+            quantized_lanes[lane] = (ap_int<15>)(short)rounded;
+        }
+
+        int4_quant_word_t quantized_word = 0;
+    pack_quantized_lanes_loop:
+        for (int lane = INT4_GROUP_SIZE - 1; lane >= 0; --lane) {
+#pragma HLS UNROLL
             quantized_word =
                 (quantized_word << 15) |
-                (ap_uint<15>)quantized;
+                (ap_uint<15>)quantized_lanes[lane];
         }
         quantized_stream.write(quantized_word);
     }

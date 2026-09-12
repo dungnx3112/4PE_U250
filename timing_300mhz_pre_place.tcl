@@ -114,6 +114,103 @@ foreach pe {0 1 2 3} slr {SLR0 SLR1 SLR2 SLR3} {
     place_pe_axi_bridges $pe $slr
 }
 
+# ---------------------------------------------------------------------------
+# Fix: Constrain promoted linear FIFO cells to their PE's SLR.
+#
+# HLS synthesis can promote certain FIFO control cells (linear_output{n}_U,
+# rms_partial{n}_U) out of the int4_decoder_local_pe_N_U0 hierarchy into the
+# parent KPN_1450_1_U0 scope.  Because they lose their PE marker, the
+# selector patterns above do not catch them, and Vivado places them in SLR2
+# regardless of which PE they belong to.  This creates SLR0→SLR2→SLR0
+# detours with routing delays of ~6.5 ns — the primary cause of the
+# worst-case -4.81 ns slack violation in the linear module.
+#
+# Strategy: match by cell name (not hierarchy depth) and add leaves to the
+# correct pblock_dynamic_SLRn before place_design runs.
+# ---------------------------------------------------------------------------
+proc place_linear_output_fifos {} {
+    foreach pe {0 1 2 3} slr {SLR0 SLR1 SLR2 SLR3} {
+        foreach fifo_suffix [list \
+                "linear_output${pe}_U" \
+                "rms_partial${pe}_U"] {
+            # Match anywhere under KPN_1450_1_U0 by cell name suffix.
+            set pattern \
+                "*/int4_decoder_token_controller_1/inst/KPN_1450_1_U0/${fifo_suffix}"
+            set roots [get_cells -quiet -hierarchical -filter \
+                "NAME =~ $pattern && IS_PRIMITIVE == 0"]
+            if {[llength $roots] == 0} {
+                puts "INFO: 300MHz floorplan: ${fifo_suffix} not found\
+                      (may not exist in this synthesis)"
+                continue
+            }
+            set root_name [get_property NAME [lindex $roots 0]]
+            set leaves [get_cells -quiet -hierarchical -filter \
+                "NAME =~ ${root_name}/* && IS_PRIMITIVE == 1 \
+                 && REF_NAME != VCC && REF_NAME != GND"]
+            if {[llength $leaves] == 0} {
+                puts "WARNING: 300MHz floorplan: ${fifo_suffix} has no\
+                      leaf primitives — skipping"
+                continue
+            }
+            set pblock [get_pblocks -quiet "pblock_dynamic_${slr}"]
+            if {[llength $pblock] != 1} {
+                error "300MHz floorplan: expected one pblock_dynamic_${slr},\
+                       got [llength $pblock]"
+            }
+            set_property USER_SLR_ASSIGNMENT $slr $roots
+            add_cells_to_pblock $pblock $leaves
+            puts "INFO: 300MHz floorplan: ${fifo_suffix} ->\
+                  ${slr} ([llength $leaves] leaves)"
+        }
+    }
+}
+
+place_linear_output_fifos
+
+# ---------------------------------------------------------------------------
+# Fix: Constrain SwiftKV Attention cells to their PE's SLR.
+#
+# Prevents Vivado from placing PE0/PE1/PE3 attention arithmetic, quantizers,
+# and write buffers into SLR2, which caused severe SLR0->SLR2->SLR0 detours
+# (6.88 ns routing delay, WNS -4.956 ns in earlier runs).
+# ---------------------------------------------------------------------------
+proc place_attention_pe_cells {} {
+    foreach pe {0 1 2 3} slr {SLR0 SLR1 SLR2 SLR3} {
+        set pblock [get_pblocks -quiet "pblock_dynamic_${slr}"]
+        if {[llength $pblock] != 1} {
+            error "300MHz floorplan: expected one pblock_dynamic_${slr}, got [llength $pblock]"
+        }
+
+        set pe_patterns [list \
+            "*/int4_decoder_local_pe_${pe}_U0/*swiftkv*" \
+            "*/int4_decoder_local_pe_${pe}_U0/grp_int4_swiftkv_attention_pe${pe}*" \
+            "*/int4_decoder_local_pe_${pe}_U0/grp_swiftkv_run_pe_${pe}*" \
+            "*/inst/*swiftkv*${pe}*" \
+            "*/inst/grp_swiftkv_write_buffered_kv_record${pe}*" \
+        ]
+
+        set total_attention_leaves 0
+        foreach pattern $pe_patterns {
+            set roots [get_cells -quiet -hierarchical -filter \
+                "NAME =~ $pattern && IS_PRIMITIVE == 0"]
+            set leaves [get_cells -quiet -hierarchical -filter \
+                "NAME =~ $pattern && IS_PRIMITIVE == 1 && REF_NAME != VCC && REF_NAME != GND"]
+            if {[llength $leaves] > 0} {
+                if {[llength $roots] > 0} {
+                    set_property USER_SLR_ASSIGNMENT $slr $roots
+                }
+                add_cells_to_pblock $pblock $leaves
+                incr total_attention_leaves [llength $leaves]
+            }
+        }
+        puts "INFO: 300MHz floorplan: PE${pe} attention cells -> ${slr} ($total_attention_leaves leaves)"
+    }
+}
+
+place_attention_pe_cells
+
 puts "INFO: 300MHz floorplan: INTERFACE_LOCALITY_APPLIED"
 puts "INFO: 300MHz floorplan: PE_AXI_BRIDGE_LOCALITY_APPLIED"
 puts "INFO: 300MHz floorplan: PE_AXI_HANDSHAKE_DRIVERS_APPLIED"
+puts "INFO: 300MHz floorplan: LINEAR_OUTPUT_FIFOS_PLACED"
+puts "INFO: 300MHz floorplan: ATTENTION_PE_CELLS_PLACED"
