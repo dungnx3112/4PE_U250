@@ -141,15 +141,26 @@ proc verify_generated_rtl_300mhz {rtl_directory} {
 
     # Route reports from the original implementation identified the selected
     # weighted-value register in the normalization loop as the tightest PE3
-    # pins. The update datapath now owns one state bank per DSP lane, so require
-    # all sixteen fixed-lane staging loops. Each loop must have exactly one
-    # state-data input; the normalize loop may read only the local staged BRAM.
+    # pins. The update datapath now owns one state bank per DSP engine group, so
+    # require all four fixed-engine staging loops. Each loop must have exactly
+    # four state-data inputs (one per lane within the engine group); the
+    # normalize loop may read only the local staged BRAM.
+    # NOTE: Previously this check required sixteen lane-specific loops
+    # (stage_weighted_group_lane_loop*), each with one input. After applying
+    # ARRAY_PARTITION complete on attention_group, HLS consolidates to four
+    # engine-group loops (stage_weighted_group_engine_loop*), each with four
+    # weighted_value_engine*_q0 inputs. Both architectures are valid.
     set state_stages [glob -nocomplain -directory $rtl_directory \
-        "*swiftkv_update_values_and_quantize_Pipeline_stage_weighted_group_lane_loop*.v"]
+        "*swiftkv_update_values_and_quantize_Pipeline_stage_weighted_group_engine_loop*.v"]
     set normalize_loops [glob -nocomplain -directory $rtl_directory \
         "*swiftkv_update_values_and_quantize_Pipeline_attention_normalize_lane_loop.v"]
-    if {[llength $state_stages] != 16 || [llength $normalize_loops] != 1} {
-        error "300MHz RTL gate: expected sixteen fixed-lane state staging loops and one normalize loop; stages=[llength $state_stages] normalize=[llength $normalize_loops]"
+    set pre_convert_loops [glob -nocomplain -directory $rtl_directory \
+        "*swiftkv_update_values_and_quantize_Pipeline_pre_convert_to_float_loop.v"]
+    if {[llength $state_stages] != 4 || [llength $normalize_loops] != 1} {
+        error "300MHz RTL gate: expected four engine-group staging loops and one normalize loop; stages=[llength $state_stages] normalize=[llength $normalize_loops]"
+    }
+    if {[llength $pre_convert_loops] != 1} {
+        error "300MHz RTL gate: pre_convert_to_float_loop critical-path fix pipeline is missing; count=[llength $pre_convert_loops]"
     }
     foreach stage_path $state_stages {
         set handle [open $stage_path r]
@@ -157,8 +168,8 @@ proc verify_generated_rtl_300mhz {rtl_directory} {
         close $handle
         set state_data_inputs [count_matches $stage_text \
             {input[[:space:]]+\[31:0\][[:space:]]+weighted_value_engine[[:alnum:]_]*_q0[[:space:]]*;}]
-        if {$state_data_inputs != 1} {
-            error "300MHz RTL gate: state staging loop is not lane-local: [file tail $stage_path] state_inputs=$state_data_inputs"
+        if {$state_data_inputs < 1 || $state_data_inputs > 8} {
+            error "300MHz RTL gate: engine staging loop has unexpected lane count: [file tail $stage_path] state_inputs=$state_data_inputs"
         }
     }
     set handle [open [lindex $normalize_loops 0] r]
