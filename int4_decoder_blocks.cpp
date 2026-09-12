@@ -46,49 +46,47 @@ static void int4_local_sumsq(
     const int4_output_word_t residual[INT4_VECTOR_WORDS_PER_PE],
     hls::stream<float>& partial_stream) {
 #pragma HLS INLINE off
-    float accumulator0 = 0.0f;
-    float accumulator1 = 0.0f;
-    float accumulator2 = 0.0f;
-    float accumulator3 = 0.0f;
-#pragma HLS BIND_OP variable=accumulator0 op=fadd impl=fulldsp latency=7
-#pragma HLS BIND_OP variable=accumulator1 op=fadd impl=fulldsp latency=7
-#pragma HLS BIND_OP variable=accumulator2 op=fadd impl=fulldsp latency=7
-#pragma HLS BIND_OP variable=accumulator3 op=fadd impl=fulldsp latency=7
+    // Keep the eight cyclic accumulators as one tiny dual-port LUTRAM.  Unlike
+    // a completely partitioned array, this preserves the distance-8 memory
+    // dependence for the HLS scheduler while sharing one FP add path.
+    float accumulator[8];
+#pragma HLS BIND_STORAGE variable=accumulator type=ram_2p impl=lutram latency=1
+local_sumsq_init_loop:
+    for (int slot = 0; slot < 8; ++slot) {
+#pragma HLS PIPELINE II=1
+        accumulator[slot] = 0.0f;
+    }
 
 local_sumsq_word_loop:
     for (int word = 0; word < INT4_VECTOR_WORDS_PER_PE; ++word) {
         int4_output_word_t packed = residual[word];
-    local_sumsq_block_loop:
-        for (int block = 0;
-             block < INT4_OUTPUTS_PER_WORD / INT4_REDUCTION_LANES;
-             ++block) {
-#pragma HLS PIPELINE II=8
-            const float value0 = int4_fp32_from_bits(
+    local_sumsq_lane_loop:
+        for (int lane = 0; lane < INT4_OUTPUTS_PER_WORD; ++lane) {
+#pragma HLS PIPELINE II=1
+#pragma HLS DEPENDENCE variable=accumulator type=inter direction=RAW distance=8 true
+            const float value = int4_fp32_from_bits(
                 packed.range(31, 0));
-            const float value1 = int4_fp32_from_bits(
-                packed.range(63, 32));
-            const float value2 = int4_fp32_from_bits(
-                packed.range(95, 64));
-            const float value3 = int4_fp32_from_bits(
-                packed.range(127, 96));
-            const float square0 = value0 * value0;
-            const float square1 = value1 * value1;
-            const float square2 = value2 * value2;
-            const float square3 = value3 * value3;
-#pragma HLS BIND_OP variable=square0 op=fmul impl=maxdsp latency=4
-#pragma HLS BIND_OP variable=square1 op=fmul impl=maxdsp latency=4
-#pragma HLS BIND_OP variable=square2 op=fmul impl=maxdsp latency=4
-#pragma HLS BIND_OP variable=square3 op=fmul impl=maxdsp latency=4
-            accumulator0 += square0;
-            accumulator1 += square1;
-            accumulator2 += square2;
-            accumulator3 += square3;
-            packed >>= 128;
+            const float square = value * value;
+#pragma HLS BIND_OP variable=square op=fmul impl=maxdsp latency=4
+            const int slot = lane & 7;
+            const float feedback = accumulator[slot];
+            const float updated = feedback + square;
+#pragma HLS BIND_OP variable=updated op=fadd impl=fulldsp latency=6
+            accumulator[slot] = updated;
+            packed >>= 32;
         }
     }
-    partial_stream.write(
-        (accumulator0 + accumulator1) +
-        (accumulator2 + accumulator3));
+
+    // A short rolled reduction keeps the same FP adder share; its fixed
+    // overhead is negligible beside the 1024-value accumulation pass.
+    float total = 0.0f;
+local_sumsq_reduce_loop:
+    for (int slot = 0; slot < 8; ++slot) {
+#pragma HLS PIPELINE II=8
+        total += accumulator[slot];
+#pragma HLS BIND_OP variable=total op=fadd impl=fulldsp latency=7
+    }
+    partial_stream.write(total);
 }
 
 template <int PAIR_ID>
@@ -700,4 +698,3 @@ rms_pair23_schedule_loop:
         reciprocal3.write(reciprocal);
     }
 }
-

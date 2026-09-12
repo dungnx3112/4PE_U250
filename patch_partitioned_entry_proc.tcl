@@ -58,62 +58,81 @@ proc partition_decoder_entry_proc {verilog_directory} {
     set handle [open $entry_path r]
     set text [read $handle]
     close $handle
-    if {[string first PARTITIONED_PE_CONFIG_LAUNCH $text] >= 0} {
-        puts "INFO: partitioned entry process already present: $entry_path"
+    if {[string first "PARTITIONED_PE_CONFIG_LAUNCH WITH INTER-SLR RELAY PIPELINE" $text] >= 0} {
+        puts "INFO: partitioned entry process with relay pipeline already present: $entry_path"
         puts "INFO: 300MHz RTL gate: PARTITIONED_PE_CONFIG_LAUNCH"
         return $entry_path
     }
 
     set declaration_replacement {
-// PARTITIONED_PE_CONFIG_LAUNCH
-// Each PE accepts its five AXI base addresses independently.  The original
-// HLS entry process ANDed all twenty FIFO-full signals in one combinational
-// cone; on a four-SLR U250 that cone pulls placement in four directions.
+// PARTITIONED_PE_CONFIG_LAUNCH WITH INTER-SLR RELAY PIPELINE
+// Each PE accepts its five AXI base addresses independently.
+// Relay registers break the cross-SLR combinational paths:
+//   SLR0 -> SLR1 -> SLR2 -> SLR3 (forward start)
+//   SLR3 -> SLR2 -> SLR1 -> SLR0 (backward completion)
 (* dont_touch = "yes" *) reg [3:0] config_sent;
 reg done_hold;
-// Register the global start once per PE.  The four registers are constrained
-// to their corresponding SLR by timing_300mhz_domains.tcl, so int_ap_start no
-// longer directly drives configuration logic distributed across the device.
+
+// Forward start pipeline:
 (* dont_touch = "yes" *) reg ap_start_pe0;
 (* dont_touch = "yes" *) reg ap_start_pe1;
+(* dont_touch = "yes" *) reg ap_start_pe2_r1;
 (* dont_touch = "yes" *) reg ap_start_pe2;
+(* dont_touch = "yes" *) reg ap_start_pe3_r1;
+(* dont_touch = "yes" *) reg ap_start_pe3_r2;
 (* dont_touch = "yes" *) reg ap_start_pe3;
+
+// Registered config_ready per PE (breaks combinational full_n -> write loop):
+(* dont_touch = "yes" *) reg config_ready_pe0_reg;
+(* dont_touch = "yes" *) reg config_ready_pe1_reg;
+(* dont_touch = "yes" *) reg config_ready_pe2_reg;
+(* dont_touch = "yes" *) reg config_ready_pe3_reg;
 (* keep = "yes" *) wire config_ready_pe0;
 (* keep = "yes" *) wire config_ready_pe1;
 (* keep = "yes" *) wire config_ready_pe2;
 (* keep = "yes" *) wire config_ready_pe3;
+
+// Local config fire wires:
 (* keep = "yes" *) wire config_fire_pe0;
 (* keep = "yes" *) wire config_fire_pe1;
 (* keep = "yes" *) wire config_fire_pe2;
 (* keep = "yes" *) wire config_fire_pe3;
+
+// Backward completion pipeline:
+(* dont_touch = "yes" *) reg config_sent_p3_r1;
+(* dont_touch = "yes" *) reg config_sent_p3_r2;
+(* dont_touch = "yes" *) reg config_sent_p3_r3;
+(* dont_touch = "yes" *) reg config_sent_p2_r1;
+(* dont_touch = "yes" *) reg config_sent_p2_r2;
+(* dont_touch = "yes" *) reg config_sent_p1_r1;
+
 wire [3:0] config_sent_or_fire;
 wire config_complete;
+(* dont_touch = "yes" *) reg ap_done_reg;
+(* dont_touch = "yes" *) reg ap_ready_reg;
 }
 
     set body_replacement {
 // The five channels belonging to one PE remain atomic, while the four PE
-// groups may make progress independently.  This preserves one config tuple
-// per invocation and reduces the physical control fan-in from 20 to 5.
-assign config_ready_pe0 = model_bank0_c_full_n & rope_lut_pe0_c_full_n &
-                          residual_pe0_c_full_n & logits_pe0_c_full_n &
-                          kv_cache_pe0_c_full_n;
-assign config_ready_pe1 = model_bank1_c_full_n & rope_lut_pe1_c_full_n &
-                          residual_pe1_c_full_n & logits_pe1_c_full_n &
-                          kv_cache_pe1_c_full_n;
-assign config_ready_pe2 = model_bank2_c_full_n & rope_lut_pe2_c_full_n &
-                          residual_pe2_c_full_n & logits_pe2_c_full_n &
-                          kv_cache_pe2_c_full_n;
-assign config_ready_pe3 = model_bank3_c_full_n & rope_lut_pe3_c_full_n &
-                          residual_pe3_c_full_n & logits_pe3_c_full_n &
-                          kv_cache_pe3_c_full_n;
+// groups make progress independently through pipelined relay registers.
+assign config_ready_pe0 = config_ready_pe0_reg;
+assign config_ready_pe1 = config_ready_pe1_reg;
+assign config_ready_pe2 = config_ready_pe2_reg;
+assign config_ready_pe3 = config_ready_pe3_reg;
 
 assign config_fire_pe0 = ap_start_pe0 & ~done_hold & ~config_sent[0] & config_ready_pe0;
 assign config_fire_pe1 = ap_start_pe1 & ~done_hold & ~config_sent[1] & config_ready_pe1;
 assign config_fire_pe2 = ap_start_pe2 & ~done_hold & ~config_sent[2] & config_ready_pe2;
 assign config_fire_pe3 = ap_start_pe3 & ~done_hold & ~config_sent[3] & config_ready_pe3;
+
 assign config_sent_or_fire = config_sent |
     {config_fire_pe3, config_fire_pe2, config_fire_pe1, config_fire_pe0};
-assign config_complete = ~done_hold & (&config_sent_or_fire);
+
+// In SLR0, all 4 completions arrive via their pipeline relays:
+assign config_complete = ~done_hold & (config_sent[0] | config_fire_pe0) &
+                                      (config_sent_p1_r1) &
+                                      (config_sent_p2_r2) &
+                                      (config_sent_p3_r3);
 
 assign model_bank0_c_write = config_fire_pe0;
 assign rope_lut_pe0_c_write = config_fire_pe0;
@@ -136,8 +155,8 @@ assign residual_pe3_c_write = config_fire_pe3;
 assign logits_pe3_c_write = config_fire_pe3;
 assign kv_cache_pe3_c_write = config_fire_pe3;
 
-assign ap_done = config_complete | done_hold;
-assign ap_ready = config_complete;
+assign ap_done = ap_done_reg;
+assign ap_ready = ap_ready_reg;
 assign ap_idle = ~ap_start & (config_sent == 4'b0000) & ~done_hold;
 
 initial begin
@@ -145,8 +164,23 @@ initial begin
     #0 done_hold = 1'b0;
     #0 ap_start_pe0 = 1'b0;
     #0 ap_start_pe1 = 1'b0;
+    #0 ap_start_pe2_r1 = 1'b0;
     #0 ap_start_pe2 = 1'b0;
+    #0 ap_start_pe3_r1 = 1'b0;
+    #0 ap_start_pe3_r2 = 1'b0;
     #0 ap_start_pe3 = 1'b0;
+    #0 config_ready_pe0_reg = 1'b1;
+    #0 config_ready_pe1_reg = 1'b1;
+    #0 config_ready_pe2_reg = 1'b1;
+    #0 config_ready_pe3_reg = 1'b1;
+    #0 config_sent_p3_r1 = 1'b0;
+    #0 config_sent_p3_r2 = 1'b0;
+    #0 config_sent_p3_r3 = 1'b0;
+    #0 config_sent_p2_r1 = 1'b0;
+    #0 config_sent_p2_r2 = 1'b0;
+    #0 config_sent_p1_r1 = 1'b0;
+    #0 ap_done_reg = 1'b0;
+    #0 ap_ready_reg = 1'b0;
 end
 
 always @(posedge ap_clk) begin
@@ -155,28 +189,72 @@ always @(posedge ap_clk) begin
         done_hold <= 1'b0;
         ap_start_pe0 <= 1'b0;
         ap_start_pe1 <= 1'b0;
+        ap_start_pe2_r1 <= 1'b0;
         ap_start_pe2 <= 1'b0;
+        ap_start_pe3_r1 <= 1'b0;
+        ap_start_pe3_r2 <= 1'b0;
         ap_start_pe3 <= 1'b0;
+        config_ready_pe0_reg <= 1'b1;
+        config_ready_pe1_reg <= 1'b1;
+        config_ready_pe2_reg <= 1'b1;
+        config_ready_pe3_reg <= 1'b1;
+        config_sent_p3_r1 <= 1'b0;
+        config_sent_p3_r2 <= 1'b0;
+        config_sent_p3_r3 <= 1'b0;
+        config_sent_p2_r1 <= 1'b0;
+        config_sent_p2_r2 <= 1'b0;
+        config_sent_p1_r1 <= 1'b0;
+        ap_done_reg <= 1'b0;
+        ap_ready_reg <= 1'b0;
     end else begin
-        ap_start_pe0 <= ap_start;
-        ap_start_pe1 <= ap_start;
-        ap_start_pe2 <= ap_start;
-        ap_start_pe3 <= ap_start;
+        // Forward start pipeline (SLR0 -> SLR1 -> SLR2 -> SLR3):
+        ap_start_pe0    <= ap_start;
+        ap_start_pe1    <= ap_start;
+        ap_start_pe2_r1 <= ap_start;
+        ap_start_pe2    <= ap_start_pe2_r1;
+        ap_start_pe3_r1 <= ap_start;
+        ap_start_pe3_r2 <= ap_start_pe3_r1;
+        ap_start_pe3    <= ap_start_pe3_r2;
+
+        // Register FIFO full_n per PE (breaks combinational feedback):
+        config_ready_pe0_reg <= model_bank0_c_full_n & rope_lut_pe0_c_full_n & residual_pe0_c_full_n & logits_pe0_c_full_n & kv_cache_pe0_c_full_n;
+        config_ready_pe1_reg <= model_bank1_c_full_n & rope_lut_pe1_c_full_n & residual_pe1_c_full_n & logits_pe1_c_full_n & kv_cache_pe1_c_full_n;
+        config_ready_pe2_reg <= model_bank2_c_full_n & rope_lut_pe2_c_full_n & residual_pe2_c_full_n & logits_pe2_c_full_n & kv_cache_pe2_c_full_n;
+        config_ready_pe3_reg <= model_bank3_c_full_n & rope_lut_pe3_c_full_n & residual_pe3_c_full_n & logits_pe3_c_full_n & kv_cache_pe3_c_full_n;
+
+        // Backward completion pipeline (SLR3 -> SLR2 -> SLR1 -> SLR0):
+        config_sent_p3_r1 <= config_sent[3] | config_fire_pe3;
+        config_sent_p3_r2 <= config_sent_p3_r1;
+        config_sent_p3_r3 <= config_sent_p3_r2;
+
+        config_sent_p2_r1 <= config_sent[2] | config_fire_pe2;
+        config_sent_p2_r2 <= config_sent_p2_r1;
+
+        config_sent_p1_r1 <= config_sent[1] | config_fire_pe1;
+
+        // Registered ap_ready / ap_done in SLR0:
         if (done_hold) begin
             if (ap_continue) begin
                 config_sent <= 4'b0000;
                 done_hold <= 1'b0;
+                ap_ready_reg <= 1'b0;
+                ap_done_reg <= 1'b0;
             end
         end else if (config_complete) begin
+            ap_ready_reg <= 1'b1;
             if (ap_continue) begin
                 config_sent <= 4'b0000;
                 done_hold <= 1'b0;
+                ap_done_reg <= 1'b0;
             end else begin
                 config_sent <= 4'b1111;
                 done_hold <= 1'b1;
+                ap_done_reg <= 1'b1;
             end
         end else begin
             config_sent <= config_sent_or_fire;
+            ap_ready_reg <= 1'b0;
+            ap_done_reg <= 1'b0;
         end
     end
 end

@@ -4,6 +4,8 @@
 #include "int4_numeric.hpp"
 #include "int4_task_control.hpp"
 
+#include <hls_streamofblocks.h>
+
 static float int4_half_bits_to_float(ap_uint<16> bits) {
 #pragma HLS INLINE
     const ap_uint<1> sign = bits[15];
@@ -206,11 +208,15 @@ static void int4_terminate_linear_command(
 static void int4_split_local_command(
     hls::stream<int4_linear_command_t>& command_in,
     hls::stream<int4_linear_command_t>& reader_command,
-    hls::stream<int4_linear_command_t>& compute_command) {
+    hls::stream<int4_linear_command_t>& metadata_command,
+    hls::stream<int4_linear_command_t>& compute_command,
+    hls::stream<int4_linear_command_t>& emit_command) {
 #pragma HLS INLINE off
     const int4_linear_command_t command = command_in.read();
     reader_command.write(command);
+    metadata_command.write(command);
     compute_command.write(command);
+    emit_command.write(command);
 }
 
 static void int4_seed_local_linear_command(
@@ -300,28 +306,32 @@ buffer_local_weight_loop:
     }
 }
 
+struct int4_linear_group_metadata_t {
+    int4_quant_word_t quantized;
+    float combined_scale;
+};
+
+typedef int4_reduction_packet_t
+    int4_partial_tile_block_t[INT4_ROW_BLOCKS];
+
 template <int PE_ID>
-static void int4_compute_local_partials(
+static void int4_prepare_local_group_metadata(
     const int4_weight_scale_word_t* scale_mem,
     const int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
     const float activation_scale[INT4_MAX_LOCAL_GROUPS],
     hls::stream<int4_linear_command_t>& command_stream,
-    hls::stream<int4_weight_word_t>& weight_stream,
-    hls::stream<int4_reduction_packet_t>& partial_stream) {
+    hls::stream<int4_linear_group_metadata_t>& metadata_stream) {
 #pragma HLS INLINE off
     const int4_linear_command_t command = command_stream.read();
     const int output_tiles = int4_command_output_tiles(command);
     const int local_input_tiles = int4_command_local_input_tiles(command);
     const int scale_base = (int)command.range(42, 27);
-
-    float partial[INT4_TILE_ROWS];
-#pragma HLS ARRAY_PARTITION variable=partial cyclic factor=INT4_ROW_BLOCK
     int4_weight_scale_word_t packed_scales = 0;
 
-local_partial_output_tile_loop:
+local_metadata_output_tile_loop:
     for (int output_tile = 0; output_tile < output_tiles; ++output_tile) {
 #pragma HLS LOOP_TRIPCOUNT min=32 max=252
-    local_partial_col_tile_loop:
+    local_metadata_col_tile_loop:
         for (int local_col_tile = 0;
              local_col_tile < local_input_tiles;
              ++local_col_tile) {
@@ -347,95 +357,132 @@ local_partial_output_tile_loop:
                         INT4_WEIGHT_SCALE_BITS - 1,
                     INT4_WEIGHT_SCALE_BITS * scale_lane));
 
-            // Precompute all INT4_GROUPS_PER_TILE combined scales for this
-            // col_tile BEFORE entering the row_block pipeline.  This moves
-            // the FP32 weight_scale*activation_scale multiply out of the
-            // II=1 critical path entirely.  The DSP MUL latency (~4 cycles)
-            // no longer competes with weight_stream.read() and integer MAC
-            // inside local_partial_row_block_loop.
-            float combined_scales[INT4_GROUPS_PER_TILE];
-#pragma HLS ARRAY_PARTITION variable=combined_scales complete
-        local_partial_precompute_scale_loop:
+        local_metadata_group_loop:
             for (int g = 0; g < INT4_GROUPS_PER_TILE; ++g) {
 #pragma HLS PIPELINE II=1
                 const int lg = local_col_tile * INT4_GROUPS_PER_TILE + g;
-                combined_scales[g] = weight_scale * activation_scale[lg];
-#pragma HLS BIND_OP variable=combined_scales op=mul impl=dsp
-            }
-
-        local_partial_group_loop:
-            for (int group = 0; group < INT4_GROUPS_PER_TILE; ++group) {
-                const int local_group =
-                    local_col_tile * INT4_GROUPS_PER_TILE + group;
-                const int4_quant_word_t quantized = activation_q[local_group];
-                // Array lookup — no DSP multiply on this path.
-                const float combined_scale = combined_scales[group];
-
-            local_partial_row_block_loop:
-                for (int row_block = 0;
-                     row_block < INT4_ROW_BLOCKS;
-                     ++row_block) {
-#pragma HLS PIPELINE II=1 style=stp
-                    const int4_weight_word_t weight = weight_stream.read();
-                    int4_packed_acc_t packed_sum0 = 0;
-                    int4_packed_acc_t packed_sum1 = 0;
-
-                local_partial_mac_lane_loop:
-                    for (int lane = 0; lane < INT4_GROUP_SIZE; ++lane) {
-#pragma HLS UNROLL
-                        const int4_activation_t activation =
-                            (int4_activation_t)quantized.range(
-                                INT4_ACTIVATION_BITS * lane +
-                                    INT4_ACTIVATION_BITS - 1,
-                                INT4_ACTIVATION_BITS * lane);
-                        const ap_uint<8> pair0 = weight.range(
-                            16 * lane + 7, 16 * lane);
-                        const ap_uint<8> pair1 = weight.range(
-                            16 * lane + 15, 16 * lane + 8);
-                        packed_sum0 += int4_pack_two_w4(
-                            (int4_weight_t)pair0.range(7, 4),
-                            (int4_weight_t)pair0.range(3, 0)) * activation;
-                        packed_sum1 += int4_pack_two_w4(
-                            (int4_weight_t)pair1.range(7, 4),
-                            (int4_weight_t)pair1.range(3, 0)) * activation;
-                    }
-
-                    int4_group_acc_t integer_sum[INT4_ROW_BLOCK];
-#pragma HLS ARRAY_PARTITION variable=integer_sum complete
-                    int4_unpack_packed_acc(
-                        packed_sum0, integer_sum[0], integer_sum[1]);
-                    int4_unpack_packed_acc(
-                        packed_sum1, integer_sum[2], integer_sum[3]);
-
-                local_partial_accumulate_lane_loop:
-                    for (int lane = 0; lane < INT4_ROW_BLOCK; ++lane) {
-#pragma HLS UNROLL
-                        const int row = row_block * INT4_ROW_BLOCK + lane;
-                        const float contribution =
-                            (float)integer_sum[lane] * combined_scale;
-#pragma HLS BIND_OP variable=contribution op=mul impl=dsp
-                        partial[row] =
-                            local_col_tile == 0 && group == 0
-                                ? contribution
-                                : partial[row] + contribution;
-                    }
-                }
+                int4_linear_group_metadata_t metadata;
+                metadata.quantized = activation_q[lg];
+                const float combined_scale =
+                    weight_scale * activation_scale[lg];
+#pragma HLS BIND_OP variable=combined_scale op=mul impl=dsp
+                metadata.combined_scale = combined_scale;
+                metadata_stream.write(metadata);
             }
         }
+    }
+}
 
+template <int PE_ID>
+static void int4_accumulate_local_partial_tiles(
+    hls::stream<int4_linear_command_t>& command_stream,
+    hls::stream<int4_weight_word_t>& weight_stream,
+    hls::stream<int4_linear_group_metadata_t>& metadata_stream,
+    hls::stream_of_blocks<int4_partial_tile_block_t>& partial_blocks) {
+#pragma HLS INLINE off
+    const int4_linear_command_t command = command_stream.read();
+    const int output_tiles = int4_command_output_tiles(command);
+    const int local_input_tiles = int4_command_local_input_tiles(command);
+    const int groups_per_output =
+        local_input_tiles * INT4_GROUPS_PER_TILE;
+    const int mac_iterations = groups_per_output * INT4_ROW_BLOCKS;
+
+local_partial_output_tile_loop:
+    for (int output_tile = 0; output_tile < output_tiles; ++output_tile) {
+#pragma HLS LOOP_TRIPCOUNT min=32 max=252
+        // Releasing this lock publishes one complete output tile to the
+        // emitter.  The depth-two stream-of-blocks is the physical ping-pong
+        // buffer: MAC can immediately acquire the other block while the prior
+        // tile is serialized onto the reduction stream.
+        hls::write_lock<int4_partial_tile_block_t> partial(partial_blocks);
+        int4_linear_group_metadata_t current_metadata;
+
+    local_partial_continuous_mac_loop:
+        for (int flat = 0; flat < mac_iterations; ++flat) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=1024 max=2816
+            const int row_block = flat & (INT4_ROW_BLOCKS - 1);
+            if (row_block == 0) {
+                current_metadata = metadata_stream.read();
+            }
+            const int4_quant_word_t quantized =
+                current_metadata.quantized;
+            const float combined_scale =
+                current_metadata.combined_scale;
+
+            const int4_weight_word_t weight = weight_stream.read();
+            int4_packed_acc_t packed_sum0 = 0;
+            int4_packed_acc_t packed_sum1 = 0;
+
+        local_partial_mac_lane_loop:
+            for (int lane = 0; lane < INT4_GROUP_SIZE; ++lane) {
+#pragma HLS UNROLL
+                const int4_activation_t activation =
+                    (int4_activation_t)quantized.range(
+                        INT4_ACTIVATION_BITS * lane +
+                            INT4_ACTIVATION_BITS - 1,
+                        INT4_ACTIVATION_BITS * lane);
+                const ap_uint<8> pair0 = weight.range(
+                    16 * lane + 7, 16 * lane);
+                const ap_uint<8> pair1 = weight.range(
+                    16 * lane + 15, 16 * lane + 8);
+                packed_sum0 += int4_pack_two_w4(
+                    (int4_weight_t)pair0.range(7, 4),
+                    (int4_weight_t)pair0.range(3, 0)) * activation;
+                packed_sum1 += int4_pack_two_w4(
+                    (int4_weight_t)pair1.range(7, 4),
+                    (int4_weight_t)pair1.range(3, 0)) * activation;
+            }
+
+            int4_group_acc_t integer_sum[INT4_ROW_BLOCK];
+#pragma HLS ARRAY_PARTITION variable=integer_sum complete
+            int4_unpack_packed_acc(
+                packed_sum0, integer_sum[0], integer_sum[1]);
+            int4_unpack_packed_acc(
+                packed_sum1, integer_sum[2], integer_sum[3]);
+
+            int4_reduction_packet_t partial_packet =
+                flat < INT4_ROW_BLOCKS
+                    ? (int4_reduction_packet_t)0
+                    : partial[row_block];
+        local_partial_accumulate_lane_loop:
+            for (int lane = 0; lane < INT4_ROW_BLOCK; ++lane) {
+#pragma HLS UNROLL
+                const float contribution =
+                    (float)integer_sum[lane] * combined_scale;
+#pragma HLS BIND_OP variable=contribution op=mul impl=dsp
+                const float previous = int4_fp32_from_bits(
+                    partial_packet.range(32 * lane + 31, 32 * lane));
+                const float updated = flat < INT4_ROW_BLOCKS
+                    ? contribution
+                    : previous + contribution;
+                partial_packet.range(32 * lane + 31, 32 * lane) =
+                    int4_fp32_to_bits(updated);
+            }
+            partial[row_block] = partial_packet;
+        }
+    }
+}
+
+template <int PE_ID>
+static void int4_emit_local_partial_tiles(
+    hls::stream<int4_linear_command_t>& command_stream,
+    hls::stream_of_blocks<int4_partial_tile_block_t>& partial_blocks,
+    hls::stream<int4_reduction_packet_t>& partial_stream) {
+#pragma HLS INLINE off
+    const int4_linear_command_t command = command_stream.read();
+    const int output_tiles = int4_command_output_tiles(command);
+
+local_partial_emit_output_tile_loop:
+    for (int output_tile = 0; output_tile < output_tiles; ++output_tile) {
+#pragma HLS LOOP_TRIPCOUNT min=32 max=252
+        hls::read_lock<int4_partial_tile_block_t> partial(partial_blocks);
     local_partial_emit_loop:
         for (int row_block = 0;
              row_block < INT4_ROW_BLOCKS;
              ++row_block) {
 #pragma HLS PIPELINE II=1
-            int4_reduction_packet_t packet = 0;
-            for (int lane = 0; lane < INT4_ROW_BLOCK; ++lane) {
-#pragma HLS UNROLL
-                packet.range(32 * lane + 31, 32 * lane) =
-                    int4_fp32_to_bits(
-                        partial[row_block * INT4_ROW_BLOCK + lane]);
-            }
-            partial_stream.write(packet);
+            partial_stream.write(partial[row_block]);
         }
     }
 }
@@ -451,13 +498,19 @@ static void int4_run_local_pe(
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW disable_start_propagation
     hls::stream<int4_linear_command_t> reader_command;
+    hls::stream<int4_linear_command_t> metadata_command;
     hls::stream<int4_linear_command_t> compute_command;
+    hls::stream<int4_linear_command_t> emit_command;
     hls::stream<int4_weight_request_t> reader_request;
     hls::stream<int4_weight_request_t> buffer_request;
     hls::stream<int4_weight_word_t> weight_ingress;
     hls::stream<int4_weight_word_t> weight_buffer;
+    hls::stream<int4_linear_group_metadata_t> group_metadata;
+    hls::stream_of_blocks<int4_partial_tile_block_t> partial_blocks;
 #pragma HLS STREAM variable=reader_command depth=3
+#pragma HLS STREAM variable=metadata_command depth=3
 #pragma HLS STREAM variable=compute_command depth=5
+#pragma HLS STREAM variable=emit_command depth=6
 #pragma HLS STREAM variable=reader_request depth=2
 #pragma HLS STREAM variable=buffer_request depth=3
     // Four words are enough for a registered one-word/cycle skid boundary.
@@ -468,24 +521,34 @@ static void int4_run_local_pe(
     // former 512-word FIFO doubled the BRAM control cone and put full_n on the
     // post-place critical path without increasing the adapter read window.
 #pragma HLS STREAM variable=weight_buffer depth=256
+#pragma HLS STREAM variable=group_metadata depth=4
 #pragma HLS BIND_STORAGE variable=reader_command type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=metadata_command type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=compute_command type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=emit_command type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=reader_request type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=buffer_request type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=weight_ingress type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=weight_buffer type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=group_metadata type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=partial_blocks type=ram_2p impl=bram
 
     int4_split_local_command(
-        command_stream, reader_command, compute_command);
+        command_stream, reader_command, metadata_command,
+        compute_command, emit_command);
     int4_prepare_local_weight_request<PE_ID>(
         reader_command, reader_request, buffer_request);
     int4_read_local_weights<PE_ID>(
         weight_mem, reader_request, weight_ingress);
     int4_buffer_local_weights<PE_ID>(
         buffer_request, weight_ingress, weight_buffer);
-    int4_compute_local_partials<PE_ID>(
+    int4_prepare_local_group_metadata<PE_ID>(
         scale_mem, activation_q, activation_scale,
-        compute_command, weight_buffer, partial_stream);
+        metadata_command, group_metadata);
+    int4_accumulate_local_partial_tiles<PE_ID>(
+        compute_command, weight_buffer, group_metadata, partial_blocks);
+    int4_emit_local_partial_tiles<PE_ID>(
+        emit_command, partial_blocks, partial_stream);
 }
 
 static int4_reduction_packet_t int4_add_partial_packets(
@@ -1245,4 +1308,3 @@ extern "C" void int4_linear_kernel_4pe(
         completion2, completion3, completion23);
     int4_wait_task_completion_pairs<100>(completion01, completion23);
 }
-
