@@ -11,9 +11,11 @@ Source này hiện thực một token decode đầy đủ bằng Vitis HLS 2023.
 - Chỉ partial output 128-bit và scalar command/reduction đã đăng ký được phép
   đi qua biên SLR.
 
-Kernel top là `int4_decoder_token_controller`. Một invocation nhận hidden state
-đã embedding, chạy 32 decoder layer, cập nhật bốn KV cache cục bộ và ghi bốn
-shard logits.
+`int4_decoder_token_controller` được giữ làm baseline monolithic. Target
+control-plane mới tách nó thành `int4_decoder_pe0_kernel` tới
+`int4_decoder_pe3_kernel`, mỗi CU sở hữu đúng một SLR/DDR. Một token launch cả
+bốn CU, chạy 32 decoder layer, cập nhật bốn KV cache cục bộ và ghi bốn shard
+logits.
 
 ## Thành phần source hiện tại
 
@@ -39,6 +41,9 @@ ngắn gọn trong [`HLS_SOURCE_GUIDE.md`](HLS_SOURCE_GUIDE.md).
 Datapath RMSNorm, GEMV INT4, reduction tree và cách chia logic theo SLR được
 mô tả chi tiết trong
 [`RMSNORM_MATMUL_HARDWARE.md`](RMSNORM_MATMUL_HARDWARE.md).
+Control plane bốn CU độc lập dùng lại datapath này, topology 12 AXIS link và
+contract launch phía host nằm trong
+[`DECODER_MULTIKERNEL_CONTROL_PLANE.md`](DECODER_MULTIKERNEL_CONTROL_PLANE.md).
 
 ## Kiến trúc dữ liệu
 
@@ -67,8 +72,9 @@ DDR3 -> PE3 --128b--/                       +-> output PE2/PE3
 
 RMSNorm cũng theo topology pair nhưng chỉ truyền một partial FP32 và một
 reciprocal FP32. Mỗi `int4_decoder_local_pe_N` tự chạy đủ lịch 32 layer và tự
-giữ `mode/layer/address/enable`; top chỉ phát position token theo chuỗi
-`SLR0 -> SLR1 -> SLR2 -> SLR3` và không còn bus mode/state toàn cục.
+giữ `mode/layer/address/enable`; không còn bus mode/state toàn cục. Baseline
+monolithic relay position theo chuỗi, còn target bốn CU nhận cùng scalar
+`position` trực tiếp từ host để không tạo thêm control net xuyên SLR.
 
 ## Overlap DDR với compute
 
@@ -201,11 +207,14 @@ qua và làm `gmem0` đi SLR0→SLR2; ngược lại, run ép ownership toàn b�
 
 Số liệu và critical-path chi tiết nằm trong `NEW_DCP_TIMING_FIX.md`.
 
-Vitis HLS 2023.2 tự sinh một `entry_proc` AND đồng thời 20 tín hiệu `full_n`
-của các FIFO địa chỉ. `patch_partitioned_entry_proc.tcl` được gọi tự động sau
+Ở baseline monolithic, Vitis HLS 2023.2 tự sinh một `entry_proc` AND đồng thời
+20 tín hiệu `full_n` của các FIFO địa chỉ. `patch_partitioned_entry_proc.tcl`
+được gọi tự động sau
 `csynth_design` và trước `export_design`: nó thay cone 20 ngõ bằng bốn launcher
 5 ngõ độc lập, mỗi launcher vẫn ghi nguyên tử đủ năm địa chỉ của một PE. Script
 fail build nếu không tìm đúng một entry process hoặc nếu cone toàn cục vẫn còn.
+Target bốn CU loại bỏ nguyên nhân này ở boundary HLS: mỗi CU chỉ có năm con trỏ
+AXI cục bộ, nên không cần patch generated RTL.
 
 ## Tổng hợp và build
 

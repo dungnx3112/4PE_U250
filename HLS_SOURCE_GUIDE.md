@@ -8,10 +8,12 @@
 4. `int4_decoder_schedule.hpp`: the fixed 32-layer execution schedule.
 5. `int4_linear_controller.*`, `int4_decoder_blocks.*`, and
    `swiftkv_attention.*`: reusable compute services.
-6. `int4_decoder_controller.*`: production top kernel and four local PE
-   schedulers.
+6. `int4_decoder_controller.*`: baseline monolithic top and four local PE
+   schedulers exported through `int4_decoder_local.hpp`.
+7. `int4_decoder_multikernel.*`: four-CU control plane and AXI-Stream relay
+   boundaries; see `DECODER_MULTIKERNEL_CONTROL_PLANE.md`.
 
-The production HLS scripts compile only these four translation units:
+The baseline HLS scripts compile these four translation units:
 
 ```text
 swiftkv_attention.cpp
@@ -19,6 +21,9 @@ int4_linear_controller.cpp
 int4_decoder_blocks.cpp
 int4_decoder_controller.cpp
 ```
+
+`run_hls_decoder_multikernel.tcl` adds
+`int4_decoder_multikernel.cpp` and exports one XO per PE.
 
 `int4_weight_packer.*` is host-side model preparation. Files under
 `benchmarks/` are standalone experiments and are not production inputs.
@@ -55,5 +60,9 @@ Run production C synthesis and generated-RTL architecture checks with:
   -f run_hls_csynth_300mhz.tcl
 ```
 
-An exported XO is valid only after `run_hls_300mhz.tcl` succeeds and its
-SHA-256 sidecar is regenerated from that exact file.
+For the four-CU target, run `run_hls_decoder_multikernel.tcl`; the full link
+wrapper is `build_decoder_multikernel_270mhz.ps1`. A routed XCLBIN is accepted
+only after route, DRC, setup and hold gates pass.
+
+For the baseline, an exported XO is valid only after `run_hls_300mhz.tcl`
+succeeds and its SHA-256 sidecar is regenerated from that exact file.

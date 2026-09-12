@@ -1,5 +1,6 @@
 #include "int4_decoder_controller.hpp"
 #include "int4_decoder_blocks.hpp"
+#include "int4_decoder_local.hpp"
 #include "int4_decoder_schedule.hpp"
 #include "int4_linear_controller.hpp"
 #include "int4_task_control.hpp"
@@ -7,7 +8,6 @@
 
 static constexpr int INT4_PROJECTION_SCRATCH_WORDS =
     INT4_MAX_LOCAL_OUTPUT_WORDS;
-using int4_position_command_t = ap_uint<12>;
 using int4_local_stage_flags_t = ap_uint<8>;
 
 // Decode the compact schedule mode once at a registered function boundary.
@@ -140,7 +140,7 @@ store_local_logits_loop:
 #define INT4_DEFINE_LOCAL_DECODER_PE(                                  \
     PE, RMS_STAGE, LINEAR_STAGE, ATTENTION_STAGE,                      \
     SWIGLU_STAGE, RESIDUAL_ADD)                                        \
-static void int4_decoder_local_pe_##PE(                                \
+void int4_decoder_local_pe_##PE(                                       \
     const int4_weight_word_t* model_bank,                              \
     const int4_output_word_t* rope_lut,                                \
     int4_output_word_t* external_residual,                            \

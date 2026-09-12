@@ -1,16 +1,20 @@
 # Usage:
 #   vivado -mode batch -source verify_300mhz_routed.tcl -tclargs \
-#     <routed.dcp> <output_directory>
+#     <routed.dcp> <output_directory> ?gate_label?
 #
 # This is a hard build gate: an XCLBIN is not accepted unless both setup and
 # hold timing close on the routed checkpoint.
 
-if {$argc != 2} {
-    error "Usage: verify_300mhz_routed.tcl <routed.dcp> <output_directory>"
+if {$argc < 2 || $argc > 3} {
+    error "Usage: verify_300mhz_routed.tcl <routed.dcp> <output_directory> ?gate_label?"
 }
 
 set dcp_path [file normalize [lindex $argv 0]]
 set report_dir [file normalize [lindex $argv 1]]
+set gate_label "300MHz"
+if {$argc == 3} {
+    set gate_label [lindex $argv 2]
+}
 if {![file exists $dcp_path]} {
     error "Routed checkpoint does not exist: $dcp_path"
 }
@@ -78,19 +82,19 @@ puts $result "route_errors=$route_errors"
 puts $result "drc_errors=$drc_errors"
 close $result
 
-puts "INFO: 300MHz timing gate: WNS=$wns WHS=$whs routed=$fully_routed_nets/$routable_nets route_errors=$route_errors drc_errors=$drc_errors"
+puts "INFO: $gate_label timing gate: WNS=$wns WHS=$whs routed=$fully_routed_nets/$routable_nets route_errors=$route_errors drc_errors=$drc_errors"
 if {$routable_nets != $fully_routed_nets || $route_errors != 0} {
     close_design
-    error "300MHz route gate failed: routed=$fully_routed_nets/$routable_nets route_errors=$route_errors"
+    error "$gate_label route gate failed: routed=$fully_routed_nets/$routable_nets route_errors=$route_errors"
 }
 if {$drc_errors != 0} {
     close_design
-    error "300MHz DRC gate failed: drc_errors=$drc_errors"
+    error "$gate_label DRC gate failed: drc_errors=$drc_errors"
 }
 if {$setup_failing != 0 || $hold_failing != 0 || $wns < 0.0 || $whs < 0.0} {
     close_design
-    error "300MHz timing gate failed: WNS=$wns WHS=$whs"
+    error "$gate_label timing gate failed: WNS=$wns WHS=$whs"
 }
 
-puts "INFO: 300MHz timing gate: TIMING_CLOSED"
+puts "INFO: $gate_label timing gate: TIMING_CLOSED"
 close_design
