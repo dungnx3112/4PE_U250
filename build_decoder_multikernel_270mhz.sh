@@ -194,10 +194,23 @@ echo "Report dir:     $report_dir"
 echo ""
 
 set +e
+# Patch the cfg: replace placeholder Tcl paths with absolute paths
+# (v++ sets Vivado CWD to a temp dir, so relative paths in cfg do not work)
+config_patched="$temp_dir/link_decoder_multikernel_270mhz_patched.cfg"
+pre_place_tcl="$source_dir/constraints/pre_place.tcl"
+pre_physopt_tcl="$source_dir/constraints/pre_physopt.tcl"
+sed \
+    -e "s|__PRE_PLACE_TCL__|${pre_place_tcl}|g" \
+    -e "s|__PRE_PHYSOPT_TCL__|${pre_physopt_tcl}|g" \
+    "$config_path" > "$config_patched"
+echo "  Patched config: $config_patched"
+echo "    pre_place.tcl   -> $pre_place_tcl"
+echo "    pre_physopt.tcl -> $pre_physopt_tcl"
+
 v++ --link \
     --target hw \
     --platform "$platform" \
-    --config "$config_path" \
+    --config "$config_patched" \
     --save-temps \
     --temp_dir "$temp_dir" \
     --log_dir "$log_dir" \

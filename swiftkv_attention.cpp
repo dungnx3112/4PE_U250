@@ -2612,11 +2612,17 @@ local_rope_bank_loop:
              lane < SWIFTKV_ROPE_PAIRS_PER_LUT_WORD;
              ++lane) {
 #pragma HLS PIPELINE II=2
+            // Direct index into the packed word avoids a 608-bit shift register.
+            // packed is read-only here; HLS maps each slice to local bit-wires
+            // with small, distributed fanout instead of a single fanout-571
+            // pipeline enable (or_ln2606) that previously spanned the whole SLR.
+            // Functionally equivalent: packed.range(base+N, base) == bit-exact
+            // result of shifting packed >>= SWIFTKV_ROPE_LUT_BEAT_BITS * lane.
+            const int base = lane * SWIFTKV_ROPE_LUT_BEAT_BITS;
             cosine_stream.write(
-                (swiftkv_rope_raw_t)packed.range(18, 0));
+                (swiftkv_rope_raw_t)packed.range(base + 18, base));
             sine_stream.write(
-                (swiftkv_rope_raw_t)packed.range(37, 19));
-            packed >>= SWIFTKV_ROPE_LUT_BEAT_BITS;
+                (swiftkv_rope_raw_t)packed.range(base + 37, base + 19));
         }
     }
     command_stream.write(
