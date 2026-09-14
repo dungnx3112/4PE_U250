@@ -22,6 +22,12 @@ create_clock -period 3.333333 -name default
 config_interface -m_axi_latency 32
 config_interface -m_axi_alignment_byte_size 64
 config_interface -m_axi_max_widen_bitwidth 512
+# Register every M_AXI adapter input/output at the kernel boundary to shorten
+# the BRAM/FIFO-to-PE routes that are critical at the 3.333 ns clock period.
+config_interface -m_axi_register_io all
+# Let HLS select BRAM, LUTRAM, or URAM for each M_AXI internal buffer.  This is
+# intentionally "auto" rather than forcing wide buffers into LUTRAM.
+config_interface -m_axi_buffer_impl auto
 config_rtl -register_reset_num 3
 config_dataflow -start_fifo_depth 8
 

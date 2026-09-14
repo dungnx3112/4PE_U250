@@ -111,6 +111,21 @@ if [[ $(grep -Fxc -- "$expected_hls_clock" "$hls_script_path") -ne 1 ]]; then
     exit 1
 fi
 
+required_hls_interface_settings=(
+    'config_interface -m_axi_latency 32'
+    'config_interface -m_axi_alignment_byte_size 64'
+    'config_interface -m_axi_max_widen_bitwidth 512'
+    'config_interface -m_axi_register_io all'
+    'config_interface -m_axi_buffer_impl auto'
+)
+for required_setting in "${required_hls_interface_settings[@]}"; do
+    if [[ $(grep -Fxc -- "$required_setting" "$hls_script_path") -ne 1 ]]; then
+        echo "HLS script must contain exactly one '$required_setting' entry." >&2
+        exit 1
+    fi
+done
+echo "Preflight verified: HLS clock and M_AXI adapter settings target 300 MHz."
+
 require_hook_call() {
     local hook_path=$1
     local required_call=$2
