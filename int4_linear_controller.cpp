@@ -306,21 +306,15 @@ buffer_local_weight_loop:
     }
 }
 
-struct int4_linear_group_metadata_t {
-    int4_quant_word_t quantized;
-    float combined_scale;
-};
-
 typedef int4_reduction_packet_t
     int4_partial_tile_block_t[INT4_ROW_BLOCKS];
 
 template <int PE_ID>
 static void int4_prepare_local_group_metadata(
     const int4_weight_scale_word_t* scale_mem,
-    const int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
     const float activation_scale[INT4_MAX_LOCAL_GROUPS],
     hls::stream<int4_linear_command_t>& command_stream,
-    hls::stream<int4_linear_group_metadata_t>& metadata_stream) {
+    hls::stream<float>& combined_scale_stream) {
 #pragma HLS INLINE off
     const int4_linear_command_t command = command_stream.read();
     const int output_tiles = int4_command_output_tiles(command);
@@ -361,13 +355,13 @@ local_metadata_output_tile_loop:
             for (int g = 0; g < INT4_GROUPS_PER_TILE; ++g) {
 #pragma HLS PIPELINE II=1
                 const int lg = local_col_tile * INT4_GROUPS_PER_TILE + g;
-                int4_linear_group_metadata_t metadata;
-                metadata.quantized = activation_q[lg];
                 const float combined_scale =
                     weight_scale * activation_scale[lg];
 #pragma HLS BIND_OP variable=combined_scale op=mul impl=dsp
-                metadata.combined_scale = combined_scale;
-                metadata_stream.write(metadata);
+                // Only the per-output-tile scale is dynamic metadata.  The
+                // quantized activation is already held in a stable PE-local
+                // BRAM and is prefetched directly by the MAC.
+                combined_scale_stream.write(combined_scale);
             }
         }
     }
@@ -375,9 +369,10 @@ local_metadata_output_tile_loop:
 
 template <int PE_ID>
 static void int4_accumulate_local_partial_tiles(
+    const int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
     hls::stream<int4_linear_command_t>& command_stream,
     hls::stream<int4_weight_word_t>& weight_stream,
-    hls::stream<int4_linear_group_metadata_t>& metadata_stream,
+    hls::stream<float>& combined_scale_stream,
     hls::stream_of_blocks<int4_partial_tile_block_t>& partial_blocks) {
 #pragma HLS INLINE off
     const int4_linear_command_t command = command_stream.read();
@@ -395,20 +390,32 @@ local_partial_output_tile_loop:
         // buffer: MAC can immediately acquire the other block while the prior
         // tile is serialized onto the reduction stream.
         hls::write_lock<int4_partial_tile_block_t> partial(partial_blocks);
-        int4_linear_group_metadata_t current_metadata;
+        // activation_q is stable for the complete linear command.  Keep the
+        // current group in a local register and fetch the next group four MAC
+        // cycles early, hiding the latency-two BRAM read without a redundant
+        // 480-bit FIFO.  The 32-cycle group reuse window provides ample
+        // distance for this two-register ping-pong boundary.
+        int4_quant_word_t current_quantized = activation_q[0];
+        int4_quant_word_t next_quantized = 0;
+        float current_combined_scale = 0.0f;
 
     local_partial_continuous_mac_loop:
         for (int flat = 0; flat < mac_iterations; ++flat) {
 #pragma HLS PIPELINE II=1
 #pragma HLS LOOP_TRIPCOUNT min=1024 max=2816
             const int row_block = flat & (INT4_ROW_BLOCKS - 1);
+            const int group_index = flat / INT4_ROW_BLOCKS;
+            if (row_block == INT4_ROW_BLOCKS - 4 &&
+                group_index + 1 < groups_per_output) {
+                next_quantized = activation_q[group_index + 1];
+            }
             if (row_block == 0) {
-                current_metadata = metadata_stream.read();
+                current_combined_scale = combined_scale_stream.read();
             }
             const int4_quant_word_t quantized =
-                current_metadata.quantized;
+                current_quantized;
             const float combined_scale =
-                current_metadata.combined_scale;
+                current_combined_scale;
 
             const int4_weight_word_t weight = weight_stream.read();
             int4_packed_acc_t packed_sum0 = 0;
@@ -460,6 +467,10 @@ local_partial_output_tile_loop:
                     int4_fp32_to_bits(updated);
             }
             partial[row_block] = partial_packet;
+            if (row_block == INT4_ROW_BLOCKS - 1 &&
+                group_index + 1 < groups_per_output) {
+                current_quantized = next_quantized;
+            }
         }
     }
 }
@@ -505,7 +516,7 @@ static void int4_run_local_pe(
     hls::stream<int4_weight_request_t> buffer_request;
     hls::stream<int4_weight_word_t> weight_ingress;
     hls::stream<int4_weight_word_t> weight_buffer;
-    hls::stream<int4_linear_group_metadata_t> group_metadata;
+    hls::stream<float> group_scale;
     hls::stream_of_blocks<int4_partial_tile_block_t> partial_blocks;
 #pragma HLS STREAM variable=reader_command depth=3
 #pragma HLS STREAM variable=metadata_command depth=3
@@ -521,7 +532,7 @@ static void int4_run_local_pe(
     // former 512-word FIFO doubled the BRAM control cone and put full_n on the
     // post-place critical path without increasing the adapter read window.
 #pragma HLS STREAM variable=weight_buffer depth=256
-#pragma HLS STREAM variable=group_metadata depth=4
+#pragma HLS STREAM variable=group_scale depth=8
 #pragma HLS BIND_STORAGE variable=reader_command type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=metadata_command type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=compute_command type=fifo impl=srl
@@ -530,7 +541,7 @@ static void int4_run_local_pe(
 #pragma HLS BIND_STORAGE variable=buffer_request type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=weight_ingress type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=weight_buffer type=fifo impl=bram
-#pragma HLS BIND_STORAGE variable=group_metadata type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=group_scale type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=partial_blocks type=ram_2p impl=bram
 
     int4_split_local_command(
@@ -543,10 +554,10 @@ static void int4_run_local_pe(
     int4_buffer_local_weights<PE_ID>(
         buffer_request, weight_ingress, weight_buffer);
     int4_prepare_local_group_metadata<PE_ID>(
-        scale_mem, activation_q, activation_scale,
-        metadata_command, group_metadata);
+        scale_mem, activation_scale, metadata_command, group_scale);
     int4_accumulate_local_partial_tiles<PE_ID>(
-        compute_command, weight_buffer, group_metadata, partial_blocks);
+        activation_q, compute_command, weight_buffer, group_scale,
+        partial_blocks);
     int4_emit_local_partial_tiles<PE_ID>(
         emit_command, partial_blocks, partial_stream);
 }

@@ -75,7 +75,10 @@ pre_opt_path=$source_dir/timing_300mhz_pre_opt.tcl
 pre_place_path=$source_dir/timing_300mhz_pre_place.tcl
 pre_physopt_path=$source_dir/timing_300mhz_pre_physopt.tcl
 post_place_path=$source_dir/timing_300mhz_post_place.tcl
+timing_domains_path=$source_dir/timing_300mhz_domains.tcl
 hls_script_path=$source_dir/run_hls_300mhz.tcl
+rtl_patch_path=$source_dir/patch_partitioned_entry_proc.tcl
+rtl_gate_path=$source_dir/verify_generated_rtl_300mhz.tcl
 timing_gate_path=$source_dir/verify_300mhz_routed.tcl
 run_id=$(date +%Y%m%d-%H%M%S)-$$
 run_dir=$workspace_dir/build_300mhz/runs/$run_id
@@ -91,12 +94,22 @@ for required_path in \
     "$pre_place_path" \
     "$pre_physopt_path" \
     "$post_place_path" \
+    "$timing_domains_path" \
+    "$hls_script_path" \
+    "$rtl_patch_path" \
+    "$rtl_gate_path" \
     "$timing_gate_path"; do
     if [[ ! -f $required_path ]]; then
         echo "Required build input does not exist: $required_path" >&2
         exit 1
     fi
 done
+
+expected_hls_clock='create_clock -period 3.333333 -name default'
+if [[ $(grep -Fxc -- "$expected_hls_clock" "$hls_script_path") -ne 1 ]]; then
+    echo "HLS script must contain exactly one '$expected_hls_clock' entry." >&2
+    exit 1
+fi
 
 require_hook_call() {
     local hook_path=$1
@@ -154,15 +167,27 @@ if (( rebuild_xo == 1 )); then
         fi
     fi
 
-    echo "Rebuilding XO with: $hls"
+    xo_rebuild_marker=$run_dir/xo_rebuild.started
+    touch -- "$xo_rebuild_marker"
+    echo "Rebuilding XO from the checked-in 3.333333 ns HLS solution with: $hls"
     (
         cd -- "$source_dir"
         "$hls" -f "$hls_script_path"
     ) 2>&1 | tee "$log_dir/vitis_hls.log"
+    if [[ ! -s $xo_path || ! $xo_path -nt $xo_rebuild_marker ]]; then
+        echo "HLS did not produce a fresh non-empty XO for this run: $xo_path" >&2
+        exit 1
+    fi
     for marker in \
         "PARTITIONED_PE_CONFIG_LAUNCH" \
         "LOCAL_WEIGHT_REQUEST_PIPELINES_VERIFIED" \
         "LOCAL_WEIGHT_BACKPRESSURE_BOUNDARY_VERIFIED" \
+        "LOCAL_METADATA_PRELOAD_CONTROLLERS_SPLIT" \
+        "LINEAR_ACTIVATION_PREFETCH_VERIFIED" \
+        "LINEAR_SCALE_FIFO_VERIFIED" \
+        "ATTENTION_SCORE_BACKPRESSURE_ISOLATED" \
+        "ATTENTION_FMUL_PIPELINE_VERIFIED" \
+        "ROPE_SELECTOR_PIPELINED" \
         "AXI_READ_WINDOWS_2X64_VERIFIED" \
         "AXI_WRITE_WINDOWS_2X16_VERIFIED"; do
         if ! grep -Fq -- "$marker" "$log_dir/vitis_hls.log"; then
@@ -174,6 +199,18 @@ fi
 
 if [[ ! -s $xo_path ]]; then
     echo "XO was not generated or is empty: $xo_path" >&2
+    exit 1
+fi
+
+# Whether rebuilt explicitly or selected by the normal freshness policy, the
+# XO must not predate any checked-in HLS input used to create it.
+if (( reuse_xo == 0 )) && find "$source_dir" -maxdepth 1 -type f \
+        \( -name '*.cpp' -o -name '*.hpp' -o \
+           -name 'run_hls_300mhz.tcl' -o \
+           -name 'patch_partitioned_entry_proc.tcl' -o \
+           -name 'verify_generated_rtl_300mhz.tcl' \) \
+        -newer "$xo_path" -print -quit | grep -q .; then
+    echo "Freshness gate failed: XO is older than a checked-in HLS input." >&2
     exit 1
 fi
 

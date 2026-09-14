@@ -16,8 +16,8 @@ foreach source_file [list \
 
 open_solution -reset solution1 -flow_target vitis
 set_part {xcu250-figd2104-2L-e}
-# Target: 270 MHz (3.703 ns) — first timing closure step.
-create_clock -period 3.703 -name default
+# Final implementation target: 300 MHz.
+create_clock -period 3.333333 -name default
 config_interface -m_axi_latency 32
 config_interface -m_axi_alignment_byte_size 64
 config_interface -m_axi_max_widen_bitwidth 512

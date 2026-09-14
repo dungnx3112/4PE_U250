@@ -425,8 +425,12 @@ static void swiftkv_quantize_kv_record(
     int4_output_word_t metadata = 0;
     ap_uint<256> packed_k_group_all[SWIFTKV_KV_GROUPS_PER_HEAD];
     ap_uint<256> packed_v_group_all[SWIFTKV_KV_GROUPS_PER_HEAD];
-#pragma HLS ARRAY_PARTITION variable=packed_k_group_all complete
-#pragma HLS ARRAY_PARTITION variable=packed_v_group_all complete
+    // These eight 256-bit temporaries used to be fully partitioned registers.
+    // Their shared FSM clock-enable drove more than one thousand loads in the
+    // routed PE2 quantizer.  Small dual-port BRAM banks trade a few non-critical
+    // pack cycles for local write enables and registered read boundaries.
+#pragma HLS BIND_STORAGE variable=packed_k_group_all type=ram_2p impl=bram latency=2
+#pragma HLS BIND_STORAGE variable=packed_v_group_all type=ram_2p impl=bram latency=2
 
 quantize_kv_group_loop:
     for (int group = 0;
@@ -436,39 +440,41 @@ quantize_kv_group_loop:
         ap_uint<32> maximum_v = 0;
         ap_int<32> raw_k[SWIFTKV_KV_GROUP_SIZE];
         ap_int<32> raw_v[SWIFTKV_KV_GROUP_SIZE];
-        ap_int<8> quantized_k_group[SWIFTKV_KV_GROUP_SIZE];
-        ap_int<8> quantized_v_group[SWIFTKV_KV_GROUP_SIZE];
-#pragma HLS ARRAY_PARTITION variable=raw_k complete
-#pragma HLS ARRAY_PARTITION variable=raw_v complete
-#pragma HLS ARRAY_PARTITION variable=quantized_k_group complete
-#pragma HLS ARRAY_PARTITION variable=quantized_v_group complete
+        // Four local banks supply the four-lane max/quantize engines without
+        // the global enables created by complete partitioning 64 x 32-bit
+        // registers.
+#pragma HLS ARRAY_PARTITION variable=raw_k cyclic factor=4
+#pragma HLS ARRAY_PARTITION variable=raw_v cyclic factor=4
+#pragma HLS BIND_STORAGE variable=raw_k type=ram_2p impl=lutram latency=1
+#pragma HLS BIND_STORAGE variable=raw_v type=ram_2p impl=lutram latency=1
         const int4_output_word_t k_lower = k_words[2 * group];
         const int4_output_word_t k_upper = k_words[2 * group + 1];
         const int4_output_word_t v_lower = v_words[2 * group];
         const int4_output_word_t v_upper = v_words[2 * group + 1];
 
-    unpack_kv_group_loop:
-        for (int lane = 0;
-             lane < SWIFTKV_KV_GROUP_SIZE;
-             ++lane) {
+    unpack_kv_group_block_loop:
+        for (int block = 0;
+             block < SWIFTKV_KV_GROUP_SIZE / 4;
+             ++block) {
+#pragma HLS PIPELINE II=1
+        unpack_kv_group_lane_loop:
+            for (int lane = 0; lane < 4; ++lane) {
 #pragma HLS UNROLL
-            const bool upper = lane >= INT4_OUTPUTS_PER_WORD;
-            const int packed_lane =
-                lane & (INT4_OUTPUTS_PER_WORD - 1);
-            const ap_int<32> k_raw =
-                upper
+                const int index = block * 4 + lane;
+                const bool upper = index >= INT4_OUTPUTS_PER_WORD;
+                const int packed_lane =
+                    index & (INT4_OUTPUTS_PER_WORD - 1);
+                raw_k[index] = upper
                     ? (ap_int<32>)k_upper.range(
                         32 * packed_lane + 31, 32 * packed_lane)
                     : (ap_int<32>)k_lower.range(
                         32 * packed_lane + 31, 32 * packed_lane);
-            const ap_int<32> v_raw =
-                upper
+                raw_v[index] = upper
                     ? (ap_int<32>)v_upper.range(
                         32 * packed_lane + 31, 32 * packed_lane)
                     : (ap_int<32>)v_lower.range(
                         32 * packed_lane + 31, 32 * packed_lane);
-            raw_k[lane] = k_raw;
-            raw_v[lane] = v_raw;
+            }
         }
 
     find_kv_group_max_block_loop:
@@ -541,22 +547,15 @@ quantize_kv_group_loop:
             for (int lane = 0; lane < 4; ++lane) {
 #pragma HLS UNROLL
                 const int index = block * 4 + lane;
-                quantized_k_group[index] =
+                const ap_int<8> quantized_k =
                     swiftkv_quantize_kv_raw(raw_k[index], shift_k);
-                quantized_v_group[index] =
+                const ap_int<8> quantized_v =
                     swiftkv_quantize_kv_raw(raw_v[index], shift_v);
+                packed_k_group.range(8 * index + 7, 8 * index) =
+                    (ap_uint<8>)quantized_k;
+                packed_v_group.range(8 * index + 7, 8 * index) =
+                    (ap_uint<8>)quantized_v;
             }
-        }
-
-    pack_quantized_kv_group_loop:
-        for (int lane = 0;
-             lane < SWIFTKV_KV_GROUP_SIZE;
-             ++lane) {
-#pragma HLS UNROLL
-            packed_k_group.range(8 * lane + 7, 8 * lane) =
-                (ap_uint<8>)quantized_k_group[lane];
-            packed_v_group.range(8 * lane + 7, 8 * lane) =
-                (ap_uint<8>)quantized_v_group[lane];
         }
 
         packed_k_group_all[group] = packed_k_group;
@@ -1073,11 +1072,12 @@ compressed_dot_token_loop:
                         ? group_dot
                         : (swiftkv_dot_t)(token_dot + group_dot);
                 token_dot = next_dot;
-                if (group == SWIFTKV_KV_GROUPS_PER_HEAD - 1) {
-                    unscaled_score_stream.write(next_dot);
-                }
             }
         }
+        // Keep FIFO back-pressure out of the fixed eight-phase compute loop.
+        // The completed dot is committed only after the pipelined controller
+        // has drained, so full_n no longer gates its query/key datapath.
+        unscaled_score_stream.write(token_dot);
     }
 }
 
@@ -1647,6 +1647,138 @@ stage_weighted_group_engine_loop:
     }
 }
 
+// Keep state-bank selection/normalization behind its own BRAM boundary.  This
+// prevents the parent update FSM from becoming the clock-enable source for the
+// complete 1024-bit attention group.
+static int4_fxp32_t swiftkv_normalize_weighted_group(
+    const swiftkv_state_t
+        weighted_value_engine0[SWIFTKV_UPDATE_ENGINE_VALUES],
+    const swiftkv_state_t
+        weighted_value_engine1[SWIFTKV_UPDATE_ENGINE_VALUES],
+    const swiftkv_state_t
+        weighted_value_engine2[SWIFTKV_UPDATE_ENGINE_VALUES],
+    const swiftkv_state_t
+        weighted_value_engine3[SWIFTKV_UPDATE_ENGINE_VALUES],
+    int group,
+    int4_fxp32_t inverse_normalization,
+    int4_fxp32_t attention_group[INT4_GROUP_SIZE]) {
+#pragma HLS INLINE off
+    swiftkv_state_t weighted_group[INT4_GROUP_SIZE];
+#pragma HLS BIND_STORAGE variable=weighted_group type=ram_1p impl=bram latency=1
+
+    swiftkv_stage_weighted_group_engine<0>(
+        weighted_value_engine0, group, weighted_group);
+    swiftkv_stage_weighted_group_engine<1>(
+        weighted_value_engine1, group, weighted_group);
+    swiftkv_stage_weighted_group_engine<2>(
+        weighted_value_engine2, group, weighted_group);
+    swiftkv_stage_weighted_group_engine<3>(
+        weighted_value_engine3, group, weighted_group);
+
+    int4_fxp32_t max_abs = 0;
+normalize_weighted_group_lane_loop:
+    for (int lane = 0; lane < INT4_GROUP_SIZE; ++lane) {
+#pragma HLS PIPELINE II=1
+        const swiftkv_state_t weighted_value = weighted_group[lane];
+        const swiftkv_state_product_t normalized_value =
+            (swiftkv_state_product_t)(
+                weighted_value * inverse_normalization);
+#pragma HLS BIND_OP variable=normalized_value op=mul impl=dsp latency=4
+        int4_fxp32_t value = 0;
+        value.range(31, 0) = normalized_value.range(31, 0);
+        attention_group[lane] = value;
+        const int4_fxp32_t magnitude =
+            value < 0 ? (int4_fxp32_t)(-value) : value;
+        if (magnitude > max_abs) {
+            max_abs = magnitude;
+        }
+    }
+    return max_abs;
+}
+
+// Float conversion, DSP scaling and packing run under a second local
+// controller.  The input BRAM read and latency-four FMUL are on distinct
+// scheduled stages instead of one parent-FSM critical cone.
+static void swiftkv_quantize_attention_group(
+    const int4_fxp32_t attention_group[INT4_GROUP_SIZE],
+    int4_fxp32_t max_abs,
+    hls::stream<int4_quant_word_t>& quantized_stream,
+    hls::stream<float>& scale_stream) {
+#pragma HLS INLINE off
+    const float max_float = (float)max_abs;
+    const float output_scale =
+        max_float == 0.0f
+            ? 0.0f
+            : max_float * (1.0f / 16383.0f);
+    const float inverse_scale =
+        max_float == 0.0f ? 0.0f : 16383.0f / max_float;
+
+    float attention_group_f[INT4_GROUP_SIZE];
+#pragma HLS BIND_STORAGE variable=attention_group_f type=ram_2p impl=bram latency=2
+pre_convert_to_float_loop:
+    for (int lane = 0; lane < INT4_GROUP_SIZE; ++lane) {
+#pragma HLS PIPELINE II=1
+        attention_group_f[lane] = (float)attention_group[lane];
+    }
+
+    ap_int<15> quantized_lanes[INT4_GROUP_SIZE];
+#pragma HLS ARRAY_PARTITION variable=quantized_lanes complete
+attention_quantize_reverse_loop:
+    for (int lane = 0; lane < INT4_GROUP_SIZE; ++lane) {
+#pragma HLS PIPELINE II=1
+        const float scaled = attention_group_f[lane] * inverse_scale;
+#pragma HLS BIND_OP variable=scaled op=fmul impl=dsp latency=4
+        float rounded =
+            scaled >= 0.0f ? scaled + 0.5f : scaled - 0.5f;
+        if (rounded > 16383.0f) {
+            rounded = 16383.0f;
+        }
+        if (rounded < -16383.0f) {
+            rounded = -16383.0f;
+        }
+        quantized_lanes[lane] = (ap_int<15>)(short)rounded;
+    }
+
+    int4_quant_word_t quantized_word = 0;
+pack_quantized_lanes_loop:
+    for (int lane = INT4_GROUP_SIZE - 1; lane >= 0; --lane) {
+#pragma HLS UNROLL
+        quantized_word =
+            (quantized_word << 15) |
+            (ap_uint<15>)quantized_lanes[lane];
+    }
+    scale_stream.write(output_scale);
+    quantized_stream.write(quantized_word);
+}
+
+static void swiftkv_process_weighted_group(
+    const swiftkv_state_t
+        weighted_value_engine0[SWIFTKV_UPDATE_ENGINE_VALUES],
+    const swiftkv_state_t
+        weighted_value_engine1[SWIFTKV_UPDATE_ENGINE_VALUES],
+    const swiftkv_state_t
+        weighted_value_engine2[SWIFTKV_UPDATE_ENGINE_VALUES],
+    const swiftkv_state_t
+        weighted_value_engine3[SWIFTKV_UPDATE_ENGINE_VALUES],
+    int group,
+    int4_fxp32_t inverse_normalization,
+    hls::stream<int4_quant_word_t>& quantized_stream,
+    hls::stream<float>& scale_stream) {
+#pragma HLS INLINE off
+    int4_fxp32_t attention_group[INT4_GROUP_SIZE];
+#pragma HLS BIND_STORAGE variable=attention_group type=ram_2p impl=bram latency=2
+    const int4_fxp32_t max_abs = swiftkv_normalize_weighted_group(
+        weighted_value_engine0,
+        weighted_value_engine1,
+        weighted_value_engine2,
+        weighted_value_engine3,
+        group,
+        inverse_normalization,
+        attention_group);
+    swiftkv_quantize_attention_group(
+        attention_group, max_abs, quantized_stream, scale_stream);
+}
+
 static void swiftkv_update_values_and_quantize(
     hls::stream<ap_uint<40> >& value_metadata_stream,
     hls::stream<swiftkv_update_engine_word_t>& value0_engine0_stream,
@@ -1704,111 +1836,20 @@ static void swiftkv_update_values_and_quantize(
 
     const int4_fxp32_t inverse_normalization =
         inverse_normalization_stream.read();
-    swiftkv_state_t weighted_group[INT4_GROUP_SIZE];
-    // attention_group: 32 x 32-bit = 1024 bits total.
-    // Previously ram_2p bram latency=2; that 2-cycle read latency sat on the
-    // critical path of attention_quantize_reverse_loop alongside fmul(2)+fadd(7),
-    // producing a 4.084 ns estimated path that prevented HLS from meeting 3.0 ns.
-    // Full partition into registers (1024 FFs) eliminates the memory read latency
-    // entirely and allows fmul and fadd to dominate — both are already DSP-bound
-    // and fit inside the 3.0 ns budget after register retiming.
-    int4_fxp32_t attention_group[INT4_GROUP_SIZE];
-#pragma HLS BIND_STORAGE variable=weighted_group type=ram_1p impl=bram latency=1
-#pragma HLS ARRAY_PARTITION variable=attention_group complete
 
 attention_quant_group_loop:
     for (int group = 0;
          group < SWIFTKV_HEAD_SIZE / INT4_GROUP_SIZE;
          ++group) {
-        int4_fxp32_t max_abs = 0;
-
-        swiftkv_stage_weighted_group_engine<0>(
-            weighted_value_engine0, group, weighted_group);
-        swiftkv_stage_weighted_group_engine<1>(
-            weighted_value_engine1, group, weighted_group);
-        swiftkv_stage_weighted_group_engine<2>(
-            weighted_value_engine2, group, weighted_group);
-        swiftkv_stage_weighted_group_engine<3>(
-            weighted_value_engine3, group, weighted_group);
-
-    attention_normalize_lane_loop:
-        for (int lane = 0; lane < INT4_GROUP_SIZE; ++lane) {
-#pragma HLS PIPELINE II=1
-            const swiftkv_state_t weighted_value =
-                weighted_group[lane];
-            const swiftkv_state_product_t normalized_value =
-                (swiftkv_state_product_t)(
-                    weighted_value *
-                    inverse_normalization);
-#pragma HLS BIND_OP variable=normalized_value op=mul impl=dsp latency=4
-            int4_fxp32_t value = 0;
-            value.range(31, 0) =
-                normalized_value.range(31, 0);
-            attention_group[lane] = value;
-            const int4_fxp32_t magnitude =
-                value < 0 ? (int4_fxp32_t)(-value) : value;
-            if (magnitude > max_abs) {
-                max_abs = magnitude;
-            }
-        }
-
-        const float max_float = (float)max_abs;
-        const float output_scale =
-            max_float == 0.0f
-                ? 0.0f
-                : max_float * (1.0f / 16383.0f);
-        const float inverse_scale =
-            max_float == 0.0f ? 0.0f : 16383.0f / max_float;
-        scale_stream.write(output_scale);
-
-        // Pre-convert attention_group[] from ap_fixed<32,15> to float in a
-        // dedicated II=1 pipeline loop.  Previously the (float)attention_group[lane]
-        // conversion (CLZ + 32-bit barrel shift + exponent adder, ~3.5 ns of fabric)
-        // sat inside attention_quantize_reverse_loop on the same clock edge as the
-        // DSP fmul input, producing the 4.084 ns critical path.
-        // Moving it to its own loop lets HLS split the conversion into 2-3 pipeline
-        // stages automatically (each ≤ 3.0 ns), breaking the bottleneck entirely.
-        float attention_group_f[INT4_GROUP_SIZE];
-#pragma HLS ARRAY_PARTITION variable=attention_group_f complete
-    pre_convert_to_float_loop:
-        for (int lane = 0; lane < INT4_GROUP_SIZE; ++lane) {
-#pragma HLS PIPELINE II=1
-            attention_group_f[lane] = (float)attention_group[lane];
-        }
-
-        ap_int<15> quantized_lanes[INT4_GROUP_SIZE];
-#pragma HLS ARRAY_PARTITION variable=quantized_lanes complete
-    attention_quantize_reverse_loop:
-        for (int lane = 0; lane < INT4_GROUP_SIZE; ++lane) {
-#pragma HLS PIPELINE II=1
-            // Read from float register — zero conversion overhead on this path.
-            const float scaled =
-                attention_group_f[lane] * inverse_scale;
-#pragma HLS BIND_OP variable=scaled op=fmul impl=dsp latency=2
-            float rounded =
-                scaled >= 0.0f ? scaled + 0.5f : scaled - 0.5f;
-            if (rounded > 16383.0f) {
-                rounded = 16383.0f;
-            }
-            if (rounded < -16383.0f) {
-                rounded = -16383.0f;
-            }
-            // Use (short) not (int) for float-to-int: rounded is saturated to
-            // [-16383, 16383] which fits in short (16-bit, range ±32767).
-            // This shrinks the HLS-generated barrel shift from 79-bit/242 LUT
-            // to roughly 40-bit, cutting the critical path from ~4.084 ns.
-            quantized_lanes[lane] = (ap_int<15>)(short)rounded;
-        }
-
-        int4_quant_word_t quantized_word = 0;
-    pack_quantized_lanes_loop:
-        for (int lane = INT4_GROUP_SIZE - 1; lane >= 0; --lane) {
-#pragma HLS UNROLL
-            quantized_word =
-                (quantized_word << 15) |
-                (ap_uint<15>)quantized_lanes[lane];
-        }
-        quantized_stream.write(quantized_word);
+        swiftkv_process_weighted_group(
+            weighted_value_engine0,
+            weighted_value_engine1,
+            weighted_value_engine2,
+            weighted_value_engine3,
+            group,
+            inverse_normalization,
+            quantized_stream,
+            scale_stream);
     }
 }
 
@@ -2589,6 +2630,37 @@ collect_pe_group_loop:
     }
 }
 
+// Select one 38-bit RoPE pair through an explicitly pipelined local mux.  The
+// prior variable part-select synthesized lane*38 plus a six-level selector on
+// the same edge.  Constant ranges remove that multiplier, while latency=2
+// inserts the register boundary required by the caller's II=2 serializer.
+static swiftkv_rope_lut_beat_t swiftkv_select_rope_lut_beat(
+    swiftkv_rope_lut_word_t packed,
+    ap_uint<4> lane) {
+#pragma HLS INLINE off
+#pragma HLS LATENCY min=2 max=2
+    swiftkv_rope_lut_beat_t beat = 0;
+    switch (lane) {
+    case 0:  beat = packed.range(37, 0); break;
+    case 1:  beat = packed.range(75, 38); break;
+    case 2:  beat = packed.range(113, 76); break;
+    case 3:  beat = packed.range(151, 114); break;
+    case 4:  beat = packed.range(189, 152); break;
+    case 5:  beat = packed.range(227, 190); break;
+    case 6:  beat = packed.range(265, 228); break;
+    case 7:  beat = packed.range(303, 266); break;
+    case 8:  beat = packed.range(341, 304); break;
+    case 9:  beat = packed.range(379, 342); break;
+    case 10: beat = packed.range(417, 380); break;
+    case 11: beat = packed.range(455, 418); break;
+    case 12: beat = packed.range(493, 456); break;
+    case 13: beat = packed.range(531, 494); break;
+    case 14: beat = packed.range(569, 532); break;
+    default: beat = packed.range(607, 570); break;
+    }
+    return beat;
+}
+
 // The new decoder never materializes or broadcasts a complete RoPE row.
 // Every PE reads the eight 512-bit beats for its current position and turns
 // them directly into two local 19-bit streams.  This read is tiny compared to
@@ -2612,17 +2684,13 @@ local_rope_bank_loop:
              lane < SWIFTKV_ROPE_PAIRS_PER_LUT_WORD;
              ++lane) {
 #pragma HLS PIPELINE II=2
-            // Direct index into the packed word avoids a 608-bit shift register.
-            // packed is read-only here; HLS maps each slice to local bit-wires
-            // with small, distributed fanout instead of a single fanout-571
-            // pipeline enable (or_ln2606) that previously spanned the whole SLR.
-            // Functionally equivalent: packed.range(base+N, base) == bit-exact
-            // result of shifting packed >>= SWIFTKV_ROPE_LUT_BEAT_BITS * lane.
-            const int base = lane * SWIFTKV_ROPE_LUT_BEAT_BITS;
+            const swiftkv_rope_lut_beat_t beat =
+                swiftkv_select_rope_lut_beat(
+                    packed, (ap_uint<4>)lane);
             cosine_stream.write(
-                (swiftkv_rope_raw_t)packed.range(base + 18, base));
+                (swiftkv_rope_raw_t)beat.range(18, 0));
             sine_stream.write(
-                (swiftkv_rope_raw_t)packed.range(base + 37, base + 19));
+                (swiftkv_rope_raw_t)beat.range(37, 19));
         }
     }
     command_stream.write(

@@ -15,9 +15,10 @@ foreach source_file [list \
 
 open_solution -reset solution1 -flow_target vitis
 set_part {xcu250-figd2104-2L-e}
-# Target: 270 MHz (3.703 ns) — first timing closure step.
-# After WNS >= 0 confirmed, raise to 285 then 300 MHz.
-create_clock -period 3.703 -name default
+# Final implementation target: 300 MHz.  Keep this value identical to the
+# v++ --freqhz setting and to link_300mhz.cfg; the routed timing gate checks
+# the generated kernel clock again before publishing the XCLBIN.
+create_clock -period 3.333333 -name default
 config_interface -m_axi_latency 32
 config_interface -m_axi_alignment_byte_size 64
 config_interface -m_axi_max_widen_bitwidth 512

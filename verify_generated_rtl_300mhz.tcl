@@ -73,12 +73,68 @@ proc verify_generated_rtl_300mhz {rtl_directory} {
             [regexp -- {weight_stream_U} $run_local_text]} {
             error "300MHz RTL gate: PE${pe} weight FIFO backpressure boundary was not generated"
         }
+        if {![regexp -- {fifo_w32_d8_S[^[:space:]]*[[:space:]]+group_scale_U[[:space:]]*\(} $run_local_text] ||
+            [regexp -- {group_quantized_U|group_metadata_U} $run_local_text]} {
+            error "300MHz RTL gate: PE${pe} must use only the 32x8 SRL scale FIFO"
+        }
+        foreach connection [list \
+            ".if_din(int4_prepare_local_group_metadata_${pe}_U0_group_scale_din)" \
+            ".if_read(int4_accumulate_local_partial_tiles_${pe}_U0_group_scale_read)"] {
+            if {[string first $connection $run_local_text] < 0} {
+                error "300MHz RTL gate: PE${pe} metadata FIFO endpoint is incorrect: $connection"
+            }
+        }
     }
+
+    # Quantized activations are stable PE-local BRAM arrays, so they must not
+    # be copied through another 480-bit FIFO.  Only the dynamic combined scale
+    # is streamed from the metadata producer to the MAC.
+    set metadata_pipelines [glob -nocomplain -directory $rtl_directory \
+        "*int4_prepare_local_group_metadata_Pipeline_local_metadata_output_tile_loop_local*.v"]
+    if {[llength $metadata_pipelines] != 4} {
+        error "300MHz RTL gate: expected four metadata producer pipelines, found [llength $metadata_pipelines]"
+    }
+    foreach metadata_pipeline $metadata_pipelines {
+        set handle [open $metadata_pipeline r]
+        set metadata_text [read $handle]
+        close $handle
+        if {![regexp -- {group_scale_(din|write|full_n)} $metadata_text] ||
+            [regexp -- {group_quantized} $metadata_text]} {
+            error "300MHz RTL gate: metadata producer still carries the 480-bit activation payload: $metadata_pipeline"
+        }
+    }
+
+    set mac_pipelines [glob -nocomplain -directory $rtl_directory \
+        "*int4_accumulate_local_partial_tiles_Pipeline_local_partial_continuous_mac_loop*.v"]
+    if {[llength $mac_pipelines] != 4} {
+        error "300MHz RTL gate: expected four linear MAC pipelines, found [llength $mac_pipelines]"
+    }
+    foreach mac_pipeline $mac_pipelines {
+        set handle [open $mac_pipeline r]
+        set mac_text [read $handle]
+        close $handle
+        if {![regexp -- {input[[:space:]]+\[479:0\][[:space:]]+activation_q_q[01][[:space:]]*;} $mac_text] ||
+            ![regexp -- {current_quantized} $mac_text] ||
+            ![regexp -- {next_quantized} $mac_text] ||
+            [regexp -- {group_quantized} $mac_text] ||
+            [count_matches $mac_text {group_scale_read[[:space:]]*=[[:space:]]*1'b1}] != 1} {
+            error "300MHz RTL gate: MAC activation BRAM prefetch boundary is missing: $mac_pipeline"
+        }
+    }
+    puts "INFO: 300MHz RTL gate: LINEAR_ACTIVATION_PREFETCH_VERIFIED"
 
     set legacy [glob -nocomplain -directory $rtl_directory \
         "*int4_stream_local_weights_*.v"]
     if {[llength $legacy] != 0} {
         error "300MHz RTL gate: legacy base+word weight reader is still present: $legacy"
+    }
+
+    set scale_preloads [glob -nocomplain -directory $rtl_directory \
+        "*int4_preload_local_scale_cache*.v"]
+    set norm_preloads [glob -nocomplain -directory $rtl_directory \
+        "*int4_preload_local_norm_cache*.v"]
+    if {[llength $scale_preloads] == 0 || [llength $norm_preloads] == 0} {
+        error "300MHz RTL gate: split local scale/norm preload controllers are missing"
     }
 
     # Vitis HLS 2023.2 can emit invalid Verilog for a dynamic assignment to a
@@ -139,6 +195,20 @@ proc verify_generated_rtl_300mhz {rtl_directory} {
         error "300MHz RTL gate: 44x15 score multiplier is not in the isolated scale stage"
     }
 
+    set compressed_dot_loops [glob -nocomplain -directory $rtl_directory \
+        "*swiftkv_process_compressed_kv_Pipeline_compressed_dot_phase_loop.v"]
+    if {[llength $compressed_dot_loops] == 0} {
+        error "300MHz RTL gate: compressed-dot phase pipeline is missing"
+    }
+    foreach dot_loop $compressed_dot_loops {
+        set handle [open $dot_loop r]
+        set dot_loop_text [read $handle]
+        close $handle
+        if {[regexp -- {unscaled_score_stream.*full_n} $dot_loop_text]} {
+            error "300MHz RTL gate: score FIFO full_n still reaches the inner compressed-dot pipeline"
+        }
+    }
+
     # Route reports from the original implementation identified the selected
     # weighted-value register in the normalization loop as the tightest PE3
     # pins. The update datapath now owns one state bank per DSP engine group, so
@@ -151,11 +221,11 @@ proc verify_generated_rtl_300mhz {rtl_directory} {
     # engine-group loops (stage_weighted_group_engine_loop*), each with four
     # weighted_value_engine*_q0 inputs. Both architectures are valid.
     set state_stages [glob -nocomplain -directory $rtl_directory \
-        "*swiftkv_update_values_and_quantize_Pipeline_stage_weighted_group_engine_loop*.v"]
+        "*Pipeline_stage_weighted_group_engine_loop*.v"]
     set normalize_loops [glob -nocomplain -directory $rtl_directory \
-        "*swiftkv_update_values_and_quantize_Pipeline_attention_normalize_lane_loop.v"]
+        "*Pipeline_normalize_weighted_group_lane_loop.v"]
     set pre_convert_loops [glob -nocomplain -directory $rtl_directory \
-        "*swiftkv_update_values_and_quantize_Pipeline_pre_convert_to_float_loop.v"]
+        "*Pipeline_pre_convert_to_float_loop.v"]
     if {[llength $state_stages] != 4 || [llength $normalize_loops] != 1} {
         error "300MHz RTL gate: expected four engine-group staging loops and one normalize loop; stages=[llength $state_stages] normalize=[llength $normalize_loops]"
     }
@@ -180,6 +250,27 @@ proc verify_generated_rtl_300mhz {rtl_directory} {
         error "300MHz RTL gate: attention normalization still selects engine state directly"
     }
 
+    set quantize_loops [glob -nocomplain -directory $rtl_directory \
+        "*Pipeline_attention_quantize_reverse_loop.v"]
+    if {[llength $quantize_loops] == 0} {
+        error "300MHz RTL gate: attention quantize pipeline is missing"
+    }
+    foreach quantize_loop $quantize_loops {
+        set handle [open $quantize_loop r]
+        set quantize_loop_text [read $handle]
+        close $handle
+        if {![regexp -- {fmul_32ns_32ns_32_[45]_max_dsp_1} $quantize_loop_text] ||
+            [regexp -- {fmul_32ns_32ns_32_3_max_dsp_1} $quantize_loop_text]} {
+            error "300MHz RTL gate: attention fmul did not receive the required deeper DSP pipeline: [file tail $quantize_loop]"
+        }
+    }
+
+    set rope_selectors [glob -nocomplain -directory $rtl_directory \
+        "*swiftkv_select_rope_lut_beat*.v"]
+    if {[llength $rope_selectors] == 0} {
+        error "300MHz RTL gate: registered constant-slice RoPE selector is missing"
+    }
+
     set kv_quantizers [glob -nocomplain -directory $rtl_directory \
         "*swiftkv_quantize_kv_record.v"]
     if {[llength $kv_quantizers] == 0} {
@@ -188,10 +279,15 @@ proc verify_generated_rtl_300mhz {rtl_directory} {
 
     puts "INFO: 300MHz RTL gate: LOCAL_WEIGHT_REQUEST_PIPELINES_VERIFIED"
     puts "INFO: 300MHz RTL gate: LOCAL_WEIGHT_BACKPRESSURE_BOUNDARY_VERIFIED"
+    puts "INFO: 300MHz RTL gate: LOCAL_METADATA_PRELOAD_CONTROLLERS_SPLIT"
+    puts "INFO: 300MHz RTL gate: LINEAR_SCALE_FIFO_VERIFIED"
     puts "INFO: 300MHz RTL gate: AXI_READ_WINDOWS_2X64_VERIFIED"
     puts "INFO: 300MHz RTL gate: AXI_WRITE_WINDOWS_2X16_VERIFIED"
     puts "INFO: 300MHz RTL gate: ATTENTION_KV_WRITE_BOUNDARY_VERIFIED"
     puts "INFO: 300MHz RTL gate: ATTENTION_SCORE_MULTIPLIER_ISOLATED"
+    puts "INFO: 300MHz RTL gate: ATTENTION_SCORE_BACKPRESSURE_ISOLATED"
+    puts "INFO: 300MHz RTL gate: ATTENTION_FMUL_PIPELINE_VERIFIED"
+    puts "INFO: 300MHz RTL gate: ROPE_SELECTOR_PIPELINED"
     puts "INFO: 300MHz RTL gate: ATTENTION_NORMALIZATION_STAGING_VERIFIED"
     puts "INFO: 300MHz RTL gate: REGISTERED_LOCAL_STARTS_VERIFIED"
     puts "INFO: 300MHz RTL gate: KV_QUANTIZER_HIERARCHY_PRESERVED"

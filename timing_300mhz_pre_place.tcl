@@ -3,6 +3,19 @@
 # attention state, projection memories and reducers remain timing-driven.
 
 puts "INFO: loading [file normalize [info script]]"
+set script_directory [file dirname [file normalize [info script]]]
+set ownership_script [file join $script_directory timing_300mhz_domains.tcl]
+if {![file exists $ownership_script]} {
+    error "300MHz floorplan: missing ownership library $ownership_script"
+}
+if {[llength [info commands timing300::refresh]] == 0} {
+    source $ownership_script
+}
+
+# opt_design can invalidate every object handle cached by the pre-opt hook.
+# Rebuild the ownership cache before resolving any pre-place selectors.
+timing300::refresh pre_place
+puts "INFO: 300MHz floorplan: OBJECT_CACHE_REFRESHED"
 
 proc place_axi_interface {instance slr} {
     set pattern "*/int4_decoder_token_controller_1/inst/${instance}"

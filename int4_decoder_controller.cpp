@@ -56,11 +56,10 @@ static void int4_terminate_position_chain(
 }
 
 template <int PE_ID>
-static void int4_preload_local_metadata(
+static void int4_preload_local_scale_cache(
     const int4_weight_word_t* model_bank,
     int4_weight_scale_word_t scale_cache[
-        INT4_TOTAL_WEIGHT_SCALE_WORDS_PER_PE],
-    int4_output_word_t norm_cache[INT4_TOTAL_NORM_WORDS_PER_PE]) {
+        INT4_TOTAL_WEIGHT_SCALE_WORDS_PER_PE]) {
 #pragma HLS INLINE off
 preload_local_scale_loop:
     for (int word = 0;
@@ -69,11 +68,32 @@ preload_local_scale_loop:
 #pragma HLS PIPELINE II=1
         scale_cache[word] = model_bank[INT4_MODEL_SCALE_BASE_WORD + word];
     }
+}
+
+template <int PE_ID>
+static void int4_preload_local_norm_cache(
+    const int4_weight_word_t* model_bank,
+    int4_output_word_t norm_cache[INT4_TOTAL_NORM_WORDS_PER_PE]) {
+#pragma HLS INLINE off
 preload_local_norm_loop:
     for (int word = 0; word < INT4_TOTAL_NORM_WORDS_PER_PE; ++word) {
 #pragma HLS PIPELINE II=1
         norm_cache[word] = model_bank[INT4_MODEL_NORM_BASE_WORD + word];
     }
+}
+
+template <int PE_ID>
+static void int4_preload_local_metadata(
+    const int4_weight_word_t* model_bank,
+    int4_weight_scale_word_t scale_cache[
+        INT4_TOTAL_WEIGHT_SCALE_WORDS_PER_PE],
+    int4_output_word_t norm_cache[INT4_TOTAL_NORM_WORDS_PER_PE]) {
+#pragma HLS INLINE off
+    // Two child controllers localize the URAM write enables.  This preload is
+    // executed only for position zero, so the extra call boundary has no
+    // steady-state token-throughput cost.
+    int4_preload_local_scale_cache<PE_ID>(model_bank, scale_cache);
+    int4_preload_local_norm_cache<PE_ID>(model_bank, norm_cache);
 }
 
 template <int PE_ID>

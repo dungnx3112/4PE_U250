@@ -30,11 +30,29 @@ set_property KEEP_HIERARCHY true $pe_roots
 set critical_hierarchy [get_cells -quiet -hierarchical -filter {
     IS_PRIMITIVE == 0 &&
     (NAME =~ */grp_swiftkv_quantize_kv_record* ||
-     NAME =~ */grp_swiftkv_update_values_and_quantize*)}]
+     NAME =~ */grp_swiftkv_update_values_and_quantize* ||
+     NAME =~ */grp_swiftkv_process_weighted_group* ||
+     NAME =~ */grp_swiftkv_normalize_weighted_group* ||
+     NAME =~ */grp_swiftkv_quantize_attention_group* ||
+     NAME =~ */grp_swiftkv_select_rope_lut_beat* ||
+     NAME =~ */grp_int4_prepare_local_group_metadata_Pipeline_local_metadata_output_tile_loop_local* ||
+     NAME =~ */grp_int4_accumulate_local_partial_tiles_Pipeline_local_partial_continuous_mac_loop*)}]
 if {[llength $critical_hierarchy] == 0} {
-    puts "WARNING: 300MHz pre-opt: critical SwiftKV hierarchy was not found; skipping KEEP_HIERARCHY hint"
+    puts "WARNING: 300MHz pre-opt: critical datapath hierarchy was not found; skipping KEEP_HIERARCHY hint"
 } else {
     set_property KEEP_HIERARCHY true $critical_hierarchy
+}
+set linear_mac_hierarchy [get_cells -quiet -hierarchical -filter {
+    IS_PRIMITIVE == 0 &&
+    NAME =~ */grp_int4_accumulate_local_partial_tiles_Pipeline_local_partial_continuous_mac_loop*}]
+if {[llength $linear_mac_hierarchy] != 4} {
+    error "300MHz pre-opt: expected four linear MAC pipeline cells, found [llength $linear_mac_hierarchy]"
+}
+set linear_metadata_hierarchy [get_cells -quiet -hierarchical -filter {
+    IS_PRIMITIVE == 0 &&
+    NAME =~ */grp_int4_prepare_local_group_metadata_Pipeline_local_metadata_output_tile_loop_local*}]
+if {[llength $linear_metadata_hierarchy] != 4} {
+    error "300MHz pre-opt: expected four linear metadata pipeline cells, found [llength $linear_metadata_hierarchy]"
 }
 
 array set fanout_limits {
@@ -58,6 +76,54 @@ foreach pattern [array names fanout_limits] {
 if {$constrained_nets == 0} {
     puts "WARNING: 300MHz pre-opt: no reset/stall nets accepted optional MAX_FANOUT constraints"
 }
+
+# Bound only state nets inside the STA-identified datapath hierarchies.  A
+# kernel-wide ap_CS_fsm wildcard would replicate thousands of unrelated local
+# controllers and can make SLR congestion worse.
+set critical_state_nets 0
+set critical_stall_nets 0
+set critical_valid_nets 0
+foreach critical_cell $critical_hierarchy {
+    set critical_name [get_property NAME $critical_cell]
+    set state_nets [get_nets -quiet -hierarchical -filter \
+        "NAME =~ ${critical_name}/*ap_CS_fsm*"]
+    foreach net $state_nets {
+        if {![catch {set_property MAX_FANOUT 128 $net}]} {
+            incr critical_state_nets
+        }
+    }
+    # The four linear MAC pipelines synthesize ap_block_pp0_stage0_11001 at
+    # about 6.1k loads.  The metadata producers can also expose a large FRP
+    # control cone.  Limit only the copies below these retained critical cells
+    # so opt_design can replicate them locally without a kernel-wide
+    # replication/congestion penalty.
+    set stall_nets [get_nets -quiet -hierarchical -filter \
+        "NAME =~ ${critical_name}/*ap_block_pp0_stage0*"]
+    foreach net $stall_nets {
+        if {![catch {set_property MAX_FANOUT 128 $net}]} {
+            incr critical_stall_nets
+        }
+    }
+    # The 270 MHz routed report also showed the FRP validity chain driving
+    # more than 1k clock-enable pins in the metadata producer.  Keep those
+    # replicas local to each retained PE pipeline.
+    set valid_nets [get_nets -quiet -hierarchical -filter \
+        "NAME =~ ${critical_name}/*frp_pipeline_valid*"]
+    foreach net $valid_nets {
+        if {![catch {set_property MAX_FANOUT 128 $net}]} {
+            incr critical_valid_nets
+        }
+    }
+}
+if {$critical_stall_nets < 4} {
+    error "300MHz pre-opt: expected at least four critical datapath stall nets, constrained=$critical_stall_nets"
+}
+if {$critical_valid_nets < 4} {
+    error "300MHz pre-opt: expected at least four critical FRP validity nets, constrained=$critical_valid_nets"
+}
+puts "INFO: 300MHz pre-opt: critical datapath state nets constrained=$critical_state_nets MAX_FANOUT=128"
+puts "INFO: 300MHz pre-opt: critical datapath stall nets constrained=$critical_stall_nets MAX_FANOUT=128"
+puts "INFO: 300MHz pre-opt: critical FRP validity nets constrained=$critical_valid_nets MAX_FANOUT=128"
 
 puts "INFO: 300MHz pre-opt: kept [llength $pe_roots] PE roots and [llength $critical_hierarchy] critical hierarchy cells"
 puts "INFO: 300MHz pre-opt: PRE_OPT_OWNERSHIP_APPLIED"
