@@ -180,13 +180,39 @@ else
 fi
 
 if (( need_hls == 1 )); then
-    echo "Starting Vitis HLS synthesis for all 4 PEs (300 MHz)..."
-    echo "Log file: $log_dir/vitis_hls_multikernel.log"
+    echo "Starting Vitis HLS synthesis for all 4 PEs in PARALLEL (300 MHz)..."
+    echo "Server has $jobs CPU cores available. Launching PE0..PE3 concurrently."
+    echo "Logs: $log_dir/vitis_hls_pe{0,1,2,3}.log"
 
     export TARGET_FREQ="300mhz"
-    unset INT4_DECODER_PE 2>/dev/null || true
+    hls_pids=()
+    for pe in 0 1 2 3; do
+        (
+            export INT4_DECODER_PE="$pe"
+            vitis_hls -f "$hls_script" > "$log_dir/vitis_hls_pe${pe}.log" 2>&1
+        ) &
+        hls_pids+=($!)
+        echo "  [PE$pe] Spawned concurrent HLS worker (PID: ${hls_pids[-1]}) -> $log_dir/vitis_hls_pe${pe}.log"
+    done
 
-    vitis_hls -f "$hls_script" 2>&1 | tee "$log_dir/vitis_hls_multikernel.log"
+    echo "Waiting for all 4 PE synthesis jobs to complete..."
+    hls_failed=0
+    for pe in 0 1 2 3; do
+        pid=${hls_pids[$pe]}
+        if ! wait "$pid"; then
+            echo "ERROR: HLS synthesis for PE$pe (PID $pid) failed!" >&2
+            echo "=== Last 25 lines of $log_dir/vitis_hls_pe${pe}.log ===" >&2
+            tail -n 25 "$log_dir/vitis_hls_pe${pe}.log" >&2
+            hls_failed=1
+        else
+            echo "  [PE$pe] HLS synthesis completed successfully."
+        fi
+    done
+
+    if (( hls_failed == 1 )); then
+        echo "ERROR: One or more HLS synthesis tasks failed." >&2
+        exit 1
+    fi
 
     echo "Vitis HLS finished. Verifying generated XO files..."
     for xo in "${xo_files[@]}"; do
@@ -234,9 +260,17 @@ set +e
 config_patched="$temp_dir/link_decoder_multikernel_300mhz_patched.cfg"
 pre_place_tcl="$source_dir/constraints/pre_place.tcl"
 pre_physopt_tcl="$source_dir/constraints/pre_physopt.tcl"
+# Squeeze server configuration: scale Vivado synth.jobs and impl.jobs to 32 32
+synth_jobs=$(( jobs >= 32 ? 32 : jobs ))
+impl_jobs=$(( jobs >= 32 ? 32 : jobs ))
+echo "Vivado synth jobs: $synth_jobs (maximized for 64-core server)"
+echo "Vivado impl jobs:  $impl_jobs (maximized for 64-core server)"
+
 sed \
     -e "s|__PRE_PLACE_TCL__|${pre_place_tcl}|g" \
     -e "s|__PRE_PHYSOPT_TCL__|${pre_physopt_tcl}|g" \
+    -e "s|synth.jobs=.*|synth.jobs=${synth_jobs}|g" \
+    -e "s|impl.jobs=.*|impl.jobs=${impl_jobs}|g" \
     "$config_path" > "$config_patched"
 echo "  Patched config: $config_patched"
 echo "    pre_place.tcl   -> $pre_place_tcl"
@@ -246,7 +280,6 @@ v++ --link \
     --target hw \
     --platform "$platform" \
     --config "$config_patched" \
-    --jobs "$jobs" \
     --save-temps \
     --temp_dir "$temp_dir" \
     --log_dir "$log_dir" \
