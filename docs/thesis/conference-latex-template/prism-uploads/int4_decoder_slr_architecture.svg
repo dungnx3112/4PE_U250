@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="760" viewBox="0 0 800 760">
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#475569"/>
+    </marker>
+    <style>
+      .title{font:700 26px Arial,sans-serif;fill:#0f172a;text-anchor:middle}
+      .head{font:700 17px Arial,sans-serif;fill:#0f172a;text-anchor:middle}
+      .body{font:400 13px Arial,sans-serif;fill:#334155;text-anchor:middle}
+      .small{font:400 11px Arial,sans-serif;fill:#475569;text-anchor:middle}
+      .box{stroke-width:2;rx:12}
+      .arrow{stroke:#475569;stroke-width:2;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="800" height="760" fill="#fff"/>
+  <text x="400" y="38" class="title">U250 FOUR-SLR DECODER ORGANIZATION</text>
+
+  <rect x="245" y="64" width="310" height="58" class="box" fill="#e0f2fe" stroke="#0284c7"/>
+  <text x="400" y="88" class="head">Host / XRT interface</text>
+  <text x="400" y="108" class="body">embedded token state in · logits out</text>
+  <path d="M400 122 L400 153" class="arrow"/>
+
+  <rect x="190" y="157" width="420" height="70" class="box" fill="#ede9fe" stroke="#7c3aed"/>
+  <text x="400" y="183" class="head">Token controller and global on-chip buffers</text>
+  <text x="400" y="207" class="body">RMSNorm · SwiGLU · residuals · activation quantization · RoPE</text>
+
+  <path d="M400 227 L400 260" class="arrow"/>
+  <path d="M105 260 L695 260" stroke="#475569" stroke-width="2" fill="none"/>
+  <path d="M105 260 L105 286" class="arrow"/>
+  <path d="M302 260 L302 286" class="arrow"/>
+  <path d="M498 260 L498 286" class="arrow"/>
+  <path d="M695 260 L695 286" class="arrow"/>
+
+  <g>
+    <rect x="25" y="290" width="160" height="330" class="box" fill="#eff6ff" stroke="#2563eb"/>
+    <rect x="222" y="290" width="160" height="330" class="box" fill="#f0fdf4" stroke="#16a34a"/>
+    <rect x="418" y="290" width="160" height="330" class="box" fill="#fffbeb" stroke="#d97706"/>
+    <rect x="615" y="290" width="160" height="330" class="box" fill="#faf5ff" stroke="#9333ea"/>
+
+    <text x="105" y="322" class="head">SLR0 / PE0</text>
+    <text x="302" y="322" class="head">SLR1 / PE1</text>
+    <text x="498" y="322" class="head">SLR2 / PE2</text>
+    <text x="695" y="322" class="head">SLR3 / PE3</text>
+
+    <g fill="#fff" stroke="#94a3b8" stroke-width="1.5">
+      <rect x="43" y="348" width="124" height="55" rx="8"/><rect x="240" y="348" width="124" height="55" rx="8"/>
+      <rect x="436" y="348" width="124" height="55" rx="8"/><rect x="633" y="348" width="124" height="55" rx="8"/>
+      <rect x="43" y="422" width="124" height="55" rx="8"/><rect x="240" y="422" width="124" height="55" rx="8"/>
+      <rect x="436" y="422" width="124" height="55" rx="8"/><rect x="633" y="422" width="124" height="55" rx="8"/>
+      <rect x="43" y="496" width="124" height="82" rx="8"/><rect x="240" y="496" width="124" height="82" rx="8"/>
+      <rect x="436" y="496" width="124" height="82" rx="8"/><rect x="633" y="496" width="124" height="82" rx="8"/>
+    </g>
+
+    <text x="105" y="372" class="head">Linear engine</text><text x="105" y="391" class="small">bank-local weight stream</text>
+    <text x="302" y="372" class="head">Linear engine</text><text x="302" y="391" class="small">bank-local weight stream</text>
+    <text x="498" y="372" class="head">Linear engine</text><text x="498" y="391" class="small">bank-local weight stream</text>
+    <text x="695" y="372" class="head">Linear engine</text><text x="695" y="391" class="small">bank-local weight stream</text>
+
+    <text x="105" y="446" class="head">SwiftKV engine</text><text x="105" y="465" class="small">8 striped heads</text>
+    <text x="302" y="446" class="head">SwiftKV engine</text><text x="302" y="465" class="small">8 striped heads</text>
+    <text x="498" y="446" class="head">SwiftKV engine</text><text x="498" y="465" class="small">8 striped heads</text>
+    <text x="695" y="446" class="head">SwiftKV engine</text><text x="695" y="465" class="small">8 striped heads</text>
+
+    <text x="105" y="522" class="head">PE-local FIFOs</text><text x="105" y="545" class="body">and intermediate</text><text x="105" y="565" class="body">buffers</text>
+    <text x="302" y="522" class="head">PE-local FIFOs</text><text x="302" y="545" class="body">and intermediate</text><text x="302" y="565" class="body">buffers</text>
+    <text x="498" y="522" class="head">PE-local FIFOs</text><text x="498" y="545" class="body">and intermediate</text><text x="498" y="565" class="body">buffers</text>
+    <text x="695" y="522" class="head">PE-local FIFOs</text><text x="695" y="545" class="body">and intermediate</text><text x="695" y="565" class="body">buffers</text>
+  </g>
+
+  <g>
+    <path d="M105 620 L105 653" class="arrow"/><path d="M302 620 L302 653" class="arrow"/>
+    <path d="M498 620 L498 653" class="arrow"/><path d="M695 620 L695 653" class="arrow"/>
+    <rect x="35" y="657" width="140" height="58" class="box" fill="#ffedd5" stroke="#ea580c"/>
+    <rect x="232" y="657" width="140" height="58" class="box" fill="#ffedd5" stroke="#ea580c"/>
+    <rect x="428" y="657" width="140" height="58" class="box" fill="#ffedd5" stroke="#ea580c"/>
+    <rect x="625" y="657" width="140" height="58" class="box" fill="#ffedd5" stroke="#ea580c"/>
+    <text x="105" y="682" class="head">DDR0</text><text x="105" y="703" class="small">weights + persistent KV</text>
+    <text x="302" y="682" class="head">DDR1</text><text x="302" y="703" class="small">weights + persistent KV</text>
+    <text x="498" y="682" class="head">DDR2</text><text x="498" y="703" class="small">weights + persistent KV</text>
+    <text x="695" y="682" class="head">DDR3</text><text x="695" y="703" class="small">weights + persistent KV</text>
+  </g>
+</svg>

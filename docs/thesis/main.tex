@@ -1,0 +1,593 @@
+\documentclass[conference]{IEEEtran}
+% IEEEtran conference mode defaults to US Letter. Add a4paper only if the
+% final submission venue explicitly requires A4.
+\IEEEoverridecommandlockouts
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage{placeins}
+
+% On-board result fields.
+\newcommand{\oursLatency}    {51.0}
+\newcommand{\oursThroughput} {20}
+\newcommand{\oursPower}      {48.5}
+\newcommand{\oursEfficiency} {0.43}
+\newcommand{\oursPerplexity} {9.53}
+
+\graphicspath{{./}}
+\setlength{\textfloatsep}{7pt plus 2pt minus 2pt}
+\setlength{\floatsep}{6pt plus 2pt minus 2pt}
+\setlength{\intextsep}{7pt plus 2pt minus 2pt}
+\setlength{\abovecaptionskip}{3pt}
+\setlength{\belowcaptionskip}{0pt}
+
+\begin{document}
+
+\title{Accelerating LLaMA-2 Decoding on FPGAs via DDR-Bank-Aware Attention and Signed DSP Packing}
+
+% Replace this controlled anonymous block with the final author information
+% if the target venue is not double blind.
+\author{\IEEEauthorblockN{Anonymous Authors}}
+
+\maketitle
+
+\begin{abstract}
+Batch-one large-language-model decoding is strongly constrained by external-memory traffic, as projection weights must be repeatedly streamed while the key–value (KV) cache grows with sequence length. To address these bottlenecks, this paper presents a four-SLR FPGA accelerator for LLaMA2-7B decoding on the AMD–Xilinx Alveo U250. First, a signed W4A15 linear engine packs two low-bit weight products sharing the same activation into one DSP48E2, improving arithmetic utilization for memory-bound GEMV operations. Second, the architecture assigns one processing element and one DDR bank to each SLR, keeping weight and KV traffic local while overlapping data transfer and computation. Third, a compressed KV8 attention engine performs a single-pass online-softmax scan without materializing the complete attention-score vector. The routed design operates at 300 MHz and achieves a measured token latency of 51.0 ms at sequence position 0 with 48.5 W active board power. The W4A15-KV8 configuration achieves 9.53 perplexity on WikiText-2, matching the quantized software reference.
+
+\end{abstract}
+
+\begin{IEEEkeywords}
+large language model, FPGA, INT4, DSP packing, KV cache, online softmax,
+multi-SLR dataflow
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+Transformer models underpin both encoder-oriented language representations and
+decoder-only generative LLMs~\cite{transformer,bert,llama2}. During batch-one
+generation, decoder-only models execute all Transformer layers for every new
+token. Their projections are matrix--vector multiplications (GEMVs) with low
+arithmetic intensity, so external-memory traffic commonly limits performance
+rather than peak arithmetic throughput~\cite{llama2,inference-roofline}. The
+attention cost also increases with context length because each new query scans
+the previously stored keys and values. Therefore, batch-one decoding is
+strongly constrained by external-memory traffic.
+
+FPGAs can specialize numerical formats, data paths, buffers, and memory layout
+for this workload. On a multi-SLR FPGA, wide cross-SLR broadcasts also make
+timing closure difficult. The design must keep high-bandwidth data local to each
+SLR whenever possible.
+
+We therefore choose the numerical format and memory mapping to match the U250
+DSP48E2 and DDR organization. The contributions are:
+
+\begin{itemize}
+  \setlength{\itemsep}{1pt}
+  \item \textbf{Signed W4A15 DSP packing.}
+  Two W4 products sharing one A15 activation are accumulated in one DSP48E2
+  and recovered exactly after G32 accumulation.
+
+  \item \textbf{SLR-local execution with dedicated DDR-bank assignment.}
+  Each SLR contains one processing element assigned to one DDR bank. Activation
+  groups and RoPE coefficients are distributed once and then reused locally.
+
+  \item \textbf{KV8 online attention.}
+  Compressed K and V data are processed in a single pass using online softmax
+  without storing the complete attention-score vector.
+\end{itemize}
+
+The accelerator targets batch-one LLaMA2-7B decoding on an Alveo U250. The reported
+latency includes FPGA execution from a 4096-element input hidden-state vector
+through all 32 decoder layers, the final RMSNorm, and the 4096-to-32000
+vocabulary projection. It excludes tokenization, embedding lookup, sampling,
+and host-side sequence control.
+
+Each pre-normalized decoder layer contains RoPE-based
+self-attention~\cite{rope}, a SwiGLU
+feed-forward network, and two residual updates. Input token IDs and embedding
+lookup are shown for model context, but hardware evaluation begins at the
+embedded hidden state.
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.78\columnwidth]{prism-uploads/Transformer.png}
+  \caption{LLaMA2-7B decoder workload. The FPGA evaluates the embedded hidden
+  state through the repeated decoder, final RMSNorm, and vocabulary head.}
+  \label{fig:decoder}
+\end{figure}
+
+\section{Background and Related Work}
+
+\subsection{Low-Bit Quantization}
+
+Prior quantization methods reduce LLM numerical precision through outlier-aware,
+reconstruction-based, or activation-aware
+approaches~\cite{llmint8,gptq,smoothquant,awq,atom,aptq}. APTQ additionally considers
+attention-output error~\cite{aptq}. We apply APTQ offline while
+constraining weights to one symmetric W4 scale per $128\times256$ hardware tile.
+Runtime projection inputs use signed A15 quantization in 32-element groups for
+direct mapping to DSP48E2 arithmetic.
+
+\subsection{Attention and FPGA Acceleration}
+
+FlashAttention reduces GPU traffic through IO-aware tiling and fusion, but its
+large query-block reuse is limited in batch-one decoding~\cite{flashattention}.
+A stable online normalizer instead permits a single KV-cache scan without
+storing the complete score vector. SwiftKV applies online normalization to an
+edge-oriented attention accelerator~\cite{swiftkv}.
+
+FlightLLM provides a mapping flow that accounts for compressed weights and
+activations in FPGA LLM inference and uses multiple compute cores placed within
+individual SLRs on the Alveo U280~\cite{flightllm}. QLlama combines MXINT8
+quantization with dedicated
+vector-matrix multiplication, attention, quantization, and basic-operator units
+on the U280~\cite{qllama}. FlightOPU couples compute cores to external-memory
+channels and uses SLR-aware placement and synchronization on a multi-die V80
+FPGA~\cite{flightopu}. The U250 used here has four DDR banks and four SLRs. Our
+design uses W4 weights with one scale per $128\times256$ tile, online A15
+activations, signed DSP48E2 packing, and compressed KV-cache data stored in each
+processing element's assigned DDR bank.
+
+\section{Hardware Architecture}
+
+\begin{figure*}[!t]
+  \centering
+  \includegraphics[width=0.85\textwidth]{prism-uploads/PACKED_W4A15_G32_EVALUATION.png}
+  \caption{Conventional and packed W4A15 datapaths. The packed path accumulates
+  a signed 46-bit result over one 32-element group before extracting the two
+  packed dot products and applying a one-bit correction when the lower sum is
+  negative.}
+  \label{fig:packed}
+\end{figure*}
+
+\subsection{Overall System Organization}
+
+The design is specialized for LLaMA2-7B: 32 layers,
+residual width 4096, 32 heads of width 128, feed-forward width 11008,
+vocabulary size 32000, and maximum context length 4096. Eight execution modes
+select the Q, K, V, O, gate, up, down, and vocabulary projections.
+
+\subsubsection{Processing Elements Placed by SLR with DDR-Bank Assignment}
+
+Fig.~\ref{fig:four-slr} shows the physical organization of the accelerator.
+Processing element $\mathrm{PE}_i$ is constrained to $\mathrm{SLR}_i$ and
+communicates with DDR bank $i$ through its assigned 512-bit AXI master. Each
+bank stores the round-robin output tiles assigned to that processing element,
+the corresponding weight scales, KV-cache data for eight attention
+heads, and striped output or residual data.
+
+Within each processing element, weight transfers and KV-cache transfers use
+the same AXI master connected to the assigned DDR bank. A single global
+scheduler sequences all four processing elements and schedules these transfers.
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=\columnwidth]{prism-uploads/arc_top.jpg}
+  \caption{Four-SLR organization. Thick paths represent data streams and
+  dashed paths represent the compact commands sent by the global scheduler to
+  the four processing elements. Activation groups and RoPE coefficients are
+  reused from local buffers after distribution. Weight and KV-cache accesses
+  use each processing element's assigned DDR bank.}
+  \label{fig:four-slr}
+\end{figure}
+
+The global scheduler sends a registered command to each processing element
+through a dedicated FIFO. Linear commands contain 14 bits. Attention commands
+contain 18 bits: a 6-bit layer index and a 12-bit token position. Each
+processing element uses local command registers for address generation, so the
+complete controller state is not broadcast across the four SLRs. The floorplan
+does not assign the scheduler FSM to a specific SLR; it assigns the shared
+activation and RoPE buffers to SLR1. For cross-SLR distribution, one 32-element
+activation group is packed into a 512-bit packet containing 32 signed A15
+values, or 480 payload bits, and one 32-bit FP32 activation scale. Each
+processing element stores this activation packet in local replay memory and
+reuses it across its local row blocks and column tiles.
+
+At initialization, the complete 4096-position RoPE coefficient table is
+preloaded into URAM. For each token
+position, the corresponding RoPE coefficients are distributed to local caches
+in each processing element. Because the same positional coefficients are
+used by all decoder layers at a given token position, each processing element
+reuses the cached coefficients for its eight assigned heads throughout the 32
+layers.
+
+\subsubsection{Four-Bank Memory Organization}
+
+The architecture exposes four independent 512-bit AXI memory interfaces
+(\texttt{gmem0}--\texttt{gmem3}) corresponding to the four DDR banks of the
+target U250 platform. Weight tiles are assigned to the banks in a round-robin
+manner, while four processing elements operate concurrently on streams from
+their assigned banks. At 300 MHz, the four interfaces provide an ideal
+aggregate payload ceiling of 76.8 GB/s (71.53 GiB/s).
+
+Partitioned BRAM and URAM retain intermediate tensors on chip. Cross-SLR
+communication consists of narrow control commands, activation groups, RoPE
+coefficients for the current token position, and outputs gathered from the four
+processing elements.
+
+\subsection{W4A15 Linear Engine}
+
+\subsubsection{Signed Arithmetic Packing}
+
+The packed datapath uses one DSP48E2 instead of two multipliers for each W4 pair
+(Fig.~\ref{fig:packed}). With two row pairs evaluated concurrently across 32
+activation lanes, the packed inner-product core uses 64 DSP48E2s instead of
+128.
+
+\textbf{Step 1 (Fabric Packing):}
+Two signed INT4 weights ($w_h$ and $w_l$) that multiply the same signed A15
+activation $x_k$ are first sign-extended and packed at a 23-bit spacing using
+a registered fabric adder:
+\begin{equation}
+ w_{p,k} =
+ \left(\mathrm{sext}_{27}(w_{h,k}) \ll 23\right)
+ +\mathrm{sext}_{27}(w_{l,k}).
+ \label{eq:wpack}
+\end{equation}
+Equation~\eqref{eq:wpack} is an arithmetic addition, not a bitwise
+concatenation, and it inserts no unused zero bits between the two packed fields.
+Consequently, a negative $w_{l,k}$ sign-extends and borrows from the upper
+field. The asymmetric two's-complement code $-8$ is intentionally excluded so
+that the packing bound uses the symmetric bound $|w|\le 7$.
+
+\textbf{Step 2 (Packed Multiplication):}
+The 27-bit packed operand $w_{p,k}$ and the 15-bit activation $x_k$,
+sign-extended to 18 bits, are multiplied in one DSP48E2 operating in
+$27\times18$ mode. The DSP48E2 produces a 45-bit product. Under the W4A15
+bounds used here, the product magnitude is below $2^{40}$ and the subsequent
+packed accumulation over one 32-element group fits in 46 signed bits.
+
+\textbf{Step 3 (G32 Accumulation):}
+The 45-bit packed products are accumulated directly across the 32 elements of
+one group:
+\begin{equation}
+ A_p=\sum_{k=0}^{31} w_{p,k} x_k
+     =2^{23}D_h+D_l .
+ \label{eq:packedacc}
+\end{equation}
+The A15 bound is selected with the 32-element group size and symmetric W4 so
+that the 32-element dot product for each packed weight field fits within 23
+signed bits. The same 23-bit separation allows the two W4 operands to fit
+within the 27-bit DSP48E2 multiplier input because
+$|7\cdot2^{23}+7|<2^{26}$. The maximum lane magnitude is bounded by
+$32\times7\times16383=3{,}669{,}792<2^{22}$.
+
+\textbf{Step 4 (Extracting the Packed Dot Products and Correcting Sign Borrow):}
+The two 32-element integer dot products are recovered from the 46-bit
+accumulator using
+\begin{align}
+ D_l &= \mathrm{signed}(A_p[22:0]),\\
+ D_{h,\mathrm{raw}} &= \mathrm{signed}(A_p[45:23]),\\
+ D_h &= D_{h,\mathrm{raw}} + \left(D_l[22]\, ?\, 1 : 0\right).
+ \label{eq:correction}
+\end{align}
+The one-bit addition of $D_l[22]$ corrects the borrow from the lower packed
+field whenever $D_l$ is negative.
+
+After extracting the two packed dot products, scaling is performed as
+\begin{equation}
+ y_r \leftarrow y_r +
+ \mathrm{FP32}(D_{r,g,T})\,S_{x,g}\,
+ \mathrm{FP32}(S_{w,T}).
+ \label{eq:dequant}
+\end{equation}
+In Eq.~\eqref{eq:dequant}, the scaled integer result and the accumulation over
+all eight 32-element groups in a 256-column tile, as well as over all column
+tiles, use FP32. Therefore, the 23-bit, 32-element integer dot products are not
+accumulated across the complete matrix width. FP32 outputs are retained for
+residual paths or requantized by Eq.~\eqref{eq:aquant} before a following
+linear projection.
+
+\subsubsection{Weight and Activation Quantization}
+
+Each projection matrix is partitioned into $128\times256$ hardware tiles. For a tile
+$T$, maximum-magnitude scaling provides the initial symmetric W4 scale:
+\begin{equation}
+\begin{aligned}
+ S^{(0)}_{w,T}&=\frac{\max_{i\in T}|W_i|}{7},\\
+ q_T(w;S)&=\mathrm{clip}_{[-7,7]}
+ \left(\mathrm{round}(w/S)\right).
+\end{aligned}
+ \label{eq:tilequant}
+\end{equation}
+APTQ then refines the quantized weights offline while retaining one symmetric W4
+scale per $128\times256$ tile and values restricted to $[-7,7]$. The W4 weights
+are calibrated offline and stored with their FP16 scales.
+
+Before each linear projection, the input activation vector is quantized online
+into independent groups of 32 elements:
+\begin{equation}
+\begin{aligned}
+ S_{x,g}&=\frac{\max_{k\in g}|x_k|}{16383},\\
+ \hat x_k&=\mathrm{clip}_{[-16383,16383]}
+ \left(\mathrm{round}\left(x_k/S_{x,g}\right)\right).
+\end{aligned}
+ \label{eq:aquant}
+\end{equation}
+The group scale $S_{x,g}$ remains FP32. These signed A15 activations are then
+combined with streamed W4 weights inside the packed W4A15 datapath.
+
+Each 512-bit word contains 32 INT4 weights from each of four output rows,
+exactly filling the interface width. The 256 weight words of each tile are
+stored contiguously, while FP16 scales are stored separately.
+
+\subsubsection{Linear Dataflow and Load--Compute Overlap}
+
+As illustrated in Fig.~\ref{fig:pipeline-overlap}, each linear processing
+element overlaps weight transfer, packed integer computation, and output
+generation through FIFO-decoupled pipeline stages. While the DDR reader streams
+the weights of tile $(T+1)$, the packed W4A15 MAC processes tile $T$, and the
+output stage completes tile $(T-1)$. After pipeline fill, these stages operate
+concurrently on different tiles.
+
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=\columnwidth]{prism-uploads/overlap.png}
+  \caption{Linear-processing-element load--compute overlap. FIFO-decoupled
+  stages concurrently stream weights for tile $(T+1)$, execute the packed
+  W4A15 MAC for tile $T$, and generate the dequantized output for tile $(T-1)$
+  after pipeline fill.}
+  \label{fig:pipeline-overlap}
+\end{figure}
+\FloatBarrier
+
+\subsection{KV8 Online-Attention Engine}
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=\columnwidth]{Attention.jpg}
+  \caption{KV8 attention with one DDR bank assigned to each processing element.
+  Each processing element scans eight attention heads from its assigned bank.
+  The QK datapath, online-softmax recurrence, and parallel value-update datapath
+  with four local accumulator banks process the compressed KV stream without
+  storing the complete attention-score vector.}
+  \label{fig:kv8}
+\end{figure}
+
+During autoregressive decoding, the KV8 attention engine scans the compressed
+K/V records for each attention head once from the processing element's assigned
+DDR bank. During the scan, it maintains the running maximum, normalization
+term, and weighted value accumulator. The full score vector is never written to
+memory. After the scan, the weighted accumulator is normalized to produce the
+attention output.
+
+\subsubsection{Compressed KV Block and DDR-Bank Head Assignment}
+
+For one token and one attention head, K and V are quantized before being stored
+in DDR. The compressed data occupy five 512-bit AXI transfers: one metadata
+transfer, two transfers for K, and two transfers for V:
+\[
+ [\mathrm{metadata},K_0,K_1,V_0,V_1].
+\]
+
+Let $r$ be the signed integer encoding of a Q15.17 value in one K or V group,
+and let $m$ be the maximum absolute encoded value in that group. The shift
+amount and quantized value
+are
+\begin{align}
+ q_s &= \max(\lfloor\log_2 m\rfloor-6,0),\\
+ q &= \mathrm{sign}(r)\,
+ \min\left(127,
+ \left\lfloor\frac{|r|+2^{q_s-1}}{2^{q_s}}\right\rfloor\right).
+ \label{eq:kvquant}
+\end{align}
+When $q_s=0$, the rounding offset is zero. K and V quantization is performed
+online after RoPE because the stored values depend on the current token
+position. The newly generated KV block is written once and forwarded
+to the attention pipeline, avoiding an immediate DDR readback.
+
+The K and V data for one token and one head occupy 320 bytes. FP16 K and V data
+would occupy 512 bytes, so compression reduces the cache footprint by 37.5\%.
+
+\subsubsection{Single-Pass Online Softmax}
+
+The exponential is implemented with a lookup-based approximation, and final
+normalization uses a reciprocal unit. The result is quantized to A15 before the
+O projection.
+
+\subsubsection{Parallel Value Update with Four Accumulator Banks}
+
+Four parallel value-update units collectively process 16 elements per cycle.
+The QK datapath has the same processing rate, so both require eight cycles for
+one 128-element vector. All value-update state remains local to the processing
+element.
+
+RMSNorm, attention, and SwiGLU outputs are quantized to signed A15 values before
+their following projections. Residual addition is integrated into the
+writeback stages of the O and down projections.
+
+\section{Experimental Evaluation}
+
+\subsection{Experimental Setup}
+
+The accelerator is implemented on the AMD--Xilinx Alveo U250 using Vitis HLS
+and Vitis 2023.2 and operates at 300 MHz with four 512-bit AXI interfaces.
+Board measurements use batch size one. Kernel latency is measured using device
+profiling timestamps, excluding host-side tokenization, embedding lookup, and
+sampling. Board power is measured using XRT sensors, and latency is averaged
+over 100 runs.
+
+\subsection{Post-Route Resource Results}
+
+The packed inner-product core uses 64 DSP48E2s, compared with 128 for two
+independent multipliers. A complete linear processing element uses 93 DSP48E2s.
+
+Table~\ref{tab:resource} reports the post-route utilization of the implemented
+U250 design. BRAM values are BRAM36 equivalents.
+
+\begin{table}[!htbp]
+\caption{Post-Route Resource Utilization on Alveo U250}
+\label{tab:resource}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{8pt}
+\begin{tabular}{lrr}
+\toprule
+Resource & Used & Utilization \\
+\midrule
+LUT       & 321.5k & 18.6\% \\
+Flip-flop & 384.6k & 11.1\% \\
+BRAM36    & 689    & 25.6\% \\
+URAM      & 422    & 33.0\% \\
+DSP48E2   & 846    & 6.9\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The routed design operates at 300 MHz.
+
+\subsection{On-Board Performance and Power}
+
+Table~\ref{tab:performance} reports the measured performance at sequence
+position 0.
+
+\begin{table}[!htbp]
+\caption{Measured On-Board Performance at Sequence Position 0}
+\label{tab:performance}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lr}
+\toprule
+Metric & Value \\
+\midrule
+Kernel frequency & 300 MHz \\
+Token latency & \oursLatency{} ms \\
+Throughput & \oursThroughput{} token/s \\
+Active board power & \oursPower{} W \\
+Energy efficiency & \oursEfficiency{} token/J \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+At sequence position 0, the measured latency is \oursLatency{} ms,
+corresponding to approximately \oursThroughput{} token/s at \oursPower{} W. The reported
+result is not sequence averaged.
+
+\subsection{Model Quality and Agreement with the Software Reference}
+
+Quality is evaluated with the same LLaMA2-7B checkpoint, WikiText-2 split,
+tokenizer, context length, and sliding-window policy for the FP16 software
+reference, the quantized software reference, and the FPGA output. Calibration
+uses 128 sequences of length 2048 sampled from the C4 dataset independently of
+the WikiText-2 evaluation set.
+
+\begin{table}[!htbp]
+\caption{Quality Evaluation on WikiText-2}
+\label{tab:quality}
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lrrrr}
+\toprule
+Configuration      & W    & A    & KV   & PPL \\
+\midrule
+FP16 software      & FP16 & FP16 & FP16 & 9.39 \\
+Quantized software & W4   & A15  & KV8  & 9.53 \\
+FPGA               & W4   & A15  & KV8  & \oursPerplexity \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The FPGA achieves a WikiText-2 perplexity of \oursPerplexity{}, matching the
+quantized software result.
+
+\section{Conclusion}
+
+We implemented a four-SLR LLaMA2-7B accelerator using signed W4A15 DSP packing
+and compressed KV attention with dedicated DDR-bank assignment. The U250 design
+operates at 300 MHz and achieves 20.83 token/s at sequence position 0 with
+48.5 W board power. The W4, A15, and KV8 configuration obtains 9.53 WikiText-2
+perplexity.
+
+\begin{thebibliography}{00}
+
+\bibitem{transformer}
+A. Vaswani et al., ``Attention is all you need,'' in \emph{Proc. Adv. Neural
+Inf. Process. Syst.}, vol.~30, pp. 5998--6008, 2017.
+
+\bibitem{bert}
+J. Devlin, M.-W. Chang, K. Lee, and K. Toutanova, ``BERT: Pre-training of deep
+bidirectional transformers for language understanding,'' in \emph{Proc.
+NAACL-HLT}, pp. 4171--4186, 2019.
+
+\bibitem{llama2}
+H. Touvron et al., ``Llama 2: Open foundation and fine-tuned chat models,''
+arXiv:2307.09288, 2023.
+
+\bibitem{inference-roofline}
+Z. Yuan et al., ``LLM inference unveiled: Survey and roofline model
+insights,'' arXiv:2402.16363, 2024.
+
+\bibitem{llmint8}
+T. Dettmers, M. Lewis, Y. Belkada, and L. Zettlemoyer, ``LLM.int8(): 8-bit matrix
+multiplication for transformers at scale,'' in \emph{Proc. Adv. Neural Inf.
+Process. Syst.}, vol.~35, pp. 30318--30332, 2022.
+
+\bibitem{gptq}
+E. Frantar, S. Ashkboos, T. Hoefler, and D. Alistarh, ``GPTQ: Accurate
+post-training quantization for generative pre-trained transformers,'' in
+\emph{Proc. Int. Conf. Learn. Representations (ICLR)}, 2023.
+
+\bibitem{smoothquant}
+G. Xiao, J. Lin, M. Seznec, H. Wu, J. Demouth, and S. Han, ``SmoothQuant:
+Accurate and efficient post-training quantization for large language models,''
+in \emph{Proc. Int. Conf. Mach. Learn. (ICML)}, pp. 38087--38099, 2023.
+
+\bibitem{awq}
+J. Lin et al., ``AWQ: Activation-aware weight quantization for on-device LLM
+compression and acceleration,'' in \emph{Proc. Mach. Learn. Syst.}, vol.~6,
+pp. 87--100, 2024.
+
+\bibitem{atom}
+Y. Zhao et al., ``Atom: Low-bit quantization for efficient and accurate LLM
+serving,'' in \emph{Proc. Mach. Learn. Syst.}, vol.~6, pp. 196--209, 2024.
+
+\bibitem{aptq}
+Z. Guan, H. Huang, Y. Su, H. Huang, N. Wong, and H. Yu,
+``APTQ: Attention-aware post-training mixed-precision quantization for large
+language models,'' in \emph{Proc. 61st ACM/IEEE Design Automation Conf.
+(DAC)}, 2024, doi: 10.1145/3649329.3658498.
+
+\bibitem{flightllm}
+S. Zeng et al., ``FlightLLM: Efficient large language model inference with a
+complete mapping flow on FPGAs,'' in \emph{Proc. 2024 ACM/SIGDA Int. Symp.
+Field-Programmable Gate Arrays (FPGA)}, 2024,
+doi: 10.1145/3626202.3637562.
+
+\bibitem{qllama}
+H. Wen et al., ``QLlama: An FPGA-based microscaling quantization accelerator
+for energy-efficient Llama2 inference,'' \emph{IEEE Embedded Syst. Lett.},
+vol.~17, no.~5, pp. 337--340, 2025,
+doi: 10.1109/LES.2025.3600563.
+
+\bibitem{swiftkv}
+J. Zhang et al., ``SwiftKV: An edge-oriented attention algorithm and
+multi-head accelerator for fast, efficient LLM decoding,'' arXiv:2601.10953,
+2026.
+
+\bibitem{flightopu}
+C. Wu et al., ``FlightOPU: An FPGA overlay processor for LLM with HBM-aware
+multi-die architecture,'' in \emph{Proc. 2025 Int. Conf. Field Programmable
+Technology (ICFPT)}, pp. 248--251, 2025,
+doi: 10.1109/ICFPT67023.2025.00048.
+
+\bibitem{flashattention}
+T. Dao, D. Y. Fu, S. Ermon, A. Rudra, and C. R\'e,
+``FlashAttention: Fast and memory-efficient exact attention with
+IO-awareness,'' in \emph{Proc. Adv. Neural Inf. Process. Syst.}, vol.~35,
+pp. 16344--16359, 2022.
+
+\bibitem{rope}
+J. Su, Y. Lu, S. Pan, A. Murtadha, B. Wen, and Y. Liu, ``RoFormer: Enhanced
+Transformer with rotary position embedding,'' arXiv:2104.09864, 2021.
+
+\end{thebibliography}
+
+\end{document}

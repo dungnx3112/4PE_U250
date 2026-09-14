@@ -108,11 +108,18 @@ if [[ ! -f "$platform" ]]; then
 fi
 
 # Resolve paths
-source_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
-cd "$source_dir"
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+if [[ -d "$script_dir/kernel_HLS" ]]; then
+    repo_root="$script_dir"
+    scripts_dir="$script_dir"
+else
+    repo_root=$(cd -- "$script_dir/.." && pwd -P)
+    scripts_dir="$script_dir"
+fi
+cd "$repo_root"
 
-hls_script="$source_dir/run_hls_decoder_multikernel.tcl"
-config_path="$source_dir/link_decoder_multikernel_300mhz.cfg"
+hls_script="$scripts_dir/run_hls_decoder_multikernel.tcl"
+config_path="$scripts_dir/link_decoder_multikernel_300mhz.cfg"
 
 if [[ ! -f "$hls_script" ]]; then
     echo "ERROR: HLS build script not found: $hls_script" >&2
@@ -124,14 +131,14 @@ if [[ ! -f "$config_path" ]]; then
 fi
 
 xo_files=(
-    "$source_dir/int4_decoder_pe0_kernel_300mhz.xo"
-    "$source_dir/int4_decoder_pe1_kernel_300mhz.xo"
-    "$source_dir/int4_decoder_pe2_kernel_300mhz.xo"
-    "$source_dir/int4_decoder_pe3_kernel_300mhz.xo"
+    "$repo_root/int4_decoder_pe0_kernel_300mhz.xo"
+    "$repo_root/int4_decoder_pe1_kernel_300mhz.xo"
+    "$repo_root/int4_decoder_pe2_kernel_300mhz.xo"
+    "$repo_root/int4_decoder_pe3_kernel_300mhz.xo"
 )
 
 run_id=$(date +%Y%m%d-%H%M%S)-$$
-run_dir="$source_dir/build_multikernel_300mhz/runs/$run_id"
+run_dir="$repo_root/build_multikernel_300mhz/runs/$run_id"
 temp_dir="$run_dir/temp"
 log_dir="$run_dir/logs"
 report_dir="$run_dir/reports"
@@ -240,7 +247,7 @@ echo "========================================================================"
 if [[ "$output_name" == /* ]]; then
     resolved_output="$output_name"
 else
-    resolved_output="$source_dir/$output_name"
+    resolved_output="$repo_root/$output_name"
 fi
 candidate_output="$run_dir/int4_decoder_multikernel_300mhz.candidate.xclbin"
 
@@ -258,8 +265,15 @@ set +e
 # Patch the cfg: replace placeholder Tcl paths with absolute paths
 # (v++ sets Vivado CWD to a temp dir, so relative paths in cfg do not work)
 config_patched="$temp_dir/link_decoder_multikernel_300mhz_patched.cfg"
-pre_place_tcl="$source_dir/constraints/pre_place.tcl"
-pre_physopt_tcl="$source_dir/constraints/pre_physopt.tcl"
+if [[ -d "$repo_root/constraints" ]]; then
+    constraints_dir="$repo_root/constraints"
+elif [[ -d "$scripts_dir/constraints" ]]; then
+    constraints_dir="$scripts_dir/constraints"
+else
+    constraints_dir="$repo_root/constraints"
+fi
+pre_place_tcl="$constraints_dir/pre_place.tcl"
+pre_physopt_tcl="$constraints_dir/pre_physopt.tcl"
 # Squeeze server configuration: scale Vivado synth.jobs and impl.jobs to 32 32
 synth_jobs=$(( jobs >= 32 ? 32 : jobs ))
 impl_jobs=$(( jobs >= 32 ? 32 : jobs ))

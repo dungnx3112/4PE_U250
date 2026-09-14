@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="620" viewBox="0 0 1500 620" role="img" aria-labelledby="title desc">
+  <title id="title">Simplified FPGA transformer inference graphical abstract</title>
+  <desc id="desc">A host supplies an already embedded hidden state to an FPGA accelerator. The FPGA repeats a decoder layer thirty-two times using W4A15 linear processing, compressed-KV attention, fused SwiGLU, and on-chip residual retention, then applies final normalization and vocabulary projection before returning striped logits to the host.</desc>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8.5" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#334155"/>
+    </marker>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="8.5" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#2563eb"/>
+    </marker>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #0f172a; }
+      .eyebrow { font-size: 14px; font-weight: 700; letter-spacing: 1.5px; fill: #64748b; }
+      .region-title { font-size: 21px; font-weight: 700; }
+      .label { font-size: 17px; font-weight: 700; }
+      .small { font-size: 14px; fill: #475569; }
+      .tiny { font-size: 12px; fill: #64748b; }
+      .panel { fill: #ffffff; stroke: #64748b; stroke-width: 2; rx: 14; }
+      .dataflow { fill: none; stroke: #334155; stroke-width: 3; marker-end: url(#arrow); }
+      .blueflow { fill: none; stroke: #2563eb; stroke-width: 3; marker-end: url(#arrowBlue); }
+    </style>
+  </defs>
+
+  <rect width="1500" height="620" fill="#ffffff"/>
+  <text x="60" y="54" class="eyebrow">GRAPHICAL ABSTRACT · FPGA DECODING PATH</text>
+
+  <!-- Region 1: host-provided accelerator input -->
+  <rect x="60" y="105" width="255" height="405" class="panel" fill="#f8fafc"/>
+  <rect x="84" y="137" width="207" height="58" rx="10" fill="#e2e8f0" stroke="#64748b" stroke-width="1.8"/>
+  <text x="187.5" y="162" text-anchor="middle" class="label">Host</text>
+  <text x="187.5" y="183" text-anchor="middle" class="small">runtime and sampling</text>
+
+  <rect x="84" y="240" width="207" height="136" rx="10" fill="#eef6ff" stroke="#2563eb" stroke-width="2"/>
+  <text x="187.5" y="276" text-anchor="middle" class="label">Embedded</text>
+  <text x="187.5" y="299" text-anchor="middle" class="label">hidden state</text>
+  <text x="187.5" y="333" text-anchor="middle" class="small">4096-element FP32</text>
+  <text x="187.5" y="355" text-anchor="middle" class="small">residual vector</text>
+
+  <text x="187.5" y="429" text-anchor="middle" class="small">Tokenizer and embedding lookup</text>
+  <text x="187.5" y="451" text-anchor="middle" class="small">remain outside the accelerator</text>
+  <text x="187.5" y="485" text-anchor="middle" class="tiny">accelerator interface boundary</text>
+
+  <!-- Input transfer -->
+  <path d="M315 308 H370" class="blueflow"/>
+  <text x="343" y="287" text-anchor="middle" class="tiny">state in</text>
+
+  <!-- Region 2: repeated FPGA decoder -->
+  <rect x="372" y="85" width="710" height="445" rx="16" fill="#f8fafc" stroke="#334155" stroke-width="2.4"/>
+  <text x="404" y="125" class="region-title">FPGA decoder layer</text>
+  <rect x="908" y="101" width="138" height="39" rx="19.5" fill="#0f172a"/>
+  <text x="977" y="127" text-anchor="middle" font-size="18" font-weight="700" style="fill:#ffffff">repeated ×32</text>
+
+  <rect x="417" y="170" width="275" height="112" rx="12" fill="#eef2ff" stroke="#7c3aed" stroke-width="2.2"/>
+  <text x="554.5" y="207" text-anchor="middle" class="label">Compressed-KV attention</text>
+  <text x="554.5" y="233" text-anchor="middle" class="small">SwiftKV online decoding</text>
+  <text x="554.5" y="257" text-anchor="middle" class="tiny">persistent K/V records in DDR</text>
+
+  <rect x="755" y="170" width="275" height="112" rx="12" fill="#eef6ff" stroke="#2563eb" stroke-width="2.2"/>
+  <text x="892.5" y="207" text-anchor="middle" class="label">W4A15 linear processing</text>
+  <text x="892.5" y="233" text-anchor="middle" class="small">four independent PEs</text>
+  <text x="892.5" y="257" text-anchor="middle" class="tiny">one local DDR weight stream per PE</text>
+
+  <rect x="417" y="330" width="275" height="112" rx="12" fill="#fff7ed" stroke="#ea580c" stroke-width="2.2"/>
+  <text x="554.5" y="369" text-anchor="middle" class="label">Fused SwiGLU</text>
+  <text x="554.5" y="395" text-anchor="middle" class="small">feed-forward processing</text>
+  <text x="554.5" y="419" text-anchor="middle" class="tiny">online activation quantization</text>
+
+  <rect x="755" y="330" width="275" height="112" rx="12" fill="#ecfdf5" stroke="#16a34a" stroke-width="2.2"/>
+  <text x="892.5" y="369" text-anchor="middle" class="label">On-chip residual retention</text>
+  <text x="892.5" y="395" text-anchor="middle" class="small">BRAM / URAM buffers</text>
+  <text x="892.5" y="419" text-anchor="middle" class="tiny">intermediate vectors stay on chip</text>
+
+  <path d="M692 226 H755" class="dataflow"/>
+  <path d="M892 282 V330" class="dataflow"/>
+  <path d="M755 386 H692" class="dataflow"/>
+  <path d="M554 330 V282" class="dataflow"/>
+
+  <path d="M1082 308 H1134" class="dataflow"/>
+
+  <!-- Region 3: FPGA output path -->
+  <rect x="1136" y="105" width="304" height="405" class="panel" fill="#f8fafc"/>
+  <text x="1288" y="142" text-anchor="middle" class="region-title">Output path</text>
+
+  <rect x="1172" y="174" width="232" height="64" rx="10" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+  <text x="1288" y="214" text-anchor="middle" class="label">Final RMSNorm</text>
+
+  <path d="M1288 238 V268" class="dataflow"/>
+
+  <rect x="1172" y="270" width="232" height="64" rx="10" fill="#eef6ff" stroke="#2563eb" stroke-width="2"/>
+  <text x="1288" y="310" text-anchor="middle" class="label">Vocabulary projection</text>
+
+  <path d="M1288 334 V364" class="dataflow"/>
+
+  <g aria-label="striped logits">
+    <rect x="1172" y="366" width="232" height="62" rx="9" fill="#ffffff" stroke="#334155" stroke-width="2"/>
+    <rect x="1173" y="367" width="28" height="60" rx="8" fill="#dbeafe"/>
+    <rect x="1201" y="367" width="28" height="60" fill="#bfdbfe"/>
+    <rect x="1229" y="367" width="28" height="60" fill="#93c5fd"/>
+    <rect x="1257" y="367" width="28" height="60" fill="#60a5fa"/>
+    <rect x="1285" y="367" width="28" height="60" fill="#3b82f6"/>
+    <rect x="1313" y="367" width="28" height="60" fill="#60a5fa"/>
+    <rect x="1341" y="367" width="28" height="60" fill="#93c5fd"/>
+    <rect x="1369" y="367" width="34" height="60" rx="8" fill="#bfdbfe"/>
+    <text x="1288" y="402" text-anchor="middle" font-size="17" font-weight="700" fill="#0f172a" stroke="#ffffff" stroke-width="3" paint-order="stroke">Striped logits</text>
+  </g>
+
+  <path d="M1288 428 V465" class="dataflow"/>
+  <text x="1288" y="491" text-anchor="middle" class="small">returned to Host</text>
+
+  <!-- Region labels -->
+  <text x="187.5" y="552" text-anchor="middle" class="eyebrow">1 · HOST INPUT</text>
+  <text x="727" y="572" text-anchor="middle" class="eyebrow">2 · REPEATED FPGA DECODER</text>
+  <text x="1288" y="552" text-anchor="middle" class="eyebrow">3 · FPGA OUTPUT</text>
+</svg>

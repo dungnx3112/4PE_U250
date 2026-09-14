@@ -3,6 +3,8 @@
 proj_*/
 build_*/
 _x/
+pnr_*_run/
+report_*/
 
 # Generated implementation artifacts
 *.dcp
@@ -11,8 +13,15 @@ _x/
 *.log
 *.str
 *.wdb
+*.rpt
+*.pb
+*.backup.*
+*.bak
 clockInfo.txt
 /command.txt
+
+# Generated XO artifacts (keep repo clean)
+int4_decoder_pe*_kernel_300mhz.xo
 
 # Vivado project directories
 *.cache/
@@ -30,3 +39,19 @@ clockInfo.txt
 .vscode/
 Thumbs.db
 Desktop.ini
+
+# Scratch / temporary scripts
+analyze_server_dcp.tcl
+analyze_new_pnr_timing.tcl
+generate_slack_range_report.tcl
+parse_slack_range_paths.ps1
+run_slack_range_report.bat
+test_multicycle_dcp*.tcl
+hls_*_log.txt
+pnr_*_log.txt
+run_pnr_decoder_4pe.tcl
+run_rebuild_and_pnr_300mhz.ps1
+
+# Old prototypes
+matmul_u250/
+

@@ -17,33 +17,35 @@ control-plane mới tách nó thành `int4_decoder_pe0_kernel` tới
 bốn CU, chạy 32 decoder layer, cập nhật bốn KV cache cục bộ và ghi bốn shard
 logits.
 
-## Thành phần source hiện tại
+## Cấu trúc thư mục dự án
+
+Repository được chuẩn hóa thành các thư mục chức năng rõ ràng:
+
+- **`kernel_HLS/`**: Toàn bộ mã nguồn thiết kế phần cứng C++ HLS và top-level Verilog wrapper.
+- **`scripts/`**: Toàn bộ script build (`.sh`, `.ps1`), Tcl script cho Vitis HLS & Vivado, và cấu hình link (`.cfg`).
+- **`constraints/`**: Các file ràng buộc vật lý, neo SLR, và tiền xử lý PnR (`pre_place.tcl`, `pre_physopt.tcl`, `mcp_reset.xdc`).
+- **`docs/`**: Tài liệu kiến trúc (`docs/architecture/`), báo cáo & đề cương luận văn (`docs/thesis/`), hình ảnh (`docs/images/`).
+
+### Thành phần mã nguồn thiết kế (`kernel_HLS/`)
 
 | File | Vai trò |
 |---|---|
-| `int4_decoder_controller.cpp/.hpp` | Top kernel và bốn local scheduler sở hữu trọn PE/SLR |
-| `int4_decoder_schedule.hpp` | Lịch cố định dùng riêng trong từng local controller/reducer |
-| `int4_linear_controller.cpp/.hpp` | Linear cục bộ từng PE và hai pair reducer 128-bit |
-| `int4_decoder_blocks.cpp/.hpp` | RMSNorm, SwiGLU, residual cục bộ và RMS pair service |
-| `int4_types.hpp` | Kiểu dữ liệu, hằng model/tile và shape dùng chung, không phụ thuộc controller |
-| `int4_numeric.hpp` | Chuyển đổi FP32/bit dùng chung, bảo toàn bit pattern |
-| `int4_task_control.hpp` | Completion token, pair join và final wait dùng chung |
-| `swiftkv_attention.cpp/.hpp` | RoPE, KV cache INT8 và online-softmax attention cục bộ |
-| `int4_model_layout.hpp` | Shape, padding và offset cố định của mỗi DDR |
-| `int4_weight_packer.cpp/.hpp` | Packer offline tạo bốn model image input-column-sharded |
-| `link_300mhz.cfg` | Ánh xạ `gmem0..3` tới `DDR[0]..DDR[3]` |
-| `timing_300mhz_pre_place.tcl` | Neo bốn AXI adapter vào SLR của DDR tương ứng và AXI-Lite vào SLR0 |
-| `verify_300mhz_routed.tcl` | Hard gate route, DRC, setup và hold trên routed DCP |
-| `tests/`, `run_hls_unit_tests.tcl` | CSim cho shape, layout, schedule và FP32 bit conversion |
+| `kernel_HLS/int4_decoder_multikernel.cpp/.hpp` | Top multi-kernel chia 4 PE độc lập cho 4 SLR |
+| `kernel_HLS/int4_decoder_multikernel_top.v` | Top-level Verilog RTL wrapper kết nối 12 P2P AXI-Stream links |
+| `kernel_HLS/int4_decoder_controller.cpp/.hpp` | Kernel controller và 4 local scheduler sở hữu trọn PE/SLR |
+| `kernel_HLS/int4_decoder_schedule.hpp` | Lịch cố định dùng riêng trong từng local controller/reducer |
+| `kernel_HLS/int4_linear_controller.cpp/.hpp` | Linear GEMV cục bộ từng PE và 2 pair reducer 128-bit |
+| `kernel_HLS/int4_decoder_blocks.cpp/.hpp` | RMSNorm, SwiGLU, residual cục bộ và RMS pair service |
+| `kernel_HLS/swiftkv_attention.cpp/.hpp` | RoPE, KV cache INT8 và online-softmax attention cục bộ |
+| `kernel_HLS/int4_types.hpp` | Kiểu dữ liệu, hằng model/tile và shape dùng chung |
+| `kernel_HLS/int4_numeric.hpp` | Chuyển đổi FP32/bit dùng chung, bảo toàn bit pattern |
+| `kernel_HLS/int4_task_control.hpp` | Completion token, pair join và final wait dùng chung |
+| `kernel_HLS/int4_model_layout.hpp` | Shape, padding và offset cố định của mỗi DDR |
+| `kernel_HLS/int4_weight_packer.cpp/.hpp` | Packer offline tạo bốn model image input-column-sharded |
 
-Sơ đồ dependency, phạm vi production/legacy và contract khởi tạo được mô tả
-ngắn gọn trong [`HLS_SOURCE_GUIDE.md`](HLS_SOURCE_GUIDE.md).
-Datapath RMSNorm, GEMV INT4, reduction tree và cách chia logic theo SLR được
-mô tả chi tiết trong
-[`RMSNORM_MATMUL_HARDWARE.md`](RMSNORM_MATMUL_HARDWARE.md).
-Control plane bốn CU độc lập dùng lại datapath này, topology 12 AXIS link và
-contract launch phía host nằm trong
-[`DECODER_MULTIKERNEL_CONTROL_PLANE.md`](DECODER_MULTIKERNEL_CONTROL_PLANE.md).
+Sơ đồ dependency và contract khởi tạo được mô tả trong [`docs/architecture/HLS_SOURCE_GUIDE.md`](docs/architecture/HLS_SOURCE_GUIDE.md).
+Datapath RMSNorm, GEMV INT4, reduction tree và cách chia logic theo SLR được mô tả chi tiết trong [`docs/architecture/RMSNORM_MATMUL_HARDWARE.md`](docs/architecture/RMSNORM_MATMUL_HARDWARE.md).
+Control plane bốn CU độc lập dùng lại datapath này, topology 12 AXIS link nằm trong [`docs/architecture/DECODER_MULTIKERNEL_CONTROL_PLANE.md`](docs/architecture/DECODER_MULTIKERNEL_CONTROL_PLANE.md).
 
 ## Kiến trúc dữ liệu
 
@@ -271,19 +273,19 @@ Từ repository root, dùng XO đã kiểm chứng và chạy full hardware link
 một lệnh:
 
 ```bash
-bash build_300mhz.sh
+bash scripts/build_300mhz.sh
 ```
 
 Để tổng hợp lại XO từ source trước khi link:
 
 ```bash
-REBUILD_XO=1 bash build_300mhz.sh
+REBUILD_XO=1 bash scripts/build_300mhz.sh
 ```
 
 Nếu XO đã được build và kiểm tra đúng phiên bản, có thể bỏ qua kiểm tra timestamp và chỉ link lại XCLBIN:
 
 ```bash
-REUSE_XO=1 bash build_300mhz.sh
+REUSE_XO=1 bash scripts/build_300mhz.sh
 ```
 
 `REUSE_XO=1` không tắt floorplan hoặc timing gate; nó chỉ ngăn script gọi lại Vitis HLS.

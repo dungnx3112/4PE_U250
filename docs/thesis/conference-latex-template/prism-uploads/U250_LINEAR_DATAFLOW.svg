@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600" role="img">
+  <defs>
+    <!-- Gradients & styles -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#f8fafc"/>
+    </linearGradient>
+    
+    <!-- Block gradients for each process -->
+    <linearGradient id="gradRead" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#bae6fd"/>
+      <stop offset="1" stop-color="#7dd3fc"/>
+    </linearGradient>
+    <linearGradient id="gradCompute" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fef08a"/>
+      <stop offset="1" stop-color="#fde047"/>
+    </linearGradient>
+    <linearGradient id="gradWrite" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#bbf7d0"/>
+      <stop offset="1" stop-color="#86efac"/>
+    </linearGradient>
+
+    <style>
+      .title { font: 700 28px 'Segoe UI', Arial, sans-serif; fill: #0f172a; text-anchor: middle; }
+      .subtitle { font: 400 16px 'Segoe UI', Arial, sans-serif; fill: #475569; text-anchor: middle; }
+      .axis-text { font: 600 16px 'Segoe UI', Arial, sans-serif; fill: #334155; }
+      .axis-title { font: 700 18px 'Segoe UI', Arial, sans-serif; fill: #0f172a; }
+      .block-text { font: 700 16px 'Segoe UI', Arial, sans-serif; fill: #0f172a; text-anchor: middle; }
+      .block-subtext { font: 500 12px 'Segoe UI', Arial, sans-serif; fill: #334155; text-anchor: middle; }
+      
+      .grid-line { stroke: #cbd5e1; stroke-width: 1.5; stroke-dasharray: 6 4; fill: none; }
+      .axis-line { stroke: #475569; stroke-width: 2.5; fill: none; }
+      
+      .arrow { stroke: #64748b; stroke-width: 2; fill: none; marker-end: url(#arrow-head); }
+      .fifo-text { font: italic 500 14px 'Segoe UI', Arial, sans-serif; fill: #475569; text-anchor: middle; }
+      
+      .box-read { fill: url(#gradRead); stroke: #0284c7; stroke-width: 2; rx: 6; }
+      .box-compute { fill: url(#gradCompute); stroke: #ca8a04; stroke-width: 2; rx: 6; }
+      .box-write { fill: url(#gradWrite); stroke: #16a34a; stroke-width: 2; rx: 6; }
+    </style>
+
+    <marker id="arrow-head" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="600" fill="url(#bg)"/>
+
+  <!-- Title -->
+  <text x="600" y="50" class="title">HARDWARE PIPELINE OVERLAP: LINEAR PE</text>
+  <text x="600" y="80" class="subtitle">Minimizing memory latency by overlapping Read, Compute, and Write stages via URAM FIFOs</text>
+
+  <!-- Y Axis (Processes) -->
+  <text x="220" y="145" class="axis-title" text-anchor="end">Pipeline Stages</text>
+  <line x1="240" y1="120" x2="240" y2="480" class="axis-line"/>
+  
+  <text x="220" y="210" class="axis-text" text-anchor="end">1. DDR Weight Reader</text>
+  <text x="220" y="230" class="block-subtext" text-anchor="end">(Fetch W4 from DDR to URAM)</text>
+
+  <text x="220" y="310" class="axis-text" text-anchor="end">2. Packed Integer MAC</text>
+  <text x="220" y="330" class="block-subtext" text-anchor="end">(DSP48E2 Compute Tile)</text>
+
+  <text x="220" y="410" class="axis-text" text-anchor="end">3. Dequantize &amp; Write</text>
+  <text x="220" y="430" class="block-subtext" text-anchor="end">(FP16 Scale &amp; Pack to Buffer)</text>
+
+  <!-- X Axis (Time) -->
+  <text x="600" y="520" class="axis-title">Time (Clock Cycles)</text>
+  <line x1="240" y1="480" x2="1100" y2="480" class="axis-line" marker-end="url(#arrow-head)"/>
+
+  <!-- Time Grid Lines & Labels -->
+  <g>
+    <line x1="300" y1="160" x2="300" y2="480" class="grid-line"/>
+    <text x="300" y="500" class="axis-text" text-anchor="middle">t0</text>
+    
+    <line x1="450" y1="160" x2="450" y2="480" class="grid-line"/>
+    <text x="450" y="500" class="axis-text" text-anchor="middle">t1</text>
+    
+    <line x1="600" y1="160" x2="600" y2="480" class="grid-line"/>
+    <text x="600" y="500" class="axis-text" text-anchor="middle">t2</text>
+    
+    <line x1="750" y1="160" x2="750" y2="480" class="grid-line"/>
+    <text x="750" y="500" class="axis-text" text-anchor="middle">t3</text>
+    
+    <line x1="900" y1="160" x2="900" y2="480" class="grid-line"/>
+    <text x="900" y="500" class="axis-text" text-anchor="middle">t4</text>
+    
+    <line x1="1050" y1="160" x2="1050" y2="480" class="grid-line"/>
+    <text x="1050" y="500" class="axis-text" text-anchor="middle">t5</text>
+  </g>
+
+  <!-- PROCESS 1: READ -->
+  <rect x="310" y="180" width="130" height="60" class="box-read"/>
+  <text x="375" y="215" class="block-text">Read Tile 0</text>
+  
+  <rect x="460" y="180" width="130" height="60" class="box-read"/>
+  <text x="525" y="215" class="block-text">Read Tile 1</text>
+  
+  <rect x="610" y="180" width="130" height="60" class="box-read"/>
+  <text x="675" y="215" class="block-text">Read Tile 2</text>
+  
+  <rect x="760" y="180" width="130" height="60" class="box-read"/>
+  <text x="825" y="215" class="block-text">Read Tile 3</text>
+
+  <!-- PROCESS 2: COMPUTE -->
+  <rect x="460" y="280" width="130" height="60" class="box-compute"/>
+  <text x="525" y="315" class="block-text">MAC Tile 0</text>
+  
+  <rect x="610" y="280" width="130" height="60" class="box-compute"/>
+  <text x="675" y="315" class="block-text">MAC Tile 1</text>
+  
+  <rect x="760" y="280" width="130" height="60" class="box-compute"/>
+  <text x="825" y="315" class="block-text">MAC Tile 2</text>
+  
+  <rect x="910" y="280" width="130" height="60" class="box-compute"/>
+  <text x="975" y="315" class="block-text">MAC Tile 3</text>
+
+  <!-- PROCESS 3: WRITE -->
+  <rect x="610" y="380" width="130" height="60" class="box-write"/>
+  <text x="675" y="415" class="block-text">Write Tile 0</text>
+  
+  <rect x="760" y="380" width="130" height="60" class="box-write"/>
+  <text x="825" y="415" class="block-text">Write Tile 1</text>
+  
+  <rect x="910" y="380" width="130" height="60" class="box-write"/>
+  <text x="975" y="415" class="block-text">Write Tile 2</text>
+  
+  <rect x="1060" y="380" width="130" height="60" class="box-write"/>
+  <text x="1125" y="415" class="block-text">Write Tile 3</text>
+
+  <!-- Dataflow Arrows (Dependencies) -->
+  <!-- Tile 0 -->
+  <path d="M440 210 Q 450 210, 450 245 T 460 280" class="arrow"/>
+  <text x="450" y="255" class="fifo-text">FIFO</text>
+  
+  <path d="M590 310 Q 600 310, 600 345 T 610 380" class="arrow"/>
+  <text x="600" y="355" class="fifo-text">FIFO</text>
+  
+  <!-- Highlight Overlap Box -->
+  <rect x="590" y="160" width="170" height="300" fill="#94a3b8" opacity="0.1" stroke="#475569" stroke-width="2" stroke-dasharray="8 4" rx="8"/>
+  <text x="675" y="140" class="block-text" fill="#ef4444">100% Pipeline Overlap Area</text>
+  <text x="675" y="475" class="block-subtext">3 modules processing different tiles concurrently</text>
+
+</svg>

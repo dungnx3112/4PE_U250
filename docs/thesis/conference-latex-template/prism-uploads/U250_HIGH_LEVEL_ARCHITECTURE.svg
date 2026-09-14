@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="780" viewBox="0 0 1400 780" role="img" aria-labelledby="title desc">
+  <title id="title">Four-SLR organization with bank-local DDR traffic</title>
+  <desc id="desc">Each U250 SLR contains one identical processing element. A dedicated DDR bank provides INT4 weights to the local linear engine and bidirectional compressed-KV traffic to the local SwiftKV engine. Activation and residual data are broadcast globally, while outputs are gathered on a separate on-chip bus.</desc>
+  <defs>
+    <marker id="arrowBlue" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="#2563eb"/></marker>
+    <marker id="arrowPurple" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto-start-reverse"><path d="M0 0 L9 4.5 L0 9 Z" fill="#7c3aed"/></marker>
+    <marker id="arrowGreen" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="#16a34a"/></marker>
+    <marker id="arrowTeal" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="#0f766e"/></marker>
+    <marker id="arrowGray" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#64748b"/></marker>
+    <style>
+      text{font-family:'Segoe UI',Arial,sans-serif;fill:#0f172a}
+      .slr{fill:#f8fafc;stroke:#64748b;stroke-width:1.9}
+      .ctrl{fill:#f8fafc;stroke:#64748b;stroke-width:1.6}
+      .linear{fill:#eff6ff;stroke:#2563eb;stroke-width:1.7}
+      .attn{fill:#f5f3ff;stroke:#7c3aed;stroke-width:1.7}
+      .buffer{fill:#f0fdf4;stroke:#16a34a;stroke-width:1.7}
+      .ddr{fill:#dbeafe;stroke:#1d4ed8;stroke-width:1.9}
+      .h1{font-size:19px;font-weight:700}
+      .h2{font-size:16px;font-weight:700}
+      .label{font-size:14px;font-weight:650}
+      .small{font-size:12px;font-weight:500;fill:#475569}
+      .tiny{font-size:11.5px;font-weight:500;fill:#64748b}
+      .center{text-anchor:middle}
+      .weight{fill:none;stroke:#2563eb;stroke-width:3.8;marker-end:url(#arrowBlue)}
+      .kv{fill:none;stroke:#7c3aed;stroke-width:3;marker-start:url(#arrowPurple);marker-end:url(#arrowPurple)}
+      .halo{fill:none;stroke:#fff;stroke-width:9}
+      .broadcast{fill:none;stroke:#16a34a;stroke-width:6;stroke-linecap:round}
+      .broadcastBranch{fill:none;stroke:#16a34a;stroke-width:2.8;marker-end:url(#arrowGreen)}
+      .gather{fill:none;stroke:#0f766e;stroke-width:5;stroke-linecap:round}
+      .gatherBranch{fill:none;stroke:#0f766e;stroke-width:2.8;marker-end:url(#arrowTeal)}
+      .gatherReturn{fill:none;stroke:#0f766e;stroke-width:3;marker-end:url(#arrowTeal)}
+      .control{fill:none;stroke:#64748b;stroke-width:1.5;stroke-dasharray:6 6;marker-end:url(#arrowGray)}
+    </style>
+  </defs>
+  <rect width="1400" height="780" fill="#fff"/>
+
+  <!-- Host, controller and global buffers -->
+  <rect x="560" y="24" width="280" height="52" rx="8" class="ctrl"/>
+  <text x="700" y="48" class="label center">Host / XRT</text>
+  <text x="700" y="66" class="tiny center">embedded state in · logits out</text>
+  <rect x="430" y="100" width="265" height="62" rx="9" class="ctrl"/>
+  <text x="562" y="127" class="h2 center">Token controller</text>
+  <text x="562" y="148" class="tiny center">global sequencing</text>
+  <rect x="725" y="100" width="360" height="62" rx="9" class="buffer"/>
+  <text x="905" y="125" class="h2 center">On-chip activation, residual,</text>
+  <text x="905" y="146" class="h2 center">and logits buffers</text>
+  <path d="M700 76 V100" class="control"/>
+
+  <!-- Broadcast and control -->
+  <text x="72" y="205" class="small">A15/G32 activation and residual broadcast</text>
+  <path d="M205 218 H1270" class="broadcast"/>
+  <path d="M905 162 V218" class="broadcastBranch"/>
+  <path d="M562 162 V185 H1175" class="control"/>
+  <path d="M562 185 H215" class="control"/>
+
+  <!-- Four identical SLR-local PEs -->
+  <g id="pe0">
+    <rect x="70" y="245" width="290" height="245" rx="11" class="slr"/>
+    <text x="215" y="272" class="h2 center">SLR0 · PE0</text>
+    <rect x="95" y="290" width="240" height="48" rx="7" class="linear"/><text x="215" y="320" class="label center">W4A15 linear engine</text>
+    <rect x="95" y="352" width="240" height="48" rx="7" class="attn"/><text x="215" y="382" class="label center">SwiftKV attention</text>
+    <rect x="95" y="414" width="112" height="48" rx="7" class="buffer"/><text x="151" y="443" class="small center">local FIFO</text>
+    <rect x="223" y="414" width="112" height="48" rx="7" class="buffer"/><text x="279" y="436" class="small center">intermediate</text><text x="279" y="451" class="small center">buffer</text>
+  </g>
+  <g id="pe1">
+    <rect x="390" y="245" width="290" height="245" rx="11" class="slr"/>
+    <text x="535" y="272" class="h2 center">SLR1 · PE1</text>
+    <rect x="415" y="290" width="240" height="48" rx="7" class="linear"/><text x="535" y="320" class="label center">W4A15 linear engine</text>
+    <rect x="415" y="352" width="240" height="48" rx="7" class="attn"/><text x="535" y="382" class="label center">SwiftKV attention</text>
+    <rect x="415" y="414" width="112" height="48" rx="7" class="buffer"/><text x="471" y="443" class="small center">local FIFO</text>
+    <rect x="543" y="414" width="112" height="48" rx="7" class="buffer"/><text x="599" y="436" class="small center">intermediate</text><text x="599" y="451" class="small center">buffer</text>
+  </g>
+  <g id="pe2">
+    <rect x="710" y="245" width="290" height="245" rx="11" class="slr"/>
+    <text x="855" y="272" class="h2 center">SLR2 · PE2</text>
+    <rect x="735" y="290" width="240" height="48" rx="7" class="linear"/><text x="855" y="320" class="label center">W4A15 linear engine</text>
+    <rect x="735" y="352" width="240" height="48" rx="7" class="attn"/><text x="855" y="382" class="label center">SwiftKV attention</text>
+    <rect x="735" y="414" width="112" height="48" rx="7" class="buffer"/><text x="791" y="443" class="small center">local FIFO</text>
+    <rect x="863" y="414" width="112" height="48" rx="7" class="buffer"/><text x="919" y="436" class="small center">intermediate</text><text x="919" y="451" class="small center">buffer</text>
+  </g>
+  <g id="pe3">
+    <rect x="1030" y="245" width="290" height="245" rx="11" class="slr"/>
+    <text x="1175" y="272" class="h2 center">SLR3 · PE3</text>
+    <rect x="1055" y="290" width="240" height="48" rx="7" class="linear"/><text x="1175" y="320" class="label center">W4A15 linear engine</text>
+    <rect x="1055" y="352" width="240" height="48" rx="7" class="attn"/><text x="1175" y="382" class="label center">SwiftKV attention</text>
+    <rect x="1055" y="414" width="112" height="48" rx="7" class="buffer"/><text x="1111" y="443" class="small center">local FIFO</text>
+    <rect x="1183" y="414" width="112" height="48" rx="7" class="buffer"/><text x="1239" y="436" class="small center">intermediate</text><text x="1239" y="451" class="small center">buffer</text>
+  </g>
+
+  <!-- Broadcast branches and control endpoints -->
+  <path d="M215 218 V245" class="broadcastBranch"/>
+  <path d="M535 218 V245" class="broadcastBranch"/>
+  <path d="M855 218 V245" class="broadcastBranch"/>
+  <path d="M1175 218 V245" class="broadcastBranch"/>
+  <path d="M215 185 V245" class="control"/>
+  <path d="M535 185 V245" class="control"/>
+  <path d="M855 185 V245" class="control"/>
+  <path d="M1175 185 V245" class="control"/>
+
+  <!-- Separate output gather -->
+  <text x="72" y="530" class="small">PE output gather and on-chip writeback</text>
+  <path d="M205 548 H1265" class="gather"/>
+  <path d="M215 490 V548" class="gatherBranch"/>
+  <path d="M535 490 V548" class="gatherBranch"/>
+  <path d="M855 490 V548" class="gatherBranch"/>
+  <path d="M1175 490 V548" class="gatherBranch"/>
+  <path d="M1265 548 H1340 V131 H1085" class="gatherReturn"/>
+
+  <!-- Dedicated DDR banks -->
+  <rect x="95" y="635" width="240" height="65" rx="9" class="ddr"/><text x="215" y="663" class="h2 center">DDR0</text><text x="215" y="686" class="tiny center">bank-local model + KV image</text>
+  <rect x="415" y="635" width="240" height="65" rx="9" class="ddr"/><text x="535" y="663" class="h2 center">DDR1</text><text x="535" y="686" class="tiny center">bank-local model + KV image</text>
+  <rect x="735" y="635" width="240" height="65" rx="9" class="ddr"/><text x="855" y="663" class="h2 center">DDR2</text><text x="855" y="686" class="tiny center">bank-local model + KV image</text>
+  <rect x="1055" y="635" width="240" height="65" rx="9" class="ddr"/><text x="1175" y="663" class="h2 center">DDR3</text><text x="1175" y="686" class="tiny center">bank-local model + KV image</text>
+
+  <!-- White halos isolate DDR links from the teal gather bus. -->
+  <path d="M135 635 V590 H55 V314 H95" class="halo"/>
+  <path d="M455 635 V590 H375 V314 H415" class="halo"/>
+  <path d="M775 635 V590 H695 V314 H735" class="halo"/>
+  <path d="M1095 635 V590 H1015 V314 H1055" class="halo"/>
+  <path d="M295 635 V590 H345 V376 H335" class="halo"/>
+  <path d="M615 635 V590 H665 V376 H655" class="halo"/>
+  <path d="M935 635 V590 H985 V376 H975" class="halo"/>
+  <path d="M1255 635 V590 H1305 V376 H1295" class="halo"/>
+
+  <!-- Direct bank-local weight and compressed-KV links. -->
+  <path d="M135 635 V590 H55 V314 H95" class="weight"/>
+  <path d="M455 635 V590 H375 V314 H415" class="weight"/>
+  <path d="M775 635 V590 H695 V314 H735" class="weight"/>
+  <path d="M1095 635 V590 H1015 V314 H1055" class="weight"/>
+  <path d="M295 635 V590 H345 V376 H335" class="kv"/>
+  <path d="M615 635 V590 H665 V376 H655" class="kv"/>
+  <path d="M935 635 V590 H985 V376 H975" class="kv"/>
+  <path d="M1255 635 V590 H1305 V376 H1295" class="kv"/>
+
+  <!-- Legend -->
+  <line x1="82" y1="742" x2="122" y2="742" stroke="#2563eb" stroke-width="4"/><text x="132" y="747" class="tiny">INT4 weight stream</text>
+  <line x1="300" y1="742" x2="340" y2="742" stroke="#7c3aed" stroke-width="3"/><text x="350" y="747" class="tiny">compressed-KV read/write</text>
+  <line x1="590" y1="742" x2="630" y2="742" stroke="#16a34a" stroke-width="5"/><text x="640" y="747" class="tiny">activation / residual broadcast</text>
+  <line x1="885" y1="742" x2="925" y2="742" stroke="#0f766e" stroke-width="5"/><text x="935" y="747" class="tiny">PE output gather</text>
+  <line x1="1110" y1="742" x2="1150" y2="742" stroke="#64748b" stroke-width="2" stroke-dasharray="6 5"/><text x="1160" y="747" class="tiny">control</text>
+</svg>

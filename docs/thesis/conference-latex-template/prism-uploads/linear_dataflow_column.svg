@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1080" viewBox="0 0 800 1080">
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#64748b"/>
+    </marker>
+    <style>
+      text{font-family:Arial,sans-serif;fill:#0f172a}
+      .title{font-size:27px;font-weight:700;text-anchor:middle}
+      .sub{font-size:14px;fill:#475569;text-anchor:middle}
+      .head{font-size:18px;font-weight:700;text-anchor:middle}
+      .body{font-size:14px;fill:#334155;text-anchor:middle}
+      .small{font-size:12px;fill:#475569;text-anchor:middle}
+      .box{stroke-width:2.2;rx:13}
+      .arrow{stroke:#64748b;stroke-width:2.3;fill:none;marker-end:url(#arrow)}
+      .grid{stroke:#cbd5e1;stroke-width:1.4;stroke-dasharray:6 5}
+    </style>
+  </defs>
+  <rect width="800" height="1080" fill="#fff"/>
+  <text x="400" y="42" class="title">LINEAR-PE DATAFLOW</text>
+  <text x="400" y="67" class="sub">Three modules communicate through on-chip FIFOs</text>
+
+  <rect x="145" y="102" width="510" height="90" class="box" fill="#dbeafe" stroke="#0284c7"/>
+  <text x="400" y="132" class="head">1. DDR weight reader</text>
+  <text x="400" y="158" class="body">stream one packed INT4 tile from the local DDR bank</text>
+  <text x="400" y="179" class="small">256 consecutive 512-bit words per tile</text>
+  <path d="M400 192 V230" class="arrow"/>
+  <text x="438" y="218" class="small">FIFO</text>
+
+  <rect x="145" y="234" width="510" height="90" class="box" fill="#fef3c7" stroke="#d97706"/>
+  <text x="400" y="264" class="head">2. Packed integer MAC</text>
+  <text x="400" y="290" class="body">consume W4 words and accumulate W4A15 G32 dot products</text>
+  <text x="400" y="311" class="small">DSP48E2 packed arithmetic</text>
+  <path d="M400 324 V362" class="arrow"/>
+  <text x="438" y="350" class="small">FIFO</text>
+
+  <rect x="145" y="366" width="510" height="90" class="box" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="400" y="396" class="head">3. Dequantize and write</text>
+  <text x="400" y="422" class="body">apply tile/group scales, pack outputs, and update the destination buffer</text>
+  <text x="400" y="443" class="small">residual addition is optional for output and down projections</text>
+
+  <text x="400" y="510" class="head">Steady-state tile overlap</text>
+  <text x="400" y="535" class="sub">At each interval, the three modules process different tiles concurrently</text>
+
+  <g>
+    <line x1="170" y1="590" x2="725" y2="590" class="grid"/>
+    <line x1="170" y1="715" x2="725" y2="715" class="grid"/>
+    <line x1="170" y1="840" x2="725" y2="840" class="grid"/>
+    <line x1="200" y1="565" x2="200" y2="940" class="grid"/>
+    <line x1="300" y1="565" x2="300" y2="940" class="grid"/>
+    <line x1="400" y1="565" x2="400" y2="940" class="grid"/>
+    <line x1="500" y1="565" x2="500" y2="940" class="grid"/>
+    <line x1="600" y1="565" x2="600" y2="940" class="grid"/>
+    <line x1="700" y1="565" x2="700" y2="940" class="grid"/>
+  </g>
+
+  <text x="98" y="635" class="head">Read</text>
+  <text x="98" y="760" class="head">MAC</text>
+  <text x="98" y="885" class="head">Write</text>
+
+  <g>
+    <rect x="205" y="602" width="90" height="65" rx="7" fill="#bae6fd" stroke="#0284c7" stroke-width="2"/>
+    <rect x="305" y="602" width="90" height="65" rx="7" fill="#bae6fd" stroke="#0284c7" stroke-width="2"/>
+    <rect x="405" y="602" width="90" height="65" rx="7" fill="#bae6fd" stroke="#0284c7" stroke-width="2"/>
+    <rect x="505" y="602" width="90" height="65" rx="7" fill="#bae6fd" stroke="#0284c7" stroke-width="2"/>
+    <text x="250" y="641" class="head">R0</text><text x="350" y="641" class="head">R1</text>
+    <text x="450" y="641" class="head">R2</text><text x="550" y="641" class="head">R3</text>
+
+    <rect x="305" y="727" width="90" height="65" rx="7" fill="#fde68a" stroke="#d97706" stroke-width="2"/>
+    <rect x="405" y="727" width="90" height="65" rx="7" fill="#fde68a" stroke="#d97706" stroke-width="2"/>
+    <rect x="505" y="727" width="90" height="65" rx="7" fill="#fde68a" stroke="#d97706" stroke-width="2"/>
+    <rect x="605" y="727" width="90" height="65" rx="7" fill="#fde68a" stroke="#d97706" stroke-width="2"/>
+    <text x="350" y="766" class="head">M0</text><text x="450" y="766" class="head">M1</text>
+    <text x="550" y="766" class="head">M2</text><text x="650" y="766" class="head">M3</text>
+
+    <rect x="405" y="852" width="90" height="65" rx="7" fill="#bbf7d0" stroke="#16a34a" stroke-width="2"/>
+    <rect x="505" y="852" width="90" height="65" rx="7" fill="#bbf7d0" stroke="#16a34a" stroke-width="2"/>
+    <rect x="605" y="852" width="90" height="65" rx="7" fill="#bbf7d0" stroke="#16a34a" stroke-width="2"/>
+    <rect x="705" y="852" width="70" height="65" rx="7" fill="#bbf7d0" stroke="#16a34a" stroke-width="2"/>
+    <text x="450" y="891" class="head">W0</text><text x="550" y="891" class="head">W1</text>
+    <text x="650" y="891" class="head">W2</text><text x="740" y="891" class="head">W3</text>
+  </g>
+
+  <path d="M170 950 H755" class="arrow"/>
+  <text x="200" y="978" class="small">t0</text><text x="300" y="978" class="small">t1</text>
+  <text x="400" y="978" class="small">t2</text><text x="500" y="978" class="small">t3</text>
+  <text x="600" y="978" class="small">t4</text><text x="700" y="978" class="small">t5</text>
+  <text x="400" y="1025" class="body">Pipeline fill and drain occur only at the beginning and end of the tile stream</text>
+</svg>

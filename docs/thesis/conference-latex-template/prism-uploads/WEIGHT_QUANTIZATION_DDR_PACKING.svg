@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="680" viewBox="0 0 1600 680" role="img" aria-labelledby="title desc">
+  <title id="title">Hardware-aware INT4 weight quantization and four-bank DDR packing</title>
+  <desc id="desc">A three-panel diagram showing 128 by 256 tile quantization, sequential 512-bit PE consumption order, and separated FP16 metadata and INT4 payload regions across four DDR banks.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="#334155"/></marker>
+    <marker id="arrowBlue" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="#2563eb"/></marker>
+    <style>
+      text{font-family:'Segoe UI',Arial,sans-serif;fill:#0f172a}
+      .panel{fill:#fff;stroke:#94a3b8;stroke-width:1.8}
+      .blue{fill:#eff6ff;stroke:#2563eb;stroke-width:1.7}
+      .orange{fill:#fff7ed;stroke:#ea580c;stroke-width:1.7}
+      .green{fill:#f0fdf4;stroke:#16a34a;stroke-width:1.7}
+      .purple{fill:#f5f3ff;stroke:#7c3aed;stroke-width:1.7}
+      .gray{fill:#f8fafc;stroke:#94a3b8;stroke-width:1.5}
+      .h1{font-size:20px;font-weight:700}
+      .h2{font-size:17px;font-weight:700}
+      .label{font-size:15px;font-weight:650}
+      .small{font-size:13px;font-weight:500;fill:#475569}
+      .tiny{font-size:12px;font-weight:500;fill:#64748b}
+      .center{text-anchor:middle}
+      .flow{fill:none;stroke:#334155;stroke-width:2.2;marker-end:url(#arrow)}
+      .burst{fill:none;stroke:#2563eb;stroke-width:5;marker-end:url(#arrowBlue)}
+      .grid{stroke:#cbd5e1;stroke-width:1}
+    </style>
+    <pattern id="matrixGrid" width="20" height="16" patternUnits="userSpaceOnUse"><path d="M20 0H0V16" fill="none" class="grid"/></pattern>
+  </defs>
+  <rect width="1600" height="680" fill="#fff"/>
+  <path d="M507 335 H543" class="flow"/>
+  <path d="M1037 335 H1073" class="flow"/>
+
+  <!-- Panel a -->
+  <rect x="30" y="30" width="485" height="610" rx="12" class="panel"/>
+  <text x="54" y="64" class="h1">(a)</text>
+  <text x="273" y="64" class="h1 center">Tile-wise INT4 quantization</text>
+  <text x="85" y="104" class="small">floating-point projection matrix</text>
+  <rect x="85" y="122" width="360" height="235" fill="url(#matrixGrid)" stroke="#64748b" stroke-width="1.5"/>
+  <rect x="185" y="174" width="200" height="128" fill="#dbeafe" fill-opacity="0.88" stroke="#2563eb" stroke-width="3"/>
+  <text x="285" y="230" class="h2 center">hardware tile</text>
+  <text x="285" y="258" class="label center">128 × 256</text>
+  <path d="M285 357 V397" class="flow"/>
+  <rect x="75" y="400" width="400" height="105" rx="9" class="orange"/>
+  <text x="275" y="432" class="label center">S<tspan baseline-shift="sub" font-size="11">w,i</tspan> = max |W<tspan baseline-shift="sub" font-size="11">i</tspan>| / 7</text>
+  <text x="275" y="470" class="label center">Ŵ<tspan baseline-shift="sub" font-size="11">i</tspan> = clip(round(W<tspan baseline-shift="sub" font-size="11">i</tspan> / S<tspan baseline-shift="sub" font-size="11">w,i</tspan>), −7, 7)</text>
+  <rect x="145" y="545" width="260" height="54" rx="8" class="green"/>
+  <text x="275" y="568" class="label center">1 FP16 scale / tile</text>
+  <path d="M275 505 V545" class="flow"/>
+
+  <!-- Panel b -->
+  <rect x="535" y="30" width="510" height="610" rx="12" class="panel"/>
+  <text x="559" y="64" class="h1">(b)</text>
+  <text x="790" y="64" class="h1 center">PE consumption order</text>
+  <text x="790" y="105" class="small center">one tile = 256 consecutive 512-bit words</text>
+  <g>
+    <rect x="580" y="135" width="92" height="58" rx="6" class="blue"/><text x="626" y="169" class="label center">word 0</text>
+    <rect x="688" y="135" width="92" height="58" rx="6" class="blue"/><text x="734" y="169" class="label center">word 1</text>
+    <rect x="796" y="135" width="92" height="58" rx="6" class="blue"/><text x="842" y="169" class="label center">word 2</text>
+    <text x="918" y="169" class="h2 center">···</text>
+    <rect x="948" y="135" width="72" height="58" rx="6" class="blue"/><text x="984" y="169" class="small center">255</text>
+  </g>
+  <path d="M580 218 H1008" class="burst"/>
+  <text x="794" y="246" class="small center">unit-stride 256-word burst</text>
+  <path d="M626 193 V282 H630" class="flow"/>
+
+  <rect x="570" y="290" width="440" height="255" rx="10" class="gray"/>
+  <text x="790" y="320" class="h2 center">one 512-bit word</text>
+  <text x="825" y="333" class="tiny center">input positions k = 0 … 31 →</text>
+  <g>
+    <rect x="690" y="340" width="270" height="128" fill="#fff" stroke="#2563eb" stroke-width="2"/>
+    <line x1="690" y1="372" x2="960" y2="372" class="grid"/><line x1="690" y1="404" x2="960" y2="404" class="grid"/><line x1="690" y1="436" x2="960" y2="436" class="grid"/>
+    <line x1="724" y1="340" x2="724" y2="468" class="grid"/><line x1="758" y1="340" x2="758" y2="468" class="grid"/><line x1="792" y1="340" x2="792" y2="468" class="grid"/>
+    <line x1="826" y1="340" x2="826" y2="468" class="grid"/><line x1="860" y1="340" x2="860" y2="468" class="grid"/><line x1="894" y1="340" x2="894" y2="468" class="grid"/><line x1="928" y1="340" x2="928" y2="468" class="grid"/>
+    <text x="674" y="365" class="tiny center">r0</text><text x="674" y="397" class="tiny center">r1</text><text x="674" y="429" class="tiny center">r2</text><text x="674" y="461" class="tiny center">r3</text>
+    <text x="825" y="402" class="h2 center">32 × INT4</text>
+  </g>
+  <text x="790" y="507" class="label center">4 output rows × 32 INT4 weights = 512 bits</text>
+
+  <!-- Panel c -->
+  <rect x="1065" y="30" width="505" height="610" rx="12" class="panel"/>
+  <text x="1089" y="64" class="h1">(c)</text>
+  <text x="1318" y="64" class="h1 center">Four-bank DDR images</text>
+  <text x="1318" y="105" class="small center">round-robin output-tile rows</text>
+  <text x="1146" y="205" class="tiny center">rows 0, 4, 8, …</text>
+  <text x="1261" y="205" class="tiny center">rows 1, 5, 9, …</text>
+  <text x="1376" y="205" class="tiny center">rows 2, 6, 10, …</text>
+  <text x="1491" y="205" class="tiny center">rows 3, 7, 11, …</text>
+  <g>
+    <rect x="1095" y="220" width="102" height="326" rx="8" class="gray"/>
+    <rect x="1210" y="220" width="102" height="326" rx="8" class="gray"/>
+    <rect x="1325" y="220" width="102" height="326" rx="8" class="gray"/>
+    <rect x="1440" y="220" width="102" height="326" rx="8" class="gray"/>
+    <text x="1146" y="250" class="h2 center">DDR0</text><text x="1261" y="250" class="h2 center">DDR1</text>
+    <text x="1376" y="250" class="h2 center">DDR2</text><text x="1491" y="250" class="h2 center">DDR3</text>
+    <rect x="1108" y="270" width="76" height="78" rx="6" class="green"/><rect x="1223" y="270" width="76" height="78" rx="6" class="green"/>
+    <rect x="1338" y="270" width="76" height="78" rx="6" class="green"/><rect x="1453" y="270" width="76" height="78" rx="6" class="green"/>
+    <text x="1146" y="299" class="tiny center">FP16</text><text x="1146" y="318" class="tiny center">scale</text><text x="1146" y="337" class="tiny center">metadata</text>
+    <text x="1261" y="299" class="tiny center">FP16</text><text x="1261" y="318" class="tiny center">scale</text><text x="1261" y="337" class="tiny center">metadata</text>
+    <text x="1376" y="299" class="tiny center">FP16</text><text x="1376" y="318" class="tiny center">scale</text><text x="1376" y="337" class="tiny center">metadata</text>
+    <text x="1491" y="299" class="tiny center">FP16</text><text x="1491" y="318" class="tiny center">scale</text><text x="1491" y="337" class="tiny center">metadata</text>
+    <rect x="1108" y="370" width="76" height="150" rx="6" class="blue"/><rect x="1223" y="370" width="76" height="150" rx="6" class="blue"/>
+    <rect x="1338" y="370" width="76" height="150" rx="6" class="blue"/><rect x="1453" y="370" width="76" height="150" rx="6" class="blue"/>
+    <text x="1146" y="430" class="small center">INT4</text><text x="1146" y="451" class="small center">payload</text><text x="1146" y="477" class="tiny center">256-word</text><text x="1146" y="495" class="tiny center">tile bursts</text>
+    <text x="1261" y="430" class="small center">INT4</text><text x="1261" y="451" class="small center">payload</text><text x="1261" y="477" class="tiny center">256-word</text><text x="1261" y="495" class="tiny center">tile bursts</text>
+    <text x="1376" y="430" class="small center">INT4</text><text x="1376" y="451" class="small center">payload</text><text x="1376" y="477" class="tiny center">256-word</text><text x="1376" y="495" class="tiny center">tile bursts</text>
+    <text x="1491" y="430" class="small center">INT4</text><text x="1491" y="451" class="small center">payload</text><text x="1491" y="477" class="tiny center">256-word</text><text x="1491" y="495" class="tiny center">tile bursts</text>
+  </g>
+  <rect x="1110" y="574" width="415" height="42" rx="8" class="purple"/>
+  <text x="1318" y="600" class="small center">Separated metadata prevents scale reads from fragmenting weight bursts.</text>
+</svg>

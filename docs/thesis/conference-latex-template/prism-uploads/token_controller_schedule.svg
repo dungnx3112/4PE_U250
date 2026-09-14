@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1160" viewBox="0 0 800 1160">
+  <defs>
+    <marker id="arrow2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#475569"/>
+    </marker>
+    <style>
+      .title{font:700 27px Arial,sans-serif;fill:#0f172a;text-anchor:middle}
+      .sub{font:400 15px Arial,sans-serif;fill:#475569;text-anchor:middle}
+      .head{font:700 18px Arial,sans-serif;fill:#0f172a;text-anchor:middle}
+      .body{font:400 14px Arial,sans-serif;fill:#334155;text-anchor:middle}
+      .tag{font:700 13px Arial,sans-serif;fill:#ffffff;text-anchor:middle}
+      .box{stroke-width:2.2;rx:14}
+      .arrow{stroke:#475569;stroke-width:2.2;fill:none;marker-end:url(#arrow2)}
+      .loop{stroke:#7c3aed;stroke-width:3;fill:none;marker-end:url(#arrow2)}
+    </style>
+  </defs>
+  <rect width="800" height="1160" fill="#ffffff"/>
+  <text x="400" y="42" class="title">TOKEN-LEVEL FUSED EXECUTION SCHEDULE</text>
+  <text x="400" y="68" class="sub">One hardware invocation executes all 32 decoder layers for one token</text>
+
+  <rect x="205" y="94" width="390" height="66" class="box" fill="#e0f2fe" stroke="#0284c7"/>
+  <text x="400" y="122" class="head">Embedded token residual</text>
+  <text x="400" y="145" class="body">Load four row-striped on-chip buffers</text>
+  <path d="M400 160 L400 198" class="arrow"/>
+
+  <rect x="82" y="202" width="636" height="720" rx="22" fill="#faf5ff" stroke="#9333ea" stroke-width="2.5" stroke-dasharray="8 5"/>
+  <rect x="302" y="214" width="196" height="32" rx="16" fill="#7c3aed"/>
+  <text x="400" y="236" class="tag">REPEAT FOR 32 LAYERS</text>
+
+  <rect x="150" y="270" width="500" height="66" class="box" fill="#dbeafe" stroke="#2563eb"/>
+  <text x="400" y="296" class="head">1. RMSNorm → Q projection</text>
+  <text x="400" y="319" class="body">Normalized A15/G32 stream consumed directly</text>
+  <path d="M400 336 L400 368" class="arrow"/>
+
+  <rect x="150" y="372" width="500" height="68" class="box" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="400" y="399" class="head">2--3. Shared linear engine: K and V</text>
+  <text x="400" y="423" class="body">Controller advances fixed model offsets</text>
+  <path d="M400 440 L400 472" class="arrow"/>
+
+  <rect x="150" y="476" width="500" height="68" class="box" fill="#fef3c7" stroke="#d97706"/>
+  <text x="400" y="503" class="head">4. RoPE + compressed-KV online attention</text>
+  <text x="400" y="527" class="body">Output is produced directly as A15/G32 groups</text>
+  <path d="M400 544 L400 576" class="arrow"/>
+
+  <rect x="150" y="580" width="500" height="68" class="box" fill="#fee2e2" stroke="#dc2626"/>
+  <text x="400" y="607" class="head">5. Output projection + residual add</text>
+  <text x="400" y="631" class="body">Residual accumulation fused into the writer</text>
+  <path d="M400 648 L400 680" class="arrow"/>
+
+  <rect x="150" y="684" width="500" height="68" class="box" fill="#dbeafe" stroke="#2563eb"/>
+  <text x="400" y="711" class="head">6--7. RMSNorm → Gate; Up projection</text>
+  <text x="400" y="735" class="body">Gate and Up are consecutive shared-engine states</text>
+  <path d="M400 752 L400 784" class="arrow"/>
+
+  <rect x="150" y="788" width="500" height="68" class="box" fill="#e0e7ff" stroke="#4f46e5"/>
+  <text x="400" y="815" class="head">8. SwiGLU → Down projection + residual</text>
+  <text x="400" y="839" class="body">Quantization and residual write are fused</text>
+
+  <path d="M650 822 L690 822 L690 252 L650 252" class="loop"/>
+  <text x="690" y="540" class="head" transform="rotate(90 690 540)">next layer</text>
+
+  <path d="M400 922 L400 958" class="arrow"/>
+  <rect x="205" y="962" width="390" height="66" class="box" fill="#fef3c7" stroke="#d97706"/>
+  <text x="400" y="989" class="head">Final RMSNorm</text>
+  <text x="400" y="1013" class="body">Fused with the vocabulary projection</text>
+  <path d="M400 1028 L400 1064" class="arrow"/>
+
+  <rect x="205" y="1068" width="390" height="66" class="box" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="400" y="1095" class="head">Vocabulary logits</text>
+  <text x="400" y="1119" class="body">Return to the host for token sampling</text>
+</svg>

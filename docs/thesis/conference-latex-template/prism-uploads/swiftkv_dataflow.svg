@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1120" viewBox="0 0 800 1120">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#475569"/>
+    </marker>
+    <style>
+      .title{font:700 27px Arial,sans-serif;fill:#0f172a;text-anchor:middle}
+      .sub{font:400 15px Arial,sans-serif;fill:#475569;text-anchor:middle}
+      .head{font:700 18px Arial,sans-serif;fill:#0f172a;text-anchor:middle}
+      .body{font:400 14px Arial,sans-serif;fill:#334155;text-anchor:middle}
+      .small{font:400 12px Arial,sans-serif;fill:#475569;text-anchor:middle}
+      .box{stroke-width:2.2;rx:14}
+      .arrow{stroke:#475569;stroke-width:2.2;fill:none;marker-end:url(#arrow)}
+      .dash{stroke:#94a3b8;stroke-width:2;stroke-dasharray:7 5;fill:#f8fafc;rx:18}
+    </style>
+  </defs>
+  <rect width="800" height="1120" fill="#ffffff"/>
+  <text x="400" y="42" class="title">FOUR-BANK COMPRESSED-KV ATTENTION</text>
+  <text x="400" y="68" class="sub">Four SLR-local engines execute eight round-robin heads per PE</text>
+
+  <rect x="55" y="92" width="690" height="122" class="dash"/>
+  <text x="400" y="119" class="head">Bank-local head assignment</text>
+  <g>
+    <rect x="78" y="138" width="150" height="52" class="box" fill="#dbeafe" stroke="#2563eb"/>
+    <rect x="243" y="138" width="150" height="52" class="box" fill="#dcfce7" stroke="#16a34a"/>
+    <rect x="408" y="138" width="150" height="52" class="box" fill="#fef3c7" stroke="#d97706"/>
+    <rect x="573" y="138" width="150" height="52" class="box" fill="#f3e8ff" stroke="#9333ea"/>
+    <text x="153" y="158" class="head">PE0</text><text x="153" y="177" class="small">0,4,...,28</text>
+    <text x="318" y="158" class="head">PE1</text><text x="318" y="177" class="small">1,5,...,29</text>
+    <text x="483" y="158" class="head">PE2</text><text x="483" y="177" class="small">2,6,...,30</text>
+    <text x="648" y="158" class="head">PE3</text><text x="648" y="177" class="small">3,7,...,31</text>
+  </g>
+
+  <rect x="155" y="246" width="490" height="82" class="box" fill="#e0f2fe" stroke="#0284c7"/>
+  <text x="400" y="273" class="head">On-chip Q, K, V buffers + RoPE coefficients</text>
+  <text x="400" y="297" class="body">Shared Q/K rotation datapath; coefficients reused across layers</text>
+  <path d="M400 328 L400 366" class="arrow"/>
+
+  <rect x="155" y="370" width="490" height="92" class="box" fill="#ede9fe" stroke="#7c3aed"/>
+  <text x="400" y="397" class="head">INT8/G32 KV record generation</text>
+  <text x="400" y="421" class="body">Four 32-value groups for K and V; independent power-of-two shifts</text>
+  <text x="400" y="444" class="body">{metadata, K0, K1, V0, V1}</text>
+
+  <path d="M400 462 L400 500" class="arrow"/>
+  <rect x="155" y="504" width="490" height="78" class="box" fill="#ffedd5" stroke="#ea580c"/>
+  <text x="400" y="530" class="head">DDR-only persistent KV in DDR0--DDR3</text>
+  <text x="400" y="551" class="body">Current record: DDR write + direct-forward to attention</text>
+  <text x="400" y="570" class="small">Cached records use one independent AXI scan per PE</text>
+
+  <path d="M300 582 L300 628" class="arrow"/>
+  <path d="M500 582 L500 628" class="arrow"/>
+
+  <rect x="72" y="632" width="316" height="114" class="box" fill="#dbeafe" stroke="#2563eb"/>
+  <text x="230" y="660" class="head">Compressed-key score path</text>
+  <text x="230" y="684" class="body">Direct fixed-point × INT8 dot product</text>
+  <text x="230" y="707" class="body">Apply one shared shift per group</text>
+  <text x="230" y="730" class="small">No full K reconstruction</text>
+
+  <rect x="412" y="632" width="316" height="114" class="box" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="570" y="660" class="head">Compressed-value path</text>
+  <text x="570" y="684" class="body">Split low/high V streams</text>
+  <text x="570" y="707" class="body">Two four-lane state-update engines</text>
+  <text x="570" y="730" class="small">Eight update lanes in total</text>
+
+  <path d="M230 746 L230 790 L400 790 L400 818" class="arrow"/>
+  <path d="M570 746 L570 790 L400 790" class="arrow"/>
+
+  <rect x="155" y="822" width="490" height="96" class="box" fill="#fef3c7" stroke="#d97706"/>
+  <text x="400" y="850" class="head">Single-pass online softmax</text>
+  <text x="400" y="875" class="body">Running maximum μ, normalization Z, weighted state Y</text>
+  <text x="400" y="899" class="body">No score-vector materialization</text>
+
+  <path d="M400 918 L400 956" class="arrow"/>
+  <rect x="155" y="960" width="490" height="86" class="box" fill="#fee2e2" stroke="#dc2626"/>
+  <text x="400" y="989" class="head">Normalize and quantize attention output</text>
+  <text x="400" y="1014" class="body">A15/G32 groups gathered in global-head order</text>
+
+  <path d="M400 1046 L400 1080" class="arrow"/>
+  <text x="400" y="1102" class="head">Output projection</text>
+</svg>
