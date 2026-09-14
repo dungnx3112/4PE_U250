@@ -7,7 +7,7 @@ Usage: $0 [platform.xpfm-or-name] [output.xclbin] [v++ executable]
 
 Defaults:
   platform: $default_platform
-  output:   int4_decoder_token_controller_300mhz.xclbin
+  output:   int4_decoder_token_controller_300mhz_pid<PID>.xclbin
   settings: $default_vitis_settings
 
 Environment overrides:
@@ -30,8 +30,9 @@ if (( $# > 3 )); then
     exit 2
 fi
 
+readonly build_pid=$$
 platform=${1:-${U250_PLATFORM:-$default_platform}}
-output=${2:-${XCLBIN_OUTPUT:-int4_decoder_token_controller_300mhz.xclbin}}
+output=${2:-${XCLBIN_OUTPUT:-int4_decoder_token_controller_300mhz_pid${build_pid}.xclbin}}
 vpp=${3:-${VPP:-v++}}
 vitis_settings=${VITIS_SETTINGS:-$default_vitis_settings}
 rebuild_xo=${REBUILD_XO:-0}
