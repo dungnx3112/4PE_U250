@@ -150,6 +150,7 @@ if (( need_hls == 1 )); then
     echo "Log file: $log_dir/vitis_hls_multikernel.log"
 
     # Make sure no single PE override is set in environment
+    export TARGET_FREQ="270mhz"
     unset INT4_DECODER_PE 2>/dev/null || true
 
     vitis_hls -f "$hls_script" 2>&1 | tee "$log_dir/vitis_hls_multikernel.log"

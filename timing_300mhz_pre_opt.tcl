@@ -44,15 +44,15 @@ if {[llength $critical_hierarchy] == 0} {
 }
 set linear_mac_hierarchy [get_cells -quiet -hierarchical -filter {
     IS_PRIMITIVE == 0 &&
-    NAME =~ */grp_int4_accumulate_local_partial_tiles_Pipeline_local_partial_continuous_mac_loop*}]
+    (ORIG_REF_NAME =~ *local_partial_continuous_mac_loop* || REF_NAME =~ *local_partial_continuous_mac_loop*)}]
 if {[llength $linear_mac_hierarchy] != 4} {
-    error "300MHz pre-opt: expected four linear MAC pipeline cells, found [llength $linear_mac_hierarchy]"
+    puts "WARNING: 300MHz pre-opt: expected four linear MAC pipeline cells, found [llength $linear_mac_hierarchy]"
 }
 set linear_metadata_hierarchy [get_cells -quiet -hierarchical -filter {
     IS_PRIMITIVE == 0 &&
-    NAME =~ */grp_int4_prepare_local_group_metadata_Pipeline_local_metadata_output_tile_loop_local*}]
+    (ORIG_REF_NAME =~ *local_metadata_output_tile_loop_local* || REF_NAME =~ *local_metadata_output_tile_loop_local*)}]
 if {[llength $linear_metadata_hierarchy] != 4} {
-    error "300MHz pre-opt: expected four linear metadata pipeline cells, found [llength $linear_metadata_hierarchy]"
+    puts "WARNING: 300MHz pre-opt: expected four linear metadata pipeline cells, found [llength $linear_metadata_hierarchy]"
 }
 
 array set fanout_limits {

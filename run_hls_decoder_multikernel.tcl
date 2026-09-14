@@ -11,6 +11,11 @@ if {[info exists ::env(INT4_DECODER_PE)] &&
     set requested_pes [list $requested_pe]
 }
 
+set target_freq "300mhz"
+if {[info exists ::env(TARGET_FREQ)] && $::env(TARGET_FREQ) ne ""} {
+    set target_freq $::env(TARGET_FREQ)
+}
+
 set cflags "-std=c++11 -DAP_INT_MAX_W=4096 -I."
 set production_sources [list \
     swiftkv_attention.cpp \
@@ -22,7 +27,7 @@ set production_sources [list \
 foreach pe $requested_pes {
     set kernel_name "int4_decoder_pe${pe}_kernel"
     set project_name "proj_int4_decoder_pe${pe}"
-    set xo_name "int4_decoder_pe${pe}_kernel_270mhz.xo"
+    set xo_name "int4_decoder_pe${pe}_kernel_${target_freq}.xo"
 
     open_project -reset $project_name
     set_top $kernel_name
@@ -30,16 +35,23 @@ foreach pe $requested_pes {
         add_files $source -cflags $cflags
     }
 
-    open_solution -reset solution_270mhz -flow_target vitis
+    open_solution -reset solution_${target_freq} -flow_target vitis
     set_part {xcu250-figd2104-2L-e}
-    # Match the proven standalone Attention flow: synthesize against 3.0 ns
-    # so HLS inserts the pipeline stages needed for routed closure at 3.703 ns.
-    create_clock -period 3.0 -name default
-    set_clock_uncertainty 0.300
+    # For 300 MHz closure (period 3.333 ns), synthesize against 3.0 ns
+    # so HLS inserts the pipeline stages needed for routed closure.
+    if {$target_freq eq "300mhz"} {
+        create_clock -period 3.0 -name default
+        set_clock_uncertainty 0.270
+    } else {
+        create_clock -period 3.0 -name default
+        set_clock_uncertainty 0.300
+    }
 
     config_interface -m_axi_latency 32
     config_interface -m_axi_alignment_byte_size 64
     config_interface -m_axi_max_widen_bitwidth 512
+    config_interface -m_axi_register_io all
+    config_interface -m_axi_buffer_impl auto
     config_rtl -register_reset_num 3
     config_dataflow -start_fifo_depth 8
 
