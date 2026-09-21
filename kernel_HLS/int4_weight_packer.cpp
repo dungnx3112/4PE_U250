@@ -7,66 +7,15 @@
 #include <cstdint>
 #include <limits>
 
-static ap_uint<16> int4_packer_float_to_half_bits(float value) {
-    const std::uint32_t bits =
-        (std::uint32_t)int4_fp32_to_bits(value);
-    const std::uint32_t sign = (bits >> 16) & 0x8000U;
-    const int exponent = (int)((bits >> 23) & 0xffU) - 127 + 15;
-    std::uint32_t mantissa = bits & 0x7fffffU;
-
-    if (((bits >> 23) & 0xffU) == 0xffU) {
-        return (ap_uint<16>)(
-            sign | (mantissa == 0 ? 0x7c00U : 0x7e00U));
-    }
-    if (exponent >= 31) {
-        return (ap_uint<16>)(sign | 0x7c00U);
-    }
-    if (exponent <= 0) {
-        if (exponent < -10) {
-            return (ap_uint<16>)sign;
-        }
-        mantissa |= 0x800000U;
-        const int shift = 14 - exponent;
-        const std::uint32_t halfway = 1U << (shift - 1);
-        const std::uint32_t rounded =
-            (mantissa + halfway - 1U +
-             ((mantissa >> shift) & 1U)) >> shift;
-        return (ap_uint<16>)(sign | rounded);
-    }
-
-    mantissa += 0xfffU + ((mantissa >> 13) & 1U);
-    int rounded_exponent = exponent;
-    if (mantissa & 0x800000U) {
-        mantissa = 0;
-        ++rounded_exponent;
-        if (rounded_exponent >= 31) {
-            return (ap_uint<16>)(sign | 0x7c00U);
-        }
-    }
-    return (ap_uint<16>)(
-        sign |
-        ((std::uint32_t)rounded_exponent << 10) |
-        (mantissa >> 13));
+static ap_uint<16> int4_packer_float_to_q115_bits(float value) {
+    const int raw = (int)std::round(value * 32768.0f);
+    const int clamped = std::max(-32768, std::min(32767, raw));
+    return (ap_uint<16>)(ap_int<16>)clamped;
 }
 
-static float int4_packer_half_bits_to_float(ap_uint<16> half_bits) {
-    const std::uint16_t bits = (std::uint16_t)half_bits;
-    const bool negative = (bits & 0x8000U) != 0;
-    const int exponent = (bits >> 10) & 0x1f;
-    const int mantissa = bits & 0x3ff;
-    float value = 0.0f;
-    if (exponent == 0) {
-        value = std::ldexp((float)mantissa, -24);
-    } else if (exponent == 31) {
-        value = mantissa == 0
-            ? INFINITY
-            : std::numeric_limits<float>::quiet_NaN();
-    } else {
-        value = std::ldexp(
-            1.0f + (float)mantissa * (1.0f / 1024.0f),
-            exponent - 15);
-    }
-    return negative ? -value : value;
+static float int4_packer_q115_bits_to_float(ap_uint<16> bits) {
+    const ap_int<16> signed_val = (ap_int<16>)bits;
+    return (float)(int)signed_val * (1.0f / 32768.0f);
 }
 
 static ap_uint<32> int4_packer_float_to_q17_bits(float value) {
@@ -185,16 +134,16 @@ void int4_pack_linear_matrix(
 
                 const float fp32_scale =
                     max_abs == 0.0f ? 0.0f : max_abs / 7.0f;
-                const ap_uint<16> fp16_scale_bits =
-                    int4_packer_float_to_half_bits(fp32_scale);
+                const ap_uint<16> q115_scale_bits =
+                    int4_packer_float_to_q115_bits(fp32_scale);
                 const float stored_scale =
-                    int4_packer_half_bits_to_float(fp16_scale_bits);
+                    int4_packer_q115_bits_to_float(q115_scale_bits);
                 int4_weight_scale_word_t packed_scales =
                     scale_bank[scale_word_index];
                 packed_scales.range(
                     INT4_WEIGHT_SCALE_BITS * scale_lane +
                         INT4_WEIGHT_SCALE_BITS - 1,
-                    INT4_WEIGHT_SCALE_BITS * scale_lane) = fp16_scale_bits;
+                    INT4_WEIGHT_SCALE_BITS * scale_lane) = q115_scale_bits;
                 scale_bank[scale_word_index] = packed_scales;
 
                 for (int group = 0; group < INT4_GROUPS_PER_TILE; ++group) {

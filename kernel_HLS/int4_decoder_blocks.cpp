@@ -5,41 +5,73 @@
 
 #include <hls_math.h>
 
+// Online activation quantize — E8M0 Microscaling (QLlama-style, adapted for INT14).
+//
+// Algorithm (identical to QLlama quantize_max + quantize_scale):
+//   Pass 1: frexpf each value → mantissa ∈ [-1,+1) + integer exponent.
+//           Track max exponent in the group (no FP division needed).
+//   Pass 2: right-shift each mantissa by (max_exp - exp_i) → aligns all
+//           values under the group maximum.  The shift is a barrel shift,
+//           zero DSPs consumed.
+//
+// Output scale: ap_uint<8> E8M0 = max_exp + 127 (bias-127, same as QLlama).
+// Output quant: ap_fixed<14,1> bit-slice cast to ap_int<14> — no multiply.
+//
+// Difference from QLlama (INT8): mantissa width is ap_fixed<14,1> (13 frac
+// bits) instead of ap_fixed<8,1> (7 frac bits).  All other logic is identical.
 static void int4_quantize_g32(
     const float values[INT4_GROUP_SIZE],
     int4_quant_word_t& quantized_word,
-    float& output_scale) {
+    int4_act_scale_t& output_scale) {
 #pragma HLS INLINE off
-    ap_uint<32> max_abs_bits = 0;
-find_group_max_loop:
+
+    // ── Pass 1: find max exponent (QLlama quantize_max) ──────────────────
+    int max_exp = -255;
+    int4_act_mantissa_t mantissas[INT4_GROUP_SIZE];  // ap_fixed<14,1>
+    int exps[INT4_GROUP_SIZE];
+#pragma HLS ARRAY_PARTITION variable=mantissas complete
+#pragma HLS ARRAY_PARTITION variable=exps complete
+
+find_group_max_exp_loop:
     for (int lane = 0; lane < INT4_GROUP_SIZE; ++lane) {
 #pragma HLS PIPELINE II=1
-        const ap_uint<32> magnitude =
-            int4_fp32_to_bits(values[lane]) & 0x7fffffffU;
-        if (magnitude > max_abs_bits) {
-            max_abs_bits = magnitude;
-        }
+        int exp_i;
+        float b = hls::frexpf(values[lane], &exp_i);   // b ∈ [-1,+1), exp_i ∈ ℤ
+        const bool nonzero = values[lane] != 0.0f;
+        mantissas[lane] = nonzero ? (int4_act_mantissa_t)b :
+            (int4_act_mantissa_t)0;
+        exps[lane] = nonzero ? exp_i : -255;
+        if (nonzero && exp_i > max_exp) max_exp = exp_i;
     }
+    if (max_exp < -127) max_exp = -127;
 
-    const float max_abs = int4_fp32_from_bits(max_abs_bits);
-    output_scale =
-        max_abs == 0.0f ? 0.0f : max_abs * (1.0f / 16383.0f);
-    const float inverse_scale =
-        max_abs == 0.0f ? 0.0f : 16383.0f / max_abs;
+    // Store E8M0 scale: bias-127 exponent (identical to QLlama)
+    output_scale = (int4_act_scale_t)(max_exp + 127);
+
+    // ── Pass 2: shift mantissa, pack into INT14 word (QLlama quantize_scale) ──
     quantized_word = 0;
 quantize_group_reverse_loop:
     for (int lane = INT4_GROUP_SIZE - 1; lane >= 0; --lane) {
 #pragma HLS PIPELINE II=1
-        const float scaled = values[lane] * inverse_scale;
-        float rounded = scaled >= 0.0f ? scaled + 0.5f : scaled - 0.5f;
-        if (rounded > 16383.0f) rounded = 16383.0f;
-        if (rounded < -16383.0f) rounded = -16383.0f;
+        const int dif = max_exp - exps[lane];      // bits to shift right
+        // Right-shift aligns this element under the group maximum.
+        // Result is still ap_fixed<14,1>: sign bit + 13-bit mantissa.
+        const int4_act_mantissa_t scaled = exps[lane] == -255 ?
+            (int4_act_mantissa_t)0 :
+            (int4_act_mantissa_t)(mantissas[lane] >> dif);
+        // Clamp the asymmetric -8192 endpoint so every G32 sum fits
+        // below the 22-bit packing shift, including weights of -8.
+        const int4_activation_t raw =
+            (int4_activation_t)scaled.range(INT4_ACTIVATION_BITS - 1, 0);
+        const int4_activation_t q =
+            raw < -INT4_ACTIVATION_MAX ?
+                (int4_activation_t)-INT4_ACTIVATION_MAX : raw;
         quantized_word =
             (quantized_word << INT4_ACTIVATION_BITS) |
-            (ap_uint<INT4_ACTIVATION_BITS>)(
-                ap_int<INT4_ACTIVATION_BITS>)(int)rounded;
+            (ap_uint<INT4_ACTIVATION_BITS>)q;
     }
 }
+
 
 template <int PE_ID>
 static void int4_local_sumsq(
@@ -164,7 +196,7 @@ static void int4_local_rms_normalize_quantize(
     const int4_output_word_t gamma[INT4_VECTOR_WORDS_PER_PE],
     hls::stream<float>& reciprocal_stream,
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale[INT4_MAX_LOCAL_GROUPS]) {
+    int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS]) {
 #pragma HLS INLINE off
     const float reciprocal = reciprocal_stream.read();
     float values[INT4_GROUP_SIZE];
@@ -203,7 +235,7 @@ static void int4_local_rms_task(
     hls::stream<float>& partial_stream,
     hls::stream<float>& reciprocal_stream,
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],
     hls::stream<int4_completion_token_t>& completion_stream) {
 #pragma HLS INLINE off
     // One task owns each PE-local residual RAM.  Splitting sumsq and
@@ -231,10 +263,10 @@ void int4_rmsnorm_quantize_shards(
     int4_quant_word_t activation_q1[INT4_MAX_LOCAL_GROUPS],
     int4_quant_word_t activation_q2[INT4_MAX_LOCAL_GROUPS],
     int4_quant_word_t activation_q3[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale0[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale1[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale2[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale3[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale0[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale1[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale2[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale3[INT4_MAX_LOCAL_GROUPS],
     int norm_offset) {
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW disable_start_propagation
@@ -470,7 +502,7 @@ static void int4_local_swiglu_quantize(
     const int4_output_word_t gate[INT4_HIDDEN_WORDS_PER_PE],
     const int4_output_word_t up[INT4_HIDDEN_WORDS_PER_PE],
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale[INT4_MAX_LOCAL_GROUPS]) {
+    int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS]) {
 #pragma HLS INLINE off
     float values[INT4_GROUP_SIZE];
 #pragma HLS BIND_STORAGE variable=values type=ram_1p impl=bram latency=1
@@ -506,7 +538,7 @@ static void int4_local_swiglu_quantize_commanded(
     const int4_output_word_t gate[INT4_HIDDEN_WORDS_PER_PE],
     const int4_output_word_t up[INT4_HIDDEN_WORDS_PER_PE],
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],
     hls::stream<int4_block_token_t>& token_stream,
     hls::stream<int4_completion_token_t>& completion_stream) {
 #pragma HLS INLINE off
@@ -530,10 +562,10 @@ void int4_swiglu_quantize_shards(
     int4_quant_word_t activation_q1[INT4_MAX_LOCAL_GROUPS],
     int4_quant_word_t activation_q2[INT4_MAX_LOCAL_GROUPS],
     int4_quant_word_t activation_q3[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale0[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale1[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale2[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale3[INT4_MAX_LOCAL_GROUPS]) {
+    int4_act_scale_t activation_scale0[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale1[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale2[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale3[INT4_MAX_LOCAL_GROUPS]) {
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW disable_start_propagation
 #pragma HLS STABLE variable=gate0
@@ -610,7 +642,7 @@ static void int4_local_rms_stage(
     const int4_output_word_t residual[INT4_VECTOR_WORDS_PER_PE],
     const int4_output_word_t norm_cache[INT4_TOTAL_NORM_WORDS_PER_PE],
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],
     int norm_offset,
     hls::stream<float>& partial_stream,
     hls::stream<float>& reciprocal_stream) {
@@ -626,7 +658,7 @@ void int4_local_rms_stage_pe##PE(                                      \
     const int4_output_word_t residual[INT4_VECTOR_WORDS_PER_PE],       \
     const int4_output_word_t norm_cache[INT4_TOTAL_NORM_WORDS_PER_PE], \
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],             \
-    float activation_scale[INT4_MAX_LOCAL_GROUPS],                     \
+    int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],                 \
     int norm_offset,                                                   \
     hls::stream<float>& partial_stream,                                \
     hls::stream<float>& reciprocal_stream) {                           \
@@ -645,7 +677,7 @@ void int4_local_swiglu_stage_pe##PE(                                   \
     const int4_output_word_t gate[INT4_HIDDEN_WORDS_PER_PE],           \
     const int4_output_word_t up[INT4_HIDDEN_WORDS_PER_PE],             \
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],             \
-    float activation_scale[INT4_MAX_LOCAL_GROUPS]) {                   \
+    int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS]) {        \
     _Pragma("HLS INLINE off")                                         \
     int4_local_swiglu_quantize<PE>(                                    \
         gate, up, activation_q, activation_scale);                     \

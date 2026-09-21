@@ -32,10 +32,10 @@ void int4_rmsnorm_quantize_shards(
     int4_quant_word_t activation_q1[INT4_MAX_LOCAL_GROUPS],
     int4_quant_word_t activation_q2[INT4_MAX_LOCAL_GROUPS],
     int4_quant_word_t activation_q3[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale0[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale1[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale2[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale3[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale0[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale1[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale2[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale3[INT4_MAX_LOCAL_GROUPS],
     int norm_offset
 );
 
@@ -65,10 +65,10 @@ void int4_swiglu_quantize_shards(
     int4_quant_word_t activation_q1[INT4_MAX_LOCAL_GROUPS],
     int4_quant_word_t activation_q2[INT4_MAX_LOCAL_GROUPS],
     int4_quant_word_t activation_q3[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale0[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale1[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale2[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale3[INT4_MAX_LOCAL_GROUPS]
+    int4_act_scale_t activation_scale0[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale1[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale2[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale3[INT4_MAX_LOCAL_GROUPS]
 );
 #endif
 
@@ -79,7 +79,7 @@ void int4_local_rms_stage_pe##PE(                                      \
     const int4_output_word_t residual[INT4_VECTOR_WORDS_PER_PE],       \
     const int4_output_word_t norm_cache[INT4_TOTAL_NORM_WORDS_PER_PE], \
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],             \
-    float activation_scale[INT4_MAX_LOCAL_GROUPS],                     \
+    int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],                     \
     int norm_offset,                                                   \
     hls::stream<float>& partial_stream,                                \
     hls::stream<float>& reciprocal_stream);                            \
@@ -90,7 +90,7 @@ void int4_local_swiglu_stage_pe##PE(                                   \
     const int4_output_word_t gate[INT4_HIDDEN_WORDS_PER_PE],           \
     const int4_output_word_t up[INT4_HIDDEN_WORDS_PER_PE],             \
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],             \
-    float activation_scale[INT4_MAX_LOCAL_GROUPS])
+    int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS])
 
 INT4_DECLARE_LOCAL_DECODER_BLOCKS(0);
 INT4_DECLARE_LOCAL_DECODER_BLOCKS(1);

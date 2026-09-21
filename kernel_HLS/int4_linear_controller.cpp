@@ -5,44 +5,18 @@
 #include "int4_task_control.hpp"
 
 #include <hls_streamofblocks.h>
+#include <hls_math.h>
 
-static float int4_half_bits_to_float(ap_uint<16> bits) {
+// Convert Q1.15 signed fixed-point (ap_int<16>) to float.
+// Value = raw_bits * 2^-15.  One multiply; no branching.
+// This replaces the old int4_half_bits_to_float (FP16 → FP32) that required
+// subnormal/inf/nan handling and multiple bit-slice operations.
+static float int4_q115_to_float(int4_weight_scale_t bits) {
 #pragma HLS INLINE
-    const ap_uint<1> sign = bits[15];
-    const ap_uint<5> exponent = bits.range(14, 10);
-    const ap_uint<10> mantissa = bits.range(9, 0);
-    ap_uint<32> fp32_bits = 0;
-
-    if (exponent == 0) {
-        if (mantissa == 0) {
-            fp32_bits[31] = sign;
-        } else {
-            ap_uint<10> normalized = mantissa;
-            ap_uint<4> shift = 0;
-        half_normalize_loop:
-            for (int bit = 9; bit >= 0; --bit) {
-#pragma HLS UNROLL
-                if (normalized[9] == 0) {
-                    normalized <<= 1;
-                    ++shift;
-                }
-            }
-            fp32_bits[31] = sign;
-            fp32_bits.range(30, 23) = (ap_uint<8>)(112 - (int)shift);
-            fp32_bits.range(22, 13) = normalized.range(8, 0) << 1;
-        }
-    } else if (exponent == 31) {
-        fp32_bits[31] = sign;
-        fp32_bits.range(30, 23) = 0xff;
-        fp32_bits.range(22, 13) = mantissa;
-    } else {
-        fp32_bits[31] = sign;
-        fp32_bits.range(30, 23) =
-            (ap_uint<8>)((int)exponent - 15 + 127);
-        fp32_bits.range(22, 13) = mantissa;
-    }
-    return int4_fp32_from_bits(fp32_bits);
+    return (float)(int)bits * (1.0f / 32768.0f);  // × 2^-15
 }
+
+
 
 static ap_uint<32> int4_float_to_fxp_bits(float value) {
 #pragma HLS INLINE
@@ -93,7 +67,7 @@ static ap_int<27> int4_pack_two_w4(
     int4_weight_t low) {
 #pragma HLS INLINE
     const ap_int<27> packed =
-        ((ap_int<27>)high << 23) + (ap_int<27>)low;
+        ((ap_int<27>)high << INT4_PACK_SHIFT) + (ap_int<27>)low;
 #pragma HLS BIND_OP variable=packed op=add impl=fabric
     return packed;
 }
@@ -103,10 +77,13 @@ static void int4_unpack_packed_acc(
     int4_group_acc_t& high,
     int4_group_acc_t& low) {
 #pragma HLS INLINE
-    low = packed.range(22, 0);
-    const int4_group_acc_t high_raw = packed.range(45, 23);
+    const ap_int<INT4_PACK_SHIFT> low_raw =
+        packed.range(INT4_PACK_SHIFT - 1, 0);
+    low = low_raw;
+    const ap_int<46 - INT4_PACK_SHIFT> high_raw =
+        packed.range(45, INT4_PACK_SHIFT);
     high = (int4_group_acc_t)(
-        (ap_int<24>)high_raw + (low[22] ? 1 : 0));
+        high_raw + (low_raw[INT4_PACK_SHIFT - 1] ? 1 : 0));
 }
 
 using int4_linear_command_t = ap_uint<64>;
@@ -312,7 +289,7 @@ typedef int4_reduction_packet_t
 template <int PE_ID>
 static void int4_prepare_local_group_metadata(
     const int4_weight_scale_word_t* scale_mem,
-    const float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    const int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],
     hls::stream<int4_linear_command_t>& command_stream,
     hls::stream<float>& combined_scale_stream) {
 #pragma HLS INLINE off
@@ -345,27 +322,34 @@ local_metadata_output_tile_loop:
             }
             const int scale_lane =
                 matrix_tile & (INT4_WEIGHT_SCALES_PER_WORD - 1);
-            const float weight_scale = int4_half_bits_to_float(
-                packed_scales.range(
+            // Read Q1.15 fixed-point weight scale (ap_int<16>) and convert
+            // to float via a single multiply (replaces FP16 decode).
+            const int4_weight_scale_t w_scale_q115 =
+                (int4_weight_scale_t)packed_scales.range(
                     INT4_WEIGHT_SCALE_BITS * scale_lane +
                         INT4_WEIGHT_SCALE_BITS - 1,
-                    INT4_WEIGHT_SCALE_BITS * scale_lane));
+                    INT4_WEIGHT_SCALE_BITS * scale_lane);
+            const float weight_scale = int4_q115_to_float(w_scale_q115);
 
         local_metadata_group_loop:
             for (int g = 0; g < INT4_GROUPS_PER_TILE; ++g) {
 #pragma HLS PIPELINE II=1
                 const int lg = local_col_tile * INT4_GROUPS_PER_TILE + g;
-                const float combined_scale =
-                    weight_scale * activation_scale[lg];
+                // E8M0 activation scale: convert bias-127 exponent to float
+                // ldexpf(1.0f, exp) = 2^exp, no mantissa needed.
+                // The packed activation stores Q1.13 raw bits.
+                const int act_exp = (int)(activation_scale[lg]) - 127 -
+                    (INT4_ACTIVATION_BITS - 1);
+                const float act_scale_f = hls::ldexpf(1.0f, act_exp);
+                const float combined_scale = weight_scale * act_scale_f;
 #pragma HLS BIND_OP variable=combined_scale op=mul impl=dsp
-                // Only the per-output-tile scale is dynamic metadata.  The
-                // quantized activation is already held in a stable PE-local
-                // BRAM and is prefetched directly by the MAC.
                 combined_scale_stream.write(combined_scale);
             }
         }
     }
 }
+
+
 
 template <int PE_ID>
 static void int4_accumulate_local_partial_tiles(
@@ -393,7 +377,7 @@ local_partial_output_tile_loop:
         // activation_q is stable for the complete linear command.  Keep the
         // current group in a local register and fetch the next group four MAC
         // cycles early, hiding the latency-two BRAM read without a redundant
-        // 480-bit FIFO.  The 32-cycle group reuse window provides ample
+        // One G32 activation word.  The 32-cycle group reuse window provides ample
         // distance for this two-register ping-pong boundary.
         int4_quant_word_t current_quantized = activation_q[0];
         int4_quant_word_t next_quantized = 0;
@@ -503,7 +487,7 @@ static void int4_run_local_pe(
     const int4_weight_word_t* weight_mem,
     const int4_weight_scale_word_t* scale_mem,
     const int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
-    const float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    const int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],
     hls::stream<int4_linear_command_t>& command_stream,
     hls::stream<int4_reduction_packet_t>& partial_stream) {
 #pragma HLS INLINE off
@@ -695,7 +679,7 @@ static void int4_run_local_linear_stage(
     const int4_weight_word_t* weight_mem,
     const int4_weight_scale_word_t* scale_mem,
     const int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
-    const float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    const int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],
     int4_output_word_t output_mem[INT4_MAX_LOCAL_OUTPUT_WORDS],
     ap_uint<3> mode,
     ap_uint<24> weight_word_offset,
@@ -734,7 +718,7 @@ void int4_linear_local_stage_pe##PE(                                   \
     const int4_weight_word_t* weight_mem,                              \
     const int4_weight_scale_word_t* scale_mem,                         \
     const int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],       \
-    const float activation_scale[INT4_MAX_LOCAL_GROUPS],               \
+    const int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],               \
     int4_output_word_t output_mem[INT4_MAX_LOCAL_OUTPUT_WORDS],        \
     ap_uint<3> mode,                                                   \
     ap_uint<24> weight_word_offset,                                    \
@@ -912,10 +896,10 @@ void int4_sharded_linear_4pe(
     const int4_quant_word_t activation_q1[INT4_MAX_LOCAL_GROUPS],
     const int4_quant_word_t activation_q2[INT4_MAX_LOCAL_GROUPS],
     const int4_quant_word_t activation_q3[INT4_MAX_LOCAL_GROUPS],
-    const float activation_scale0[INT4_MAX_LOCAL_GROUPS],
-    const float activation_scale1[INT4_MAX_LOCAL_GROUPS],
-    const float activation_scale2[INT4_MAX_LOCAL_GROUPS],
-    const float activation_scale3[INT4_MAX_LOCAL_GROUPS],
+    const int4_act_scale_t activation_scale0[INT4_MAX_LOCAL_GROUPS],
+    const int4_act_scale_t activation_scale1[INT4_MAX_LOCAL_GROUPS],
+    const int4_act_scale_t activation_scale2[INT4_MAX_LOCAL_GROUPS],
+    const int4_act_scale_t activation_scale3[INT4_MAX_LOCAL_GROUPS],
     int4_output_word_t* output_pe0,
     int4_output_word_t* output_pe1,
     int4_output_word_t* output_pe2,
@@ -1112,7 +1096,7 @@ static void int4_linear_standalone_compute(
 #pragma HLS INLINE off
     int4_weight_scale_word_t scale_cache[INT4_TOTAL_WEIGHT_SCALE_WORDS_PER_PE];
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS];
-    float activation_scale[INT4_MAX_LOCAL_GROUPS];
+    int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS];
 #pragma HLS BIND_STORAGE variable=scale_cache type=ram_2p impl=uram
 #pragma HLS BIND_STORAGE variable=activation_q type=ram_2p impl=bram
 #pragma HLS BIND_STORAGE variable=activation_scale type=ram_2p impl=bram

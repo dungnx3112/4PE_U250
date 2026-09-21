@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "int4_decoder_blocks.hpp"
 
@@ -171,7 +171,7 @@ void int4_swiftkv_attention_pe0(
     int4_output_word_t* kv_cache,
     const int4_output_word_t* rope_lut_ddr,
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],
     ap_uint<6> layer_index,
     ap_uint<12> position);
 
@@ -182,7 +182,7 @@ void int4_swiftkv_attention_pe1(
     int4_output_word_t* kv_cache,
     const int4_output_word_t* rope_lut_ddr,
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],
     ap_uint<6> layer_index,
     ap_uint<12> position);
 
@@ -193,7 +193,7 @@ void int4_swiftkv_attention_pe2(
     int4_output_word_t* kv_cache,
     const int4_output_word_t* rope_lut_ddr,
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],
     ap_uint<6> layer_index,
     ap_uint<12> position);
 
@@ -204,7 +204,7 @@ void int4_swiftkv_attention_pe3(
     int4_output_word_t* kv_cache,
     const int4_output_word_t* rope_lut_ddr,
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],
     ap_uint<6> layer_index,
     ap_uint<12> position);
 

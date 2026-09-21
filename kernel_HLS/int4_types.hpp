@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ap_fixed.h>
 #include <ap_int.h>
 
 // Shared scalar/packet types and compile-time model geometry.  This header is
@@ -10,8 +11,11 @@ using int4_weight_scale_word_t = ap_uint<512>;
 using int4_scale_word_t = ap_uint<512>;
 using int4_output_word_t = ap_uint<512>;
 
-static constexpr int INT4_ACTIVATION_BITS = 15;
-static constexpr int INT4_QUANT_WORD_BITS = 480;
+static constexpr int INT4_ACTIVATION_BITS = 14;
+static constexpr int INT4_ACTIVATION_MAX = (1 << (INT4_ACTIVATION_BITS - 1)) - 1;
+static constexpr int INT4_PACK_SHIFT = 22;
+static constexpr int INT4_QUANT_WORD_BITS =
+    32 * INT4_ACTIVATION_BITS;
 using int4_quant_word_t = ap_uint<INT4_QUANT_WORD_BITS>;
 using int4_activation_t = ap_int<INT4_ACTIVATION_BITS>;
 using int4_weight_t = ap_int<4>;
@@ -50,6 +54,23 @@ static constexpr int INT4_WEIGHT_SCALE_BITS = 16;
 static constexpr int INT4_WEIGHT_SCALES_PER_WORD =
     512 / INT4_WEIGHT_SCALE_BITS;
 static constexpr int INT4_SCALE_ROWS_PER_WORD = 16;
+
+// Weight scale is stored as Q1.15 signed fixed-point (ap_int<16>).
+// Value = raw_bits * 2^-15.  Range [-1.0, +1.0), LSB ≈ 3.05e-5.
+// Max |scale| observed in LLaMA-2-7B W4G128: 0.21 — well within range.
+// Replaces FP16 (ap_uint<16>) so DDR footprint is unchanged.
+using int4_weight_scale_t = ap_int<INT4_WEIGHT_SCALE_BITS>;
+static constexpr int INT4_WEIGHT_SCALE_FRAC_BITS = 15;  // Q1.15
+
+// Activation scale uses E8M0 Microscaling (QLlama-style):
+// 8-bit unsigned biased exponent, no mantissa.
+// value = 2^(raw - 127).  Replaces float (FP32).
+using int4_act_scale_t = ap_uint<8>;
+
+// Activation mantissa for online quantize (QLlama E8M0 frexp path).
+// ap_fixed<14,1>: 1 sign/integer bit + 13 fractional bits.
+// frexpf() returns mantissa ∈ [-1,+1) — stored here without FP division.
+using int4_act_mantissa_t = ap_fixed<INT4_ACTIVATION_BITS, 1>;
 
 constexpr int int4_round_up_constexpr(int value, int quantum) {
     return ((value + quantum - 1) / quantum) * quantum;
@@ -92,9 +113,18 @@ static_assert(INT4_LOCAL_VOCAB_SIZE == 8064,
               "the padded vocabulary shard must contain 63 row tiles");
 static_assert(INT4_QUANT_WORD_BITS == INT4_GROUP_SIZE * INT4_ACTIVATION_BITS,
               "one activation word must contain one complete G32 group");
-static_assert((1LL << 22) >
-                  1LL * INT4_GROUP_SIZE * 16383 * 7,
-              "signed G32 accumulator is too narrow");
+static_assert((1LL << (INT4_PACK_SHIFT - 1)) >
+                  1LL * INT4_GROUP_SIZE * INT4_ACTIVATION_MAX * 8,
+              "signed G32 lane does not fit below the pack shift");
+static_assert((1LL << 26) >=
+                  8LL * (1LL << INT4_PACK_SHIFT) + 8,
+              "packed signed INT4 weights do not fit in port A");
+// Verify group_acc_t (23-bit) holds the worst-case partial sum before the
+// combined-scale multiply: max = GROUP_SIZE * ACTIVATION_MAX * max_w4 = 32*8191*7 = 1,834,784 < 2^21.
+// High half of packed_acc is bits[45:22], which is 24 raw bits; the
+// ap_int<23> sign-extends correctly since actual values are < 2^21.
+static_assert(1LL * INT4_GROUP_SIZE * INT4_ACTIVATION_MAX * 7 < (1LL << 22),
+              "int4_group_acc_t (23-bit) is too narrow for worst-case G32 sum");
 
 enum Int4LinearMode {
     INT4_LINEAR_Q = 0,

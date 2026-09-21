@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "int4_types.hpp"
 
@@ -29,10 +29,10 @@ void int4_sharded_linear_4pe(
     const int4_quant_word_t activation_q1[INT4_MAX_LOCAL_GROUPS],
     const int4_quant_word_t activation_q2[INT4_MAX_LOCAL_GROUPS],
     const int4_quant_word_t activation_q3[INT4_MAX_LOCAL_GROUPS],
-    const float activation_scale0[INT4_MAX_LOCAL_GROUPS],
-    const float activation_scale1[INT4_MAX_LOCAL_GROUPS],
-    const float activation_scale2[INT4_MAX_LOCAL_GROUPS],
-    const float activation_scale3[INT4_MAX_LOCAL_GROUPS],
+    const int4_act_scale_t activation_scale0[INT4_MAX_LOCAL_GROUPS],
+    const int4_act_scale_t activation_scale1[INT4_MAX_LOCAL_GROUPS],
+    const int4_act_scale_t activation_scale2[INT4_MAX_LOCAL_GROUPS],
+    const int4_act_scale_t activation_scale3[INT4_MAX_LOCAL_GROUPS],
     int4_output_word_t* output_pe0,
     int4_output_word_t* output_pe1,
     int4_output_word_t* output_pe2,
@@ -52,7 +52,7 @@ void int4_linear_local_stage_pe##PE(                                   \
     const int4_weight_word_t* weight_mem,                              \
     const int4_weight_scale_word_t* scale_mem,                         \
     const int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],       \
-    const float activation_scale[INT4_MAX_LOCAL_GROUPS],               \
+    const int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],               \
     int4_output_word_t output_mem[INT4_MAX_LOCAL_OUTPUT_WORDS],        \
     ap_uint<3> mode,                                                   \
     ap_uint<24> weight_word_offset,                                    \

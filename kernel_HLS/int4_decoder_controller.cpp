@@ -184,7 +184,7 @@ void int4_decoder_local_pe_##PE(                                       \
     int4_output_word_t v[INT4_VECTOR_WORDS_PER_PE];                   \
     int4_output_word_t gate[INT4_HIDDEN_WORDS_PER_PE];                \
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS];            \
-    float activation_scale[INT4_MAX_LOCAL_GROUPS];                    \
+    int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS];                   \
     _Pragma("HLS BIND_STORAGE variable=scale_cache type=ram_2p impl=uram latency=3") \
     _Pragma("HLS BIND_STORAGE variable=norm_cache type=ram_2p impl=uram latency=3") \
     _Pragma("HLS BIND_STORAGE variable=residual type=ram_2p impl=bram latency=2") \

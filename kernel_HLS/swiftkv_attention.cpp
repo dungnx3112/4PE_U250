@@ -2,6 +2,7 @@
 #include "int4_numeric.hpp"
 
 #include <hls_stream.h>
+#include <hls_math.h>
 
 static int4_fxp32_t swiftkv_bits_to_fxp(ap_uint<32> bits) {
 #pragma HLS INLINE
@@ -1706,12 +1707,18 @@ static void swiftkv_quantize_attention_group(
     hls::stream<float>& scale_stream) {
 #pragma HLS INLINE off
     const float max_float = (float)max_abs;
+    int max_exp;
+    (void)hls::frexpf(max_float, &max_exp);
+    if (max_float == 0.0f || max_exp < -127) {
+        max_exp = -127;
+    }
     const float output_scale =
         max_float == 0.0f
             ? 0.0f
-            : max_float * (1.0f / 16383.0f);
+            : hls::ldexpf(1.0f, max_exp - (INT4_ACTIVATION_BITS - 1));
     const float inverse_scale =
-        max_float == 0.0f ? 0.0f : 16383.0f / max_float;
+        max_float == 0.0f ? 0.0f :
+            hls::ldexpf(1.0f, (INT4_ACTIVATION_BITS - 1) - max_exp);
 
     float attention_group_f[INT4_GROUP_SIZE];
 #pragma HLS BIND_STORAGE variable=attention_group_f type=ram_2p impl=bram latency=2
@@ -1721,7 +1728,7 @@ pre_convert_to_float_loop:
         attention_group_f[lane] = (float)attention_group[lane];
     }
 
-    ap_int<15> quantized_lanes[INT4_GROUP_SIZE];
+    int4_activation_t quantized_lanes[INT4_GROUP_SIZE];
 #pragma HLS ARRAY_PARTITION variable=quantized_lanes complete
 attention_quantize_reverse_loop:
     for (int lane = 0; lane < INT4_GROUP_SIZE; ++lane) {
@@ -1730,13 +1737,13 @@ attention_quantize_reverse_loop:
 #pragma HLS BIND_OP variable=scaled op=fmul impl=dsp latency=4
         float rounded =
             scaled >= 0.0f ? scaled + 0.5f : scaled - 0.5f;
-        if (rounded > 16383.0f) {
-            rounded = 16383.0f;
+        if (rounded > (float)INT4_ACTIVATION_MAX) {
+            rounded = (float)INT4_ACTIVATION_MAX;
         }
-        if (rounded < -16383.0f) {
-            rounded = -16383.0f;
+        if (rounded < -(float)INT4_ACTIVATION_MAX) {
+            rounded = -(float)INT4_ACTIVATION_MAX;
         }
-        quantized_lanes[lane] = (ap_int<15>)(short)rounded;
+        quantized_lanes[lane] = (int4_activation_t)(short)rounded;
     }
 
     int4_quant_word_t quantized_word = 0;
@@ -1744,8 +1751,8 @@ pack_quantized_lanes_loop:
     for (int lane = INT4_GROUP_SIZE - 1; lane >= 0; --lane) {
 #pragma HLS UNROLL
         quantized_word =
-            (quantized_word << 15) |
-            (ap_uint<15>)quantized_lanes[lane];
+            (quantized_word << INT4_ACTIVATION_BITS) |
+            (ap_uint<INT4_ACTIVATION_BITS>)quantized_lanes[lane];
     }
     scale_stream.write(output_scale);
     quantized_stream.write(quantized_word);
@@ -2630,6 +2637,29 @@ collect_pe_group_loop:
     }
 }
 
+template <int PE_ID>
+static void swiftkv_collect_pe_output_e8m0(
+    hls::stream<int4_quant_word_t>& quantized_stream,
+    hls::stream<float>& scale_stream,
+    int4_quant_word_t quantized_buffer[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t scale_buffer[INT4_MAX_LOCAL_GROUPS]) {
+#pragma HLS INLINE off
+collect_pe_e8m0_group_loop:
+    for (int group = 0;
+         group < SWIFTKV_LOCAL_HEADS *
+             (SWIFTKV_HEAD_SIZE / INT4_GROUP_SIZE);
+         ++group) {
+#pragma HLS PIPELINE II=1
+        quantized_buffer[group] = quantized_stream.read();
+        const float scale = scale_stream.read();
+        int scale_exp;
+        (void)hls::frexpf(scale, &scale_exp);
+        scale_buffer[group] = scale == 0.0f ?
+            (int4_act_scale_t)0 :
+            (int4_act_scale_t)(scale_exp + 127 + INT4_ACTIVATION_BITS - 2);
+    }
+}
+
 // Select one 38-bit RoPE pair through an explicitly pipelined local mux.  The
 // prior variable part-select synthesized lane*38 plus a six-level selector on
 // the same edge.  Constant ranges remove that multiplier, while latency=2
@@ -2712,7 +2742,7 @@ static void int4_swiftkv_attention_local_body(
     int4_output_word_t* kv_cache,
     const int4_output_word_t* rope_lut_ddr,
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],
     ap_uint<6> layer_index,
     ap_uint<12> position) {
 #pragma HLS INLINE off
@@ -2746,7 +2776,7 @@ static void int4_swiftkv_attention_local_body(
         cosine_stream, sine_stream,
         quantized_stream, scale_stream,
         command_stream, done_stream);
-    swiftkv_collect_pe_output<PE_ID>(
+    swiftkv_collect_pe_output_e8m0<PE_ID>(
         quantized_stream, scale_stream,
         activation_q, activation_scale);
     swiftkv_consume_local_done<PE_ID>(done_stream);
@@ -2759,7 +2789,7 @@ void int4_swiftkv_attention_pe0(
     int4_output_word_t* kv_cache,
     const int4_output_word_t* rope_lut_ddr,
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],
     ap_uint<6> layer_index,
     ap_uint<12> position) {
 #pragma HLS INLINE off
@@ -2775,7 +2805,7 @@ void int4_swiftkv_attention_pe1(
     int4_output_word_t* kv_cache,
     const int4_output_word_t* rope_lut_ddr,
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],
     ap_uint<6> layer_index,
     ap_uint<12> position) {
 #pragma HLS INLINE off
@@ -2791,7 +2821,7 @@ void int4_swiftkv_attention_pe2(
     int4_output_word_t* kv_cache,
     const int4_output_word_t* rope_lut_ddr,
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],
     ap_uint<6> layer_index,
     ap_uint<12> position) {
 #pragma HLS INLINE off
@@ -2807,7 +2837,7 @@ void int4_swiftkv_attention_pe3(
     int4_output_word_t* kv_cache,
     const int4_output_word_t* rope_lut_ddr,
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
-    float activation_scale[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],
     ap_uint<6> layer_index,
     ap_uint<12> position) {
 #pragma HLS INLINE off
