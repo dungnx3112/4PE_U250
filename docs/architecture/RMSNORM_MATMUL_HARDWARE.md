@@ -64,7 +64,7 @@ Các định dạng chính:
 |---|---|
 | Residual và output thông thường | 16 FP32 trong một word 512-bit |
 | Q/K/V sau linear | signed fixed-point 32-bit, Q15.17 |
-| Activation lượng tử | 32 giá trị INT15 trong word 480-bit |
+| Activation lượng tử | 32 giá trị INT14 trong word 448-bit |
 | Activation scale | một FP32 cho mỗi group 32 phần tử |
 | Weight | INT4 đối xứng, miền `[-7, 7]` |
 | Weight scale | FP16, một scale cho tile `128 × 256` |
@@ -109,7 +109,7 @@ RMS tại stage Q tạo activation dùng chung cho Q/K/V. RMS tại GATE tạo
 activation dùng chung cho GATE/UP. Attention ghi activation mới cho O; SwiGLU
 ghi activation mới cho DOWN.
 
-## 4. RMSNorm: từ residual FP32 đến activation INT15
+## 4. RMSNorm: từ residual FP32 đến activation INT14
 
 RMSNorm không trừ mean như LayerNorm. Với vector 4096 phần tử:
 
@@ -189,15 +189,16 @@ trị, tương ứng hai word 512-bit:
 
 ```text
 normalized[i] = residual[i] * inv_rms * gamma[i]
-amax = max(abs(normalized[0..31]))
-activation_scale = amax / 16383
-q[i] = clamp(round(normalized[i] / activation_scale), -16383, 16383)
+max_exp = max(frexp(normalized[i]).exponent) trong group G32
+activation_scale_e8m0 = max_exp + 127
+q[i] = clamp(raw_Q1.13(normalized[i] / 2^max_exp), -8191, 8191)
+giá trị xấp xỉ = q[i] * 2^(max_exp - 13)
 ```
 
 Nếu `amax == 0`, scale và toàn bộ q bằng zero. Kết quả mỗi group là:
 
-- một word 480-bit chứa `32 × INT15`;
-- một scale FP32.
+- một word 448-bit chứa `32 × INT14`;
+- một scale E8M0 8-bit.
 
 Buffer tạm 32 FP32 được bind BRAM. Hai loop tìm max và lượng tử đều pipeline
 II=1. Cách fuse RMSNorm với quantization loại bỏ một lần ghi/đọc vector FP32
@@ -271,14 +272,14 @@ chỉ đọc `gmemN`, nên bốn DDR có thể cấp bốn luồng 512-bit độ
 
 Với mỗi group 32 input và row-block 4 output, compute đọc:
 
-- một activation word 480-bit;
+- một activation word 448-bit;
 - một weight word 512-bit;
-- một activation scale FP32;
+- một activation scale E8M0 8-bit;
 - một weight scale FP16 đã đổi sang FP32.
 
 Loop 32 activation lane được unroll hoàn toàn. Row-block pipeline chạy II=1,
 nên mỗi cycle tiêu thụ một word weight và tính 128 phép nhân scalar
-`INT4 × INT15` cho bốn output row.
+`INT4 × INT14` cho bốn output row.
 
 Integer dot product của group:
 
@@ -295,22 +296,22 @@ các group/local tile là FP32.
 ### 5.5. Hai phép nhân INT4 trong một DSP48
 
 Hai weight của hai output row dùng chung một activation được pack cách nhau
-23 bit:
+22 bit:
 
 ```text
-packed_weight = (w_high << 23) + w_low
+packed_weight = (w_high << 22) + w_low
 packed_product = packed_weight * activation
 ```
 
-Trường 23-bit đủ cho tổng G32 vì:
+Trường 22-bit đủ cho tổng G32 vì activation được chặn đối xứng:
 
 ```text
-32 × 16383 × 7 = 3,669,792 < 2^22
+32 × 8191 × 8 = 2,096,896 < 2^21
 ```
 
 Sau khi cộng 32 packed product, phần cứng tách trường thấp và cao, đồng thời
 hiệu chỉnh borrow khi trường thấp âm. Mỗi packed multiplier vì thế tương
-đương hai phép nhân `INT4 × INT15` có chung activation.
+đương hai phép nhân `INT4 × INT14` có chung activation.
 
 Một PE dùng:
 
@@ -451,7 +452,7 @@ rộng sang bốn đường đọc DDR song song và các reduction packet hẹp
 - Tổng datapath weight lý tưởng là 2048 bit/cycle trên bốn bank.
 - Cross-PE payload lớn nhất của RMSNorm chỉ 32 bit/event.
 - Cross-pair payload linear là 128 bit/cycle khi reducer đạt II=1.
-- Không có bus activation 480/512-bit fanout từ một controller tới bốn SLR.
+- Không có bus activation 448/512-bit fanout từ một controller tới bốn SLR.
 - Address/mode được local scheduler tự sinh từ fixed schedule; không có global
   mode bus chạy qua toàn chip.
 

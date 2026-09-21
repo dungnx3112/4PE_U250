@@ -116,25 +116,26 @@ Sau layer 31: `RMS(final) -> LOGITS`.
 
 ## Packing hai phép nhân vào một DSP48
 
-Hai weight INT4 của hai output row dùng chung một activation INT15 được ghép
-vào toán hạng 27-bit, cách nhau 23 bit:
+Hai weight INT4 của hai output row dùng chung một activation INT14 được ghép
+vào toán hạng 27-bit, cách nhau 22 bit:
 
 ```text
-packed_weight = (w_high << 23) + w_low
+packed_weight = (w_high << 22) + w_low
 packed_weight * activation
-              = (w_high * activation << 23)
+              = (w_high * activation << 22)
               + (w_low  * activation)
 ```
 
-Khoảng 23 bit đủ chứa tổng có dấu của một group 32 phần tử. Sau MAC, hàm
+Khoảng 22 bit đủ chứa tổng có dấu của một group 32 phần tử khi activation
+được chặn trong [-8191, 8191], kể cả weight -8. Sau MAC, hàm
 `int4_unpack_packed_acc` tách hai accumulator và hiệu chỉnh borrow do trường
-thấp âm. Đây là packing **2 phép nhân `INT4 x INT15` dùng chung activation vào
+thấp âm. Đây là packing **2 phép nhân `INT4 x INT14` dùng chung activation vào
 1 DSP48**, không phải hai phép nhân có hai activation độc lập.
 
 Mỗi PE unroll 32 activation lane và xử lý bốn output row mỗi cycle:
 
 - 64 packed DSP48 integer MAC;
-- 128 phép nhân scalar `INT4 x INT15` mỗi cycle;
+- 128 phép nhân scalar `INT4 x INT14` mỗi cycle;
 - tỷ lệ packing: 2 scalar multiply / DSP48;
 - row-block pipeline giữ II=1.
 
@@ -306,10 +307,12 @@ Artifact mặc định và log được ghi tại:
 Có thể override mà không sửa script qua `VITIS_SETTINGS`, `U250_PLATFORM`,
 `XCLBIN_OUTPUT`, `VPP`, `VIVADO` và `VITIS_HLS`.
 
-## Kết quả HLS đã xác minh
+## Kết quả HLS baseline trước khi đổi sang INT14
 
 C-synthesis Vitis HLS 2023.2 ngày 2026-09-07 hoàn tất với exit code 0;
-CSim regression cũng pass với 0 lỗi:
+CSim regression cũng pass với 0 lỗi. Các số liệu bên dưới thuộc bản build
+trước thay đổi INT14. Kết quả đo lại cho riêng PE0 nằm ở mục kế tiếp;
+bốn PE chưa được tổng hợp lại cùng nhau.
 
 | Chỉ số | Kết quả |
 |---|---:|
@@ -318,7 +321,7 @@ CSim regression cũng pass với 0 lỗi:
 | Estimated Fmax | 358.84 MHz |
 | Linear instances | 4 local engine, mỗi PE dùng lại cho 8 mode |
 | Linear MAC II | 1 |
-| Integer MAC packing | 2 phép nhân `INT4 x INT15` / DSP48 |
+| Integer MAC packing | 2 phép nhân `INT4 x INT15` / DSP48 (baseline) |
 | Integer packed MAC / PE | 64 DSP48 = 128 scalar multiply/cycle |
 | BRAM18K | 1308 / 5376 (24%) |
 | DSP | 900 / 12288 (7%) |
@@ -329,7 +332,32 @@ CSim regression cũng pass với 0 lỗi:
 Đây là kết quả HLS trước place/route. Chỉ XCLBIN/routed DCP với WNS và WHS
 không âm mới chứng minh implementation thực sự chạy 300 MHz.
 
-XO tương ứng với source hiện tại và được lưu trong Git:
+## C-synthesis INT14 cho PE0
+
+Vitis HLS 2023.2 ngày 2026-09-20, top `int4_decoder_pe0_kernel`, target
+3.00 ns và clock uncertainty 0.27 ns:
+
+| Chỉ số | PE0 INT14 |
+|---|---:|
+| MAC packed | 2 phép nhân `INT4 x INT14` / DSP48 |
+| Vòng đọc weight | II=1, 1 word 512-bit/cycle |
+| Vòng MAC | II=1, pipeline depth 28 |
+| Estimated clock | 3.041 ns |
+| HLS timing slack ở target 3.00 ns | -0.31 ns |
+| BRAM18K / DSP / FF / LUT / URAM | 353 / 238 / 95,100 / 118,702 / 40 |
+
+Đường timing HLS xấu nhất thuộc vòng tính tổng bình phương trong RMSNorm,
+không thuộc MAC. Báo cáo tại
+`proj_int14_perf_pe0/solution_300mhz/syn/report/csynth.rpt`.
+
+II=1 ở reader và MAC là khả năng của hai pipeline khi dữ liệu sẵn có, chưa
+chứng minh DDR cấp đều 1 word/cycle. Ở 300 MHz, mỗi PE đòi hỏi
+`64 byte x 300 MHz = 19.2 GB/s` weight từ một bank DDR. Đây gần bằng toàn bộ
+băng thông đỉnh lý thuyết của bank; cần đo bandwidth và stall trên phần cứng
+để xác nhận throughput. Activation INT14 nằm trong bộ nhớ cục bộ của PE;
+đổi sang INT16 không giảm lưu lượng weight DDR hay số word MAC cần đọc.
+
+XO của baseline trước INT14 được lưu trong Git:
 
 ```text
 int4_decoder_token_controller_300mhz.xo

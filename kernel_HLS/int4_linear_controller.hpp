@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "int4_types.hpp"
 
@@ -50,13 +50,11 @@ void int4_sharded_linear_4pe(
 #define INT4_DECLARE_LOCAL_LINEAR_STAGE(PE)                             \
 void int4_linear_local_stage_pe##PE(                                   \
     const int4_weight_word_t* weight_mem,                              \
-    const int4_weight_scale_word_t* scale_mem,                         \
     const int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],       \
-    const int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],               \
+    const int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],    \
     int4_output_word_t output_mem[INT4_MAX_LOCAL_OUTPUT_WORDS],        \
     ap_uint<3> mode,                                                   \
     ap_uint<24> weight_word_offset,                                    \
-    ap_uint<16> weight_scale_word_offset,                              \
     hls::stream<int4_reduction_packet_t>& partial_stream,              \
     hls::stream<int4_reduction_packet_t>& completed_stream)
 

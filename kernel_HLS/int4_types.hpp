@@ -55,6 +55,21 @@ static constexpr int INT4_WEIGHT_SCALES_PER_WORD =
     512 / INT4_WEIGHT_SCALE_BITS;
 static constexpr int INT4_SCALE_ROWS_PER_WORD = 16;
 
+// AutoRound W4G128 Super-Block configuration:
+// 1 Scale burst (256 words = 16 KB) followed by 16 Weight bursts (each 256 words = 16 KB).
+static constexpr int INT4_AUTOROUND_GROUP_SIZE = 128;
+static constexpr int INT4_AUTOROUND_GROUPS_PER_TILE =
+    INT4_TILE_COLS / INT4_AUTOROUND_GROUP_SIZE; // 2 groups of 128 per tile
+static constexpr int INT4_TILES_PER_BLOCK = 16;
+static constexpr int INT4_SCALE_WORDS_PER_TILE = 16; // 8 active (256 scales) + 8 padding
+static constexpr int INT4_ACTIVE_SCALE_WORDS_PER_TILE = 8;
+static constexpr int INT4_SCALE_WORDS_PER_BLOCK =
+    INT4_TILES_PER_BLOCK * INT4_SCALE_WORDS_PER_TILE; // 256 words (1 burst of 256)
+static constexpr int INT4_WEIGHT_WORDS_PER_BLOCK =
+    INT4_TILES_PER_BLOCK * INT4_WEIGHT_WORDS_PER_TILE; // 16 * 256 = 4096 words
+static constexpr int INT4_SUPER_BLOCK_WORDS =
+    INT4_SCALE_WORDS_PER_BLOCK + INT4_WEIGHT_WORDS_PER_BLOCK; // 4352 words
+
 // Weight scale is stored as Q1.15 signed fixed-point (ap_int<16>).
 // Value = raw_bits * 2^-15.  Range [-1.0, +1.0), LSB ≈ 3.05e-5.
 // Max |scale| observed in LLaMA-2-7B W4G128: 0.21 — well within range.

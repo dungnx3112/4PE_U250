@@ -32,7 +32,7 @@ static constexpr int MAX_SEQ_LEN       = 4096;
 static constexpr int OUTPUTS_PER_WORD  = 16;
 static constexpr int DDR_WORD_BYTES    = 64;
 
-static constexpr size_t MODEL_BANK_BYTES = 838967296ULL;
+static constexpr size_t MODEL_BANK_BYTES = (size_t)INT4_MODEL_WORDS_PER_DDR * DDR_WORD_BYTES;
 static constexpr size_t ROPE_LUT_BYTES   = 32768ULL * DDR_WORD_BYTES; // 2,097,152
 static constexpr size_t LOCAL_HEADS      = 8;
 static constexpr int KV_WORDS_PER_TOKEN_HEAD = 5;
@@ -221,6 +221,7 @@ int main(int argc, char** argv) {
     std::cout << "==================================================================\n";
     std::cout << "  4-PE LLaMA-2 INT4 Decoder Token Generation Testbench (HLS CSIM)\n";
     std::cout << "==================================================================\n\n";
+    std::cout.flush();
 
     const char* prompt = "The capital of France is";
     int max_new_tokens = 5;
@@ -241,6 +242,7 @@ int main(int argc, char** argv) {
 
     // 3. Load Embeddings
     std::cout << "[Init] Loading embeddings.bin ...\n";
+    std::cout.flush();
     FILE* f_emb = fopen("embeddings.bin", "rb");
     if (!f_emb) {
         std::cerr << "[-] Error opening embeddings.bin\n";
@@ -254,11 +256,13 @@ int main(int argc, char** argv) {
         return 1;
     }
     std::cout << "[+] Loaded embeddings (" << embeddings.size() * sizeof(float) / (1024 * 1024) << " MB)\n";
+    std::cout.flush();
 
     // 4. Initialize Tokenizer
     Tokenizer tokenizer;
     build_tokenizer(&tokenizer, "tokenizer.bin", VOCAB_SIZE);
     std::cout << "[+] Loaded tokenizer.bin (vocab size: " << tokenizer.vocab_size << ")\n";
+    std::cout.flush();
 
     // 5. Allocate KV Caches
     std::cout << "[Init] Allocating KV caches for 4 PEs (~" << (KV_BYTES_PER_PE * 4) / (1024 * 1024) << " MB total) ...\n";
@@ -347,10 +351,12 @@ int main(int argc, char** argv) {
         auto t1 = std::chrono::high_resolution_clock::now();
         double dt = std::chrono::duration<double>(t1 - t0).count();
         std::cout << "  Prefill pos " << pos - 1 << " (token " << tok << "): " << dt << "s\n";
+        std::cout.flush();
     }
     auto t_prefill_end = std::chrono::high_resolution_clock::now();
     double prefill_sec = std::chrono::duration<double>(t_prefill_end - t_prefill_start).count();
     std::cout << "[+] Prefill completed in " << prefill_sec << "s (" << (double)n_prompt_tokens / prefill_sec << " tok/s)\n\n";
+    std::cout.flush();
 
     // 9. Autoregressive Generation
     std::cout << "--- [Stage 2: Autoregressive Decode] ---\n";

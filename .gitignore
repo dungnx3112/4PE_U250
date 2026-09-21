@@ -20,8 +20,29 @@ report_*/
 clockInfo.txt
 /command.txt
 
-# Generated XO artifacts (keep repo clean)
-int4_decoder_pe*_kernel_300mhz.xo
+# Generated binaries and XO artifacts (keep repo clean)
+*.xo
+*.xclbin
+*.exe
+*.dll
+*.so
+*.o
+*.obj
+*.a
+*.lib
+
+# Large model weights and data files
+*.bin
+*.safetensors
+*.pt
+test_eval_text.txt
+wikitext2_test.txt
+wikitext2_tokens.bin
+
+# Python and environment noise
+__pycache__/
+*.pyc
+.pytest_cache/
 
 # Vivado project directories
 *.cache/
@@ -40,7 +61,15 @@ int4_decoder_pe*_kernel_300mhz.xo
 Thumbs.db
 Desktop.ini
 
-# Scratch / temporary scripts
+# Scratch and external subtrees
+scratch/
+Llama-2-7b-chat-hf/
+QLlama/
+auto-round/
+llama2.c/
+matmul_u250/
+
+# Old / scratch scripts
 analyze_server_dcp.tcl
 analyze_new_pnr_timing.tcl
 generate_slack_range_report.tcl
@@ -51,7 +80,3 @@ hls_*_log.txt
 pnr_*_log.txt
 run_pnr_decoder_4pe.tcl
 run_rebuild_and_pnr_300mhz.ps1
-
-# Old prototypes
-matmul_u250/
-

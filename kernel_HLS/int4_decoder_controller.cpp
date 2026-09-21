@@ -56,21 +56,6 @@ static void int4_terminate_position_chain(
 }
 
 template <int PE_ID>
-static void int4_preload_local_scale_cache(
-    const int4_weight_word_t* model_bank,
-    int4_weight_scale_word_t scale_cache[
-        INT4_TOTAL_WEIGHT_SCALE_WORDS_PER_PE]) {
-#pragma HLS INLINE off
-preload_local_scale_loop:
-    for (int word = 0;
-         word < INT4_TOTAL_WEIGHT_SCALE_WORDS_PER_PE;
-         ++word) {
-#pragma HLS PIPELINE II=1
-        scale_cache[word] = model_bank[INT4_MODEL_SCALE_BASE_WORD + word];
-    }
-}
-
-template <int PE_ID>
 static void int4_preload_local_norm_cache(
     const int4_weight_word_t* model_bank,
     int4_output_word_t norm_cache[INT4_TOTAL_NORM_WORDS_PER_PE]) {
@@ -85,14 +70,8 @@ preload_local_norm_loop:
 template <int PE_ID>
 static void int4_preload_local_metadata(
     const int4_weight_word_t* model_bank,
-    int4_weight_scale_word_t scale_cache[
-        INT4_TOTAL_WEIGHT_SCALE_WORDS_PER_PE],
     int4_output_word_t norm_cache[INT4_TOTAL_NORM_WORDS_PER_PE]) {
 #pragma HLS INLINE off
-    // Two child controllers localize the URAM write enables.  This preload is
-    // executed only for position zero, so the extra call boundary has no
-    // steady-state token-throughput cost.
-    int4_preload_local_scale_cache<PE_ID>(model_bank, scale_cache);
     int4_preload_local_norm_cache<PE_ID>(model_bank, norm_cache);
 }
 
@@ -173,8 +152,6 @@ void int4_decoder_local_pe_##PE(                                       \
     hls::stream<int4_reduction_packet_t>& linear_completed,           \
     hls::stream<int4_completion_token_t>& completion_stream) {        \
     _Pragma("HLS INLINE off")                                         \
-    static int4_weight_scale_word_t scale_cache[                       \
-        INT4_TOTAL_WEIGHT_SCALE_WORDS_PER_PE];                         \
     static int4_output_word_t norm_cache[                              \
         INT4_TOTAL_NORM_WORDS_PER_PE];                                 \
     int4_output_word_t residual[INT4_VECTOR_WORDS_PER_PE];            \
@@ -185,7 +162,6 @@ void int4_decoder_local_pe_##PE(                                       \
     int4_output_word_t gate[INT4_HIDDEN_WORDS_PER_PE];                \
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS];            \
     int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS];                   \
-    _Pragma("HLS BIND_STORAGE variable=scale_cache type=ram_2p impl=uram latency=3") \
     _Pragma("HLS BIND_STORAGE variable=norm_cache type=ram_2p impl=uram latency=3") \
     _Pragma("HLS BIND_STORAGE variable=residual type=ram_2p impl=bram latency=2") \
     _Pragma("HLS BIND_STORAGE variable=projection type=ram_2p impl=bram latency=2") \
@@ -198,7 +174,7 @@ void int4_decoder_local_pe_##PE(                                       \
     const ap_uint<12> local_position = position_stream.read();         \
     if (local_position == 0) {                                        \
         int4_preload_local_metadata<PE>(                              \
-            model_bank, scale_cache, norm_cache);                     \
+            model_bank, norm_cache);                                  \
     }                                                                 \
     int4_load_local_residual<PE>(external_residual, residual);        \
     const int4_weight_word_t* weight_mem =                            \
@@ -244,12 +220,10 @@ local_projection_layer_loop_##PE:                                     \
                     activation_q, activation_scale);                  \
             }                                                         \
             LINEAR_STAGE(                                             \
-                weight_mem, scale_cache,                              \
+                weight_mem,                                           \
                 activation_q, activation_scale, projection,           \
                 mode,                                                 \
                 (ap_uint<24>)int4_weight_offset(layer, (int)mode),    \
-                (ap_uint<16>)int4_weight_scale_offset(                \
-                    layer, (int)mode),                                \
                 linear_partial, linear_completed);                    \
             if (stage_flags[INT4_LINEAR_Q] ||                         \
                 stage_flags[INT4_LINEAR_K] ||                         \

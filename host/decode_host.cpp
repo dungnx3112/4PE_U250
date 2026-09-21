@@ -65,8 +65,7 @@ static constexpr int GROUP_SIZE           = 32;
 static constexpr int DDR_WORD_BYTES       = 64;
 static constexpr int OUTPUTS_PER_WORD     = 16;      // floats packed per DDR word
 
-// Buffer sizes (bytes per PE)
-static constexpr size_t MODEL_BANK_BYTES  = 838967296ULL;  // ~800 MB (autoround_pack output)
+static constexpr size_t MODEL_BANK_BYTES  = 13926208ULL * DDR_WORD_BYTES;  // 891,277,312 B (~850 MB) Super-Block layout
 static constexpr size_t ROPE_LUT_BYTES    = 32768ULL * DDR_WORD_BYTES;  // 2 MB
 static constexpr size_t RESIDUAL_WORDS    = (DIM / NUM_PES) / OUTPUTS_PER_WORD;   // 64
 static constexpr size_t RESIDUAL_BYTES    = RESIDUAL_WORDS * DDR_WORD_BYTES;       // 4096

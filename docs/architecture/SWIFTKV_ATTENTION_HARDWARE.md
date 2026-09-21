@@ -52,7 +52,7 @@ void int4_swiftkv_attention_pe0(
 | q, k, v | IN | BRAM 512-bit/word | Q/K/V projection output từ RMSNorm+MatMul |
 | kv_cache | IN/OUT | m_axi DDR 512-bit | KV cache nén trong DDR của PE (64 layers × 8 heads × 4096 tokens × 5 words) |
 | rope_lut_ddr | IN | m_axi DDR 512-bit | LUT cosine/sine pre-computed (8 word / position) |
-| activation_q | OUT | BRAM 480-bit/word | Output lượng tử hóa (A15/G32) → đầu vào MatMul tiếp theo |
+| activation_q | OUT | BRAM 448-bit/word | Output lượng tử hóa (A14/G32) → đầu vào MatMul tiếp theo |
 | activation_scale | OUT | BRAM float | FP32 scale cho từng nhóm G32 |
 | layer_index | IN | Scalar 6-bit | Transformer layer index |
 | position | IN | Scalar 12-bit | Token position trong chuỗi |
@@ -156,12 +156,13 @@ Output: attention[i] = Y[i] / Z
 
 ---
 
-## 8. Output Quantization (A15/G32)
+## 8. Output Quantization (A14/G32)
 
 ```
 Per 32-element group:
-  scale = max(|Y[i]|) / 16383.0f
-  activation_q[i] = round(Y[i] / scale)  [15-bit signed]
+  max_exp = frexp(max(|Y[i]|)).exponent
+  scale = 2^(max_exp - 13)
+  activation_q[i] = clamp(round(Y[i] / scale), -8191, 8191)  [14-bit signed]
 ```
 - attention_normalize_lane_loop: FP32 mul DSP latency=4
 - attention_quantize_reverse_loop: FP32 mul DSP latency=2 (đã tách riêng recurrence)

@@ -74,11 +74,62 @@ for tool in vitis_hls v++ vivado; do
 done
 
 # Resolve paths
-source_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
-cd "$source_dir"
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+if [[ -d "$script_dir/kernel_HLS" ]]; then
+    repo_root="$script_dir"
+    scripts_dir="$script_dir/scripts"
+else
+    repo_root=$(cd -- "$script_dir/.." && pwd -P)
+    scripts_dir="$script_dir"
+fi
+source_dir="$repo_root/kernel_HLS"
+cd "$repo_root"
 
-hls_script="$source_dir/run_hls_decoder_multikernel.tcl"
-config_path="$source_dir/link_decoder_multikernel_270mhz.cfg"
+# Auto-detect U250 platform (.xpfm) across standard installation and user directories
+target_xpfm="xilinx_u250_gen3x16_xdma_4_1_202210_1.xpfm"
+found_platform=""
+
+candidates=(
+    "${platform}"
+    "${repo_root}/../u250_platform/opt/xilinx/platforms/xilinx_u250_gen3x16_xdma_4_1_202210_1/${target_xpfm}"
+    "${HOME}/u250_platform/opt/xilinx/platforms/xilinx_u250_gen3x16_xdma_4_1_202210_1/${target_xpfm}"
+    "/opt/xilinx/platforms/xilinx_u250_gen3x16_xdma_4_1_202210_1/${target_xpfm}"
+    "${repo_root}/u250_platform/opt/xilinx/platforms/xilinx_u250_gen3x16_xdma_4_1_202210_1/${target_xpfm}"
+)
+
+for cand in "${candidates[@]}"; do
+    if [[ -n "$cand" && -f "$cand" ]]; then
+        found_platform="$(cd "$(dirname "$cand")" && pwd)/$(basename "$cand")"
+        break
+    fi
+done
+
+if [[ -z "$found_platform" ]]; then
+    for search_root in "${repo_root}/.." "${HOME}/u250_platform" "${HOME}"; do
+        if [[ -d "$search_root" ]]; then
+            searched=$(find "$search_root" -maxdepth 6 -name "$target_xpfm" 2>/dev/null | head -n 1)
+            if [[ -n "$searched" && -f "$searched" ]]; then
+                found_platform="$(cd "$(dirname "$searched")" && pwd)/$(basename "$searched")"
+                break
+            fi
+        fi
+    done
+fi
+
+if [[ -n "$found_platform" ]]; then
+    platform="$found_platform"
+    export PLATFORM_REPO_PATHS="$(dirname "$(dirname "$(dirname "$platform")")")"
+    echo "[+] Found U250 platform: $platform"
+    echo "    Exported PLATFORM_REPO_PATHS=$PLATFORM_REPO_PATHS"
+elif [[ ! -f "$platform" ]]; then
+    short_platform="xilinx_u250_gen3x16_xdma_4_1_202210_1"
+    echo "NOTE: Platform path '$platform' not found as a direct file."
+    echo "      Attempting platform name: '$short_platform'"
+    platform="$short_platform"
+fi
+
+hls_script="$scripts_dir/run_hls_decoder_multikernel.tcl"
+config_path="$scripts_dir/link_decoder_multikernel_270mhz.cfg"
 
 if [[ ! -f "$hls_script" ]]; then
     echo "ERROR: HLS build script not found: $hls_script" >&2
@@ -90,14 +141,14 @@ if [[ ! -f "$config_path" ]]; then
 fi
 
 xo_files=(
-    "$source_dir/int4_decoder_pe0_kernel_270mhz.xo"
-    "$source_dir/int4_decoder_pe1_kernel_270mhz.xo"
-    "$source_dir/int4_decoder_pe2_kernel_270mhz.xo"
-    "$source_dir/int4_decoder_pe3_kernel_270mhz.xo"
+    "$repo_root/int4_decoder_pe0_kernel_270mhz.xo"
+    "$repo_root/int4_decoder_pe1_kernel_270mhz.xo"
+    "$repo_root/int4_decoder_pe2_kernel_270mhz.xo"
+    "$repo_root/int4_decoder_pe3_kernel_270mhz.xo"
 )
 
 run_id=$(date +%Y%m%d-%H%M%S)-$$
-run_dir="$source_dir/build_multikernel_270mhz/runs/$run_id"
+run_dir="$repo_root/build_multikernel_270mhz/runs/$run_id"
 temp_dir="$run_dir/temp"
 log_dir="$run_dir/logs"
 report_dir="$run_dir/reports"

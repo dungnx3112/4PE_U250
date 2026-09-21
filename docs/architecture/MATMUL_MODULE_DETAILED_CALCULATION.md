@@ -17,8 +17,8 @@ Tài liệu này cung cấp toàn bộ phân tích toán học, cấu trúc dữ
    - 3.2. Sequential Registered Address Counter (Khử vi phạm timing SLR)
    - 3.3. Cơ chế đệm 2 tầng (2-Tier Decoupling FIFO) & Cắt đứt phản hồi `full_n`
 4. [Streaming Dataflow Của Dữ Liệu & Datapath MAC Nội PE](#4-streaming-dataflow-của-dữ-liệu--datapath-mac-nội-pe)
-   - 4.1. Vòng đời của Activation (Từ Residual FP32 đến INT15)
-   - 4.2. Kỹ thuật DSP Packing: 2 phép nhân INT4 $\times$ INT15 trong 1 DSP48E2
+   - 4.1. Vòng đời của Activation (Từ Residual FP32 đến INT14)
+   - 4.2. Kỹ thuật DSP Packing: 2 phép nhân INT4 $\times$ INT14 trong 1 DSP48E2
    - 4.3. Chứng minh toán học an toàn tràn số và Khử mượn (Borrow Correction)
    - 4.4. Cấu trúc song song 64 DSPs trong mỗi PE
 5. [Cơ Chế Chồng Lấn (Overlap, Pipelining & Double-Buffering)](#5-cơ-chế-chồng-lấn-overlap-pipelining--double-buffering)
@@ -299,7 +299,7 @@ stream_local_weight_loop:
 
 ## 4. Streaming Dataflow Của Dữ Liệu & Datapath MAC Nội PE
 
-### 4.1. Vòng đời của Activation (Từ Residual FP32 đến INT15)
+### 4.1. Vòng đời của Activation (Từ Residual FP32 đến INT14)
 
 Trước khi đi vào phép nhân ma trận, dữ liệu activation được biến đổi khép kín trong từng PE:
 1. **Residual Stream**: Lưu trong BRAM `residual` ($1024$ FP32/PE).
@@ -308,30 +308,29 @@ Trước khi đi vào phép nhân ma trận, dữ liệu activation được bi�
 3. **Quantization G32 (Lượng tử hóa nhóm 32)**:
    - Mỗi PE nhận lại scalar `inv_rms`, nhân với vector $\gamma$ tương ứng:
      $$\bar{x}_i = x_i \cdot \text{inv\_rms} \cdot \gamma_i$$
-   - Với mỗi nhóm 32 phần tử, tìm biên độ cực đại: $a_{\max} = \max_{j \in [0, 31]} |\bar{x}_j|$.
-   - Tính hệ số tỉ lệ: $\text{act\_scale} = \frac{a_{\max}}{16383.0}$.
-   - Lượng tử hóa về số nguyên có dấu 15-bit (INT15, phạm vi $[-16383, +16383]$):
-     $$q_j = \text{clamp}\left(\text{round}\left(\frac{\bar{x}_j}{\text{act\_scale}}\right), -16383, 16383\right)$$
-4. **Đóng gói vào BRAM**: 32 số INT15 được đóng gói thành 1 word 480-bit ($32 \times 15 = 480$ bit), lưu vào `activation_q[group]` sẵn sàng cho GEMV.
+   - Với mỗi nhóm 32 phần tử, tìm số mũ lớn nhất `max_exp` bằng `frexpf`.
+   - Căn chỉnh mantissa về số mũ này, lấy raw bits Q1.13 và chặn trong $[-8191,+8191]$.
+   - Lưu exponent E8M0 bằng `max_exp + 127`. Khi giải lượng tử, nhân số nguyên với $2^{\text{max\_exp}-13}$.
+4. **Đóng gói vào BRAM**: 32 số INT14 được đóng gói thành 1 word 448-bit ($32 \times 14 = 448$ bit), lưu vào `activation_q[group]` sẵn sàng cho GEMV.
 
 ---
 
-### 4.2. Kỹ thuật DSP Packing: 2 phép nhân INT4 $\times$ INT15 trong 1 DSP48E2
+### 4.2. Kỹ thuật DSP Packing: 2 phép nhân INT4 $\times$ INT14 trong 1 DSP48E2
 
 Bộ nhân phần cứng trong khối DSP48E2 của FPGA Xilinx UltraScale+ hỗ trợ phép nhân số nguyên có dấu với kích thước tối đa **$27 \text{ bit} \times 18 \text{ bit}$**.
 
-Nếu thực hiện nhân thông thường, mỗi phép nhân $W_{\text{int4}} \times A_{\text{int15}}$ tiêu tốn 1 khối DSP, gây lãng phí nghiêm trọng tài nguyên của bộ nhân 27-bit. Kiến trúc này áp dụng kỹ thuật **ghép 2 trọng số INT4 vào 1 từ 27-bit để tính đồng thời 2 phép nhân của 2 hàng đầu ra khác nhau trên cùng 1 activation**.
+Nếu thực hiện nhân thông thường, mỗi phép nhân $W_{\text{int4}} \times A_{\text{int14}}$ tiêu tốn 1 khối DSP, gây lãng phí tài nguyên của bộ nhân 27-bit. Kiến trúc này ghép 2 trọng số INT4 vào 1 từ 27-bit để tính đồng thời 2 phép nhân của 2 hàng đầu ra khác nhau trên cùng 1 activation.
 
 ```
 Bộ nhân DSP48E2: Cổng A (27 bit) x Cổng B (18 bit)
 +---------------------------------------------------------------+
-| Cổng A (27-bit có dấu): [w_high (4b)] [23 bit 0 / khoảng cách] [w_low (4b)] |
-| Cổng B (15-bit có dấu): [Activation a_k (15-bit INT15)]                     |
+| Cổng A (27-bit có dấu): w_high * 2^22 + w_low                       |
+| Cổng B (14-bit có dấu): Activation a_k (INT14)                     |
 +---------------------------------------------------------------+
                                |
                                v Phép nhân DSP
 +---------------------------------------------------------------+
-| Kết quả (46-bit):  [w_high * a_k] * 2^23  +  [w_low * a_k]   |
+| Kết quả:  [w_high * a_k] * 2^22  +  [w_low * a_k]            |
 +---------------------------------------------------------------+
 ```
 
@@ -339,7 +338,8 @@ Mã nguồn thực thi đóng gói ([`int4_linear_controller.cpp:89-97`](file://
 ```cpp
 static ap_int<27> int4_pack_two_w4(int4_weight_t high, int4_weight_t low) {
 #pragma HLS INLINE
-    const ap_int<27> packed = ((ap_int<27>)high << 23) + (ap_int<27>)low;
+    const ap_int<27> packed =
+        ((ap_int<27>)high << INT4_PACK_SHIFT) + (ap_int<27>)low;
 #pragma HLS BIND_OP variable=packed op=add impl=fabric // Ép cộng trên LUT fabric
     return packed;
 }
@@ -351,23 +351,23 @@ static ap_int<27> int4_pack_two_w4(int4_weight_t high, int4_weight_t low) {
 
 #### Bước 1: Chứng minh không tràn bit (Overflow Safety)
 Trong một nhóm $G32$, phép tích lũy diễn ra trên 32 phần tử của lane:
-- Giá trị trọng số: $w \in [-7, +7]$.
-- Giá trị activation: $a \in [-16383, +16383]$.
+- Giá trị trọng số: $w \in [-8, +7]$.
+- Giá trị activation: $a \in [-8191, +8191]$.
 - Giá trị tích cực đại của 1 phần tử:
-  $$|w \cdot a|_{\max} = 7 \times 16383 = 114,681$$
+  $$|w \cdot a|_{\max} = 8 \times 8191 = 65,528$$
 - Tổng tích lũy tối đa của 32 phần tử trong trường thấp ($S_{\text{low}}$):
-  $$|S_{\text{low}}| = \left| \sum_{k=0}^{31} w_{\text{low}, k} \cdot a_k \right| \le 32 \times 114,681 = 3,669,792$$
-- So sánh với độ rộng trường 23-bit:
-  $$2^{21} = 2,097,152 < 3,669,792 < 2^{22} = 4,194,304 < 2^{23} = 8,388,608$$
-- **Kết luận**: Giá trị tích lũy tuyệt đối $3,669,792$ chỉ chiếm tối đa 22 bit (bao gồm 1 bit dấu ở vị trí bit 22). **Khoảng cách 23-bit đảm bảo tuyệt đối không có bit dữ liệu nào từ trường thấp bị tràn (overflow) sang trường cao!**
+  $$|S_{\text{low}}| = \left| \sum_{k=0}^{31} w_{\text{low}, k} \cdot a_k \right| \le 32 \times 65,528 = 2,096,896$$
+- So sánh với miền signed 22-bit:
+  $$2,096,896 < 2^{21} = 2,097,152$$
+- **Kết luận**: Tổng G32 vừa miền signed 22-bit, nên khoảng cách 22-bit đủ để tách hai lane. Trường accumulator đầu ra vẫn rộng 23 bit.
 
 #### Bước 2: Khử hiện tượng mượn (Borrow Correction)
-Khi biểu diễn số âm bằng bù 2 trong trường 23-bit:
-- Nếu $S_{\text{low}} \ge 0$: Bit 22 là 0. Trường cao phản ánh chính xác $S_{\text{high}}$.
-- Nếu $S_{\text{low}} < 0$: Bit 22 là 1. Phép biểu diễn bù 2 của $S_{\text{low}}$ trong hệ thống số lớn hơn gây ra một giá trị mượn (borrow) bằng $2^{23}$ từ các bit phía trên. Do đó, trường thô ở dải bit $[45:23]$ bị giảm đi 1 đơn vị:
+Khi biểu diễn số âm bằng bù 2 trong trường 22-bit:
+- Nếu $S_{\text{low}} \ge 0$: Bit 21 là 0. Trường cao phản ánh chính xác $S_{\text{high}}$.
+- Nếu $S_{\text{low}} < 0$: Bit 21 là 1. Trường thô ở dải bit $[45:22]$ bị giảm đi 1 đơn vị do mượn $2^{22}$:
   $$\text{high\_raw} = S_{\text{high}} - 1$$
-- Để khôi phục lại giá trị chính xác của $S_{\text{high}}$, ta chỉ việc **cộng thêm bit dấu `low[22]` vào `high_raw`**:
-  $$S_{\text{high}} = \text{high\_raw} + \text{low}[22]$$
+- Để khôi phục lại giá trị chính xác của $S_{\text{high}}$, cộng thêm bit dấu của trường thấp:
+  $$S_{\text{high}} = \text{high\_raw} + \text{low\_raw}[21]$$
 
 Mã nguồn giải mã ([`int4_linear_controller.cpp:99-108`](file:///c:/KLTN/4PE_U250/int4_linear_controller.cpp#L99-L108)):
 ```cpp
@@ -376,9 +376,10 @@ static void int4_unpack_packed_acc(
     int4_group_acc_t& high,
     int4_group_acc_t& low) {
 #pragma HLS INLINE
-    low = packed.range(22, 0);
-    const int4_group_acc_t high_raw = packed.range(45, 23);
-    high = (int4_group_acc_t)((ap_int<24>)high_raw + (low[22] ? 1 : 0));
+    const ap_int<22> low_raw = packed.range(21, 0);
+    low = low_raw;
+    const ap_int<24> high_raw = packed.range(45, 22);
+    high = (int4_group_acc_t)(high_raw + (low_raw[21] ? 1 : 0));
 }
 ```
 
@@ -387,17 +388,17 @@ static void int4_unpack_packed_acc(
 ### 4.4. Cấu trúc song song 64 DSPs trong mỗi PE
 
 Trong mỗi chu kỳ xung nhịp của loop tính toán (`local_partial_row_block_loop`):
-- Đầu vào: 1 word weight 512-bit (chứa $32 \text{ lanes} \times 4 \text{ rows}$) và 1 word activation 480-bit (chứa 32 phần tử INT15).
+- Đầu vào: 1 word weight 512-bit (chứa $32 \text{ lanes} \times 4 \text{ rows}$) và 1 word activation 448-bit (chứa 32 phần tử INT14).
 - Trong 32 lanes song song:
   - Lane $k$ có 2 bộ nhân DSP:
-    - **DSP 0**: Thực hiện $(w_{\text{row0}} \ll 23 + w_{\text{row1}}) \times a_k$
-    - **DSP 1**: Thực hiện $(w_{\text{row2}} \ll 23 + w_{\text{row3}}) \times a_k$
+    - **DSP 0**: Thực hiện $((w_{\text{row0}} \ll 22) + w_{\text{row1}}) \times a_k$
+    - **DSP 1**: Thực hiện $((w_{\text{row2}} \ll 22) + w_{\text{row3}}) \times a_k$
 - Tổng số bộ nhân integer MAC DSP48E2 hoạt động song song:
   $$\text{DSPs per PE} = 32 \text{ lanes} \times 2 \text{ multipliers} = 64 \text{ DSPs}$$
 - Số phép nhân vô hướng hoàn thành mỗi cycle:
   $$\text{Multiplications per cycle} = 64 \times 2 = 128 \text{ MACs/cycle/PE}$$
 - Trên toàn FPGA (4 PE):
-  $$\text{Toàn hệ thống} = 64 \times 4 = 256 \text{ DSPs} \implies 512 \text{ MACs INT4}\times\text{INT15 mỗi cycle!}$$
+  $$\text{Toàn hệ thống} = 64 \times 4 = 256 \text{ DSPs} \implies 512 \text{ MACs INT4}\times\text{INT14 mỗi cycle!}$$
 
 Sau khi tính xong tổng số nguyên của nhóm 32 phần tử, giá trị được chuyển đổi sang float và nhân với tích hệ số tỉ lệ `combined_scale = weight_scale * activation_scale` bằng các DSP FP32 độc lập.
 
@@ -413,7 +414,7 @@ Lõi tính toán `local_partial_row_block_loop` được chỉ định:
 ```
 Mỗi chu kỳ xung nhịp (3.33 ns ở 300 MHz), vòng lặp:
 1. Đọc 1 word 512-bit từ `weight_buffer`.
-2. Truy xuất 1 word 480-bit từ `activation_q` (đã unroll 32 lane).
+2. Truy xuất 1 word 448-bit từ `activation_q` (đã unroll 32 lane).
 3. Thực hiện 64 phép nhân DSP packing.
 4. Tích lũy vào 4 thanh ghi tích lũy cục bộ của 4 hàng đầu ra (`partial[row]`).
 5. Đạt tỷ lệ khởi tạo hoàn hảo **Initiation Interval = 1 (II=1)**.
@@ -445,7 +446,10 @@ AXI Reader:   |-- Load Tile 0 --|-- Load Tile 1 --|-- Load Tile 2 --| ...
 Compute MAC:        |-- Calc Tile 0 --|-- Calc Tile 1 --|-- Calc Tile 2 --| ...
 Emit Stream:              |Emit 0|          |Emit 1|          |Emit 2| ...
 ```
-Toàn bộ thời gian đọc dữ liệu từ DDR qua AXI được **ẩn hoàn toàn (hidden latency)** đằng sau thời gian tính toán của khối MAC.
+`DATAFLOW` cho phép reader và MAC chạy đồng thời. Đây là điều kiện cần để ẩn
+độ trễ đọc DDR, nhưng chưa đủ để bảo đảm MAC không chờ dữ liệu: khi băng thông
+trung bình từ DDR thấp hơn 1 word 512-bit/cycle, FIFO sẽ cạn và MAC phải dừng.
+Hiệu quả chồng lấp cần kiểm chứng bằng số liệu bandwidth và stall trên card.
 
 ---
 
@@ -453,7 +457,10 @@ Toàn bộ thời gian đọc dữ liệu từ DDR qua AXI được **ẩn hoàn
 
 - Cửa sổ đọc AXI được cấu hình `num_read_outstanding=2` với độ dài burst `max_read_burst_length=64`.
 - Một Tile ma trận cần 256 word, tương đương $256 / 64 = 4$ burst AXI liên tiếp.
-- Khi Compute Engine đang xử lý nửa sau của Tile hiện tại trong `weight_buffer` (BRAM sâu 256), AXI Reader đã phát lệnh yêu cầu đọc burst cho Tile tiếp theo từ DDR, triệt tiêu hoàn toàn hiện tượng bọt khí xung nhịp (pipeline bubble).
+- Reader có thể nạp các word tiếp theo trong khi MAC tiêu thụ các word hiện tại.
+  FIFO sâu 256 word chứa tối đa một tile, giúp hấp thụ các khoảng dừng ngắn của
+  DDR; đây không phải bộ đệm hai tile hoàn chỉnh và không bù được thiếu hụt
+  băng thông kéo dài.
 
 ---
 
@@ -605,9 +612,9 @@ $$\text{Chu kỳ tính toán lý thuyết} = \text{Tổng số Word Weight}$$
 | **TỔNG CỘNG GEMV (1 Token)** | **13,103,104** | **$43.677\text{ ms}$** | **$36.519\text{ ms}$** |
 
 #### Tốc độ sinh Token lý thuyết (Token Generation Throughput):
-- **Ở xung nhịp mục tiêu 300 MHz**:
+- **Ở xung nhịp mục tiêu 300 MHz, giả sử DDR cấp liên tục 1 word/cycle**:
   $$\text{Throughput} = \frac{1}{0.04368\text{ s}} \approx \mathbf{22.89\text{ tokens/second}}$$
-- **Ở xung nhịp ước tính HLS 358.84 MHz**:
+- **Ở xung nhịp ước tính HLS 358.84 MHz của baseline INT15, giả sử DDR cấp liên tục 1 word/cycle**:
   $$\text{Throughput} = \frac{1}{0.03652\text{ s}} \approx \mathbf{27.38\text{ tokens/second}}$$
 
 ---
@@ -625,7 +632,16 @@ $$\text{Chu kỳ tính toán lý thuyết} = \text{Tổng số Word Weight}$$
   - Bo mạch trang bị 4 kênh DDR4-2400 (4 rank x 72-bit ECC).
   - Băng thông đỉnh lý thuyết của mỗi kênh DDR4-2400:
     $$\text{BW}_{\text{Peak}} = 2400 \times 10^6 \times 8 \text{ bytes} = 19.2 \text{ GB/s}$$
-- **Kết luận**: Thiết kế khai thác **100% băng thông đỉnh vật lý** của cả 4 kênh DDR trên Alveo U250 ở tần số 300 MHz. Đây là kiến trúc tối ưu hóa hoàn toàn theo giới hạn bộ nhớ (Memory-Bound Saturation).
+- **Kết luận**: 19.2 GB/s/kênh là **băng thông yêu cầu**, gần bằng băng thông
+  đỉnh lý thuyết của mỗi kênh DDR U250. HLS II=1 không xác nhận băng thông
+  DDR thực tế; giao thức AXI, refresh, tranh chấp với KV/cache và khoảng trống
+  giữa các burst có thể làm tốc độ duy trì thấp hơn. Các ước lượng chu kỳ và
+  token/s ở trên là cận lý tưởng cho riêng phần GEMV, chưa phải số đo trên card.
+
+  Mỗi PE phải đọc `13,103,104 x 64 = 838,598,656` byte weight/token. Nếu đo
+  được 15 GB/s/kênh, cận dưới thời gian đọc weight là khoảng 55.9 ms/token,
+  tương đương cận trên khoảng 17.9 token/s trước RMSNorm, attention, reduction
+  và các khoảng dừng khác. FIFO làm mượt burst nhưng không thay đổi cận này.
 
 ---
 
@@ -664,6 +680,6 @@ Bảng đối chiếu vị trí mã nguồn giúp tra cứu chính xác khi bả
 | Reducer cấp 2 Finalize & Ép kiểu Q15.17 | `int4_finalize_pair_outputs` | [`int4_linear_controller.cpp:520-557`](file:///c:/KLTN/4PE_U250/int4_linear_controller.cpp#L520-L557) |
 | Ghép 4 packet 128b thành 1 word 512b | `int4_store_local_output` | [`int4_linear_controller.cpp:560-588`](file:///c:/KLTN/4PE_U250/int4_linear_controller.cpp#L560-L588) |
 | Khởi tạo Metadata URAM (`position==0`) | `int4_preload_local_metadata` | [`int4_decoder_controller.cpp:58-77`](file:///c:/KLTN/4PE_U250/int4_decoder_controller.cpp#L58-L77) |
-| Lượng tử hóa kích hoạt G32 (INT15) | `int4_quantize_g32` | [`int4_decoder_blocks.cpp:8-42`](file:///c:/KLTN/4PE_U250/int4_decoder_blocks.cpp#L8-L42) |
+| Lượng tử hóa kích hoạt G32 (INT14) | `int4_quantize_g32` | [`int4_decoder_blocks.cpp:8-42`](file:///c:/KLTN/4PE_U250/int4_decoder_blocks.cpp#L8-L42) |
 | Packer nạp trọng số và sắp xếp bit | `int4_pack_linear_matrix` | [`int4_weight_packer.cpp:110-241`](file:///c:/KLTN/4PE_U250/int4_weight_packer.cpp#L110-L241) |
 | Cấu hình floorplan interface cho 4 DDR | `timing_300mhz_pre_place.tcl` | Toàn bộ file Tcl |

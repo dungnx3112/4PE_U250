@@ -93,52 +93,43 @@ inline int int4_matrix_tile_count(int mode) {
            int4_mode_local_input_tiles(mode);
 }
 
-inline int int4_matrix_weight_words(int mode) {
-    return int4_matrix_tile_count(mode) * INT4_WEIGHT_WORDS_PER_TILE;
+inline int int4_matrix_block_count(int mode) {
+    return int4_matrix_tile_count(mode) / INT4_TILES_PER_BLOCK;
 }
 
-inline int int4_matrix_scale_words(int mode) {
-    return (int4_matrix_tile_count(mode) +
-            INT4_WEIGHT_SCALES_PER_WORD - 1) /
-           INT4_WEIGHT_SCALES_PER_WORD;
+inline int int4_matrix_data_words(int mode) {
+    return int4_matrix_block_count(mode) * INT4_SUPER_BLOCK_WORDS;
+}
+
+inline int int4_matrix_weight_words(int mode) {
+    return int4_matrix_data_words(mode);
+}
+
+inline int int4_layer_data_stride() {
+    int words = 0;
+    for (int mode = INT4_LINEAR_Q; mode <= INT4_LINEAR_DOWN; ++mode) {
+        words += int4_matrix_data_words(mode);
+    }
+    return words;
 }
 
 inline int int4_layer_weight_stride() {
-    int words = 0;
-    for (int mode = INT4_LINEAR_Q; mode <= INT4_LINEAR_DOWN; ++mode) {
-        words += int4_matrix_weight_words(mode);
-    }
-    return words;
+    return int4_layer_data_stride();
 }
 
-inline int int4_layer_scale_stride() {
-    int words = 0;
-    for (int mode = INT4_LINEAR_Q; mode <= INT4_LINEAR_DOWN; ++mode) {
-        words += int4_matrix_scale_words(mode);
+inline int int4_data_offset(int layer, int mode) {
+    if (mode == INT4_LINEAR_LOGITS) {
+        return INT4_NUM_LAYERS * int4_layer_data_stride();
     }
-    return words;
+    int offset = layer * int4_layer_data_stride();
+    for (int prior = INT4_LINEAR_Q; prior < mode; ++prior) {
+        offset += int4_matrix_data_words(prior);
+    }
+    return offset;
 }
 
 inline int int4_weight_offset(int layer, int mode) {
-    if (mode == INT4_LINEAR_LOGITS) {
-        return INT4_NUM_LAYERS * int4_layer_weight_stride();
-    }
-    int offset = layer * int4_layer_weight_stride();
-    for (int prior = INT4_LINEAR_Q; prior < mode; ++prior) {
-        offset += int4_matrix_weight_words(prior);
-    }
-    return offset;
-}
-
-inline int int4_weight_scale_offset(int layer, int mode) {
-    if (mode == INT4_LINEAR_LOGITS) {
-        return INT4_NUM_LAYERS * int4_layer_scale_stride();
-    }
-    int offset = layer * int4_layer_scale_stride();
-    for (int prior = INT4_LINEAR_Q; prior < mode; ++prior) {
-        offset += int4_matrix_scale_words(prior);
-    }
-    return offset;
+    return int4_data_offset(layer, mode);
 }
 
 static constexpr int INT4_NORM_WORDS_PER_PE = INT4_VECTOR_WORDS_PER_PE;
@@ -148,46 +139,36 @@ static constexpr int INT4_TOTAL_NORM_WORDS_PER_PE =
     INT4_NUM_LAYERS * INT4_NORM_WORDS_PER_LAYER_PE +
     INT4_NORM_WORDS_PER_PE;
 
-// Per-bank sizes after changing O/DOWN and all other projections to a common
-// input-column layout. DOWN pads 43 input tiles to 44, increasing each PE by
-// only eight 128x256 tiles per layer while balancing all four DDR readers.
 static constexpr int INT4_LAYER_MATRIX_TILES_PER_PE = 1568;
 static constexpr int INT4_LOGITS_MATRIX_TILES_PER_PE = 1008;
-static constexpr int INT4_LAYER_WEIGHT_WORDS_PER_PE =
-    INT4_LAYER_MATRIX_TILES_PER_PE * INT4_WEIGHT_WORDS_PER_TILE;
-static constexpr int INT4_LOGITS_WEIGHT_WORDS_PER_PE =
-    INT4_LOGITS_MATRIX_TILES_PER_PE * INT4_WEIGHT_WORDS_PER_TILE;
-static constexpr int INT4_TOTAL_WEIGHT_WORDS_PER_PE =
-    INT4_NUM_LAYERS * INT4_LAYER_WEIGHT_WORDS_PER_PE +
-    INT4_LOGITS_WEIGHT_WORDS_PER_PE;
 
-static constexpr int INT4_LAYER_WEIGHT_SCALE_WORDS_PER_PE = 49;
-static constexpr int INT4_LOGITS_WEIGHT_SCALE_WORDS_PER_PE = 32;
-static constexpr int INT4_TOTAL_WEIGHT_SCALE_WORDS_PER_PE =
-    INT4_NUM_LAYERS * INT4_LAYER_WEIGHT_SCALE_WORDS_PER_PE +
-    INT4_LOGITS_WEIGHT_SCALE_WORDS_PER_PE;
+static constexpr int INT4_LAYER_BLOCKS_PER_PE =
+    INT4_LAYER_MATRIX_TILES_PER_PE / INT4_TILES_PER_BLOCK; // 98 blocks
+static constexpr int INT4_LOGITS_BLOCKS_PER_PE =
+    INT4_LOGITS_MATRIX_TILES_PER_PE / INT4_TILES_PER_BLOCK; // 63 blocks
 
-static constexpr int INT4_MODEL_SCALE_BASE_WORD = 0;
-static constexpr int INT4_MODEL_NORM_BASE_WORD =
-    INT4_MODEL_SCALE_BASE_WORD + INT4_TOTAL_WEIGHT_SCALE_WORDS_PER_PE;
+static constexpr int INT4_LAYER_DATA_WORDS_PER_PE =
+    INT4_LAYER_BLOCKS_PER_PE * INT4_SUPER_BLOCK_WORDS; // 98 * 4352 = 426,496
+static constexpr int INT4_LOGITS_DATA_WORDS_PER_PE =
+    INT4_LOGITS_BLOCKS_PER_PE * INT4_SUPER_BLOCK_WORDS; // 63 * 4352 = 274,176
+static constexpr int INT4_TOTAL_DATA_WORDS_PER_PE =
+    INT4_NUM_LAYERS * INT4_LAYER_DATA_WORDS_PER_PE +
+    INT4_LOGITS_DATA_WORDS_PER_PE; // 13,922,048
+
+static constexpr int INT4_MODEL_NORM_BASE_WORD = 0;
+static constexpr int INT4_MODEL_DATA_BASE_WORD =
+    INT4_MODEL_NORM_BASE_WORD + INT4_TOTAL_NORM_WORDS_PER_PE; // 4160
 static constexpr int INT4_MODEL_WEIGHT_BASE_WORD =
-    INT4_MODEL_NORM_BASE_WORD + INT4_TOTAL_NORM_WORDS_PER_PE;
+    INT4_MODEL_DATA_BASE_WORD;
 static constexpr int INT4_MODEL_WORDS_PER_DDR =
-    INT4_MODEL_WEIGHT_BASE_WORD + INT4_TOTAL_WEIGHT_WORDS_PER_PE;
+    INT4_MODEL_DATA_BASE_WORD + INT4_TOTAL_DATA_WORDS_PER_PE; // 13,926,208
 
-static_assert(INT4_TOTAL_WEIGHT_SCALE_WORDS_PER_PE == 1600,
-              "unexpected input-sharded scale image size");
 static_assert(INT4_TOTAL_NORM_WORDS_PER_PE == 4160,
               "unexpected local RMSNorm image size");
-static_assert(INT4_TOTAL_WEIGHT_WORDS_PER_PE == 13103104,
-              "unexpected input-column-sharded weight image size");
-static_assert(INT4_MODEL_WORDS_PER_DDR == 13108864,
+static_assert(INT4_TOTAL_DATA_WORDS_PER_PE == 13922048,
+              "unexpected input-column-sharded W4G128 data image size");
+static_assert(INT4_MODEL_WORDS_PER_DDR == 13926208,
               "unexpected complete per-DDR model image size");
-
-inline int4_weight_scale_word_t* int4_model_scale_base(
-    int4_weight_word_t* model_bank) {
-    return model_bank + INT4_MODEL_SCALE_BASE_WORD;
-}
 
 inline int4_output_word_t* int4_model_norm_base(
     int4_weight_word_t* model_bank) {
@@ -196,12 +177,12 @@ inline int4_output_word_t* int4_model_norm_base(
 
 inline int4_weight_word_t* int4_model_weight_base(
     int4_weight_word_t* model_bank) {
-    return model_bank + INT4_MODEL_WEIGHT_BASE_WORD;
+    return model_bank + INT4_MODEL_DATA_BASE_WORD;
 }
 
-inline const int4_weight_scale_word_t* int4_model_scale_base(
-    const int4_weight_word_t* model_bank) {
-    return model_bank + INT4_MODEL_SCALE_BASE_WORD;
+inline int4_weight_word_t* int4_model_data_base(
+    int4_weight_word_t* model_bank) {
+    return model_bank + INT4_MODEL_DATA_BASE_WORD;
 }
 
 inline const int4_output_word_t* int4_model_norm_base(
@@ -211,7 +192,12 @@ inline const int4_output_word_t* int4_model_norm_base(
 
 inline const int4_weight_word_t* int4_model_weight_base(
     const int4_weight_word_t* model_bank) {
-    return model_bank + INT4_MODEL_WEIGHT_BASE_WORD;
+    return model_bank + INT4_MODEL_DATA_BASE_WORD;
+}
+
+inline const int4_weight_word_t* int4_model_data_base(
+    const int4_weight_word_t* model_bank) {
+    return model_bank + INT4_MODEL_DATA_BASE_WORD;
 }
 
 inline int int4_norm_offset(int layer, int norm_mode) {
