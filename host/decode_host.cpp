@@ -671,49 +671,30 @@ int main(int argc, char** argv) {
             residual2.sync(XCL_BO_SYNC_BO_TO_DEVICE, RESIDUAL_BYTES, 0);
             residual3.sync(XCL_BO_SYNC_BO_TO_DEVICE, RESIDUAL_BYTES, 0);
 
-            xrt::run run0(kernel0);
-            xrt::run run1(kernel1);
-            xrt::run run2(kernel2);
-            xrt::run run3(kernel3);
-
-            run0.set_arg(0, static_cast<std::uint32_t>(position));
-            run0.set_arg(1, model0);
-            run0.set_arg(2, rope0);
-            run0.set_arg(3, residual0);
-            run0.set_arg(4, logits0);
-            run0.set_arg(5, kv0);
-
-            run1.set_arg(0, static_cast<std::uint32_t>(position));
-            run1.set_arg(1, model1);
-            run1.set_arg(2, rope1);
-            run1.set_arg(3, residual1);
-            run1.set_arg(4, logits1);
-            run1.set_arg(5, kv1);
-
-            run2.set_arg(0, static_cast<std::uint32_t>(position));
-            run2.set_arg(1, model2);
-            run2.set_arg(2, rope2);
-            run2.set_arg(3, residual2);
-            run2.set_arg(4, logits2);
-            run2.set_arg(5, kv2);
-
-            run3.set_arg(0, static_cast<std::uint32_t>(position));
-            run3.set_arg(1, model3);
-            run3.set_arg(2, rope3);
-            run3.set_arg(3, residual3);
-            run3.set_arg(4, logits3);
-            run3.set_arg(5, kv3);
-
             std::cout << "[Run] pos=" << position << " token=" << token_id
-                      << " start PE1,PE2,PE0,PE3" << std::endl;
-            run1.start();
-            std::cout << "[Run] PE1 started" << std::endl;
-            run2.start();
-            std::cout << "[Run] PE2 started" << std::endl;
-            run0.start();
-            std::cout << "[Run] PE0 started" << std::endl;
-            run3.start();
-            std::cout << "[Run] PE3 started; waiting for completion"
+                      << " submit PE1,PE2,PE0,PE3" << std::endl;
+
+            auto run1 = kernel1(
+                static_cast<std::uint32_t>(position), model1, rope1,
+                residual1, logits1, kv1);
+            std::cout << "[Run] PE1 submitted state="
+                      << static_cast<int>(run1.state()) << std::endl;
+            auto run2 = kernel2(
+                static_cast<std::uint32_t>(position), model2, rope2,
+                residual2, logits2, kv2);
+            std::cout << "[Run] PE2 submitted state="
+                      << static_cast<int>(run2.state()) << std::endl;
+            auto run0 = kernel0(
+                static_cast<std::uint32_t>(position), model0, rope0,
+                residual0, logits0, kv0);
+            std::cout << "[Run] PE0 submitted state="
+                      << static_cast<int>(run0.state()) << std::endl;
+            auto run3 = kernel3(
+                static_cast<std::uint32_t>(position), model3, rope3,
+                residual3, logits3, kv3);
+            std::cout << "[Run] PE3 submitted state="
+                      << static_cast<int>(run3.state())
+                      << "; waiting for completion"
                       << std::endl;
 
             auto wait_for_run = [&](xrt::run& run, const char* name) {
