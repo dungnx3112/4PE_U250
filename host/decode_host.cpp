@@ -141,8 +141,12 @@ static std::vector<float> load_embeddings(const std::string& bank0_path) {
     std::string emb_path = bank0_path.substr(0, bank0_path.rfind('/') + 1) + "embeddings.bin";
     std::ifstream f(emb_path, std::ios::binary);
     if (!f) {
+        emb_path = "embeddings.bin";
+        f.open(emb_path, std::ios::binary);
+    }
+    if (!f) {
         std::cerr << "[WARN] embeddings.bin not found at " << emb_path
-                  << "\n       Create it with: python scripts/export_embeddings.py\n";
+                  << "\n       Ensure embeddings.bin is in current directory or banks_dir\n";
         return {};
     }
     std::vector<float> emb(VOCAB_SIZE * DIM);
@@ -221,13 +225,13 @@ static bool load_file_into_bo(
 
 // ── CLI argument parsing ───────────────────────────────────────────────────────
 struct Config {
-    std::string xclbin       = "decoder_300mhz.xclbin";
+    std::string xclbin       = "int4_decoder_multikernel_300mhz.xclbin";
     std::string banks_dir    = ".";
     std::string rope_lut     = "rope_lut.bin";
     std::string tokenizer    = "tokenizer.bin";
     std::string prompt       = "Once upon a time";
     int         max_tokens   = 256;
-    int         device_index = 0;
+    std::string device_id    = "0000:13:00.0";
 };
 
 static Config parse_args(int argc, char** argv) {
@@ -244,7 +248,7 @@ static Config parse_args(int argc, char** argv) {
         else if (a == "--tokenizer")  c.tokenizer   = next();
         else if (a == "--prompt")     c.prompt      = next();
         else if (a == "--max-tokens") c.max_tokens  = std::stoi(next());
-        else if (a == "--device")     c.device_index= std::stoi(next());
+        else if (a == "--device")     c.device_id   = next();
         else { std::cerr << "Unknown argument: " << a << "\n"; exit(1); }
     }
     return c;
@@ -256,8 +260,10 @@ int main(int argc, char** argv)
     const Config cfg = parse_args(argc, argv);
 
     // ── 1. Open FPGA device and load xclbin ───────────────────────────────────
-    std::cout << "[Init] Opening device " << cfg.device_index << " ...\n";
-    xrt::device device(cfg.device_index);
+    std::cout << "[Init] Opening device " << cfg.device_id << " ...\n";
+    xrt::device device = (cfg.device_id.find(':') != std::string::npos)
+        ? xrt::device(cfg.device_id)
+        : xrt::device(std::stoi(cfg.device_id));
 
     std::cout << "[Init] Loading " << cfg.xclbin << " ...\n";
     auto uuid = device.load_xclbin(cfg.xclbin);
