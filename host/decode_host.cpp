@@ -697,27 +697,38 @@ int main(int argc, char** argv) {
                       << "; waiting for completion"
                       << std::endl;
 
-            auto wait_for_run = [&](xrt::run& run, const char* name) {
-                const auto state = run.wait(RUN_TIMEOUT_MS);
-                std::cout << "[Run] " << name << " wait state="
-                          << static_cast<int>(state) << std::endl;
-                if (state != ERT_CMD_STATE_COMPLETED) {
+            const auto wait_start = Clock::now();
+            bool pe_done[NUM_PES] = {false, false, false, false};
+            xrt::run* pe_runs[NUM_PES] = {&run0, &run1, &run2, &run3};
+            const char* pe_names[NUM_PES] = {"PE0", "PE1", "PE2", "PE3"};
+            int completed_pes = 0;
+
+            while (completed_pes < NUM_PES) {
+                for (int i = 0; i < NUM_PES; ++i) {
+                    if (!pe_done[i]) {
+                        const auto state = pe_runs[i]->wait(std::chrono::milliseconds(20));
+                        if (state == ERT_CMD_STATE_COMPLETED) {
+                            pe_done[i] = true;
+                            completed_pes++;
+                            std::cout << "[Run] " << pe_names[i] << " completed in "
+                                      << std::fixed << std::setprecision(2)
+                                      << elapsed_ms(wait_start, Clock::now())
+                                      << " ms" << std::endl;
+                        }
+                    }
+                }
+                if (elapsed_ms(wait_start, Clock::now()) > RUN_TIMEOUT_MS) {
                     std::ostringstream message;
-                    message << name << " did not complete within "
-                            << RUN_TIMEOUT_MS << " ms; command states: "
-                            << "PE0=" << static_cast<int>(run0.state()) << ' '
-                            << "PE1=" << static_cast<int>(run1.state()) << ' '
-                            << "PE2=" << static_cast<int>(run2.state()) << ' '
-                            << "PE3=" << static_cast<int>(run3.state());
+                    message << "Hardware timeout after " << RUN_TIMEOUT_MS
+                            << " ms; PE states: "
+                            << "PE0=" << (pe_done[0] ? "DONE" : std::to_string(static_cast<int>(run0.state()))) << ' '
+                            << "PE1=" << (pe_done[1] ? "DONE" : std::to_string(static_cast<int>(run1.state()))) << ' '
+                            << "PE2=" << (pe_done[2] ? "DONE" : std::to_string(static_cast<int>(run2.state()))) << ' '
+                            << "PE3=" << (pe_done[3] ? "DONE" : std::to_string(static_cast<int>(run3.state())));
                     throw std::runtime_error(message.str());
                 }
-            };
-
-            wait_for_run(run1, "PE1");
-            wait_for_run(run2, "PE2");
-            wait_for_run(run0, "PE0");
-            wait_for_run(run3, "PE3");
-            std::cout << "[Run] PE3 completed; reading logits" << std::endl;
+            }
+            std::cout << "[Run] All 4 PEs completed; reading logits" << std::endl;
 
             logits0.sync(XCL_BO_SYNC_BO_FROM_DEVICE, LOGIT_BYTES, 0);
             std::cout << "[Run] PE0 logits synced" << std::endl;
