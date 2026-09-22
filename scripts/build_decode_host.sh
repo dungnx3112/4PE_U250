@@ -63,6 +63,7 @@ CMD=(
     "$CHOSEN_CXX"
     $STD_FLAG
     "-O2"
+    "-D_GLIBCXX_USE_CXX11_ABI=0"
     "-I$XILINX_XRT/include"
     "-I$REPO_DIR/host/include"
     "host/decode_host.cpp"
