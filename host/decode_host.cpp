@@ -706,19 +706,32 @@ int main(int argc, char** argv) {
             std::cout << "[Run] pos=" << position << " token=" << token_id
                       << " start PE1,PE2,PE0,PE3" << std::endl;
             run1.start();
+            std::cout << "[Run] PE1 started" << std::endl;
             run2.start();
+            std::cout << "[Run] PE2 started" << std::endl;
             run0.start();
+            std::cout << "[Run] PE0 started" << std::endl;
             run3.start();
+            std::cout << "[Run] PE3 started; waiting for completion"
+                      << std::endl;
 
             run1.wait();
+            std::cout << "[Run] PE1 completed" << std::endl;
             run2.wait();
+            std::cout << "[Run] PE2 completed" << std::endl;
             run0.wait();
+            std::cout << "[Run] PE0 completed" << std::endl;
             run3.wait();
+            std::cout << "[Run] PE3 completed; reading logits" << std::endl;
 
             logits0.sync(XCL_BO_SYNC_BO_FROM_DEVICE, LOGIT_BYTES, 0);
+            std::cout << "[Run] PE0 logits synced" << std::endl;
             logits1.sync(XCL_BO_SYNC_BO_FROM_DEVICE, LOGIT_BYTES, 0);
+            std::cout << "[Run] PE1 logits synced" << std::endl;
             logits2.sync(XCL_BO_SYNC_BO_FROM_DEVICE, LOGIT_BYTES, 0);
+            std::cout << "[Run] PE2 logits synced" << std::endl;
             logits3.sync(XCL_BO_SYNC_BO_FROM_DEVICE, LOGIT_BYTES, 0);
+            std::cout << "[Run] PE3 logits synced" << std::endl;
             unpack_logits(logits_map0, logits_map1, logits_map2, logits_map3,
                           combined_logits.data());
 
