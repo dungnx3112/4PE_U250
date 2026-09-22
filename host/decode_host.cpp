@@ -69,6 +69,7 @@ constexpr std::size_t KV_WORDS_PER_PE =
 constexpr std::size_t KV_BYTES = KV_WORDS_PER_PE * DDR_WORD_BYTES;
 constexpr std::size_t EMBEDDING_BYTES =
     std::size_t(VOCAB_SIZE) * DIM * sizeof(float);
+constexpr unsigned int RUN_TIMEOUT_MS = 10000;
 
 static_assert(MODEL_BANK_BYTES == 891277312ULL,
               "model bank size must match int4_model_layout.hpp");
@@ -715,13 +716,26 @@ int main(int argc, char** argv) {
             std::cout << "[Run] PE3 started; waiting for completion"
                       << std::endl;
 
-            run1.wait();
-            std::cout << "[Run] PE1 completed" << std::endl;
-            run2.wait();
-            std::cout << "[Run] PE2 completed" << std::endl;
-            run0.wait();
-            std::cout << "[Run] PE0 completed" << std::endl;
-            run3.wait();
+            auto wait_for_run = [&](xrt::run& run, const char* name) {
+                const auto state = run.wait(RUN_TIMEOUT_MS);
+                std::cout << "[Run] " << name << " wait state="
+                          << static_cast<int>(state) << std::endl;
+                if (state != ERT_CMD_STATE_COMPLETED) {
+                    std::ostringstream message;
+                    message << name << " did not complete within "
+                            << RUN_TIMEOUT_MS << " ms; command states: "
+                            << "PE0=" << static_cast<int>(run0.state()) << ' '
+                            << "PE1=" << static_cast<int>(run1.state()) << ' '
+                            << "PE2=" << static_cast<int>(run2.state()) << ' '
+                            << "PE3=" << static_cast<int>(run3.state());
+                    throw std::runtime_error(message.str());
+                }
+            };
+
+            wait_for_run(run1, "PE1");
+            wait_for_run(run2, "PE2");
+            wait_for_run(run0, "PE0");
+            wait_for_run(run3, "PE3");
             std::cout << "[Run] PE3 completed; reading logits" << std::endl;
 
             logits0.sync(XCL_BO_SYNC_BO_FROM_DEVICE, LOGIT_BYTES, 0);
