@@ -207,13 +207,14 @@ extern "C" void int4_decoder_pe1_kernel(
 #pragma HLS STREAM variable=rms_reciprocal23 depth=4
 #pragma HLS STREAM variable=linear_partial0 depth=8
 #pragma HLS STREAM variable=linear_partial1 depth=8
-#pragma HLS STREAM variable=linear_sum01_local depth=16
-#pragma HLS STREAM variable=linear_sum01_remote depth=16
-#pragma HLS STREAM variable=linear_sum23_remote depth=16
+#pragma HLS STREAM variable=linear_sum01_local depth=64
+#pragma HLS STREAM variable=linear_sum01_remote depth=64
+#pragma HLS STREAM variable=linear_sum23_remote depth=64
 #pragma HLS STREAM variable=linear_output0 depth=32
 #pragma HLS STREAM variable=linear_output1 depth=32
 #pragma HLS STREAM variable=completion depth=4
 #pragma HLS BIND_STORAGE variable=position_local type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=linear_sum01_local type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=linear_sum01_remote type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=linear_sum23_remote type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=linear_output0 type=fifo impl=bram
@@ -324,13 +325,14 @@ extern "C" void int4_decoder_pe2_kernel(
 #pragma HLS STREAM variable=rms_reciprocal01 depth=4
 #pragma HLS STREAM variable=linear_partial2 depth=8
 #pragma HLS STREAM variable=linear_partial3 depth=8
-#pragma HLS STREAM variable=linear_sum23_local depth=16
-#pragma HLS STREAM variable=linear_sum23_remote depth=16
-#pragma HLS STREAM variable=linear_sum01_remote depth=16
+#pragma HLS STREAM variable=linear_sum23_local depth=64
+#pragma HLS STREAM variable=linear_sum23_remote depth=64
+#pragma HLS STREAM variable=linear_sum01_remote depth=64
 #pragma HLS STREAM variable=linear_output2 depth=32
 #pragma HLS STREAM variable=linear_output3 depth=32
 #pragma HLS STREAM variable=completion depth=4
 #pragma HLS BIND_STORAGE variable=position_local type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=linear_sum23_local type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=linear_sum23_remote type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=linear_sum01_remote type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=linear_output3 type=fifo impl=bram

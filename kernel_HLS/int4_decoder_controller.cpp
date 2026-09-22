@@ -409,17 +409,19 @@ void int4_decoder_token_controller(
 #pragma HLS STREAM variable=linear_partial1 depth=8
 #pragma HLS STREAM variable=linear_partial2 depth=8
 #pragma HLS STREAM variable=linear_partial3 depth=8
-#pragma HLS STREAM variable=linear_sum01_local depth=16
-#pragma HLS STREAM variable=linear_sum01_to23 depth=16
-#pragma HLS STREAM variable=linear_sum23_local depth=16
-#pragma HLS STREAM variable=linear_sum23_to01 depth=16
+#pragma HLS STREAM variable=linear_sum01_local depth=64
+#pragma HLS STREAM variable=linear_sum01_to23 depth=64
+#pragma HLS STREAM variable=linear_sum23_local depth=64
+#pragma HLS STREAM variable=linear_sum23_to01 depth=64
 #pragma HLS STREAM variable=linear_output0 depth=32
 #pragma HLS STREAM variable=linear_output1 depth=32
 #pragma HLS STREAM variable=linear_output2 depth=32
 #pragma HLS STREAM variable=linear_output3 depth=32
 #pragma HLS BIND_STORAGE variable=rms_sum23_to01 type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=rms_reciprocal01_to23 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=linear_sum01_local type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=linear_sum01_to23 type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=linear_sum23_local type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=linear_sum23_to01 type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=linear_output0 type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=linear_output3 type=fifo impl=bram

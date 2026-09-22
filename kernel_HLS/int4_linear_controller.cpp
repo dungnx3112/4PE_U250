@@ -443,6 +443,31 @@ local_partial_emit_output_tile_loop:
 }
 
 template <int PE_ID>
+static void int4_emit_local_partial_tiles_with_completion(
+    hls::stream<int4_linear_command_t>& command_stream,
+    hls::stream_of_blocks<int4_partial_tile_block_t>& partial_blocks,
+    hls::stream<int4_reduction_packet_t>& partial_stream,
+    hls::stream<int4_completion_token_t>& completion_stream) {
+#pragma HLS INLINE off
+    const int4_linear_command_t command = command_stream.read();
+    const int output_tiles = int4_command_output_tiles(command);
+
+local_partial_emit_with_completion_output_tile_loop:
+    for (int output_tile = 0; output_tile < output_tiles; ++output_tile) {
+#pragma HLS LOOP_TRIPCOUNT min=32 max=252
+        hls::read_lock<int4_partial_tile_block_t> partial(partial_blocks);
+    local_partial_emit_with_completion_loop:
+        for (int row_block = 0;
+             row_block < INT4_ROW_BLOCKS;
+             ++row_block) {
+#pragma HLS PIPELINE II=1
+            partial_stream.write(partial[row_block]);
+        }
+    }
+    completion_stream.write(1);
+}
+
+template <int PE_ID>
 static void int4_run_local_pe(
     const int4_weight_word_t* weight_mem,
     const int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
@@ -491,6 +516,58 @@ static void int4_run_local_pe(
         weight_buffer, partial_blocks);
     int4_emit_local_partial_tiles<PE_ID>(
         emit_command, partial_blocks, partial_stream);
+}
+
+template <int PE_ID>
+static void int4_run_local_pe_with_completion(
+    const int4_weight_word_t* weight_mem,
+    const int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
+    const int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],
+    hls::stream<int4_linear_command_t>& command_stream,
+    hls::stream<int4_reduction_packet_t>& partial_stream,
+    hls::stream<int4_completion_token_t>& completion_stream) {
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW disable_start_propagation
+    hls::stream<int4_linear_command_t> reader_command;
+    hls::stream<int4_linear_command_t> compute_command;
+    hls::stream<int4_linear_command_t> emit_command;
+    hls::stream<int4_weight_request_t> reader_request;
+    hls::stream<int4_weight_request_t> buffer_request;
+    hls::stream<int4_weight_scale_word_t> scale_stream;
+    hls::stream<int4_weight_word_t> weight_ingress;
+    hls::stream<int4_weight_word_t> weight_buffer;
+    hls::stream_of_blocks<int4_partial_tile_block_t> partial_blocks;
+#pragma HLS STREAM variable=reader_command depth=3
+#pragma HLS STREAM variable=compute_command depth=5
+#pragma HLS STREAM variable=emit_command depth=6
+#pragma HLS STREAM variable=reader_request depth=2
+#pragma HLS STREAM variable=buffer_request depth=3
+#pragma HLS STREAM variable=scale_stream depth=256
+#pragma HLS STREAM variable=weight_ingress depth=4
+#pragma HLS STREAM variable=weight_buffer depth=256
+#pragma HLS BIND_STORAGE variable=reader_command type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=compute_command type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=emit_command type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=reader_request type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=buffer_request type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=scale_stream type=fifo impl=uram
+#pragma HLS BIND_STORAGE variable=weight_ingress type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=weight_buffer type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=partial_blocks type=ram_2p impl=bram
+
+    int4_split_local_command(
+        command_stream, reader_command, compute_command, emit_command);
+    int4_prepare_local_weight_request<PE_ID>(
+        reader_command, reader_request, buffer_request);
+    int4_read_local_weights<PE_ID>(
+        weight_mem, reader_request, scale_stream, weight_ingress);
+    int4_buffer_local_weights<PE_ID>(
+        buffer_request, weight_ingress, weight_buffer);
+    int4_accumulate_local_partial_tiles<PE_ID>(
+        activation_q, activation_scale, compute_command, scale_stream,
+        weight_buffer, partial_blocks);
+    int4_emit_local_partial_tiles_with_completion<PE_ID>(
+        emit_command, partial_blocks, partial_stream, completion_stream);
 }
 
 static int4_reduction_packet_t int4_add_partial_packets(
@@ -639,22 +716,28 @@ static void int4_run_local_linear_stage(
 #pragma HLS STABLE variable=output_mem
     HLS_TASK_STREAM<int4_linear_command_t> command_compute;
     HLS_TASK_STREAM<int4_linear_command_t> command_store;
-    HLS_TASK_STREAM<int4_completion_token_t> completion;
+    HLS_TASK_STREAM<int4_completion_token_t> completion_compute;
+    HLS_TASK_STREAM<int4_completion_token_t> completion_store;
+    HLS_TASK_STREAM<int4_completion_token_t> completion_joined;
 #pragma HLS STREAM variable=command_compute depth=3
 #pragma HLS STREAM variable=command_store depth=3
-#pragma HLS STREAM variable=completion depth=4
+#pragma HLS STREAM variable=completion_compute depth=4
+#pragma HLS STREAM variable=completion_store depth=4
+#pragma HLS STREAM variable=completion_joined depth=4
 #pragma HLS BIND_STORAGE variable=command_compute type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=command_store type=fifo impl=srl
 
     int4_seed_local_linear_command(
         mode, weight_word_offset, 0,
         command_compute, command_store);
-    HLS_TASK compute(int4_run_local_pe<PE_ID>,
+    HLS_TASK compute(int4_run_local_pe_with_completion<PE_ID>,
         weight_mem, activation_q, activation_scale,
-        command_compute, partial_stream);
+        command_compute, partial_stream, completion_compute);
     HLS_TASK store(int4_store_local_output<PE_ID>,
-        completed_stream, output_mem, command_store, completion);
-    int4_wait_task_completion<PE_ID>(completion);
+        completed_stream, output_mem, command_store, completion_store);
+    HLS_TASK join_done(int4_join_task_completion_pair<PE_ID + 500>,
+        completion_compute, completion_store, completion_joined);
+    int4_wait_task_completion<PE_ID>(completion_joined);
 }
 
 #define INT4_DEFINE_LOCAL_LINEAR_STAGE(PE)                              \
