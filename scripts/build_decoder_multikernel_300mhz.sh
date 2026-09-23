@@ -28,6 +28,9 @@ Environment overrides:
   XCLBIN_OUTPUT=<output.xclbin>
   REUSE_XO=1        Skip HLS and link existing 4 XO files directly
   REBUILD_XO=1      Force re-synthesis of all 4 XO files even if present
+  ENABLE_STALL_PROFILE=1
+                    Add HLS stall ports and XRT AXI/stall monitors. This mode
+                    always rebuilds the four XOs and links with debug metadata.
   JOBS=<N>          Parallel synthesis/linking jobs (default: nproc)
 EOF
 }
@@ -42,7 +45,13 @@ output_name=${2:-${XCLBIN_OUTPUT:-$default_output}}
 vitis_settings=${VITIS_SETTINGS:-$default_vitis_settings}
 reuse_xo=${REUSE_XO:-0}
 rebuild_xo=${REBUILD_XO:-0}
+enable_stall_profile=${ENABLE_STALL_PROFILE:-0}
 jobs=${JOBS:-$(nproc 2>/dev/null || echo 8)}
+
+if [[ "$enable_stall_profile" != "0" && "$enable_stall_profile" != "1" ]]; then
+    echo "ERROR: ENABLE_STALL_PROFILE must be 0 or 1." >&2
+    exit 2
+fi
 
 if (( reuse_xo == 1 && rebuild_xo == 1 )); then
     echo "ERROR: REUSE_XO=1 and REBUILD_XO=1 are mutually exclusive." >&2
@@ -189,7 +198,10 @@ echo " [Step 1] Checking / Generating 4 XO Kernels (PE0 .. PE3) @ 300 MHz"
 echo "========================================================================"
 
 need_hls=0
-if (( rebuild_xo == 1 )); then
+if (( enable_stall_profile == 1 )); then
+    echo "ENABLE_STALL_PROFILE=1: rebuilding all XOs with HLS kernel-profile ports."
+    need_hls=1
+elif (( rebuild_xo == 1 )); then
     echo "REBUILD_XO=1: Forcing full re-synthesis of all 4 XOs..."
     need_hls=1
 elif (( reuse_xo == 1 )); then
@@ -228,6 +240,7 @@ if (( need_hls == 1 )); then
     echo "Logs: $log_dir/vitis_hls_pe{0,1,2,3}.log"
 
     export TARGET_FREQ="300mhz"
+    export ENABLE_STALL_PROFILE="$enable_stall_profile"
     hls_pids=()
     for pe in 0 1 2 3; do
         (
@@ -322,14 +335,31 @@ sed \
     -e "s|synth.jobs=.*|synth.jobs=${synth_jobs}|g" \
     -e "s|impl.jobs=.*|impl.jobs=${impl_jobs}|g" \
     "$config_path" > "$config_patched"
+
+if (( enable_stall_profile == 1 )); then
+    cat >> "$config_patched" <<'EOF'
+
+[profile]
+# Link-side debug IP for all four CUs.  "all" records trace, not counters only.
+data=all:all:all:all
+stall=all:all:all
+exec=all:all:all
+EOF
+fi
 echo "  Patched config: $config_patched"
 echo "    pre_place.tcl   -> $pre_place_tcl"
 echo "    pre_physopt.tcl -> $pre_physopt_tcl"
+
+vpp_debug_args=()
+if (( enable_stall_profile == 1 )); then
+    vpp_debug_args+=("-g")
+fi
 
 v++ --link \
     --target hw \
     --platform "$platform" \
     --config "$config_patched" \
+    "${vpp_debug_args[@]}" \
     --save-temps \
     --temp_dir "$temp_dir" \
     --log_dir "$log_dir" \
@@ -362,6 +392,28 @@ sha256sum "$resolved_output" | tee "$resolved_output.sha256"
 
 if command -v xclbinutil >/dev/null 2>&1; then
     xclbinutil --input "$resolved_output" --info > "$report_dir/xclbin.info.txt" 2>/dev/null || true
+fi
+
+if (( enable_stall_profile == 1 )); then
+    profile_ini="${resolved_output}.xrt.ini"
+    cat > "$profile_ini" <<'EOF'
+[Runtime]
+verbosity = 4
+runtime_log = console
+ert = false
+ert_polling = true
+
+[Debug]
+profile = true
+timeline_trace = true
+data_transfer_trace = fine
+stall_trace = all
+continuous_trace = true
+trace_buffer_size = 64M
+EOF
+    echo "XRT profile config:   $profile_ini"
+    echo "NOTE: Run the host through scripts/debug_u250_deadlock.sh so the trace"
+    echo "      is written into an isolated evidence directory."
 fi
 
 echo "All logs saved to:    $log_dir"

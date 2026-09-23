@@ -31,10 +31,24 @@
 #include <xrt/xrt_bo.h>
 #include <xrt/xrt_device.h>
 #include <xrt/xrt_kernel.h>
+#if __has_include(<xrt/xrt_ip.h>)
+#include <xrt/xrt_ip.h>
+#define HAS_XRT_IP 1
+#elif __has_include(<experimental/xrt_ip.h>)
+#include <experimental/xrt_ip.h>
+#define HAS_XRT_IP 1
+#endif
 #elif __has_include(<experimental/xrt_bo.h>)
 #include <experimental/xrt_bo.h>
 #include <experimental/xrt_device.h>
 #include <experimental/xrt_kernel.h>
+#if __has_include(<experimental/xrt_ip.h>)
+#include <experimental/xrt_ip.h>
+#define HAS_XRT_IP 1
+#elif __has_include(<xrt/xrt_ip.h>)
+#include <xrt/xrt_ip.h>
+#define HAS_XRT_IP 1
+#endif
 #else
 #error "XRT C++ headers were not found. Source /opt/xilinx/xrt/setup.sh before building."
 #endif
@@ -530,6 +544,59 @@ void zero_bo(xrt::bo& bo, std::size_t bytes, int pe) {
               << elapsed_ms(begin, end) << " ms" << std::endl;
 }
 
+#ifdef HAS_XRT_IP
+template <typename Uuid>
+void dump_pe_registers(xrt::device& device, const Uuid& uuid) {
+    std::cerr << "\n========== [HARDWARE DIAGNOSTIC - REGISTER DUMP] ==========\n";
+    const std::array<const char*, NUM_PES> pe_kernel_names = {
+        "int4_decoder_pe0_kernel",
+        "int4_decoder_pe1_kernel",
+        "int4_decoder_pe2_kernel",
+        "int4_decoder_pe3_kernel"
+    };
+    const std::array<const char*, NUM_PES> pe_inst_names = {"pe0", "pe1", "pe2", "pe3"};
+
+    for (int i = 0; i < NUM_PES; ++i) {
+        const std::array<std::string, 4> candidates = {
+            std::string(pe_inst_names[i]),
+            std::string(pe_kernel_names[i]) + ":{" + pe_inst_names[i] + "}",
+            std::string(pe_kernel_names[i]) + "_1",
+            std::string(pe_kernel_names[i])
+        };
+        bool opened = false;
+        std::string last_err;
+        for (const auto& candidate : candidates) {
+            try {
+                xrt::ip ip(device, uuid, candidate);
+                opened = true;
+                const uint32_t ap_ctrl = ip.read_register(0x00);
+                const uint32_t pos_reg = ip.read_register(0x10);
+
+                const bool ap_start = (ap_ctrl >> 0) & 1;
+                const bool ap_done  = (ap_ctrl >> 1) & 1;
+                const bool ap_idle  = (ap_ctrl >> 2) & 1;
+                const bool ap_ready = (ap_ctrl >> 3) & 1;
+
+                std::cerr << "  [" << pe_inst_names[i] << "] (IP: " << candidate << ") AP_CTRL: 0x"
+                          << std::hex << std::setw(2) << std::setfill('0') << ap_ctrl << std::dec
+                          << " (start=" << ap_start
+                          << ", done=" << ap_done
+                          << ", idle=" << ap_idle
+                          << ", ready=" << ap_ready << ")"
+                          << " | pos_arg_reg=0x" << std::hex << pos_reg << std::dec << "\n";
+                break;
+            } catch (const std::exception& e) {
+                last_err = e.what();
+            }
+        }
+        if (!opened) {
+            std::cerr << "  [" << pe_inst_names[i] << "] Cannot open IP to read registers: " << last_err << "\n";
+        }
+    }
+    std::cerr << "===========================================================\n" << std::endl;
+}
+#endif
+
 struct TokenRunResult {
     int next_token = 0;
     double step_ms = 0.0;
@@ -718,6 +785,9 @@ int main(int argc, char** argv) {
                     }
                 }
                 if (elapsed_ms(wait_start, Clock::now()) > RUN_TIMEOUT_MS) {
+#ifdef HAS_XRT_IP
+                    dump_pe_registers(device, uuid);
+#endif
                     std::ostringstream message;
                     message << "Hardware timeout after " << RUN_TIMEOUT_MS
                             << " ms; PE states: "
@@ -725,6 +795,28 @@ int main(int argc, char** argv) {
                             << "PE1=" << (pe_done[1] ? "DONE" : std::to_string(static_cast<int>(run1.state()))) << ' '
                             << "PE2=" << (pe_done[2] ? "DONE" : std::to_string(static_cast<int>(run2.state()))) << ' '
                             << "PE3=" << (pe_done[3] ? "DONE" : std::to_string(static_cast<int>(run3.state())));
+
+                    // Do not let live run handles reach their destructors.  XRT
+                    // otherwise tries to close each CU context while the other
+                    // stream-connected CUs are still running, which can turn
+                    // the original timeout into four slow "CU hangs" teardown
+                    // failures and may leave the card requiring a reset.
+                    for (int i = 0; i < NUM_PES; ++i) {
+                        if (pe_done[i]) {
+                            continue;
+                        }
+                        try {
+                            const auto abort_state = pe_runs[i]->abort();
+                            std::cerr << "[Run] " << pe_names[i]
+                                      << " abort state="
+                                      << static_cast<int>(abort_state)
+                                      << std::endl;
+                        } catch (const std::exception& error) {
+                            std::cerr << "[Run] " << pe_names[i]
+                                      << " abort failed: " << error.what()
+                                      << std::endl;
+                        }
+                    }
                     throw std::runtime_error(message.str());
                 }
             }

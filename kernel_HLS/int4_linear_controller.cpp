@@ -713,12 +713,16 @@ static void int4_run_local_linear_stage(
 #pragma HLS STABLE variable=weight_mem
 #pragma HLS STABLE variable=activation_q
 #pragma HLS STABLE variable=activation_scale
-#pragma HLS STABLE variable=output_mem
-    HLS_TASK_STREAM<int4_linear_command_t> command_compute;
-    HLS_TASK_STREAM<int4_linear_command_t> command_store;
-    HLS_TASK_STREAM<int4_completion_token_t> completion_compute;
-    HLS_TASK_STREAM<int4_completion_token_t> completion_store;
-    HLS_TASK_STREAM<int4_completion_token_t> completion_joined;
+    // This wrapper represents exactly one linear-stage transaction.  Keep
+    // its processes control-driven instead of persistent hls::tasks: the
+    // activation and output arrays are reused and mutated by the enclosing
+    // decoder scheduler between stages, so no worker from the previous stage
+    // may remain alive after this function returns.
+    hls::stream<int4_linear_command_t> command_compute;
+    hls::stream<int4_linear_command_t> command_store;
+    hls::stream<int4_completion_token_t> completion_compute;
+    hls::stream<int4_completion_token_t> completion_store;
+    hls::stream<int4_completion_token_t> completion_joined;
 #pragma HLS STREAM variable=command_compute depth=3
 #pragma HLS STREAM variable=command_store depth=3
 #pragma HLS STREAM variable=completion_compute depth=4
@@ -730,12 +734,12 @@ static void int4_run_local_linear_stage(
     int4_seed_local_linear_command(
         mode, weight_word_offset, 0,
         command_compute, command_store);
-    HLS_TASK compute(int4_run_local_pe_with_completion<PE_ID>,
+    int4_run_local_pe_with_completion<PE_ID>(
         weight_mem, activation_q, activation_scale,
         command_compute, partial_stream, completion_compute);
-    HLS_TASK store(int4_store_local_output<PE_ID>,
+    int4_store_local_output<PE_ID>(
         completed_stream, output_mem, command_store, completion_store);
-    HLS_TASK join_done(int4_join_task_completion_pair<PE_ID + 500>,
+    int4_join_task_completion_pair<PE_ID + 500>(
         completion_compute, completion_store, completion_joined);
     int4_wait_task_completion<PE_ID>(completion_joined);
 }

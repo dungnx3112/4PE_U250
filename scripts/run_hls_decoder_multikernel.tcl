@@ -66,6 +66,13 @@ foreach pe $requested_pes {
     config_interface -m_axi_register_io all
     config_interface -m_axi_buffer_impl auto
     config_rtl -register_reset_num 3
+    # Stall profiling needs event/stall ports to exist in every exported XO.
+    # The normal production XO is unchanged unless the build wrapper exports
+    # ENABLE_STALL_PROFILE=1.
+    if {[info exists ::env(ENABLE_STALL_PROFILE)] &&
+        $::env(ENABLE_STALL_PROFILE) eq "1"} {
+        config_rtl -kernel_profile
+    }
     config_dataflow -start_fifo_depth 8
 
     csynth_design

@@ -8,6 +8,7 @@ set -e
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_DIR"
+HOST_OUTPUT="${HOST_OUTPUT:-decode_host}"
 
 # 1. Setup XRT environment
 if [ -z "$XILINX_XRT" ]; then
@@ -67,7 +68,7 @@ CMD=(
     "-I$XILINX_XRT/include"
     "-I$REPO_DIR/host/include"
     "host/decode_host.cpp"
-    "-o" "decode_host"
+    "-o" "$HOST_OUTPUT"
     "-L$XILINX_XRT/lib"
     "-lxrt_coreutil"
     "-pthread"
@@ -80,11 +81,11 @@ echo "    ${CMD[*]}"
 "${CMD[@]}"
 
 echo "================================================================="
-echo "[+] SUCCESS: Built ./decode_host successfully!"
-ls -lh ./decode_host
+echo "[+] SUCCESS: Built ./$HOST_OUTPUT successfully!"
+ls -lh "./$HOST_OUTPUT"
 echo "================================================================="
 echo "[*] Quick test command on U250 (device 0000:13:00.0):"
-echo "    ./decode_host \\"
+echo "    ./$HOST_OUTPUT \\"
 echo "        --xclbin int4_decoder_multikernel_300mhz.xclbin \\"
 echo "        --device 0000:13:00.0 \\"
 echo "        --banks . \\"
