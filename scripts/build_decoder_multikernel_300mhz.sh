@@ -175,11 +175,17 @@ if [[ ! -f "$config_path" ]]; then
     exit 1
 fi
 
+if (( enable_stall_profile == 1 )); then
+    xo_output_dir="$repo_root/build_multikernel_300mhz/profile_xo"
+else
+    xo_output_dir="$repo_root"
+fi
+mkdir -p "$xo_output_dir"
 xo_files=(
-    "$repo_root/int4_decoder_pe0_kernel_300mhz.xo"
-    "$repo_root/int4_decoder_pe1_kernel_300mhz.xo"
-    "$repo_root/int4_decoder_pe2_kernel_300mhz.xo"
-    "$repo_root/int4_decoder_pe3_kernel_300mhz.xo"
+    "$xo_output_dir/int4_decoder_pe0_kernel_300mhz.xo"
+    "$xo_output_dir/int4_decoder_pe1_kernel_300mhz.xo"
+    "$xo_output_dir/int4_decoder_pe2_kernel_300mhz.xo"
+    "$xo_output_dir/int4_decoder_pe3_kernel_300mhz.xo"
 )
 
 run_id=$(date +%Y%m%d-%H%M%S)-$$
@@ -241,6 +247,7 @@ if (( need_hls == 1 )); then
 
     export TARGET_FREQ="300mhz"
     export ENABLE_STALL_PROFILE="$enable_stall_profile"
+    export XO_OUTPUT_DIR="$xo_output_dir"
     hls_pids=()
     for pe in 0 1 2 3; do
         (
@@ -380,6 +387,22 @@ if [[ ! -s "$candidate_output" ]]; then
     exit 1
 fi
 
+if (( enable_stall_profile == 1 )); then
+    if ! command -v xclbinutil >/dev/null 2>&1; then
+        echo "ERROR: xclbinutil is required to verify the profile xclbin." >&2
+        exit 1
+    fi
+    debug_layout="$report_dir/debug_ip_layout.json"
+    if ! xclbinutil --input "$candidate_output" \
+        --dump-section "DEBUG_IP_LAYOUT:JSON:$debug_layout" \
+        > "$log_dir/xclbinutil_debug_layout.log" 2>&1 || [[ ! -s "$debug_layout" ]]; then
+        echo "ERROR: profile build has no readable DEBUG_IP_LAYOUT section." >&2
+        echo "       Refusing to publish a debug xclbin that cannot produce traces." >&2
+        echo "       See: $log_dir/xclbinutil_debug_layout.log" >&2
+        exit 1
+    fi
+fi
+
 # Publish final output
 mv -f "$candidate_output" "$resolved_output"
 echo ""
@@ -398,18 +421,16 @@ if (( enable_stall_profile == 1 )); then
     profile_ini="${resolved_output}.xrt.ini"
     cat > "$profile_ini" <<'EOF'
 [Runtime]
-verbosity = 4
+verbosity = 3
 runtime_log = console
-ert = false
-ert_polling = true
 
 [Debug]
-profile = true
-timeline_trace = true
-data_transfer_trace = fine
+native_xrt_trace = true
+device_trace = fine
 stall_trace = all
 continuous_trace = true
 trace_buffer_size = 64M
+pl_deadlock_detection = true
 EOF
     echo "XRT profile config:   $profile_ini"
     echo "NOTE: Run the host through scripts/debug_u250_deadlock.sh so the trace"

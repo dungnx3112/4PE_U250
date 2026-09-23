@@ -29,6 +29,12 @@ if {[info exists ::env(TARGET_FREQ)] && $::env(TARGET_FREQ) ne ""} {
     set target_freq $::env(TARGET_FREQ)
 }
 
+set xo_output_dir $repo_root
+if {[info exists ::env(XO_OUTPUT_DIR)] && $::env(XO_OUTPUT_DIR) ne ""} {
+    set xo_output_dir [file normalize $::env(XO_OUTPUT_DIR)]
+}
+file mkdir $xo_output_dir
+
 set cflags "-std=c++11 -DAP_INT_MAX_W=4096 -I$kernel_dir"
 set production_sources [list \
     [file join $kernel_dir "swiftkv_attention.cpp"] \
@@ -40,7 +46,8 @@ set production_sources [list \
 foreach pe $requested_pes {
     set kernel_name "int4_decoder_pe${pe}_kernel"
     set project_name "proj_int4_decoder_pe${pe}"
-    set xo_name "int4_decoder_pe${pe}_kernel_${target_freq}.xo"
+    set xo_name [file join $xo_output_dir \
+        "int4_decoder_pe${pe}_kernel_${target_freq}.xo"]
 
     open_project -reset $project_name
     set_top $kernel_name
@@ -72,6 +79,7 @@ foreach pe $requested_pes {
     if {[info exists ::env(ENABLE_STALL_PROFILE)] &&
         $::env(ENABLE_STALL_PROFILE) eq "1"} {
         config_rtl -kernel_profile
+        config_rtl -deadlock_detection hw_diagnosis
     }
     config_dataflow -start_fifo_depth 8
 

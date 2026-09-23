@@ -17,7 +17,7 @@ Environment:
   U250_PLATFORM=...       U250 .xpfm path/name used by v++
   VITIS_SETTINGS=...      Vitis settings64.sh (default: 2023.2 path)
   JOBS=N                  HLS/Vivado parallelism
-  DEVICE=0000:13:00.0     XRT device BDF or numeric index
+  DEVICE=0                XRT device index; use a BDF only on multi-card hosts
   BANKS_DIR=.             directory containing model_bank0..3.bin
   ROPE_LUT=rope_lut.bin
   TOKENIZER=tokenizer.bin
@@ -59,9 +59,9 @@ build_artifacts() {
     ENABLE_STALL_PROFILE=1 \
     REBUILD_XO=1 \
     XCLBIN_OUTPUT="$xclbin" \
-        "$script_dir/build_decoder_multikernel_300mhz.sh"
+        bash "$script_dir/build_decoder_multikernel_300mhz.sh"
 
-    HOST_OUTPUT="$(basename "$host")" "$script_dir/build_decode_host.sh"
+    HOST_OUTPUT="$(basename "$host")" bash "$script_dir/build_decode_host.sh"
     if [[ "$host" != "$repo_root/$(basename "$host")" ]]; then
         mkdir -p "$(dirname "$host")"
         cp -f "$repo_root/$(basename "$host")" "$host"
@@ -86,6 +86,38 @@ absolute_existing_path() {
     dir=$(cd -- "$(dirname -- "$path")" && pwd -P)
     base=$(basename -- "$path")
     printf '%s/%s\n' "$dir" "$base"
+}
+
+write_runtime_profile_ini() {
+    local output=$1
+    local xrt_version="" xrt_minor=999 trace_key=device_trace
+    if command -v xbutil >/dev/null 2>&1; then
+        xrt_version=$(xbutil --version 2>&1 | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1 || true)
+        if [[ -n "$xrt_version" ]]; then
+            xrt_minor=$(printf '%s\n' "$xrt_version" | cut -d. -f2)
+        fi
+    fi
+    # XRT 2021.2 (2.11) used data_transfer_trace. XRT 2022.1 (2.12)
+    # renamed it to device_trace. The U250 server has been seen with both.
+    if [[ "$xrt_minor" =~ ^[0-9]+$ ]] && (( xrt_minor < 12 )); then
+        trace_key=data_transfer_trace
+    fi
+
+    cat > "$output" <<EOF
+[Runtime]
+verbosity = 3
+runtime_log = console
+
+[Debug]
+native_xrt_trace = true
+$trace_key = fine
+stall_trace = all
+continuous_trace = true
+trace_buffer_size = 64M
+pl_deadlock_detection = true
+EOF
+    echo "XRT version: ${xrt_version:-unknown}; using '$trace_key'" \
+        | tee "$output.detected-version.txt"
 }
 
 run_capture() {
@@ -125,10 +157,10 @@ run_capture() {
         echo "       Rebuild with '$0 build'; do not use the production xclbin." >&2
         exit 1
     }
-    cp -f "$profile_ini" "$evidence_dir/xrt.ini"
+    write_runtime_profile_ini "$evidence_dir/xrt.ini"
     sha256sum "$xclbin_abs" "$host_abs" > "$evidence_dir/artifacts.sha256"
 
-    device=${DEVICE:-0000:13:00.0}
+    device=${DEVICE:-0}
     prompt=${PROMPT:-Hello}
     max_tokens=${MAX_TOKENS:-4}
 
@@ -151,7 +183,9 @@ run_capture() {
     set +e
     (
         cd "$evidence_dir"
-        # Old XRT releases reliably discover xrt.ini in the process CWD.
+        # Force this profile config. Otherwise XRT may pick the production
+        # xrt.ini beside the host executable before checking the current CWD.
+        export XRT_INI_PATH="$evidence_dir/xrt.ini"
         "$host_abs" \
             --xclbin "$xclbin_abs" \
             --device "$device" \
@@ -177,9 +211,12 @@ run_capture() {
     echo " CAPTURE COMPLETE (host exit=$host_status)"
     echo "========================================================================"
     echo "Evidence directory: $evidence_dir"
-    if [[ -s "$evidence_dir/xrt.run_summary" ]]; then
-        echo "Trace:              $evidence_dir/xrt.run_summary"
-        echo "Open with:          vitis_analyzer $evidence_dir/xrt.run_summary"
+    local run_summary
+    run_summary=$(find "$evidence_dir" -maxdepth 1 -type f -name '*.run_summary' -size +0c \
+        -print -quit 2>/dev/null || true)
+    if [[ -n "$run_summary" ]]; then
+        echo "Trace:              $run_summary"
+        echo "Open with:          vitis_analyzer $run_summary"
     else
         echo "ERROR: XRT did not create xrt.run_summary." >&2
         echo "Inspect: $evidence_dir/host.log" >&2
