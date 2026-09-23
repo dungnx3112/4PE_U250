@@ -10,7 +10,7 @@ set -euo pipefail
 # ==============================================================================
 
 default_vitis_settings="/home/eda/xilinx/Vitis/2023.2/settings64.sh"
-default_platform="/opt/xilinx/platforms/xilinx_u250_gen3x16_xdma_4_1_202210_1/xilinx_u250_gen3x16_xdma_4_1_202210_1.xpfm"
+default_platform="${HOME}/u250_platform/opt/xilinx/platforms/xilinx_u250_gen3x16_xdma_4_1_202210_1/xilinx_u250_gen3x16_xdma_4_1_202210_1.xpfm"
 default_output="int4_decoder_multikernel_300mhz.xclbin"
 
 usage() {
