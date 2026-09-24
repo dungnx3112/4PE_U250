@@ -30,7 +30,9 @@ Environment overrides:
   REBUILD_XO=1      Force re-synthesis of all 4 XO files even if present
   ENABLE_STALL_PROFILE=1
                     Add HLS stall ports and XRT AXI/stall monitors. This mode
-                    always rebuilds the four XOs and links with debug metadata.
+                    rebuilds XOs unless REUSE_XO=1, then links debug metadata.
+  DEBUG_CLOCK_HZ=N  Link clock for profile builds (default: 150000000). The
+                    production build remains fixed at 300000000 Hz.
   JOBS=<N>          Parallel synthesis/linking jobs (default: nproc)
 EOF
 }
@@ -46,6 +48,7 @@ vitis_settings=${VITIS_SETTINGS:-$default_vitis_settings}
 reuse_xo=${REUSE_XO:-0}
 rebuild_xo=${REBUILD_XO:-0}
 enable_stall_profile=${ENABLE_STALL_PROFILE:-0}
+debug_clock_hz=${DEBUG_CLOCK_HZ:-150000000}
 detected_jobs=$(nproc 2>/dev/null || echo 32)
 if (( detected_jobs < 8 )); then
     detected_jobs=32
@@ -55,6 +58,16 @@ jobs=${JOBS:-$detected_jobs}
 if [[ "$enable_stall_profile" != "0" && "$enable_stall_profile" != "1" ]]; then
     echo "ERROR: ENABLE_STALL_PROFILE must be 0 or 1." >&2
     exit 2
+fi
+
+link_clock_hz=300000000
+if (( enable_stall_profile == 1 )); then
+    if [[ ! "$debug_clock_hz" =~ ^[0-9]+$ ]] ||
+       (( debug_clock_hz < 100000000 || debug_clock_hz > 300000000 )); then
+        echo "ERROR: DEBUG_CLOCK_HZ must be an integer from 100000000 to 300000000." >&2
+        exit 2
+    fi
+    link_clock_hz=$debug_clock_hz
 fi
 
 if (( reuse_xo == 1 && rebuild_xo == 1 )); then
@@ -315,7 +328,7 @@ fi
 # ==============================================================================
 echo ""
 echo "========================================================================"
-echo " [Step 2] Linking 4 XOs into Hardware Container (.xclbin) @ 300 MHz"
+echo " [Step 2] Linking 4 XOs into Hardware Container (.xclbin) @ ${link_clock_hz} Hz"
 echo "========================================================================"
 
 if [[ "$output_name" == /* ]]; then
@@ -327,7 +340,7 @@ candidate_output="$run_dir/int4_decoder_multikernel_300mhz.candidate.xclbin"
 
 echo "Platform:       $platform"
 echo "Config:         $config_path"
-echo "Target Clock:   300 MHz (pe0..3.ap_clk)"
+echo "Target Clock:   ${link_clock_hz} Hz (pe0..3.ap_clk)"
 echo "Candidate out:  $candidate_output"
 echo "Final out:      $resolved_output"
 echo "Log dir:        $log_dir"
@@ -355,6 +368,7 @@ echo "Vivado synth jobs: $synth_jobs (maximized for 64-core server)"
 echo "Vivado impl jobs:  $impl_jobs (maximized for 64-core server)"
 
 sed \
+    -e "s|^freqhz=.*|freqhz=${link_clock_hz}:pe0.ap_clk,pe1.ap_clk,pe2.ap_clk,pe3.ap_clk|g" \
     -e "s|__PRE_PLACE_TCL__|${pre_place_tcl}|g" \
     -e "s|__PRE_PHYSOPT_TCL__|${pre_physopt_tcl}|g" \
     -e "s|synth.jobs=.*|synth.jobs=${synth_jobs}|g" \

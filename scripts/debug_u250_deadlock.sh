@@ -27,6 +27,8 @@ Environment:
   XCLBIN=...              profile xclbin path override
   HOST=...                profile host path override
   REUSE_PROFILE_XO=1      reuse the four existing profile XOs; relink only
+  DEBUG_CLOCK_HZ=150000000
+                          slower debug-only link clock for timing closure
 
 Examples:
   scripts/debug_u250_deadlock.sh all
@@ -50,7 +52,14 @@ esac
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 repo_root=$(cd -- "$script_dir/.." && pwd -P)
-xclbin=${XCLBIN:-$repo_root/int4_decoder_multikernel_300mhz_profile.xclbin}
+debug_clock_hz=${DEBUG_CLOCK_HZ:-150000000}
+if [[ ! "$debug_clock_hz" =~ ^[0-9]+$ ]] ||
+   (( debug_clock_hz < 100000000 || debug_clock_hz > 300000000 )); then
+    echo "ERROR: DEBUG_CLOCK_HZ must be an integer from 100000000 to 300000000." >&2
+    exit 2
+fi
+debug_clock_mhz=$(( debug_clock_hz / 1000000 ))
+xclbin=${XCLBIN:-$repo_root/int4_decoder_multikernel_${debug_clock_mhz}mhz_profile.xclbin}
 host=${HOST:-$repo_root/decode_host_profile}
 
 build_artifacts() {
@@ -66,6 +75,7 @@ build_artifacts() {
     ENABLE_STALL_PROFILE=1 \
     REUSE_XO="$reuse_xo" \
     REBUILD_XO="$rebuild_xo" \
+    DEBUG_CLOCK_HZ="$debug_clock_hz" \
     XCLBIN_OUTPUT="$xclbin" \
         bash "$script_dir/build_decoder_multikernel_300mhz.sh"
 
