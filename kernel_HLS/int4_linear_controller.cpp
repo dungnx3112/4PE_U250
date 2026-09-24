@@ -940,8 +940,8 @@ void int4_sharded_linear_4pe(
 #pragma HLS DATAFLOW disable_start_propagation
 
     // These interfaces are physically stable for the duration of one kernel
-    // execution.  Explicit command/completion FIFOs provide transaction
-    // synchronization for the persistent PE tasks below.
+    // execution. Explicit command/completion FIFOs provide transaction
+    // synchronization for the DATAFLOW processes below.
 #pragma HLS STABLE variable=weight_pe0
 #pragma HLS STABLE variable=weight_pe1
 #pragma HLS STABLE variable=weight_pe2
@@ -963,39 +963,39 @@ void int4_sharded_linear_4pe(
 #pragma HLS STABLE variable=output_pe2
 #pragma HLS STABLE variable=output_pe3
 
-    HLS_TASK_STREAM<int4_linear_command_t> command_pe0;
-    HLS_TASK_STREAM<int4_linear_command_t> command_pe1;
-    HLS_TASK_STREAM<int4_linear_command_t> command_pe2;
-    HLS_TASK_STREAM<int4_linear_command_t> command_pe3;
-    HLS_TASK_STREAM<int4_linear_command_t> command_01;
-    HLS_TASK_STREAM<int4_linear_command_t> command_12;
-    HLS_TASK_STREAM<int4_linear_command_t> command_23;
-    HLS_TASK_STREAM<int4_linear_command_t> command_store0;
-    HLS_TASK_STREAM<int4_linear_command_t> command_store1;
-    HLS_TASK_STREAM<int4_linear_command_t> command_store2;
-    HLS_TASK_STREAM<int4_linear_command_t> command_store3;
-    HLS_TASK_STREAM<int4_linear_command_t> command_reduce01;
-    HLS_TASK_STREAM<int4_linear_command_t> command_finalize01;
-    HLS_TASK_STREAM<int4_linear_command_t> command_reduce23;
-    HLS_TASK_STREAM<int4_linear_command_t> command_finalize23;
-    HLS_TASK_STREAM<int4_reduction_packet_t> partial0;
-    HLS_TASK_STREAM<int4_reduction_packet_t> partial1;
-    HLS_TASK_STREAM<int4_reduction_packet_t> partial2;
-    HLS_TASK_STREAM<int4_reduction_packet_t> partial3;
-    HLS_TASK_STREAM<int4_reduction_packet_t> sum01_local;
-    HLS_TASK_STREAM<int4_reduction_packet_t> sum01_to23;
-    HLS_TASK_STREAM<int4_reduction_packet_t> sum23_local;
-    HLS_TASK_STREAM<int4_reduction_packet_t> sum23_to01;
-    HLS_TASK_STREAM<int4_reduction_packet_t> output0_stream;
-    HLS_TASK_STREAM<int4_reduction_packet_t> output1_stream;
-    HLS_TASK_STREAM<int4_reduction_packet_t> output2_stream;
-    HLS_TASK_STREAM<int4_reduction_packet_t> output3_stream;
-    HLS_TASK_STREAM<int4_completion_token_t> completion0;
-    HLS_TASK_STREAM<int4_completion_token_t> completion1;
-    HLS_TASK_STREAM<int4_completion_token_t> completion2;
-    HLS_TASK_STREAM<int4_completion_token_t> completion3;
-    HLS_TASK_STREAM<int4_completion_token_t> completion01;
-    HLS_TASK_STREAM<int4_completion_token_t> completion23;
+    hls::stream<int4_linear_command_t> command_pe0;
+    hls::stream<int4_linear_command_t> command_pe1;
+    hls::stream<int4_linear_command_t> command_pe2;
+    hls::stream<int4_linear_command_t> command_pe3;
+    hls::stream<int4_linear_command_t> command_01;
+    hls::stream<int4_linear_command_t> command_12;
+    hls::stream<int4_linear_command_t> command_23;
+    hls::stream<int4_linear_command_t> command_store0;
+    hls::stream<int4_linear_command_t> command_store1;
+    hls::stream<int4_linear_command_t> command_store2;
+    hls::stream<int4_linear_command_t> command_store3;
+    hls::stream<int4_linear_command_t> command_reduce01;
+    hls::stream<int4_linear_command_t> command_finalize01;
+    hls::stream<int4_linear_command_t> command_reduce23;
+    hls::stream<int4_linear_command_t> command_finalize23;
+    hls::stream<int4_reduction_packet_t> partial0;
+    hls::stream<int4_reduction_packet_t> partial1;
+    hls::stream<int4_reduction_packet_t> partial2;
+    hls::stream<int4_reduction_packet_t> partial3;
+    hls::stream<int4_reduction_packet_t> sum01_local;
+    hls::stream<int4_reduction_packet_t> sum01_to23;
+    hls::stream<int4_reduction_packet_t> sum23_local;
+    hls::stream<int4_reduction_packet_t> sum23_to01;
+    hls::stream<int4_reduction_packet_t> output0_stream;
+    hls::stream<int4_reduction_packet_t> output1_stream;
+    hls::stream<int4_reduction_packet_t> output2_stream;
+    hls::stream<int4_reduction_packet_t> output3_stream;
+    hls::stream<int4_completion_token_t> completion0;
+    hls::stream<int4_completion_token_t> completion1;
+    hls::stream<int4_completion_token_t> completion2;
+    hls::stream<int4_completion_token_t> completion3;
+    hls::stream<int4_completion_token_t> completion01;
+    hls::stream<int4_completion_token_t> completion23;
 
 #pragma HLS STREAM variable=command_pe0 depth=8
 #pragma HLS STREAM variable=command_pe1 depth=8
@@ -1055,63 +1055,63 @@ void int4_sharded_linear_4pe(
     int4_seed_linear_command_chain(
         mode, weight_word_offset, weight_scale_word_offset,
         command_pe0, command_store0, command_01);
-    HLS_TASK relay_command01(int4_relay_pair_linear_command<0>,
+    int4_relay_pair_linear_command<0>(
         command_01, command_pe1,
         command_reduce01, command_finalize01, command_store1,
         command_12);
-    HLS_TASK relay_command23(int4_relay_pair_linear_command<1>,
+    int4_relay_pair_linear_command<1>(
         command_12, command_pe2,
         command_reduce23, command_finalize23, command_store2,
         command_23);
-    HLS_TASK terminate_command(int4_terminate_linear_command,
+    int4_terminate_linear_command(
         command_23, command_pe3, command_store3);
 
-    HLS_TASK local_pe0(int4_run_local_pe<0>,
+    int4_run_local_pe<0>(
         weight_pe0,
         activation_q0, activation_scale0,
         command_pe0, partial0);
-    HLS_TASK local_pe1(int4_run_local_pe<1>,
+    int4_run_local_pe<1>(
         weight_pe1,
         activation_q1, activation_scale1,
         command_pe1, partial1);
-    HLS_TASK local_pe2(int4_run_local_pe<2>,
+    int4_run_local_pe<2>(
         weight_pe2,
         activation_q2, activation_scale2,
         command_pe2, partial2);
-    HLS_TASK local_pe3(int4_run_local_pe<3>,
+    int4_run_local_pe<3>(
         weight_pe3,
         activation_q3, activation_scale3,
         command_pe3, partial3);
 
     // pair01 is physically rooted in SLR1 and pair23 in SLR2. Only the half
     // needed by the opposite pair crosses the central SLR boundary.
-    HLS_TASK reduce_pair01(int4_reduce_pair_and_route<0>,
+    int4_reduce_pair_and_route<0>(
         partial0, partial1, sum01_local, sum01_to23,
         command_reduce01);
-    HLS_TASK reduce_pair23(int4_reduce_pair_and_route<1>,
+    int4_reduce_pair_and_route<1>(
         partial2, partial3, sum23_local, sum23_to01,
         command_reduce23);
-    HLS_TASK finalize_pair01(int4_finalize_pair_outputs<0>,
+    int4_finalize_pair_outputs<0>(
         sum01_local, sum23_to01,
         output0_stream, output1_stream,
         command_finalize01);
-    HLS_TASK finalize_pair23(int4_finalize_pair_outputs<1>,
+    int4_finalize_pair_outputs<1>(
         sum23_local, sum01_to23,
         output2_stream, output3_stream,
         command_finalize23);
 
-    HLS_TASK store0(int4_store_local_output<0>,
+    int4_store_local_output<0>(
         output0_stream, output_pe0, command_store0, completion0);
-    HLS_TASK store1(int4_store_local_output<1>,
+    int4_store_local_output<1>(
         output1_stream, output_pe1, command_store1, completion1);
-    HLS_TASK store2(int4_store_local_output<2>,
+    int4_store_local_output<2>(
         output2_stream, output_pe2, command_store2, completion2);
-    HLS_TASK store3(int4_store_local_output<3>,
+    int4_store_local_output<3>(
         output3_stream, output_pe3, command_store3, completion3);
 
-    HLS_TASK join01(int4_join_task_completion_pair<100>,
+    int4_join_task_completion_pair<100>(
         completion0, completion1, completion01);
-    HLS_TASK join23(int4_join_task_completion_pair<101>,
+    int4_join_task_completion_pair<101>(
         completion2, completion3, completion23);
     int4_wait_task_completion_pairs<100>(completion01, completion23);
 }
@@ -1190,39 +1190,39 @@ extern "C" void int4_linear_kernel_4pe(
 #pragma HLS STABLE variable=output_pe2
 #pragma HLS STABLE variable=output_pe3
 
-    HLS_TASK_STREAM<int4_linear_command_t> command_pe0;
-    HLS_TASK_STREAM<int4_linear_command_t> command_pe1;
-    HLS_TASK_STREAM<int4_linear_command_t> command_pe2;
-    HLS_TASK_STREAM<int4_linear_command_t> command_pe3;
-    HLS_TASK_STREAM<int4_linear_command_t> command_01;
-    HLS_TASK_STREAM<int4_linear_command_t> command_12;
-    HLS_TASK_STREAM<int4_linear_command_t> command_23;
-    HLS_TASK_STREAM<int4_linear_command_t> command_store0;
-    HLS_TASK_STREAM<int4_linear_command_t> command_store1;
-    HLS_TASK_STREAM<int4_linear_command_t> command_store2;
-    HLS_TASK_STREAM<int4_linear_command_t> command_store3;
-    HLS_TASK_STREAM<int4_linear_command_t> command_reduce01;
-    HLS_TASK_STREAM<int4_linear_command_t> command_finalize01;
-    HLS_TASK_STREAM<int4_linear_command_t> command_reduce23;
-    HLS_TASK_STREAM<int4_linear_command_t> command_finalize23;
-    HLS_TASK_STREAM<int4_reduction_packet_t> partial0;
-    HLS_TASK_STREAM<int4_reduction_packet_t> partial1;
-    HLS_TASK_STREAM<int4_reduction_packet_t> partial2;
-    HLS_TASK_STREAM<int4_reduction_packet_t> partial3;
-    HLS_TASK_STREAM<int4_reduction_packet_t> sum01_local;
-    HLS_TASK_STREAM<int4_reduction_packet_t> sum01_to23;
-    HLS_TASK_STREAM<int4_reduction_packet_t> sum23_local;
-    HLS_TASK_STREAM<int4_reduction_packet_t> sum23_to01;
-    HLS_TASK_STREAM<int4_reduction_packet_t> output0_stream;
-    HLS_TASK_STREAM<int4_reduction_packet_t> output1_stream;
-    HLS_TASK_STREAM<int4_reduction_packet_t> output2_stream;
-    HLS_TASK_STREAM<int4_reduction_packet_t> output3_stream;
-    HLS_TASK_STREAM<int4_completion_token_t> completion0;
-    HLS_TASK_STREAM<int4_completion_token_t> completion1;
-    HLS_TASK_STREAM<int4_completion_token_t> completion2;
-    HLS_TASK_STREAM<int4_completion_token_t> completion3;
-    HLS_TASK_STREAM<int4_completion_token_t> completion01;
-    HLS_TASK_STREAM<int4_completion_token_t> completion23;
+    hls::stream<int4_linear_command_t> command_pe0;
+    hls::stream<int4_linear_command_t> command_pe1;
+    hls::stream<int4_linear_command_t> command_pe2;
+    hls::stream<int4_linear_command_t> command_pe3;
+    hls::stream<int4_linear_command_t> command_01;
+    hls::stream<int4_linear_command_t> command_12;
+    hls::stream<int4_linear_command_t> command_23;
+    hls::stream<int4_linear_command_t> command_store0;
+    hls::stream<int4_linear_command_t> command_store1;
+    hls::stream<int4_linear_command_t> command_store2;
+    hls::stream<int4_linear_command_t> command_store3;
+    hls::stream<int4_linear_command_t> command_reduce01;
+    hls::stream<int4_linear_command_t> command_finalize01;
+    hls::stream<int4_linear_command_t> command_reduce23;
+    hls::stream<int4_linear_command_t> command_finalize23;
+    hls::stream<int4_reduction_packet_t> partial0;
+    hls::stream<int4_reduction_packet_t> partial1;
+    hls::stream<int4_reduction_packet_t> partial2;
+    hls::stream<int4_reduction_packet_t> partial3;
+    hls::stream<int4_reduction_packet_t> sum01_local;
+    hls::stream<int4_reduction_packet_t> sum01_to23;
+    hls::stream<int4_reduction_packet_t> sum23_local;
+    hls::stream<int4_reduction_packet_t> sum23_to01;
+    hls::stream<int4_reduction_packet_t> output0_stream;
+    hls::stream<int4_reduction_packet_t> output1_stream;
+    hls::stream<int4_reduction_packet_t> output2_stream;
+    hls::stream<int4_reduction_packet_t> output3_stream;
+    hls::stream<int4_completion_token_t> completion0;
+    hls::stream<int4_completion_token_t> completion1;
+    hls::stream<int4_completion_token_t> completion2;
+    hls::stream<int4_completion_token_t> completion3;
+    hls::stream<int4_completion_token_t> completion01;
+    hls::stream<int4_completion_token_t> completion23;
 
 #pragma HLS STREAM variable=command_pe0 depth=8
 #pragma HLS STREAM variable=command_pe1 depth=8
@@ -1280,53 +1280,53 @@ extern "C" void int4_linear_kernel_4pe(
     int4_seed_linear_command_chain(
         mode, weight_word_offset, weight_scale_word_offset,
         command_pe0, command_store0, command_01);
-    HLS_TASK relay_command01(int4_relay_pair_linear_command<0>,
+    int4_relay_pair_linear_command<0>(
         command_01, command_pe1,
         command_reduce01, command_finalize01, command_store1,
         command_12);
-    HLS_TASK relay_command23(int4_relay_pair_linear_command<1>,
+    int4_relay_pair_linear_command<1>(
         command_12, command_pe2,
         command_reduce23, command_finalize23, command_store2,
         command_23);
-    HLS_TASK terminate_command(int4_terminate_linear_command,
+    int4_terminate_linear_command(
         command_23, command_pe3, command_store3);
 
-    HLS_TASK local_pe0(int4_linear_standalone_compute<0>,
+    int4_linear_standalone_compute<0>(
         weight_pe0, command_pe0, partial0);
-    HLS_TASK local_pe1(int4_linear_standalone_compute<1>,
+    int4_linear_standalone_compute<1>(
         weight_pe1, command_pe1, partial1);
-    HLS_TASK local_pe2(int4_linear_standalone_compute<2>,
+    int4_linear_standalone_compute<2>(
         weight_pe2, command_pe2, partial2);
-    HLS_TASK local_pe3(int4_linear_standalone_compute<3>,
+    int4_linear_standalone_compute<3>(
         weight_pe3, command_pe3, partial3);
 
-    HLS_TASK reduce_pair01(int4_reduce_pair_and_route<0>,
+    int4_reduce_pair_and_route<0>(
         partial0, partial1, sum01_local, sum01_to23,
         command_reduce01);
-    HLS_TASK reduce_pair23(int4_reduce_pair_and_route<1>,
+    int4_reduce_pair_and_route<1>(
         partial2, partial3, sum23_local, sum23_to01,
         command_reduce23);
-    HLS_TASK finalize_pair01(int4_finalize_pair_outputs<0>,
+    int4_finalize_pair_outputs<0>(
         sum01_local, sum23_to01,
         output0_stream, output1_stream,
         command_finalize01);
-    HLS_TASK finalize_pair23(int4_finalize_pair_outputs<1>,
+    int4_finalize_pair_outputs<1>(
         sum23_local, sum01_to23,
         output2_stream, output3_stream,
         command_finalize23);
 
-    HLS_TASK store0(int4_store_local_output<0>,
+    int4_store_local_output<0>(
         output0_stream, output_pe0, command_store0, completion0);
-    HLS_TASK store1(int4_store_local_output<1>,
+    int4_store_local_output<1>(
         output1_stream, output_pe1, command_store1, completion1);
-    HLS_TASK store2(int4_store_local_output<2>,
+    int4_store_local_output<2>(
         output2_stream, output_pe2, command_store2, completion2);
-    HLS_TASK store3(int4_store_local_output<3>,
+    int4_store_local_output<3>(
         output3_stream, output_pe3, command_store3, completion3);
 
-    HLS_TASK join01(int4_join_task_completion_pair<100>,
+    int4_join_task_completion_pair<100>(
         completion0, completion1, completion01);
-    HLS_TASK join23(int4_join_task_completion_pair<101>,
+    int4_join_task_completion_pair<101>(
         completion2, completion3, completion23);
     int4_wait_task_completion_pairs<100>(completion01, completion23);
 }

@@ -330,11 +330,9 @@ void int4_decoder_token_controller(
 
 #pragma HLS DATAFLOW disable_start_propagation
     // AXI base addresses do not change during one kernel invocation. Marking
-    // them stable lets the four ap_ctrl_none local-controller tasks own their
+    // them stable lets the four local-controller DATAFLOW processes own their
     // non-FIFO memory ports while all transaction ordering remains explicit in
-    // the FIFO graph. Vitis HLS 2023.2 emits one 20-input entry gate for these
-    // values; patch_partitioned_entry_proc.tcl replaces only that generated
-    // gate with four atomic five-address PE launchers before RTL use/export.
+    // the FIFO graph.
 #pragma HLS STABLE variable=model_bank0
 #pragma HLS STABLE variable=model_bank1
 #pragma HLS STABLE variable=model_bank2
@@ -356,30 +354,30 @@ void int4_decoder_token_controller(
 #pragma HLS STABLE variable=kv_cache_pe2
 #pragma HLS STABLE variable=kv_cache_pe3
 
-    HLS_TASK_STREAM<int4_position_command_t> position_pe0, position_pe1;
-    HLS_TASK_STREAM<int4_position_command_t> position_pe2, position_pe3;
-    HLS_TASK_STREAM<int4_position_command_t> position_01, position_12;
-    HLS_TASK_STREAM<int4_position_command_t> position_23;
-    HLS_TASK_STREAM<float> rms_partial0, rms_partial1;
-    HLS_TASK_STREAM<float> rms_partial2, rms_partial3;
-    HLS_TASK_STREAM<float> rms_reciprocal0, rms_reciprocal1;
-    HLS_TASK_STREAM<float> rms_reciprocal2, rms_reciprocal3;
-    HLS_TASK_STREAM<float> rms_sum23_to01, rms_reciprocal01_to23;
-    HLS_TASK_STREAM<int4_reduction_packet_t> linear_partial0;
-    HLS_TASK_STREAM<int4_reduction_packet_t> linear_partial1;
-    HLS_TASK_STREAM<int4_reduction_packet_t> linear_partial2;
-    HLS_TASK_STREAM<int4_reduction_packet_t> linear_partial3;
-    HLS_TASK_STREAM<int4_reduction_packet_t> linear_sum01_local;
-    HLS_TASK_STREAM<int4_reduction_packet_t> linear_sum01_to23;
-    HLS_TASK_STREAM<int4_reduction_packet_t> linear_sum23_local;
-    HLS_TASK_STREAM<int4_reduction_packet_t> linear_sum23_to01;
-    HLS_TASK_STREAM<int4_reduction_packet_t> linear_output0;
-    HLS_TASK_STREAM<int4_reduction_packet_t> linear_output1;
-    HLS_TASK_STREAM<int4_reduction_packet_t> linear_output2;
-    HLS_TASK_STREAM<int4_reduction_packet_t> linear_output3;
-    HLS_TASK_STREAM<int4_completion_token_t> completion0, completion1;
-    HLS_TASK_STREAM<int4_completion_token_t> completion2, completion3;
-    HLS_TASK_STREAM<int4_completion_token_t> completion01, completion23;
+    hls::stream<int4_position_command_t> position_pe0, position_pe1;
+    hls::stream<int4_position_command_t> position_pe2, position_pe3;
+    hls::stream<int4_position_command_t> position_01, position_12;
+    hls::stream<int4_position_command_t> position_23;
+    hls::stream<float> rms_partial0, rms_partial1;
+    hls::stream<float> rms_partial2, rms_partial3;
+    hls::stream<float> rms_reciprocal0, rms_reciprocal1;
+    hls::stream<float> rms_reciprocal2, rms_reciprocal3;
+    hls::stream<float> rms_sum23_to01, rms_reciprocal01_to23;
+    hls::stream<int4_reduction_packet_t> linear_partial0;
+    hls::stream<int4_reduction_packet_t> linear_partial1;
+    hls::stream<int4_reduction_packet_t> linear_partial2;
+    hls::stream<int4_reduction_packet_t> linear_partial3;
+    hls::stream<int4_reduction_packet_t> linear_sum01_local;
+    hls::stream<int4_reduction_packet_t> linear_sum01_to23;
+    hls::stream<int4_reduction_packet_t> linear_sum23_local;
+    hls::stream<int4_reduction_packet_t> linear_sum23_to01;
+    hls::stream<int4_reduction_packet_t> linear_output0;
+    hls::stream<int4_reduction_packet_t> linear_output1;
+    hls::stream<int4_reduction_packet_t> linear_output2;
+    hls::stream<int4_reduction_packet_t> linear_output3;
+    hls::stream<int4_completion_token_t> completion0, completion1;
+    hls::stream<int4_completion_token_t> completion2, completion3;
+    hls::stream<int4_completion_token_t> completion01, completion23;
 
 #pragma HLS STREAM variable=position_pe0 depth=2
 #pragma HLS STREAM variable=position_pe1 depth=2
@@ -433,49 +431,44 @@ void int4_decoder_token_controller(
 #pragma HLS STREAM variable=completion23 depth=4
 
     int4_seed_position_chain(position, position_pe0, position_01);
-    HLS_TASK relay_position1(int4_relay_position<1>,
-        position_01, position_pe1, position_12);
-    HLS_TASK relay_position2(int4_relay_position<2>,
-        position_12, position_pe2, position_23);
-    HLS_TASK terminate_position(int4_terminate_position_chain,
-        position_23, position_pe3);
-    HLS_TASK local_pe0(int4_decoder_local_pe_0,
+    int4_relay_position<1>(position_01, position_pe1, position_12);
+    int4_relay_position<2>(position_12, position_pe2, position_23);
+    int4_terminate_position_chain(position_23, position_pe3);
+    int4_decoder_local_pe_0(
         model_bank0, rope_lut_pe0, residual_pe0, logits_pe0, kv_cache_pe0,
         position_pe0, rms_partial0, rms_reciprocal0,
         linear_partial0, linear_output0, completion0);
-    HLS_TASK local_pe1(int4_decoder_local_pe_1,
+    int4_decoder_local_pe_1(
         model_bank1, rope_lut_pe1, residual_pe1, logits_pe1, kv_cache_pe1,
         position_pe1, rms_partial1, rms_reciprocal1,
         linear_partial1, linear_output1, completion1);
-    HLS_TASK local_pe2(int4_decoder_local_pe_2,
+    int4_decoder_local_pe_2(
         model_bank2, rope_lut_pe2, residual_pe2, logits_pe2, kv_cache_pe2,
         position_pe2, rms_partial2, rms_reciprocal2,
         linear_partial2, linear_output2, completion2);
-    HLS_TASK local_pe3(int4_decoder_local_pe_3,
+    int4_decoder_local_pe_3(
         model_bank3, rope_lut_pe3, residual_pe3, logits_pe3, kv_cache_pe3,
         position_pe3, rms_partial3, rms_reciprocal3,
         linear_partial3, linear_output3, completion3);
-    HLS_TASK rms_pair01(int4_rms_pair01_schedule,
+    int4_rms_pair01_schedule(
         rms_partial0, rms_partial1, rms_sum23_to01,
         rms_reciprocal0, rms_reciprocal1, rms_reciprocal01_to23);
-    HLS_TASK rms_pair23(int4_rms_pair23_schedule,
+    int4_rms_pair23_schedule(
         rms_partial2, rms_partial3, rms_sum23_to01,
         rms_reciprocal01_to23, rms_reciprocal2, rms_reciprocal3);
-    HLS_TASK reduce_pair01(int4_linear_reduce_pair01_schedule,
+    int4_linear_reduce_pair01_schedule(
         linear_partial0, linear_partial1,
         linear_sum01_local, linear_sum01_to23);
-    HLS_TASK reduce_pair23(int4_linear_reduce_pair23_schedule,
+    int4_linear_reduce_pair23_schedule(
         linear_partial2, linear_partial3,
         linear_sum23_local, linear_sum23_to01);
-    HLS_TASK finalize_pair01(int4_linear_finalize_pair01_schedule,
+    int4_linear_finalize_pair01_schedule(
         linear_sum01_local, linear_sum23_to01,
         linear_output0, linear_output1);
-    HLS_TASK finalize_pair23(int4_linear_finalize_pair23_schedule,
+    int4_linear_finalize_pair23_schedule(
         linear_sum23_local, linear_sum01_to23,
         linear_output2, linear_output3);
-    HLS_TASK join01(int4_join_task_completion_pair<300>,
-        completion0, completion1, completion01);
-    HLS_TASK join23(int4_join_task_completion_pair<301>,
-        completion2, completion3, completion23);
+    int4_join_task_completion_pair<300>(completion0, completion1, completion01);
+    int4_join_task_completion_pair<301>(completion2, completion3, completion23);
     int4_wait_task_completion_pairs<300>(completion01, completion23);
 }

@@ -286,16 +286,16 @@ void int4_rmsnorm_quantize_shards(
 #pragma HLS STABLE variable=activation_scale1
 #pragma HLS STABLE variable=activation_scale2
 #pragma HLS STABLE variable=activation_scale3
-    HLS_TASK_STREAM<float> partial0, partial1, partial2, partial3;
-    HLS_TASK_STREAM<float> sum01, sum23;
-    HLS_TASK_STREAM<float> reciprocal0, reciprocal1;
-    HLS_TASK_STREAM<float> reciprocal2, reciprocal3;
-    HLS_TASK_STREAM<float> reciprocal12, reciprocal23;
-    HLS_TASK_STREAM<int> offset_pe0, offset_pe1, offset_pe2, offset_pe3;
-    HLS_TASK_STREAM<int> offset_01, offset_12, offset_23;
-    HLS_TASK_STREAM<int4_completion_token_t> completion0, completion1;
-    HLS_TASK_STREAM<int4_completion_token_t> completion2, completion3;
-    HLS_TASK_STREAM<int4_completion_token_t> completion01, completion23;
+    hls::stream<float> partial0, partial1, partial2, partial3;
+    hls::stream<float> sum01, sum23;
+    hls::stream<float> reciprocal0, reciprocal1;
+    hls::stream<float> reciprocal2, reciprocal3;
+    hls::stream<float> reciprocal12, reciprocal23;
+    hls::stream<int> offset_pe0, offset_pe1, offset_pe2, offset_pe3;
+    hls::stream<int> offset_01, offset_12, offset_23;
+    hls::stream<int4_completion_token_t> completion0, completion1;
+    hls::stream<int4_completion_token_t> completion2, completion3;
+    hls::stream<int4_completion_token_t> completion01, completion23;
 #pragma HLS STREAM variable=partial0 depth=4
 #pragma HLS STREAM variable=partial1 depth=4
 #pragma HLS STREAM variable=partial2 depth=4
@@ -323,36 +323,29 @@ void int4_rmsnorm_quantize_shards(
 #pragma HLS STREAM variable=completion23 depth=4
 
     int4_seed_rms_offset_chain(norm_offset, offset_pe0, offset_01);
-    HLS_TASK offset_relay1(int4_relay_rms_offset<1>,
-        offset_01, offset_pe1, offset_12);
-    HLS_TASK offset_relay2(int4_relay_rms_offset<2>,
-        offset_12, offset_pe2, offset_23);
-    HLS_TASK offset_terminate(int4_terminate_rms_offset,
-        offset_23, offset_pe3);
-    HLS_TASK local0(int4_local_rms_task<0>,
+    int4_relay_rms_offset<1>(offset_01, offset_pe1, offset_12);
+    int4_relay_rms_offset<2>(offset_12, offset_pe2, offset_23);
+    int4_terminate_rms_offset(offset_23, offset_pe3);
+    int4_local_rms_task<0>(
         residual0, norm_cache0, offset_pe0, partial0, reciprocal0,
         activation_q0, activation_scale0, completion0);
-    HLS_TASK local1(int4_local_rms_task<1>,
+    int4_local_rms_task<1>(
         residual1, norm_cache1, offset_pe1, partial1, reciprocal1,
         activation_q1, activation_scale1, completion1);
-    HLS_TASK local2(int4_local_rms_task<2>,
+    int4_local_rms_task<2>(
         residual2, norm_cache2, offset_pe2, partial2, reciprocal2,
         activation_q2, activation_scale2, completion2);
-    HLS_TASK local3(int4_local_rms_task<3>,
+    int4_local_rms_task<3>(
         residual3, norm_cache3, offset_pe3, partial3, reciprocal3,
         activation_q3, activation_scale3, completion3);
-    HLS_TASK merge01(int4_merge_rms_pair<0>, partial0, partial1, sum01);
-    HLS_TASK merge23(int4_merge_rms_pair<1>, partial2, partial3, sum23);
-    HLS_TASK finalize(int4_finalize_rms_and_seed_chain,
+    int4_merge_rms_pair<0>(partial0, partial1, sum01);
+    int4_merge_rms_pair<1>(partial2, partial3, sum23);
+    int4_finalize_rms_and_seed_chain(
         sum01, sum23, reciprocal0, reciprocal1, reciprocal12);
-    HLS_TASK relay2(int4_relay_rms_reciprocal<2>,
-        reciprocal12, reciprocal2, reciprocal23);
-    HLS_TASK terminate(int4_terminate_rms_reciprocal,
-        reciprocal23, reciprocal3);
-    HLS_TASK join01(int4_join_task_completion_pair<200>,
-        completion0, completion1, completion01);
-    HLS_TASK join23(int4_join_task_completion_pair<201>,
-        completion2, completion3, completion23);
+    int4_relay_rms_reciprocal<2>(reciprocal12, reciprocal2, reciprocal23);
+    int4_terminate_rms_reciprocal(reciprocal23, reciprocal3);
+    int4_join_task_completion_pair<200>(completion0, completion1, completion01);
+    int4_join_task_completion_pair<201>(completion2, completion3, completion23);
     int4_wait_task_completion_pairs<200>(completion01, completion23);
 }
 #endif
@@ -448,12 +441,12 @@ void int4_residual_add_shards(
 #pragma HLS STABLE variable=branch1
 #pragma HLS STABLE variable=branch2
 #pragma HLS STABLE variable=branch3
-    HLS_TASK_STREAM<int4_block_token_t> token_pe0, token_pe1;
-    HLS_TASK_STREAM<int4_block_token_t> token_pe2, token_pe3;
-    HLS_TASK_STREAM<int4_block_token_t> token_01, token_12, token_23;
-    HLS_TASK_STREAM<int4_completion_token_t> completion0, completion1;
-    HLS_TASK_STREAM<int4_completion_token_t> completion2, completion3;
-    HLS_TASK_STREAM<int4_completion_token_t> completion01, completion23;
+    hls::stream<int4_block_token_t> token_pe0, token_pe1;
+    hls::stream<int4_block_token_t> token_pe2, token_pe3;
+    hls::stream<int4_block_token_t> token_01, token_12, token_23;
+    hls::stream<int4_completion_token_t> completion0, completion1;
+    hls::stream<int4_completion_token_t> completion2, completion3;
+    hls::stream<int4_completion_token_t> completion01, completion23;
 #pragma HLS STREAM variable=token_pe0 depth=2
 #pragma HLS STREAM variable=token_pe1 depth=2
 #pragma HLS STREAM variable=token_pe2 depth=2
@@ -475,24 +468,19 @@ void int4_residual_add_shards(
 #pragma HLS BIND_STORAGE variable=token_12 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=token_23 type=fifo impl=srl
     int4_seed_block_token_chain(token_pe0, token_01);
-    HLS_TASK relay1(int4_relay_block_token<1>,
-        token_01, token_pe1, token_12);
-    HLS_TASK relay2(int4_relay_block_token<2>,
-        token_12, token_pe2, token_23);
-    HLS_TASK terminate(int4_terminate_block_token,
-        token_23, token_pe3);
-    HLS_TASK add0(int4_local_residual_add_commanded<0>,
+    int4_relay_block_token<1>(token_01, token_pe1, token_12);
+    int4_relay_block_token<2>(token_12, token_pe2, token_23);
+    int4_terminate_block_token(token_23, token_pe3);
+    int4_local_residual_add_commanded<0>(
         residual0, branch0, token_pe0, completion0);
-    HLS_TASK add1(int4_local_residual_add_commanded<1>,
+    int4_local_residual_add_commanded<1>(
         residual1, branch1, token_pe1, completion1);
-    HLS_TASK add2(int4_local_residual_add_commanded<2>,
+    int4_local_residual_add_commanded<2>(
         residual2, branch2, token_pe2, completion2);
-    HLS_TASK add3(int4_local_residual_add_commanded<3>,
+    int4_local_residual_add_commanded<3>(
         residual3, branch3, token_pe3, completion3);
-    HLS_TASK join01(int4_join_task_completion_pair<210>,
-        completion0, completion1, completion01);
-    HLS_TASK join23(int4_join_task_completion_pair<211>,
-        completion2, completion3, completion23);
+    int4_join_task_completion_pair<210>(completion0, completion1, completion01);
+    int4_join_task_completion_pair<211>(completion2, completion3, completion23);
     int4_wait_task_completion_pairs<210>(completion01, completion23);
 }
 #endif
@@ -584,12 +572,12 @@ void int4_swiglu_quantize_shards(
 #pragma HLS STABLE variable=activation_scale1
 #pragma HLS STABLE variable=activation_scale2
 #pragma HLS STABLE variable=activation_scale3
-    HLS_TASK_STREAM<int4_block_token_t> token_pe0, token_pe1;
-    HLS_TASK_STREAM<int4_block_token_t> token_pe2, token_pe3;
-    HLS_TASK_STREAM<int4_block_token_t> token_01, token_12, token_23;
-    HLS_TASK_STREAM<int4_completion_token_t> completion0, completion1;
-    HLS_TASK_STREAM<int4_completion_token_t> completion2, completion3;
-    HLS_TASK_STREAM<int4_completion_token_t> completion01, completion23;
+    hls::stream<int4_block_token_t> token_pe0, token_pe1;
+    hls::stream<int4_block_token_t> token_pe2, token_pe3;
+    hls::stream<int4_block_token_t> token_01, token_12, token_23;
+    hls::stream<int4_completion_token_t> completion0, completion1;
+    hls::stream<int4_completion_token_t> completion2, completion3;
+    hls::stream<int4_completion_token_t> completion01, completion23;
 #pragma HLS STREAM variable=token_pe0 depth=2
 #pragma HLS STREAM variable=token_pe1 depth=2
 #pragma HLS STREAM variable=token_pe2 depth=2
@@ -611,28 +599,23 @@ void int4_swiglu_quantize_shards(
 #pragma HLS BIND_STORAGE variable=token_12 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=token_23 type=fifo impl=srl
     int4_seed_block_token_chain(token_pe0, token_01);
-    HLS_TASK relay1(int4_relay_block_token<1>,
-        token_01, token_pe1, token_12);
-    HLS_TASK relay2(int4_relay_block_token<2>,
-        token_12, token_pe2, token_23);
-    HLS_TASK terminate(int4_terminate_block_token,
-        token_23, token_pe3);
-    HLS_TASK swiglu0(int4_local_swiglu_quantize_commanded<0>,
+    int4_relay_block_token<1>(token_01, token_pe1, token_12);
+    int4_relay_block_token<2>(token_12, token_pe2, token_23);
+    int4_terminate_block_token(token_23, token_pe3);
+    int4_local_swiglu_quantize_commanded<0>(
         gate0, up0, activation_q0, activation_scale0,
         token_pe0, completion0);
-    HLS_TASK swiglu1(int4_local_swiglu_quantize_commanded<1>,
+    int4_local_swiglu_quantize_commanded<1>(
         gate1, up1, activation_q1, activation_scale1,
         token_pe1, completion1);
-    HLS_TASK swiglu2(int4_local_swiglu_quantize_commanded<2>,
+    int4_local_swiglu_quantize_commanded<2>(
         gate2, up2, activation_q2, activation_scale2,
         token_pe2, completion2);
-    HLS_TASK swiglu3(int4_local_swiglu_quantize_commanded<3>,
+    int4_local_swiglu_quantize_commanded<3>(
         gate3, up3, activation_q3, activation_scale3,
         token_pe3, completion3);
-    HLS_TASK join01(int4_join_task_completion_pair<220>,
-        completion0, completion1, completion01);
-    HLS_TASK join23(int4_join_task_completion_pair<221>,
-        completion2, completion3, completion23);
+    int4_join_task_completion_pair<220>(completion0, completion1, completion01);
+    int4_join_task_completion_pair<221>(completion2, completion3, completion23);
     int4_wait_task_completion_pairs<220>(completion01, completion23);
 }
 #endif
