@@ -46,7 +46,11 @@ vitis_settings=${VITIS_SETTINGS:-$default_vitis_settings}
 reuse_xo=${REUSE_XO:-0}
 rebuild_xo=${REBUILD_XO:-0}
 enable_stall_profile=${ENABLE_STALL_PROFILE:-0}
-jobs=${JOBS:-$(nproc 2>/dev/null || echo 8)}
+detected_jobs=$(nproc 2>/dev/null || echo 32)
+if (( detected_jobs < 8 )); then
+    detected_jobs=32
+fi
+jobs=${JOBS:-$detected_jobs}
 
 if [[ "$enable_stall_profile" != "0" && "$enable_stall_profile" != "1" ]]; then
     echo "ERROR: ENABLE_STALL_PROFILE must be 0 or 1." >&2
@@ -370,16 +374,16 @@ echo "  Patched config: $config_patched"
 echo "    pre_place.tcl   -> $pre_place_tcl"
 echo "    pre_physopt.tcl -> $pre_physopt_tcl"
 
-vpp_debug_args=()
+vpp_debug_flag=""
 if (( enable_stall_profile == 1 )); then
-    vpp_debug_args+=("-g")
+    vpp_debug_flag="-g"
 fi
 
 v++ --link \
     --target hw \
     --platform "$platform" \
     --config "$config_patched" \
-    "${vpp_debug_args[@]}" \
+    $vpp_debug_flag \
     --save-temps \
     --temp_dir "$temp_dir" \
     --log_dir "$log_dir" \
