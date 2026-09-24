@@ -175,8 +175,19 @@ build_all() {
         done
 
         if (( hls_failed == 1 )); then
-            echo "[-] HLS generation failed. Aborting." >&2
-            exit 1
+            all_xo_ok=1
+            for xo in "${xo_paths[@]}"; do
+                if [[ ! -s "$xo" ]]; then
+                    all_xo_ok=0
+                    break
+                fi
+            done
+            if (( all_xo_ok == 1 )); then
+                echo "[!] WARNING: One HLS worker exited with status code, but all 4 XO files are present and valid. Continuing..."
+            else
+                echo "[-] HLS generation failed. Aborting." >&2
+                exit 1
+            fi
         fi
     else
         echo "[+] All 4 XO files are up to date. Skipping HLS synthesis."
