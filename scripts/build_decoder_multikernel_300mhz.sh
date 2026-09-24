@@ -31,6 +31,10 @@ Environment overrides:
   ENABLE_STALL_PROFILE=1
                     Add HLS stall ports and XRT AXI/stall monitors. This mode
                     rebuilds XOs unless REUSE_XO=1, then links debug metadata.
+  ENABLE_FULL_STREAM_DEBUG=1
+                    One-shot deadlock build: add full trace/counters, AXI
+                    protocol checkers, and System ILA to all 12 AXI streams.
+                    Implies ENABLE_STALL_PROFILE=1.
   DEBUG_CLOCK_HZ=N  Link clock for profile builds (default: 150000000). The
                     production build remains fixed at 300000000 Hz.
   JOBS=<N>          Parallel synthesis/linking jobs (default: nproc)
@@ -48,6 +52,7 @@ vitis_settings=${VITIS_SETTINGS:-$default_vitis_settings}
 reuse_xo=${REUSE_XO:-0}
 rebuild_xo=${REBUILD_XO:-0}
 enable_stall_profile=${ENABLE_STALL_PROFILE:-0}
+enable_full_stream_debug=${ENABLE_FULL_STREAM_DEBUG:-0}
 debug_clock_hz=${DEBUG_CLOCK_HZ:-150000000}
 detected_jobs=$(nproc 2>/dev/null || echo 32)
 if (( detected_jobs < 8 )); then
@@ -59,6 +64,31 @@ if [[ "$enable_stall_profile" != "0" && "$enable_stall_profile" != "1" ]]; then
     echo "ERROR: ENABLE_STALL_PROFILE must be 0 or 1." >&2
     exit 2
 fi
+if [[ "$enable_full_stream_debug" != "0" && "$enable_full_stream_debug" != "1" ]]; then
+    echo "ERROR: ENABLE_FULL_STREAM_DEBUG must be 0 or 1." >&2
+    exit 2
+fi
+if (( enable_full_stream_debug == 1 )); then
+    enable_stall_profile=1
+fi
+
+# One monitor is sufficient per physical AXI-Stream connection: at the
+# producer port it observes both TVALID and the consumer-driven TREADY.
+# Format: kernel-name:CU-name:producer-interface
+stream_debug_specs=(
+    "int4_decoder_pe0_kernel:pe0:rms_partial_to_pe1"
+    "int4_decoder_pe1_kernel:pe1:rms_reciprocal_to_pe0"
+    "int4_decoder_pe2_kernel:pe2:rms_sum_to_pe1"
+    "int4_decoder_pe1_kernel:pe1:rms_reciprocal_to_pe2"
+    "int4_decoder_pe3_kernel:pe3:rms_partial_to_pe2"
+    "int4_decoder_pe2_kernel:pe2:rms_reciprocal_to_pe3"
+    "int4_decoder_pe0_kernel:pe0:linear_partial_to_pe1"
+    "int4_decoder_pe1_kernel:pe1:linear_output_to_pe0"
+    "int4_decoder_pe1_kernel:pe1:linear_sum_to_pe2"
+    "int4_decoder_pe2_kernel:pe2:linear_sum_to_pe1"
+    "int4_decoder_pe3_kernel:pe3:linear_partial_to_pe2"
+    "int4_decoder_pe2_kernel:pe2:linear_output_to_pe3"
+)
 
 link_clock_hz=300000000
 if (( enable_stall_profile == 1 )); then
@@ -376,13 +406,25 @@ sed \
     "$config_path" > "$config_patched"
 
 if (( enable_stall_profile == 1 )); then
-    cat >> "$config_patched" <<'EOF'
-
-[profile]
-# Only insert CU stall monitors. Profiling every AXI/AXIS interface with
-# data=all is too large for this four-SLR design and can fail in vpl.update_bd.
-stall=all:all:all
-EOF
+    {
+        printf '\n[profile]\n'
+        printf '# CU stall monitors for all four kernels.\n'
+        printf 'stall=all:all:all\n'
+        if (( enable_full_stream_debug == 1 )); then
+            printf '# Full counters and trace for every inter-PE AXI stream.\n'
+            for spec in "${stream_debug_specs[@]}"; do
+                IFS=: read -r kernel cu port <<< "$spec"
+                printf 'data=%s:%s:%s:all\n' "$kernel" "$cu" "$port"
+            done
+            printf '\n[debug]\n'
+            printf '# Protocol checker and waveform capture on every stream.\n'
+            for spec in "${stream_debug_specs[@]}"; do
+                IFS=: read -r kernel cu port <<< "$spec"
+                printf 'protocol=%s:%s\n' "$cu" "$port"
+                printf 'chipscope=%s:%s\n' "$cu" "$port"
+            done
+        fi
+    } >> "$config_patched"
 fi
 echo "  Patched config: $config_patched"
 echo "    pre_place.tcl   -> $pre_place_tcl"
@@ -432,10 +474,39 @@ if (( enable_stall_profile == 1 )); then
         echo "       See: $log_dir/xclbinutil_debug_layout.log" >&2
         exit 1
     fi
+
+    if (( enable_full_stream_debug == 1 )); then
+        missing_streams=0
+        for spec in "${stream_debug_specs[@]}"; do
+            port=${spec##*:}
+            if ! grep -Fqi "$port" "$debug_layout"; then
+                echo "ERROR: no debug-IP entry found for stream '$port'." >&2
+                missing_streams=$(( missing_streams + 1 ))
+            fi
+        done
+        if (( missing_streams != 0 )); then
+            echo "ERROR: full-stream debug verification failed for $missing_streams/12 streams." >&2
+            echo "       Refusing to publish an incompletely instrumented xclbin." >&2
+            exit 1
+        fi
+
+        ltx_source=$(find "$run_dir" -type f -name '*.ltx' -size +0c -print -quit 2>/dev/null || true)
+        if [[ -z "$ltx_source" ]]; then
+            echo "ERROR: System ILA was requested but v++ produced no non-empty .ltx probes file." >&2
+            echo "       Refusing to publish an xclbin without the waveform-debug fallback." >&2
+            exit 1
+        fi
+        cp -f "$ltx_source" "${candidate_output}.ltx"
+        echo "[OK] All 12 stream names are present in DEBUG_IP_LAYOUT."
+        echo "[OK] System ILA probes: $ltx_source"
+    fi
 fi
 
 # Publish final output
 mv -f "$candidate_output" "$resolved_output"
+if [[ -s "${candidate_output}.ltx" ]]; then
+    mv -f "${candidate_output}.ltx" "${resolved_output}.ltx"
+fi
 echo ""
 echo "========================================================================"
 echo " BUILD SUCCESSFUL!"
@@ -460,11 +531,15 @@ native_xrt_trace = true
 device_trace = fine
 stall_trace = all
 continuous_trace = true
-trace_buffer_size = 64M
+trace_buffer_size = 256M
 EOF
     echo "XRT profile config:   $profile_ini"
     echo "NOTE: Run the host through scripts/debug_u250_deadlock.sh so the trace"
     echo "      is written into an isolated evidence directory."
+    if (( enable_full_stream_debug == 1 )); then
+        echo "Full-stream debug:    VERIFIED (12/12 AXIS links)"
+        echo "System ILA probes:    ${resolved_output}.ltx"
+    fi
 fi
 
 echo "All logs saved to:    $log_dir"

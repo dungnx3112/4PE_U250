@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # One supported deadlock-observation flow for this project:
-#   1) rebuild four profile-enabled XOs and one instrumented xclbin;
+#   1) build one fully instrumented xclbin for all 12 AXI streams;
 #   2) build the native-XRT host;
 #   3) run once on U250 and keep every XRT trace/log in one evidence directory.
 
@@ -24,7 +24,7 @@ Environment:
   EMBEDDINGS=...          optional; defaults to BANKS_DIR/embeddings.bin
   PROMPT=Hello
   MAX_TOKENS=4            keep the first debug capture short
-  XCLBIN=...              profile xclbin path override
+  XCLBIN=...              full-debug xclbin path override
   HOST=...                profile host path override
   REUSE_PROFILE_XO=1      reuse the four existing profile XOs; relink only
   DEBUG_CLOCK_HZ=150000000
@@ -59,7 +59,7 @@ if [[ ! "$debug_clock_hz" =~ ^[0-9]+$ ]] ||
     exit 2
 fi
 debug_clock_mhz=$(( debug_clock_hz / 1000000 ))
-xclbin=${XCLBIN:-$repo_root/int4_decoder_multikernel_${debug_clock_mhz}mhz_profile.xclbin}
+xclbin=${XCLBIN:-$repo_root/int4_decoder_multikernel_${debug_clock_mhz}mhz_full_debug.xclbin}
 host=${HOST:-$repo_root/decode_host_profile}
 
 build_artifacts() {
@@ -70,9 +70,10 @@ build_artifacts() {
         echo "[+] Reusing existing profile XOs; HLS rebuild is skipped."
     fi
     echo "========================================================================"
-    echo " PROFILE BUILD: 4 XOs + XCLBIN + HOST"
+    echo " FULL-STREAM DEBUG BUILD: 12 AXIS LINKS + XCLBIN + HOST"
     echo "========================================================================"
     ENABLE_STALL_PROFILE=1 \
+    ENABLE_FULL_STREAM_DEBUG=1 \
     REUSE_XO="$reuse_xo" \
     REBUILD_XO="$rebuild_xo" \
     DEBUG_CLOCK_HZ="$debug_clock_hz" \
@@ -91,10 +92,15 @@ build_artifacts() {
         echo "ERROR: missing generated XRT profile config: ${xclbin}.xrt.ini" >&2
         exit 1
     }
-    echo "[OK] Profile artifacts are ready:"
+    [[ -s "${xclbin}.ltx" ]] || {
+        echo "ERROR: missing System ILA probes file: ${xclbin}.ltx" >&2
+        exit 1
+    }
+    echo "[OK] Full-debug artifacts are ready:"
     echo "     $xclbin"
     echo "     $host"
     echo "     ${xclbin}.xrt.ini"
+    echo "     ${xclbin}.ltx"
 }
 
 absolute_existing_path() {
@@ -131,7 +137,7 @@ native_xrt_trace = true
 $trace_key = fine
 stall_trace = all
 continuous_trace = true
-trace_buffer_size = 64M
+trace_buffer_size = 256M
 EOF
     echo "XRT version: ${xrt_version:-unknown}; using '$trace_key'" \
         | tee "$output.detected-version.txt"
@@ -218,6 +224,8 @@ run_capture() {
     set -e
 
     if command -v xbutil >/dev/null 2>&1; then
+        xbutil examine -d "$device" -r debug-ip-status \
+            > "$evidence_dir/debug_ip_status_after.txt" 2>&1 || true
         xbutil examine > "$evidence_dir/xbutil_after.txt" 2>&1 || \
             xbutil scan > "$evidence_dir/xbutil_after.txt" 2>&1 || true
     fi
@@ -234,6 +242,7 @@ run_capture() {
     if [[ -n "$run_summary" ]]; then
         echo "Trace:              $run_summary"
         echo "Open with:          vitis_analyzer $run_summary"
+        echo "Debug-IP counters:  $evidence_dir/debug_ip_status_after.txt"
     else
         echo "ERROR: XRT did not create xrt.run_summary." >&2
         echo "Inspect: $evidence_dir/host.log" >&2
