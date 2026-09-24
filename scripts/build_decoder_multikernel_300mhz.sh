@@ -264,8 +264,11 @@ if (( need_hls == 1 )); then
         pid=${hls_pids[$pe]}
         if ! wait "$pid"; then
             echo "ERROR: HLS synthesis for PE$pe (PID $pid) failed!" >&2
-            echo "=== Last 25 lines of $log_dir/vitis_hls_pe${pe}.log ===" >&2
-            tail -n 25 "$log_dir/vitis_hls_pe${pe}.log" >&2
+            echo "=== HLS errors for PE$pe ===" >&2
+            grep -nE 'ERROR:|CRITICAL WARNING:|FATAL:|Synthesis failed' \
+                "$log_dir/vitis_hls_pe${pe}.log" | tail -n 80 >&2 || true
+            echo "=== Last 80 lines of $log_dir/vitis_hls_pe${pe}.log ===" >&2
+            tail -n 80 "$log_dir/vitis_hls_pe${pe}.log" >&2
             hls_failed=1
         else
             echo "  [PE$pe] HLS synthesis completed successfully."
@@ -430,7 +433,6 @@ device_trace = fine
 stall_trace = all
 continuous_trace = true
 trace_buffer_size = 64M
-pl_deadlock_detection = true
 EOF
     echo "XRT profile config:   $profile_ini"
     echo "NOTE: Run the host through scripts/debug_u250_deadlock.sh so the trace"

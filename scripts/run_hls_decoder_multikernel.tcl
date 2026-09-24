@@ -79,7 +79,6 @@ foreach pe $requested_pes {
     if {[info exists ::env(ENABLE_STALL_PROFILE)] &&
         $::env(ENABLE_STALL_PROFILE) eq "1"} {
         config_rtl -kernel_profile
-        config_rtl -deadlock_detection hw_diagnosis
     }
     config_dataflow -start_fifo_depth 8
 

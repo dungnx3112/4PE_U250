@@ -114,7 +114,6 @@ $trace_key = fine
 stall_trace = all
 continuous_trace = true
 trace_buffer_size = 64M
-pl_deadlock_detection = true
 EOF
     echo "XRT version: ${xrt_version:-unknown}; using '$trace_key'" \
         | tee "$output.detected-version.txt"
