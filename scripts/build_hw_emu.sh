@@ -290,7 +290,7 @@ run_emu() {
         emconfigutil --platform "$platform" --nd 1
     fi
 
-    if [[ ! -x "$repo_root/decode_host" ]]; then
+    if [[ ! -x "$repo_root/decode_host" || "$repo_root/host/decode_host.cpp" -nt "$repo_root/decode_host" ]]; then
         echo "[+] Building decode_host..."
         bash "$script_dir/build_decode_host.sh"
     fi
@@ -301,9 +301,10 @@ run_emu() {
     echo "[*] Setting XCL_EMULATION_MODE=hw_emu"
     export XCL_EMULATION_MODE=hw_emu
 
-    echo "[*] Launching decode_host in emulation mode (prompt: \"$prompt\", max_tokens: $max_tokens)..."
+    echo "[*] Launching decode_host in emulation mode (device: 0, prompt: \"$prompt\", max_tokens: $max_tokens)..."
     ./decode_host \
         --xclbin "$default_output" \
+        --device 0 \
         --banks . \
         --rope rope_lut.bin \
         --tokenizer tokenizer.bin \

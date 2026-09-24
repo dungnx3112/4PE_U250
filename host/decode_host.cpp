@@ -620,12 +620,22 @@ int main(int argc, char** argv) {
             return 0;
         }
 
-        std::cout << "[Init] Opening device " << config.device_id << " ..."
+        std::string effective_device_id = config.device_id;
+        const char* emu_env = std::getenv("XCL_EMULATION_MODE");
+        if (emu_env && (std::strcmp(emu_env, "hw_emu") == 0 || std::strcmp(emu_env, "sw_emu") == 0)) {
+            if (effective_device_id.find(':') != std::string::npos) {
+                std::cout << "[Init] Emulation mode (" << emu_env << ") detected: overriding physical BDF "
+                          << effective_device_id << " with device index 0" << std::endl;
+                effective_device_id = "0";
+            }
+        }
+
+        std::cout << "[Init] Opening device " << effective_device_id << " ..."
                   << std::endl;
         xrt::device device =
-            config.device_id.find(':') != std::string::npos
-                ? xrt::device(config.device_id)
-                : xrt::device(parse_device_index(config.device_id));
+            effective_device_id.find(':') != std::string::npos
+                ? xrt::device(effective_device_id)
+                : xrt::device(parse_device_index(effective_device_id));
 
         std::cout << "[Init] Loading " << config.xclbin << " ..."
                   << std::endl;
