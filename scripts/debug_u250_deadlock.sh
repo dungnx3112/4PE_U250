@@ -105,9 +105,9 @@ write_runtime_profile_ini() {
             xrt_minor=$(printf '%s\n' "$xrt_version" | cut -d. -f2)
         fi
     fi
-    # XRT 2021.2 (2.11) used data_transfer_trace. XRT 2022.1 (2.12)
-    # renamed it to device_trace. The U250 server has been seen with both.
-    if [[ "$xrt_minor" =~ ^[0-9]+$ ]] && (( xrt_minor < 12 )); then
+    # XRT 2021.2 (2.12.x) used data_transfer_trace. XRT 2022.1
+    # (2.13.x) renamed it to device_trace. The U250 server runs 2.12.427.
+    if [[ "$xrt_minor" =~ ^[0-9]+$ ]] && (( xrt_minor < 13 )); then
         trace_key=data_transfer_trace
     fi
 
