@@ -204,7 +204,7 @@ echo " [Step 1] Checking / Generating 4 XO Kernels (PE0 .. PE3) @ 300 MHz"
 echo "========================================================================"
 
 need_hls=0
-if (( enable_stall_profile == 1 )); then
+if (( enable_stall_profile == 1 && reuse_xo != 1 )); then
     echo "ENABLE_STALL_PROFILE=1: rebuilding all XOs with HLS kernel-profile ports."
     need_hls=1
 elif (( rebuild_xo == 1 )); then
@@ -361,10 +361,9 @@ if (( enable_stall_profile == 1 )); then
     cat >> "$config_patched" <<'EOF'
 
 [profile]
-# Link-side debug IP for all four CUs.  "all" records trace, not counters only.
-data=all:all:all:all
+# Only insert CU stall monitors. Profiling every AXI/AXIS interface with
+# data=all is too large for this four-SLR design and can fail in vpl.update_bd.
 stall=all:all:all
-exec=all:all:all
 EOF
 fi
 echo "  Patched config: $config_patched"

@@ -26,6 +26,7 @@ Environment:
   MAX_TOKENS=4            keep the first debug capture short
   XCLBIN=...              profile xclbin path override
   HOST=...                profile host path override
+  REUSE_PROFILE_XO=1      reuse the four existing profile XOs; relink only
 
 Examples:
   scripts/debug_u250_deadlock.sh all
@@ -53,11 +54,18 @@ xclbin=${XCLBIN:-$repo_root/int4_decoder_multikernel_300mhz_profile.xclbin}
 host=${HOST:-$repo_root/decode_host_profile}
 
 build_artifacts() {
+    local reuse_xo=0 rebuild_xo=1
+    if [[ "${REUSE_PROFILE_XO:-0}" == "1" ]]; then
+        reuse_xo=1
+        rebuild_xo=0
+        echo "[+] Reusing existing profile XOs; HLS rebuild is skipped."
+    fi
     echo "========================================================================"
     echo " PROFILE BUILD: 4 XOs + XCLBIN + HOST"
     echo "========================================================================"
     ENABLE_STALL_PROFILE=1 \
-    REBUILD_XO=1 \
+    REUSE_XO="$reuse_xo" \
+    REBUILD_XO="$rebuild_xo" \
     XCLBIN_OUTPUT="$xclbin" \
         bash "$script_dir/build_decoder_multikernel_300mhz.sh"
 
