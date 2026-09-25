@@ -1,6 +1,5 @@
 #pragma once
 
-#include "int4_task_control.hpp"
 #include "int4_types.hpp"
 
 #include <hls_stream.h>
@@ -21,8 +20,7 @@ void int4_decoder_local_pe_##PE(                                      \
     hls::stream<float>& rms_partial,                                  \
     hls::stream<float>& rms_reciprocal,                               \
     hls::stream<int4_reduction_packet_t>& linear_partial,             \
-    hls::stream<int4_reduction_packet_t>& linear_completed,           \
-    hls::stream<int4_completion_token_t>& completion_stream)
+    hls::stream<int4_reduction_packet_t>& linear_completed)
 
 INT4_DECLARE_LOCAL_DECODER_PE(0);
 INT4_DECLARE_LOCAL_DECODER_PE(1);

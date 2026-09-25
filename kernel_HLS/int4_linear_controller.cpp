@@ -198,14 +198,12 @@ static void int4_seed_local_linear_command(
     ap_uint<3> mode,
     ap_uint<24> weight_offset,
     ap_uint<16> scale_offset,
-    hls::stream<int4_linear_command_t>& command_compute,
-    hls::stream<int4_linear_command_t>& command_store) {
+    hls::stream<int4_linear_command_t>& command_compute) {
 #pragma HLS INLINE off
 #pragma HLS PIPELINE II=1
     const int4_linear_command_t command = int4_pack_linear_command(
         mode, weight_offset, scale_offset);
     command_compute.write(command);
-    command_store.write(command);
 }
 
 template <int PE_ID>
@@ -698,6 +696,96 @@ store_local_output_word_loop:
     completion_stream.write(1);
 }
 
+// Standard DATAFLOW already waits for every process in the region before the
+// region returns. The completion-token variant above is still used by the
+// legacy multi-PE wrappers, but the per-stage decoder wrapper must not add a
+// second control graph on top of DATAFLOW's own ap_done synchronization.
+//
+// Do not write the caller-owned projection RAM from inside this DATAFLOW sink.
+// Vitis HLS 2023.2 turns that array boundary into a streamed PIPO and emits
+// HLS 200-1614: a predecessor-fed process with a streamed top-level array can
+// deadlock. Terminate DATAFLOW at an explicit, fully-sized FIFO instead. The
+// non-DATAFLOW caller commits the FIFO to projection RAM after the producer
+// and network consumer have both completed.
+template <int PE_ID>
+static void int4_pack_local_output_terminal(
+    hls::stream<int4_reduction_packet_t>& input_stream,
+    hls::stream<int4_output_word_t>& staged_output,
+    ap_uint<3> mode) {
+#pragma HLS INLINE off
+    const int local_output_tiles = int4_mode_local_output_tiles((int)mode);
+    const int output_words =
+        local_output_tiles * INT4_OUTPUT_WORDS_PER_TILE;
+pack_local_output_terminal_word_loop:
+    for (int word = 0; word < output_words; ++word) {
+#pragma HLS LOOP_TRIPCOUNT min=64 max=504
+#pragma HLS PIPELINE II=4
+        int4_output_word_t packed = 0;
+        packed.range(
+            INT4_REDUCTION_PACKET_BITS * 1 - 1,
+            INT4_REDUCTION_PACKET_BITS * 0) = input_stream.read();
+        packed.range(
+            INT4_REDUCTION_PACKET_BITS * 2 - 1,
+            INT4_REDUCTION_PACKET_BITS * 1) = input_stream.read();
+        packed.range(
+            INT4_REDUCTION_PACKET_BITS * 3 - 1,
+            INT4_REDUCTION_PACKET_BITS * 2) = input_stream.read();
+        packed.range(
+            INT4_REDUCTION_PACKET_BITS * 4 - 1,
+            INT4_REDUCTION_PACKET_BITS * 3) = input_stream.read();
+        staged_output.write(packed);
+    }
+}
+
+template <int PE_ID>
+static void int4_run_local_linear_stage_dataflow(
+    const int4_weight_word_t* weight_mem,
+    const int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
+    const int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],
+    ap_uint<3> mode,
+    ap_uint<24> weight_word_offset,
+    hls::stream<int4_reduction_packet_t>& partial_stream,
+    hls::stream<int4_reduction_packet_t>& completed_stream,
+    hls::stream<int4_output_word_t>& staged_output) {
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW disable_start_propagation
+#pragma HLS STABLE variable=weight_mem
+#pragma HLS STABLE variable=activation_q
+#pragma HLS STABLE variable=activation_scale
+#pragma HLS STABLE variable=mode
+    // This helper represents exactly one concurrent linear-stage transaction.
+    // DATAFLOW supplies its only control barrier; the terminal process writes
+    // a bounded FIFO rather than a caller-owned array/PIPO.
+    hls::stream<int4_linear_command_t> command_compute;
+#pragma HLS STREAM variable=command_compute depth=3
+#pragma HLS BIND_STORAGE variable=command_compute type=fifo impl=srl
+
+    int4_seed_local_linear_command(
+        mode, weight_word_offset, 0, command_compute);
+    int4_run_local_pe<PE_ID>(
+        weight_mem, activation_q, activation_scale,
+        command_compute, partial_stream);
+    int4_pack_local_output_terminal<PE_ID>(
+        completed_stream, staged_output, mode);
+}
+
+template <int PE_ID>
+static void int4_commit_local_output(
+    hls::stream<int4_output_word_t>& staged_output,
+    int4_output_word_t output_mem[INT4_MAX_LOCAL_OUTPUT_WORDS],
+    ap_uint<3> mode) {
+#pragma HLS INLINE off
+    const int output_words =
+        int4_mode_local_output_tiles((int)mode) *
+        INT4_OUTPUT_WORDS_PER_TILE;
+commit_local_output_word_loop:
+    for (int word = 0; word < output_words; ++word) {
+#pragma HLS LOOP_TRIPCOUNT min=64 max=504
+#pragma HLS PIPELINE II=1
+        output_mem[word] = staged_output.read();
+    }
+}
+
 template <int PE_ID>
 static void int4_run_local_linear_stage(
     const int4_weight_word_t* weight_mem,
@@ -709,39 +797,15 @@ static void int4_run_local_linear_stage(
     hls::stream<int4_reduction_packet_t>& partial_stream,
     hls::stream<int4_reduction_packet_t>& completed_stream) {
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW disable_start_propagation
-#pragma HLS STABLE variable=weight_mem
-#pragma HLS STABLE variable=activation_q
-#pragma HLS STABLE variable=activation_scale
-    // This wrapper represents exactly one linear-stage transaction.  Keep
-    // its processes control-driven instead of persistent hls::tasks: the
-    // activation and output arrays are reused and mutated by the enclosing
-    // decoder scheduler between stages, so no worker from the previous stage
-    // may remain alive after this function returns.
-    hls::stream<int4_linear_command_t> command_compute;
-    hls::stream<int4_linear_command_t> command_store;
-    hls::stream<int4_completion_token_t> completion_compute;
-    hls::stream<int4_completion_token_t> completion_store;
-    hls::stream<int4_completion_token_t> completion_joined;
-#pragma HLS STREAM variable=command_compute depth=3
-#pragma HLS STREAM variable=command_store depth=3
-#pragma HLS STREAM variable=completion_compute depth=4
-#pragma HLS STREAM variable=completion_store depth=4
-#pragma HLS STREAM variable=completion_joined depth=4
-#pragma HLS BIND_STORAGE variable=command_compute type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=command_store type=fifo impl=srl
+    hls::stream<int4_output_word_t> staged_output;
+#pragma HLS STREAM variable=staged_output depth=INT4_MAX_LOCAL_OUTPUT_WORDS
+#pragma HLS BIND_STORAGE variable=staged_output type=fifo impl=bram
 
-    int4_seed_local_linear_command(
-        mode, weight_word_offset, 0,
-        command_compute, command_store);
-    int4_run_local_pe_with_completion<PE_ID>(
+    int4_run_local_linear_stage_dataflow<PE_ID>(
         weight_mem, activation_q, activation_scale,
-        command_compute, partial_stream, completion_compute);
-    int4_store_local_output<PE_ID>(
-        completed_stream, output_mem, command_store, completion_store);
-    int4_join_task_completion_pair<PE_ID + 500>(
-        completion_compute, completion_store, completion_joined);
-    int4_wait_task_completion<PE_ID>(completion_joined);
+        mode, weight_word_offset, partial_stream, completed_stream,
+        staged_output);
+    int4_commit_local_output<PE_ID>(staged_output, output_mem, mode);
 }
 
 #define INT4_DEFINE_LOCAL_LINEAR_STAGE(PE)                              \
