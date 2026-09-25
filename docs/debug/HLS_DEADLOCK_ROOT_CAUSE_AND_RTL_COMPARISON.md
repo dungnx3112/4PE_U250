@@ -4,10 +4,25 @@ Date: 2026-09-25
 
 ## Result
 
-The captured hardware run proves a distributed stream stall, but the old
-profile image has no AXI-stream monitors and therefore cannot identify one
-specific first-blocked channel. Source and generated-RTL analysis found two
-HLS topologies that match the observed failure mode:
+The first captured hardware run proved a distributed stream stall, but the old
+profile image had no AXI-stream monitors. The full-stream build from the first
+repair pass then isolated a deterministic first-RMS deadlock in PE2. Generated
+RTL proves the exact cycle:
+
+1. PE0 and PE3 each publish their first local RMS partial.
+2. PE2's generated `int4_rms_pair23_schedule` FSM waits simultaneously for
+   `partial2`, `partial3`, **and** `reciprocal_from01` in state 2.
+3. PE2 cannot write `sum23` until that state completes.
+4. PE1 cannot produce `reciprocal_from01` until it receives `sum23`.
+
+The C++ source wrote `sum23` before reading the reciprocal, but Vitis HLS
+legally rescheduled the independent blocking stream operations into the same
+FSM state. The definitive fix separates pair-23 reduction and reciprocal
+distribution into two non-inlined DATAFLOW processes, so this reordering is
+structurally impossible.
+
+Earlier source and RTL analysis also found two downstream HLS topologies that
+could deadlock after RMS was allowed to progress:
 
 1. The per-linear-stage DATAFLOW sink wrote directly into the caller-owned
    `projection` RAM while it also waited on a predecessor stream. Vitis HLS
@@ -16,14 +31,40 @@ HLS topologies that match the observed failure mode:
    process-completion synchronization. They added a second control graph to
    the cyclic four-PE data graph.
 
-The fix terminates each linear DATAFLOW transaction in a fully sized FIFO,
+The downstream fix terminates each linear DATAFLOW transaction in a fully sized FIFO,
 commits that FIFO to `projection` only after DATAFLOW completes, removes the
 redundant completion graph, and removes the same `HLS 200-1614` topology from
-the SwiftKV update path. All four kernels now synthesize with zero
-`HLS 200-1614` warnings and unchanged external RTL interfaces.
+the SwiftKV update path. The first repair pass synthesized all four kernels
+with zero `HLS 200-1614` warnings and unchanged external RTL interfaces.
 
 Hardware validation still requires a newly built XCLBIN. The old
 `int4_decoder_multikernel_150mhz_profile.xclbin` contains the old RTL.
+
+## Definitive evidence from the full-stream capture
+
+Evidence directory: `debug_runs/20260925-145002-114224`
+
+- All four CUs started and none ended: `Starts=1`, `Ends=0`.
+- The only inter-PE payload beats observed were 4 bytes on
+  `pe0/rms_partial_to_pe1` and 4 bytes on `pe3/rms_partial_to_pe2`.
+- `rms_sum_to_pe1` and every reciprocal and linear link transferred no data.
+- Both active leaf-partial links had zero stall cycles and approximately the
+  entire capture in starve cycles after their one beat. This rules out output
+  backpressure on those two links; each leaf emitted its first partial and
+  then correctly waited for a reciprocal that never arrived.
+- All 12 protocol checkers reported no violation.
+- The generated PE2 RTL makes the cycle explicit:
+
+```verilog
+ap_block_state2 =
+    !rms_reciprocal01_empty_n |
+    !rms_partial3_empty_n |
+    !rms_partial2_empty_n;
+```
+
+In that RTL, the `rms_sum23_write` signal is not asserted until state 10, so
+PE2 waits for the reciprocal in state 2 before it can publish the sum required
+to create that same reciprocal.
 
 ## Evidence from the failed hardware run
 
@@ -70,6 +111,27 @@ No packet-count mismatch was found in RMS or linear relays. The failure is a
 control/buffering cycle, not a static producer/consumer count error.
 
 ## HLS changes
+
+### RMS pair 23
+
+Before, one HLS process performed both directions of the PE1/PE2 handshake:
+
+```text
+read partial2 + partial3 -> write sum23 -> read reciprocal01 -> distribute
+```
+
+The source order did not create a scheduling dependency, so HLS moved the
+reciprocal read into the same FSM state as the partial reads. It is now split
+into two top-level DATAFLOW processes:
+
+```text
+pair23_reduce:     read partial2 + partial3 -> write sum23
+pair23_distribute: read reciprocal01 -> write reciprocal2 + reciprocal3
+```
+
+The build wrapper contains an RTL regression guard. It requires both split
+modules, rejects any reciprocal input in the reduce module, and rejects any
+partial or sum port in the distribute module before linking the XCLBIN.
 
 ### Linear stage
 
@@ -118,7 +180,7 @@ processes are now one lock-step prepare process. It reads shared metadata and
 control once per token, reads the four physically partitioned V words, and
 writes four independent phase FIFOs in parallel.
 
-## Generated RTL comparison
+## Generated RTL comparison (first repair pass)
 
 Vitis HLS 2023.2, part `xcu250-figd2104-2L-e`, target 3.0 ns, uncertainty
 0.270 ns.
@@ -159,6 +221,13 @@ Structural RTL differences for PE0 are representative of all four PEs:
 - The complete top-level port name/direction/width/protocol sets are identical:
   77 ports for PE0/PE3 and 89 ports for PE1/PE2. The link configuration and
   host ABI do not change.
+
+The second RMS repair changes only internal PE2 process partitioning; external
+ports and the host ABI remain unchanged. Its new generated RTL must contain
+separate `int4_rms_pair23_reduce_schedule` and
+`int4_rms_pair23_distribute_schedule` modules. The build now checks this
+automatically before link. Resource and latency deltas for this second pass
+will be recorded after server synthesis.
 
 ## Remaining warnings
 

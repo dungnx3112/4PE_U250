@@ -346,6 +346,30 @@ if (( need_hls == 1 )); then
         fi
         echo "  [OK] $(basename "$xo") ($(stat -c%s "$xo" 2>/dev/null || stat -f%z "$xo") bytes)"
     done
+
+    # Regression guard for the first-RMS deadlock seen in hardware.  When the
+    # pair-23 sum write and reciprocal read lived in one C function, Vitis HLS
+    # scheduled all three blocking reads in the same FSM state.  That made PE2
+    # wait for PE1's reciprocal before publishing the sum PE1 needs to compute
+    # that reciprocal.  The two operations must remain separate RTL processes.
+    pe2_rtl_dir="$repo_root/proj_int4_decoder_pe2/solution_300mhz/syn/verilog"
+    reduce_rtl=$(find "$pe2_rtl_dir" -maxdepth 1 -type f \
+        -name '*int4_rms_pair23_reduce_schedule*.v' -print -quit 2>/dev/null || true)
+    distribute_rtl=$(find "$pe2_rtl_dir" -maxdepth 1 -type f \
+        -name '*int4_rms_pair23_distribute_schedule*.v' -print -quit 2>/dev/null || true)
+    if [[ -z "$reduce_rtl" || -z "$distribute_rtl" ]]; then
+        echo "ERROR: PE2 RMS deadlock guard failed: split pair-23 RTL modules are missing." >&2
+        echo "       Expected separate reduce and distribute processes under: $pe2_rtl_dir" >&2
+        exit 1
+    fi
+    if grep -q 'rms_reciprocal01' "$reduce_rtl" ||
+       grep -Eq 'rms_partial2|rms_partial3|rms_sum23' "$distribute_rtl"; then
+        echo "ERROR: PE2 RMS deadlock guard failed: HLS recombined cyclic stream dependencies." >&2
+        echo "       Reduce RTL:     $reduce_rtl" >&2
+        echo "       Distribute RTL: $distribute_rtl" >&2
+        exit 1
+    fi
+    echo "  [OK] PE2 first-RMS dependency is split across two independent RTL processes."
 else
     echo "Existing 4 XO files are up to date:"
     for xo in "${xo_files[@]}"; do

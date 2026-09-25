@@ -439,8 +439,9 @@ void int4_decoder_token_controller(
     int4_rms_pair01_schedule(
         rms_partial0, rms_partial1, rms_sum23_to01,
         rms_reciprocal0, rms_reciprocal1, rms_reciprocal01_to23);
-    int4_rms_pair23_schedule(
-        rms_partial2, rms_partial3, rms_sum23_to01,
+    int4_rms_pair23_reduce_schedule(
+        rms_partial2, rms_partial3, rms_sum23_to01);
+    int4_rms_pair23_distribute_schedule(
         rms_reciprocal01_to23, rms_reciprocal2, rms_reciprocal3);
     int4_linear_reduce_pair01_schedule(
         linear_partial0, linear_partial1,

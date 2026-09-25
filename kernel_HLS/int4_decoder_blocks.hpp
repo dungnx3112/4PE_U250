@@ -110,10 +110,16 @@ void int4_rms_pair01_schedule(
     hls::stream<float>& reciprocal1,
     hls::stream<float>& reciprocal_to23);
 
-void int4_rms_pair23_schedule(
+// Keep the pair-23 reduction and reciprocal distribution in separate HLS
+// processes.  A single function lets the scheduler hoist the blocking
+// reciprocal read ahead of the sum write, creating a cross-kernel cycle:
+// PE2 waits for PE1's reciprocal while PE1 waits for PE2's sum.
+void int4_rms_pair23_reduce_schedule(
     hls::stream<float>& partial2,
     hls::stream<float>& partial3,
-    hls::stream<float>& sum_to01,
+    hls::stream<float>& sum_to01);
+
+void int4_rms_pair23_distribute_schedule(
     hls::stream<float>& reciprocal_from01,
     hls::stream<float>& reciprocal2,
     hls::stream<float>& reciprocal3);

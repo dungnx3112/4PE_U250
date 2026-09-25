@@ -695,19 +695,28 @@ rms_pair01_schedule_loop:
     }
 }
 
-void int4_rms_pair23_schedule(
+void int4_rms_pair23_reduce_schedule(
     hls::stream<float>& partial2,
     hls::stream<float>& partial3,
-    hls::stream<float>& sum_to01,
-    hls::stream<float>& reciprocal_from01,
-    hls::stream<float>& reciprocal2,
-    hls::stream<float>& reciprocal3) {
+    hls::stream<float>& sum_to01) {
 #pragma HLS INLINE off
-rms_pair23_schedule_loop:
+rms_pair23_reduce_schedule_loop:
     for (int event = 0; event < INT4_DECODER_RMS_STAGES; ++event) {
 #pragma HLS PIPELINE off
 #pragma HLS LOOP_TRIPCOUNT min=65 max=65
         sum_to01.write(partial2.read() + partial3.read());
+    }
+}
+
+void int4_rms_pair23_distribute_schedule(
+    hls::stream<float>& reciprocal_from01,
+    hls::stream<float>& reciprocal2,
+    hls::stream<float>& reciprocal3) {
+#pragma HLS INLINE off
+rms_pair23_distribute_schedule_loop:
+    for (int event = 0; event < INT4_DECODER_RMS_STAGES; ++event) {
+#pragma HLS PIPELINE off
+#pragma HLS LOOP_TRIPCOUNT min=65 max=65
         const float reciprocal = reciprocal_from01.read();
         reciprocal2.write(reciprocal);
         reciprocal3.write(reciprocal);

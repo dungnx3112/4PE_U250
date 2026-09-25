@@ -327,8 +327,9 @@ extern "C" void int4_decoder_pe2_kernel(
         model_bank, rope_lut, residual, logits, kv_cache,
         position_local, rms_partial2, rms_reciprocal2,
         linear_partial2, linear_output2);
-    int4_rms_pair23_schedule(
-        rms_partial2, rms_partial3, rms_sum23,
+    int4_rms_pair23_reduce_schedule(
+        rms_partial2, rms_partial3, rms_sum23);
+    int4_rms_pair23_distribute_schedule(
         rms_reciprocal01, rms_reciprocal2, rms_reciprocal3);
     int4_linear_reduce_pair23_schedule(
         linear_partial2, linear_partial3,
