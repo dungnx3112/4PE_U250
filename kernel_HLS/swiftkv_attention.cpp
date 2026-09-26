@@ -123,6 +123,15 @@ static_assert(
 using swiftkv_coefficient_t =
     ap_ufixed<18, 1, AP_RND_CONV, AP_SAT>;
 using swiftkv_update_control_t = ap_uint<19>;
+// Keep the online-softmax update controls and the final reciprocal on one
+// ordered channel.  HLS 2021.1 may otherwise schedule the reciprocal read
+// ahead of the value-accumulation subcall.  With separate FIFOs that creates
+// a bounded-buffer cycle: the coefficient producer fills control_stream and
+// cannot publish the reciprocal, while the consumer waits for the reciprocal
+// before draining control_stream.  The deadlock first appears at position 16
+// because the old control FIFO depth was 16.  Bit 32 distinguishes the final
+// reciprocal packet; bits [31:0] carry either control or reciprocal payload.
+using swiftkv_update_packet_t = ap_uint<33>;
 using swiftkv_kv_shift_t =
     ap_uint<SWIFTKV_KV_SCALE_SHIFT_BITS>;
 // Keep every state-update cone physically small while matching the eight-cycle
@@ -1266,8 +1275,7 @@ reduce_dot_partial_loop:
 static void swiftkv_coefficient_producer(
     hls::stream<int4_fxp32_t>& score_stream,
     ap_uint<12> position,
-    hls::stream<swiftkv_update_control_t>& control_stream,
-    hls::stream<int4_fxp32_t>& inverse_normalization_stream
+    hls::stream<swiftkv_update_packet_t>& update_stream
 ) {
 #pragma HLS INLINE off
 
@@ -1311,12 +1319,18 @@ coefficient_token_loop:
         control.range(17, 0) =
             (ap_uint<18>)coefficient.range(17, 0);
         control[18] = rescale_history;
-        control_stream.write(control);
+        swiftkv_update_packet_t update_packet = 0;
+        update_packet.range(18, 0) = control;
+        update_stream.write(update_packet);
     }
 
     const int4_fxp32_t inverse_normalization =
         swiftkv_reciprocal_normalization(normalization);
-    inverse_normalization_stream.write(inverse_normalization);
+    swiftkv_update_packet_t normalization_packet = 0;
+    normalization_packet[32] = 1;
+    normalization_packet.range(31, 0) =
+        inverse_normalization.range(31, 0);
+    update_stream.write(normalization_packet);
 }
 
 static swiftkv_update_engine_packet_t swiftkv_pack_update_engine_packet(
@@ -1350,7 +1364,7 @@ static swiftkv_update_engine_packet_t swiftkv_pack_update_engine_packet(
 // remain physically partitioned and all four phase FIFOs are written together.
 static void swiftkv_prepare_update_engine_phases(
     hls::stream<ap_uint<40> >& value_metadata_stream,
-    hls::stream<swiftkv_update_control_t>& control_stream,
+    hls::stream<swiftkv_update_packet_t>& update_stream,
     hls::stream<swiftkv_update_engine_word_t>& value0_engine0_stream,
     hls::stream<swiftkv_update_engine_word_t>& value0_engine1_stream,
     hls::stream<swiftkv_update_engine_word_t>& value0_engine2_stream,
@@ -1386,7 +1400,10 @@ prepare_update_engine_phase_loop:
         const int token = update_phase / SWIFTKV_UPDATE_PHASES;
         if (phase == 0) {
             const ap_uint<40> metadata = value_metadata_stream.read();
-            const swiftkv_update_control_t control = control_stream.read();
+            const swiftkv_update_packet_t update_packet =
+                update_stream.read();
+            const swiftkv_update_control_t control =
+                update_packet.range(18, 0);
             coefficient.range(17, 0) = control.range(17, 0);
             rescale_history = control[18];
             value_word[0] = value0_engine0_stream.read();
@@ -1544,7 +1561,7 @@ static void swiftkv_accumulate_values_split(
     hls::stream<swiftkv_update_engine_word_t>& value1_engine1_stream,
     hls::stream<swiftkv_update_engine_word_t>& value1_engine2_stream,
     hls::stream<swiftkv_update_engine_word_t>& value1_engine3_stream,
-    hls::stream<swiftkv_update_control_t>& control_stream,
+    hls::stream<swiftkv_update_packet_t>& update_stream,
     ap_uint<12> position,
     swiftkv_state_t weighted_value_engine0[SWIFTKV_UPDATE_ENGINE_VALUES],
     swiftkv_state_t weighted_value_engine1[SWIFTKV_UPDATE_ENGINE_VALUES],
@@ -1569,7 +1586,7 @@ static void swiftkv_accumulate_values_split(
 
     swiftkv_prepare_update_engine_phases(
         value_metadata_stream,
-        control_stream,
+        update_stream,
         value0_engine0_stream,
         value0_engine1_stream,
         value0_engine2_stream,
@@ -1785,8 +1802,7 @@ static void swiftkv_update_values_and_quantize(
     hls::stream<swiftkv_update_engine_word_t>& value1_engine1_stream,
     hls::stream<swiftkv_update_engine_word_t>& value1_engine2_stream,
     hls::stream<swiftkv_update_engine_word_t>& value1_engine3_stream,
-    hls::stream<swiftkv_update_control_t>& control_stream,
-    hls::stream<int4_fxp32_t>& inverse_normalization_stream,
+    hls::stream<swiftkv_update_packet_t>& update_stream,
     ap_uint<12> position,
     hls::stream<int4_quant_word_t>& quantized_stream,
     hls::stream<float>& scale_stream
@@ -1823,15 +1839,23 @@ static void swiftkv_update_values_and_quantize(
         value1_engine1_stream,
         value1_engine2_stream,
         value1_engine3_stream,
-        control_stream,
+        update_stream,
         position,
         weighted_value_engine0,
         weighted_value_engine1,
         weighted_value_engine2,
         weighted_value_engine3);
 
-    const int4_fxp32_t inverse_normalization =
-        inverse_normalization_stream.read();
+    // This read shares the same physical FIFO as the control reads performed
+    // by swiftkv_accumulate_values_split.  The common stream is an explicit
+    // scheduling dependency: all position+1 controls must be consumed before
+    // the final reciprocal packet can be read, so HLS cannot hoist this read
+    // ahead of accumulation as it did with the former separate FIFO.
+    const swiftkv_update_packet_t normalization_packet =
+        update_stream.read();
+    int4_fxp32_t inverse_normalization = 0;
+    inverse_normalization.range(31, 0) =
+        normalization_packet.range(31, 0);
 
 attention_quant_group_loop:
     for (int group = 0;
@@ -1889,8 +1913,7 @@ static void swiftkv_attention_head(
     hls::stream<swiftkv_update_engine_word_t> value1_engine1_stream;
     hls::stream<swiftkv_update_engine_word_t> value1_engine2_stream;
     hls::stream<swiftkv_update_engine_word_t> value1_engine3_stream;
-    hls::stream<swiftkv_update_control_t> control_stream;
-    hls::stream<int4_fxp32_t> inverse_normalization_stream;
+    hls::stream<swiftkv_update_packet_t> update_stream;
 #pragma HLS STREAM variable=unscaled_score_stream depth=4
 #pragma HLS STREAM variable=score_stream depth=4
     // A 64-beat elastic window lets the AXI loop run independently of the
@@ -1918,8 +1941,7 @@ static void swiftkv_attention_head(
 #pragma HLS STREAM variable=value1_engine1_stream depth=SWIFTKV_KV_TILE_TOKENS
 #pragma HLS STREAM variable=value1_engine2_stream depth=SWIFTKV_KV_TILE_TOKENS
 #pragma HLS STREAM variable=value1_engine3_stream depth=SWIFTKV_KV_TILE_TOKENS
-#pragma HLS STREAM variable=control_stream depth=16
-#pragma HLS STREAM variable=inverse_normalization_stream depth=2
+#pragma HLS STREAM variable=update_stream depth=16
 #pragma HLS BIND_STORAGE variable=unscaled_score_stream type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=score_stream type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=cached_kv_word_stream type=fifo impl=bram
@@ -1953,8 +1975,7 @@ static void swiftkv_attention_head(
 #pragma HLS BIND_STORAGE variable=value1_engine1_stream type=fifo impl=uram
 #pragma HLS BIND_STORAGE variable=value1_engine2_stream type=fifo impl=uram
 #pragma HLS BIND_STORAGE variable=value1_engine3_stream type=fifo impl=uram
-#pragma HLS BIND_STORAGE variable=control_stream type=fifo impl=srl
-#pragma HLS BIND_STORAGE variable=inverse_normalization_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=update_stream type=fifo impl=srl
 
     swiftkv_emit_current_record(
         current_metadata, current_key0, current_key1,
@@ -1992,15 +2013,14 @@ static void swiftkv_attention_head(
         unscaled_score_stream, position, score_stream);
     swiftkv_coefficient_producer(
         score_stream, position,
-        control_stream, inverse_normalization_stream);
+        update_stream);
     swiftkv_update_values_and_quantize(
         value_metadata_stream,
         value0_engine0_stream, value0_engine1_stream,
         value0_engine2_stream, value0_engine3_stream,
         value1_engine0_stream, value1_engine1_stream,
         value1_engine2_stream, value1_engine3_stream,
-        control_stream,
-        inverse_normalization_stream, position,
+        update_stream, position,
         quantized_stream, scale_stream);
 }
 

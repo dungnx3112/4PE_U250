@@ -370,6 +370,33 @@ if (( need_hls == 1 )); then
         exit 1
     fi
     echo "  [OK] PE2 first-RMS dependency is split across two independent RTL processes."
+
+    # Regression guard for the position-16 SwiftKV deadlock.  A separate
+    # reciprocal FIFO allowed HLS 2021.1 to read the reciprocal before starting
+    # value accumulation.  The 16-entry control FIFO then filled before the
+    # producer could publish that reciprocal.  Controls and the reciprocal now
+    # share one 33-bit ordered stream, so the generated consumer must expose no
+    # independent inverse_normalization_stream port.
+    pe0_rtl_dir="$repo_root/proj_int4_decoder_pe0/solution_300mhz/syn/verilog"
+    update_rtl=$(find "$pe0_rtl_dir" -maxdepth 1 -type f \
+        -name '*swiftkv_update_values_and_quantize.v' -print -quit 2>/dev/null || true)
+    if [[ -z "$update_rtl" ]]; then
+        echo "ERROR: SwiftKV position-16 deadlock guard failed: update RTL module is missing." >&2
+        echo "       Expected it under: $pe0_rtl_dir" >&2
+        exit 1
+    fi
+    if grep -q 'inverse_normalization_stream' "$update_rtl"; then
+        echo "ERROR: SwiftKV position-16 deadlock guard failed: reciprocal is still on a separate FIFO." >&2
+        echo "       RTL: $update_rtl" >&2
+        exit 1
+    fi
+    if ! grep -Eq 'input[[:space:]]+\[32:0\][[:space:]]+update_stream_dout' "$update_rtl" ||
+       ! grep -Eq 'accumulate_values_split.*update_stream_read' "$update_rtl"; then
+        echo "ERROR: SwiftKV position-16 deadlock guard failed: ordered 33-bit update stream is missing." >&2
+        echo "       RTL: $update_rtl" >&2
+        exit 1
+    fi
+    echo "  [OK] SwiftKV controls and reciprocal share one ordered RTL stream."
 else
     echo "Existing 4 XO files are up to date:"
     for xo in "${xo_files[@]}"; do
