@@ -67,7 +67,10 @@ foreach pe $requested_pes {
         set_clock_uncertainty 0.300
     }
 
-    config_interface -m_axi_latency 32
+    # The decoder keeps up to eight 64-beat (4-KiB-safe) reads in flight.  Model the DDR
+    # round trip conservatively so HLS builds enough request/data buffering to
+    # cover it instead of exposing command latency to the II=1 weight MAC.
+    config_interface -m_axi_latency 64
     config_interface -m_axi_alignment_byte_size 64
     config_interface -m_axi_max_widen_bitwidth 512
     config_interface -m_axi_register_io all

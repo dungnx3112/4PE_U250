@@ -78,11 +78,14 @@ extern "C" void int4_decoder_pe0_kernel(
     hls::stream<float>& rms_reciprocal_from_pe1,
     hls::stream<int4_reduction_packet_t>& linear_partial_to_pe1,
     hls::stream<int4_reduction_packet_t>& linear_output_from_pe1) {
-#pragma HLS INTERFACE m_axi port=model_bank bundle=gmem0 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=32 max_read_burst_length=64 num_read_outstanding=2
-#pragma HLS INTERFACE m_axi port=rope_lut bundle=gmem0 offset=slave depth=SWIFTKV_ROPE_DDR_WORDS latency=32 max_read_burst_length=64 num_read_outstanding=2
-#pragma HLS INTERFACE m_axi port=residual bundle=gmem0 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=32 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=2 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=logits bundle=gmem0 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=32 max_write_burst_length=16 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=kv_cache bundle=gmem0 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=32 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=2 num_write_outstanding=2
+// Weight traffic is the token critical path: one PE reads roughly 13.9M
+// 512-bit words per token.  A deep multi-request window keeps consecutive
+// 4-KiB-safe 64-beat bursts flowing without changing the model-bank layout.
+#pragma HLS INTERFACE m_axi port=model_bank bundle=gmem0 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=64 num_read_outstanding=8
+#pragma HLS INTERFACE m_axi port=rope_lut bundle=gmem0 offset=slave depth=SWIFTKV_ROPE_DDR_WORDS latency=64 max_read_burst_length=64 num_read_outstanding=8
+#pragma HLS INTERFACE m_axi port=residual bundle=gmem0 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=logits bundle=gmem0 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=kv_cache bundle=gmem0 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 
 #pragma HLS INTERFACE axis port=rms_partial_to_pe1 register_mode=both
 #pragma HLS INTERFACE axis port=rms_reciprocal_from_pe1 register_mode=both
@@ -147,11 +150,11 @@ extern "C" void int4_decoder_pe1_kernel(
     hls::stream<int4_reduction_packet_t>& linear_output_to_pe0,
     hls::stream<int4_reduction_packet_t>& linear_sum_from_pe2,
     hls::stream<int4_reduction_packet_t>& linear_sum_to_pe2) {
-#pragma HLS INTERFACE m_axi port=model_bank bundle=gmem1 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=32 max_read_burst_length=64 num_read_outstanding=2
-#pragma HLS INTERFACE m_axi port=rope_lut bundle=gmem1 offset=slave depth=SWIFTKV_ROPE_DDR_WORDS latency=32 max_read_burst_length=64 num_read_outstanding=2
-#pragma HLS INTERFACE m_axi port=residual bundle=gmem1 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=32 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=2 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=logits bundle=gmem1 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=32 max_write_burst_length=16 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=kv_cache bundle=gmem1 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=32 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=2 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=model_bank bundle=gmem1 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=64 num_read_outstanding=8
+#pragma HLS INTERFACE m_axi port=rope_lut bundle=gmem1 offset=slave depth=SWIFTKV_ROPE_DDR_WORDS latency=64 max_read_burst_length=64 num_read_outstanding=8
+#pragma HLS INTERFACE m_axi port=residual bundle=gmem1 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=logits bundle=gmem1 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=kv_cache bundle=gmem1 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 
 #pragma HLS INTERFACE axis port=rms_partial_from_pe0 register_mode=both
 #pragma HLS INTERFACE axis port=rms_reciprocal_to_pe0 register_mode=both
@@ -258,11 +261,11 @@ extern "C" void int4_decoder_pe2_kernel(
     hls::stream<int4_reduction_packet_t>& linear_sum_to_pe1,
     hls::stream<int4_reduction_packet_t>& linear_partial_from_pe3,
     hls::stream<int4_reduction_packet_t>& linear_output_to_pe3) {
-#pragma HLS INTERFACE m_axi port=model_bank bundle=gmem2 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=32 max_read_burst_length=64 num_read_outstanding=2
-#pragma HLS INTERFACE m_axi port=rope_lut bundle=gmem2 offset=slave depth=SWIFTKV_ROPE_DDR_WORDS latency=32 max_read_burst_length=64 num_read_outstanding=2
-#pragma HLS INTERFACE m_axi port=residual bundle=gmem2 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=32 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=2 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=logits bundle=gmem2 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=32 max_write_burst_length=16 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=kv_cache bundle=gmem2 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=32 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=2 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=model_bank bundle=gmem2 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=64 num_read_outstanding=8
+#pragma HLS INTERFACE m_axi port=rope_lut bundle=gmem2 offset=slave depth=SWIFTKV_ROPE_DDR_WORDS latency=64 max_read_burst_length=64 num_read_outstanding=8
+#pragma HLS INTERFACE m_axi port=residual bundle=gmem2 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=logits bundle=gmem2 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=kv_cache bundle=gmem2 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 
 #pragma HLS INTERFACE axis port=rms_reciprocal_from_pe1 register_mode=both
 #pragma HLS INTERFACE axis port=rms_sum_to_pe1 register_mode=both
@@ -366,11 +369,11 @@ extern "C" void int4_decoder_pe3_kernel(
     hls::stream<float>& rms_reciprocal_from_pe2,
     hls::stream<int4_reduction_packet_t>& linear_partial_to_pe2,
     hls::stream<int4_reduction_packet_t>& linear_output_from_pe2) {
-#pragma HLS INTERFACE m_axi port=model_bank bundle=gmem3 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=32 max_read_burst_length=64 num_read_outstanding=2
-#pragma HLS INTERFACE m_axi port=rope_lut bundle=gmem3 offset=slave depth=SWIFTKV_ROPE_DDR_WORDS latency=32 max_read_burst_length=64 num_read_outstanding=2
-#pragma HLS INTERFACE m_axi port=residual bundle=gmem3 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=32 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=2 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=logits bundle=gmem3 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=32 max_write_burst_length=16 num_write_outstanding=2
-#pragma HLS INTERFACE m_axi port=kv_cache bundle=gmem3 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=32 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=2 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=model_bank bundle=gmem3 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=64 num_read_outstanding=8
+#pragma HLS INTERFACE m_axi port=rope_lut bundle=gmem3 offset=slave depth=SWIFTKV_ROPE_DDR_WORDS latency=64 max_read_burst_length=64 num_read_outstanding=8
+#pragma HLS INTERFACE m_axi port=residual bundle=gmem3 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=logits bundle=gmem3 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=kv_cache bundle=gmem3 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 
 #pragma HLS INTERFACE axis port=rms_partial_to_pe2 register_mode=both
 #pragma HLS INTERFACE axis port=rms_reciprocal_from_pe2 register_mode=both

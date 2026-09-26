@@ -210,7 +210,10 @@ template <int PE_ID>
 static void int4_prepare_local_weight_request(
     hls::stream<int4_linear_command_t>& command_stream,
     hls::stream<int4_weight_request_t>& reader_request_stream,
-    hls::stream<int4_weight_request_t>& buffer_request_stream) {
+    hls::stream<int4_weight_request_t>& split_request_stream,
+    hls::stream<int4_weight_request_t>& buffer_request_stream,
+    hls::stream<int4_weight_request_t>& scale_pack_request_stream,
+    hls::stream<int4_weight_request_t>& scale_emit_request_stream) {
 #pragma HLS INLINE off
     const int4_linear_command_t command = command_stream.read();
     const ap_uint<8> output_tiles =
@@ -223,34 +226,67 @@ static void int4_prepare_local_weight_request(
     request.range(23, 0) = command.range(26, 3);
     request.range(39, 24) = block_count;
     reader_request_stream.write(request);
+    split_request_stream.write(request);
     buffer_request_stream.write(request);
+    scale_pack_request_stream.write(request);
+    scale_emit_request_stream.write(request);
 }
 
 template <int PE_ID>
 static void int4_read_local_weights(
     const int4_weight_word_t* weight_mem,
     hls::stream<int4_weight_request_t>& request_stream,
+    hls::stream<int4_weight_word_t>& model_word_stream) {
+#pragma HLS INLINE off
+    const int4_weight_request_t request = request_stream.read();
+    const unsigned int base_address =
+        (unsigned int)request.range(23, 0);
+    const ap_uint<16> block_count = request.range(39, 24);
+    const unsigned int total_words =
+        (unsigned int)block_count * INT4_SUPER_BLOCK_WORDS;
+
+    // Keep this loop free of conditional destinations so HLS can infer one
+    // sequential AXI burst request.  The top-level m_axi adapter partitions it
+    // into at most 64-beat transactions to respect the 4 KiB boundary.
+read_model_words_loop:
+    for (unsigned int word_index = 0;
+         word_index < total_words;
+         ++word_index) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=34816 max=274176
+        model_word_stream.write(weight_mem[base_address + word_index]);
+    }
+}
+
+template <int PE_ID>
+static void int4_split_local_weight_words(
+    hls::stream<int4_weight_request_t>& request_stream,
+    hls::stream<int4_weight_word_t>& model_word_stream,
     hls::stream<int4_weight_scale_word_t>& scale_stream,
     hls::stream<int4_weight_word_t>& weight_ingress) {
 #pragma HLS INLINE off
     const int4_weight_request_t request = request_stream.read();
-    ap_uint<24> address = request.range(23, 0);
     const ap_uint<16> block_count = request.range(39, 24);
+    const ap_uint<20> total_words =
+        (ap_uint<20>)block_count * INT4_SUPER_BLOCK_WORDS;
+    ap_uint<13> offset_in_block = 0;
 
-stream_blocks_loop:
-    for (ap_uint<16> b = 0; b < block_count; ++b) {
-#pragma HLS LOOP_TRIPCOUNT min=8 max=63
-    stream_scale_burst_loop:
-        for (int s = 0; s < INT4_SCALE_WORDS_PER_BLOCK; ++s) {
+split_model_words_loop:
+    for (ap_uint<20> remaining = total_words;
+         remaining != 0;
+         --remaining) {
 #pragma HLS PIPELINE II=1
-            scale_stream.write(weight_mem[(unsigned int)address]);
-            ++address;
+#pragma HLS LOOP_TRIPCOUNT min=34816 max=274176
+        const int4_weight_word_t word = model_word_stream.read();
+        if (offset_in_block < INT4_SCALE_WORDS_PER_BLOCK) {
+            scale_stream.write(word);
+        } else {
+            weight_ingress.write(word);
         }
-    stream_weight_burst_loop:
-        for (int w = 0; w < INT4_WEIGHT_WORDS_PER_BLOCK; ++w) {
-#pragma HLS PIPELINE II=1
-            weight_ingress.write(weight_mem[(unsigned int)address]);
-            ++address;
+        if (offset_in_block == INT4_SUPER_BLOCK_WORDS - 1) {
+            offset_in_block = 0;
+        } else {
+            ++offset_in_block;
         }
     }
 }
@@ -275,6 +311,88 @@ buffer_local_weight_loop:
     }
 }
 
+typedef int4_weight_scale_word_t
+    int4_scale_tile_block_t[INT4_ACTIVE_SCALE_WORDS_PER_TILE];
+
+// Strip the eight padding words and ping-pong the eight active scale words.
+// stream_of_blocks allows this producer to fill tile N+1 while the scale
+// emitter and MAC consume tile N.
+template <int PE_ID>
+static void int4_pack_local_scale_tiles(
+    hls::stream<int4_weight_request_t>& request_stream,
+    hls::stream<int4_weight_scale_word_t>& scale_stream,
+    hls::stream_of_blocks<int4_scale_tile_block_t>& scale_blocks) {
+#pragma HLS INLINE off
+    const int4_weight_request_t request = request_stream.read();
+    const ap_uint<16> block_count = request.range(39, 24);
+    const ap_uint<16> total_tiles =
+        block_count * (ap_uint<16>)INT4_TILES_PER_BLOCK;
+
+pack_local_scale_tile_loop:
+    for (ap_uint<16> tile = 0; tile < total_tiles; ++tile) {
+#pragma HLS LOOP_TRIPCOUNT min=128 max=1008
+        hls::write_lock<int4_scale_tile_block_t> scale_tile(scale_blocks);
+    pack_local_scale_active_loop:
+        for (int w = 0; w < INT4_ACTIVE_SCALE_WORDS_PER_TILE; ++w) {
+#pragma HLS PIPELINE II=1
+            scale_tile[w] = scale_stream.read();
+        }
+    pack_local_scale_pad_loop:
+        for (int w = INT4_ACTIVE_SCALE_WORDS_PER_TILE;
+             w < INT4_SCALE_WORDS_PER_TILE;
+             ++w) {
+#pragma HLS PIPELINE II=1
+            scale_stream.read();
+        }
+    }
+}
+
+// Expand one packed tile into four raw-Q1.15 scale lanes in MAC consumption
+// order.  Conversion to FP32 is performed by the MAC pipeline, so this stage
+// needs no duplicated floating-point converters.
+template <int PE_ID>
+static void int4_emit_local_scale_tiles(
+    hls::stream<int4_weight_request_t>& request_stream,
+    hls::stream_of_blocks<int4_scale_tile_block_t>& scale_blocks,
+    hls::stream<int4_weight_scale_t>& scale_lane0,
+    hls::stream<int4_weight_scale_t>& scale_lane1,
+    hls::stream<int4_weight_scale_t>& scale_lane2,
+    hls::stream<int4_weight_scale_t>& scale_lane3) {
+#pragma HLS INLINE off
+    const int4_weight_request_t request = request_stream.read();
+    const ap_uint<16> block_count = request.range(39, 24);
+    const ap_uint<16> total_tiles =
+        block_count * (ap_uint<16>)INT4_TILES_PER_BLOCK;
+
+emit_local_scale_tile_loop:
+    for (ap_uint<16> tile = 0; tile < total_tiles; ++tile) {
+#pragma HLS LOOP_TRIPCOUNT min=128 max=1008
+        hls::read_lock<int4_scale_tile_block_t> scale_tile(scale_blocks);
+    emit_local_scale_word_loop:
+        for (int flat = 0; flat < INT4_WEIGHT_WORDS_PER_TILE; ++flat) {
+#pragma HLS PIPELINE II=1
+            const int row_block = flat & (INT4_ROW_BLOCKS - 1);
+            const int group_in_tile = flat / INT4_ROW_BLOCKS;
+            const int g128 = group_in_tile >> 2;
+            const int r_local = row_block & 3;
+            const int word_index = row_block >> 2;
+            const int4_weight_scale_word_t scale_word = scale_tile[word_index];
+            const int scalar0 = r_local * 8 + g128;
+            const int scalar1 = scalar0 + 2;
+            const int scalar2 = scalar0 + 4;
+            const int scalar3 = scalar0 + 6;
+            scale_lane0.write((int4_weight_scale_t)scale_word.range(
+                16 * scalar0 + 15, 16 * scalar0));
+            scale_lane1.write((int4_weight_scale_t)scale_word.range(
+                16 * scalar1 + 15, 16 * scalar1));
+            scale_lane2.write((int4_weight_scale_t)scale_word.range(
+                16 * scalar2 + 15, 16 * scalar2));
+            scale_lane3.write((int4_weight_scale_t)scale_word.range(
+                16 * scalar3 + 15, 16 * scalar3));
+        }
+    }
+}
+
 typedef int4_reduction_packet_t
     int4_partial_tile_block_t[INT4_ROW_BLOCKS];
 
@@ -283,66 +401,42 @@ static void int4_accumulate_local_partial_tiles(
     const int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
     const int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],
     hls::stream<int4_linear_command_t>& command_stream,
-    hls::stream<int4_weight_scale_word_t>& scale_stream,
+    hls::stream<int4_weight_scale_t>& scale_lane0,
+    hls::stream<int4_weight_scale_t>& scale_lane1,
+    hls::stream<int4_weight_scale_t>& scale_lane2,
+    hls::stream<int4_weight_scale_t>& scale_lane3,
     hls::stream<int4_weight_word_t>& weight_stream,
     hls::stream_of_blocks<int4_partial_tile_block_t>& partial_blocks) {
 #pragma HLS INLINE off
     const int4_linear_command_t command = command_stream.read();
     const int output_tiles = int4_command_output_tiles(command);
     const int local_input_tiles = int4_command_local_input_tiles(command);
-
-    float scale_tile[INT4_ROW_BLOCKS][INT4_ROW_BLOCK][INT4_AUTOROUND_GROUPS_PER_TILE];
-#pragma HLS ARRAY_PARTITION variable=scale_tile complete dim=0
+    const int total_groups = local_input_tiles * INT4_GROUPS_PER_TILE;
+    const int total_weight_words =
+        local_input_tiles * INT4_WEIGHT_WORDS_PER_TILE;
 
 local_partial_output_tile_loop:
     for (int output_tile = 0; output_tile < output_tiles; ++output_tile) {
 #pragma HLS LOOP_TRIPCOUNT min=32 max=252
 #pragma HLS LOOP_FLATTEN off
         hls::write_lock<int4_partial_tile_block_t> partial(partial_blocks);
+        int4_quant_word_t current_quantized = activation_q[0];
+        int4_quant_word_t next_quantized = 0;
+        float current_act_scale = 0.0f;
 
-    local_partial_col_tile_loop:
-        for (int local_col_tile = 0; local_col_tile < local_input_tiles; ++local_col_tile) {
-#pragma HLS LOOP_TRIPCOUNT min=4 max=11
-#pragma HLS LOOP_FLATTEN off
-            // 1. Unpack 16 scale words for this tile from scale_stream
-        local_scale_unpack_active_loop:
-            for (int w = 0; w < INT4_ACTIVE_SCALE_WORDS_PER_TILE; ++w) {
-#pragma HLS PIPELINE II=1
-                int4_weight_scale_word_t word = scale_stream.read();
-                for (int s = 0; s < 32; ++s) {
-#pragma HLS UNROLL
-                    const int r_local = s / 8;
-                    const int lane = (s % 8) / 2;
-                    const int g128 = s % 2;
-                    const int row_block = w * 4 + r_local;
-                    const int4_weight_scale_t scale_raw =
-                        (int4_weight_scale_t)word.range(16 * s + 15, 16 * s);
-                    scale_tile[row_block][lane][g128] = int4_q115_to_float(scale_raw);
-                }
-            }
-        local_scale_unpack_pad_loop:
-            for (int w = INT4_ACTIVE_SCALE_WORDS_PER_TILE; w < INT4_SCALE_WORDS_PER_TILE; ++w) {
-#pragma HLS PIPELINE II=1
-                scale_stream.read();
-            }
-
-            // 2. Continuous MAC loop for this tile (256 weight words)
-            const int col_group_base = local_col_tile * INT4_GROUPS_PER_TILE;
-            int4_quant_word_t current_quantized = activation_q[col_group_base];
-            int4_quant_word_t next_quantized = 0;
-            float current_act_scale = 0.0f;
-
+        // Keep a single II=1 pipeline alive across every input tile.  The old
+        // nested loop drained/refilled the 28-cycle FP pipeline once per tile.
         local_partial_continuous_mac_loop:
-            for (int flat = 0; flat < INT4_WEIGHT_WORDS_PER_TILE; ++flat) {
+            for (int word_index = 0;
+                 word_index < total_weight_words;
+                 ++word_index) {
 #pragma HLS PIPELINE II=1
-#pragma HLS LOOP_TRIPCOUNT min=256 max=256
-                const int row_block = flat & (INT4_ROW_BLOCKS - 1);
-                const int group_in_tile = flat / INT4_ROW_BLOCKS;
-                const int g128 = group_in_tile >> 2;
-                const int global_group = col_group_base + group_in_tile;
+#pragma HLS LOOP_TRIPCOUNT min=1024 max=2816
+                const int row_block = word_index & (INT4_ROW_BLOCKS - 1);
+                const int global_group = word_index / INT4_ROW_BLOCKS;
 
                 if (row_block == INT4_ROW_BLOCKS - 4 &&
-                    group_in_tile + 1 < INT4_GROUPS_PER_TILE) {
+                    global_group + 1 < total_groups) {
                     next_quantized = activation_q[global_group + 1];
                 }
                 if (row_block == 0) {
@@ -354,6 +448,12 @@ local_partial_output_tile_loop:
                 const int4_quant_word_t quantized = current_quantized;
                 const float act_scale_f = current_act_scale;
                 const int4_weight_word_t weight = weight_stream.read();
+                int4_weight_scale_t weight_scale_q[INT4_ROW_BLOCK];
+#pragma HLS ARRAY_PARTITION variable=weight_scale_q complete
+                weight_scale_q[0] = scale_lane0.read();
+                weight_scale_q[1] = scale_lane1.read();
+                weight_scale_q[2] = scale_lane2.read();
+                weight_scale_q[3] = scale_lane3.read();
                 int4_packed_acc_t packed_sum0 = 0;
                 int4_packed_acc_t packed_sum1 = 0;
 
@@ -384,7 +484,7 @@ local_partial_output_tile_loop:
                 int4_unpack_packed_acc(
                     packed_sum1, integer_sum[2], integer_sum[3]);
 
-                const bool is_first = (local_col_tile == 0 && group_in_tile == 0);
+                const bool is_first = (global_group == 0);
                 int4_reduction_packet_t partial_packet =
                     is_first
                         ? (int4_reduction_packet_t)0
@@ -394,7 +494,7 @@ local_partial_output_tile_loop:
                 for (int lane = 0; lane < INT4_ROW_BLOCK; ++lane) {
 #pragma HLS UNROLL
                     const float combined_scale =
-                        scale_tile[row_block][lane][g128] * act_scale_f;
+                        int4_q115_to_float(weight_scale_q[lane]) * act_scale_f;
                     const float contribution =
                         (float)integer_sum[lane] * combined_scale;
 #pragma HLS BIND_OP variable=contribution op=mul impl=dsp
@@ -409,11 +509,10 @@ local_partial_output_tile_loop:
                 partial[row_block] = partial_packet;
 
                 if (row_block == INT4_ROW_BLOCKS - 1 &&
-                    group_in_tile + 1 < INT4_GROUPS_PER_TILE) {
+                    global_group + 1 < total_groups) {
                     current_quantized = next_quantized;
                 }
             }
-        }
     }
 }
 
@@ -478,25 +577,55 @@ static void int4_run_local_pe(
     hls::stream<int4_linear_command_t> compute_command;
     hls::stream<int4_linear_command_t> emit_command;
     hls::stream<int4_weight_request_t> reader_request;
+    hls::stream<int4_weight_request_t> split_request;
     hls::stream<int4_weight_request_t> buffer_request;
+    hls::stream<int4_weight_request_t> scale_pack_request;
+    hls::stream<int4_weight_request_t> scale_emit_request;
     hls::stream<int4_weight_scale_word_t> scale_stream;
+    hls::stream<int4_weight_word_t> model_word_stream;
+    hls::stream_of_blocks<int4_scale_tile_block_t> scale_blocks;
+    hls::stream<int4_weight_scale_t> scale_lane0;
+    hls::stream<int4_weight_scale_t> scale_lane1;
+    hls::stream<int4_weight_scale_t> scale_lane2;
+    hls::stream<int4_weight_scale_t> scale_lane3;
     hls::stream<int4_weight_word_t> weight_ingress;
     hls::stream<int4_weight_word_t> weight_buffer;
     hls::stream_of_blocks<int4_partial_tile_block_t> partial_blocks;
 #pragma HLS STREAM variable=reader_command depth=3
-#pragma HLS STREAM variable=compute_command depth=5
-#pragma HLS STREAM variable=emit_command depth=6
+#pragma HLS STREAM variable=compute_command depth=7
+#pragma HLS STREAM variable=emit_command depth=8
 #pragma HLS STREAM variable=reader_request depth=2
-#pragma HLS STREAM variable=buffer_request depth=3
+#pragma HLS STREAM variable=split_request depth=3
+#pragma HLS STREAM variable=buffer_request depth=4
+#pragma HLS STREAM variable=scale_pack_request depth=4
+#pragma HLS STREAM variable=scale_emit_request depth=5
 #pragma HLS STREAM variable=scale_stream depth=256
-#pragma HLS STREAM variable=weight_ingress depth=4
-#pragma HLS STREAM variable=weight_buffer depth=256
+#pragma HLS STREAM variable=model_word_stream depth=64
+#pragma HLS STREAM variable=scale_lane0 depth=64
+#pragma HLS STREAM variable=scale_lane1 depth=64
+#pragma HLS STREAM variable=scale_lane2 depth=64
+#pragma HLS STREAM variable=scale_lane3 depth=64
+#pragma HLS STREAM variable=weight_ingress depth=16
+    // Eight 64-beat (4-KiB-safe) AXI bursts may be in flight.  A 2048-word elastic
+    // window lets the reader continue through DDR command/refresh gaps while
+    // the II=1 MAC consumes the previous words.  The old one-tile (256-word)
+    // buffer exposed every burst gap directly as MAC starvation.
+#pragma HLS STREAM variable=weight_buffer depth=2048
 #pragma HLS BIND_STORAGE variable=reader_command type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=compute_command type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=emit_command type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=reader_request type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=split_request type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=buffer_request type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=scale_pack_request type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=scale_emit_request type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=scale_stream type=fifo impl=uram
+#pragma HLS BIND_STORAGE variable=model_word_stream type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=scale_blocks type=ram_2p impl=bram
+#pragma HLS BIND_STORAGE variable=scale_lane0 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=scale_lane1 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=scale_lane2 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=scale_lane3 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=weight_ingress type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=weight_buffer type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=partial_blocks type=ram_2p impl=bram
@@ -504,14 +633,22 @@ static void int4_run_local_pe(
     int4_split_local_command(
         command_stream, reader_command, compute_command, emit_command);
     int4_prepare_local_weight_request<PE_ID>(
-        reader_command, reader_request, buffer_request);
+        reader_command, reader_request, split_request, buffer_request,
+        scale_pack_request, scale_emit_request);
     int4_read_local_weights<PE_ID>(
-        weight_mem, reader_request, scale_stream, weight_ingress);
+        weight_mem, reader_request, model_word_stream);
+    int4_split_local_weight_words<PE_ID>(
+        split_request, model_word_stream, scale_stream, weight_ingress);
+    int4_pack_local_scale_tiles<PE_ID>(
+        scale_pack_request, scale_stream, scale_blocks);
+    int4_emit_local_scale_tiles<PE_ID>(
+        scale_emit_request, scale_blocks, scale_lane0, scale_lane1,
+        scale_lane2, scale_lane3);
     int4_buffer_local_weights<PE_ID>(
         buffer_request, weight_ingress, weight_buffer);
     int4_accumulate_local_partial_tiles<PE_ID>(
-        activation_q, activation_scale, compute_command, scale_stream,
-        weight_buffer, partial_blocks);
+        activation_q, activation_scale, compute_command, scale_lane0,
+        scale_lane1, scale_lane2, scale_lane3, weight_buffer, partial_blocks);
     int4_emit_local_partial_tiles<PE_ID>(
         emit_command, partial_blocks, partial_stream);
 }
@@ -530,25 +667,51 @@ static void int4_run_local_pe_with_completion(
     hls::stream<int4_linear_command_t> compute_command;
     hls::stream<int4_linear_command_t> emit_command;
     hls::stream<int4_weight_request_t> reader_request;
+    hls::stream<int4_weight_request_t> split_request;
     hls::stream<int4_weight_request_t> buffer_request;
+    hls::stream<int4_weight_request_t> scale_pack_request;
+    hls::stream<int4_weight_request_t> scale_emit_request;
     hls::stream<int4_weight_scale_word_t> scale_stream;
+    hls::stream<int4_weight_word_t> model_word_stream;
+    hls::stream_of_blocks<int4_scale_tile_block_t> scale_blocks;
+    hls::stream<int4_weight_scale_t> scale_lane0;
+    hls::stream<int4_weight_scale_t> scale_lane1;
+    hls::stream<int4_weight_scale_t> scale_lane2;
+    hls::stream<int4_weight_scale_t> scale_lane3;
     hls::stream<int4_weight_word_t> weight_ingress;
     hls::stream<int4_weight_word_t> weight_buffer;
     hls::stream_of_blocks<int4_partial_tile_block_t> partial_blocks;
 #pragma HLS STREAM variable=reader_command depth=3
-#pragma HLS STREAM variable=compute_command depth=5
-#pragma HLS STREAM variable=emit_command depth=6
+#pragma HLS STREAM variable=compute_command depth=7
+#pragma HLS STREAM variable=emit_command depth=8
 #pragma HLS STREAM variable=reader_request depth=2
-#pragma HLS STREAM variable=buffer_request depth=3
+#pragma HLS STREAM variable=split_request depth=3
+#pragma HLS STREAM variable=buffer_request depth=4
+#pragma HLS STREAM variable=scale_pack_request depth=4
+#pragma HLS STREAM variable=scale_emit_request depth=5
 #pragma HLS STREAM variable=scale_stream depth=256
-#pragma HLS STREAM variable=weight_ingress depth=4
-#pragma HLS STREAM variable=weight_buffer depth=256
+#pragma HLS STREAM variable=model_word_stream depth=64
+#pragma HLS STREAM variable=scale_lane0 depth=64
+#pragma HLS STREAM variable=scale_lane1 depth=64
+#pragma HLS STREAM variable=scale_lane2 depth=64
+#pragma HLS STREAM variable=scale_lane3 depth=64
+#pragma HLS STREAM variable=weight_ingress depth=16
+#pragma HLS STREAM variable=weight_buffer depth=2048
 #pragma HLS BIND_STORAGE variable=reader_command type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=compute_command type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=emit_command type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=reader_request type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=split_request type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=buffer_request type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=scale_pack_request type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=scale_emit_request type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=scale_stream type=fifo impl=uram
+#pragma HLS BIND_STORAGE variable=model_word_stream type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=scale_blocks type=ram_2p impl=bram
+#pragma HLS BIND_STORAGE variable=scale_lane0 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=scale_lane1 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=scale_lane2 type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=scale_lane3 type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=weight_ingress type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=weight_buffer type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=partial_blocks type=ram_2p impl=bram
@@ -556,14 +719,22 @@ static void int4_run_local_pe_with_completion(
     int4_split_local_command(
         command_stream, reader_command, compute_command, emit_command);
     int4_prepare_local_weight_request<PE_ID>(
-        reader_command, reader_request, buffer_request);
+        reader_command, reader_request, split_request, buffer_request,
+        scale_pack_request, scale_emit_request);
     int4_read_local_weights<PE_ID>(
-        weight_mem, reader_request, scale_stream, weight_ingress);
+        weight_mem, reader_request, model_word_stream);
+    int4_split_local_weight_words<PE_ID>(
+        split_request, model_word_stream, scale_stream, weight_ingress);
+    int4_pack_local_scale_tiles<PE_ID>(
+        scale_pack_request, scale_stream, scale_blocks);
+    int4_emit_local_scale_tiles<PE_ID>(
+        scale_emit_request, scale_blocks, scale_lane0, scale_lane1,
+        scale_lane2, scale_lane3);
     int4_buffer_local_weights<PE_ID>(
         buffer_request, weight_ingress, weight_buffer);
     int4_accumulate_local_partial_tiles<PE_ID>(
-        activation_q, activation_scale, compute_command, scale_stream,
-        weight_buffer, partial_blocks);
+        activation_q, activation_scale, compute_command, scale_lane0,
+        scale_lane1, scale_lane2, scale_lane3, weight_buffer, partial_blocks);
     int4_emit_local_partial_tiles_with_completion<PE_ID>(
         emit_command, partial_blocks, partial_stream, completion_stream);
 }
@@ -1218,16 +1389,16 @@ extern "C" void int4_linear_kernel_4pe(
     ap_uint<24> weight_word_offset,
     ap_uint<16> weight_scale_word_offset) {
 
-#pragma HLS INTERFACE m_axi port=weight_pe0 bundle=gmem0 offset=slave depth=32768 latency=32 max_read_burst_length=64 num_read_outstanding=4
+#pragma HLS INTERFACE m_axi port=weight_pe0 bundle=gmem0 offset=slave depth=32768 latency=64 max_read_burst_length=64 num_read_outstanding=8
 #pragma HLS INTERFACE m_axi port=output_pe0 bundle=gmem0_out offset=slave depth=504 latency=32 max_write_burst_length=16 num_write_outstanding=2
 
-#pragma HLS INTERFACE m_axi port=weight_pe1 bundle=gmem1 offset=slave depth=32768 latency=32 max_read_burst_length=64 num_read_outstanding=4
+#pragma HLS INTERFACE m_axi port=weight_pe1 bundle=gmem1 offset=slave depth=32768 latency=64 max_read_burst_length=64 num_read_outstanding=8
 #pragma HLS INTERFACE m_axi port=output_pe1 bundle=gmem1_out offset=slave depth=504 latency=32 max_write_burst_length=16 num_write_outstanding=2
 
-#pragma HLS INTERFACE m_axi port=weight_pe2 bundle=gmem2 offset=slave depth=32768 latency=32 max_read_burst_length=64 num_read_outstanding=4
+#pragma HLS INTERFACE m_axi port=weight_pe2 bundle=gmem2 offset=slave depth=32768 latency=64 max_read_burst_length=64 num_read_outstanding=8
 #pragma HLS INTERFACE m_axi port=output_pe2 bundle=gmem2_out offset=slave depth=504 latency=32 max_write_burst_length=16 num_write_outstanding=2
 
-#pragma HLS INTERFACE m_axi port=weight_pe3 bundle=gmem3 offset=slave depth=32768 latency=32 max_read_burst_length=64 num_read_outstanding=4
+#pragma HLS INTERFACE m_axi port=weight_pe3 bundle=gmem3 offset=slave depth=32768 latency=64 max_read_burst_length=64 num_read_outstanding=8
 #pragma HLS INTERFACE m_axi port=output_pe3 bundle=gmem3_out offset=slave depth=504 latency=32 max_write_burst_length=16 num_write_outstanding=2
 
 #pragma HLS INTERFACE s_axilite port=weight_pe0 bundle=control

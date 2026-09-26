@@ -3503,7 +3503,7 @@ void int4_swiftkv_attention_4pe(
 #pragma HLS INTERFACE m_axi port=v_pe0 bundle=gmem0 offset=slave depth=64
 #pragma HLS INTERFACE m_axi port=kv_cache_pe0 bundle=gmem0 offset=slave \
     depth=SWIFTKV_KV_AXI_DEPTH latency=64 \
-    max_read_burst_length=256 max_write_burst_length=64 \
+    max_read_burst_length=64 max_write_burst_length=64 \
     num_read_outstanding=8 num_write_outstanding=2
 #pragma HLS INTERFACE m_axi port=activation_q bundle=gmem0 offset=slave \
     depth=INT4_GROUPS_PER_VECTOR
@@ -3515,21 +3515,21 @@ void int4_swiftkv_attention_4pe(
 #pragma HLS INTERFACE m_axi port=v_pe1 bundle=gmem1 offset=slave depth=64
 #pragma HLS INTERFACE m_axi port=kv_cache_pe1 bundle=gmem1 offset=slave \
     depth=SWIFTKV_KV_AXI_DEPTH latency=64 \
-    max_read_burst_length=256 max_write_burst_length=64 \
+    max_read_burst_length=64 max_write_burst_length=64 \
     num_read_outstanding=8 num_write_outstanding=2
 #pragma HLS INTERFACE m_axi port=q_pe2 bundle=gmem2 offset=slave depth=64
 #pragma HLS INTERFACE m_axi port=k_pe2 bundle=gmem2 offset=slave depth=64
 #pragma HLS INTERFACE m_axi port=v_pe2 bundle=gmem2 offset=slave depth=64
 #pragma HLS INTERFACE m_axi port=kv_cache_pe2 bundle=gmem2 offset=slave \
     depth=SWIFTKV_KV_AXI_DEPTH latency=64 \
-    max_read_burst_length=256 max_write_burst_length=64 \
+    max_read_burst_length=64 max_write_burst_length=64 \
     num_read_outstanding=8 num_write_outstanding=2
 #pragma HLS INTERFACE m_axi port=q_pe3 bundle=gmem3 offset=slave depth=64
 #pragma HLS INTERFACE m_axi port=k_pe3 bundle=gmem3 offset=slave depth=64
 #pragma HLS INTERFACE m_axi port=v_pe3 bundle=gmem3 offset=slave depth=64
 #pragma HLS INTERFACE m_axi port=kv_cache_pe3 bundle=gmem3 offset=slave \
     depth=SWIFTKV_KV_AXI_DEPTH latency=64 \
-    max_read_burst_length=256 max_write_burst_length=64 \
+    max_read_burst_length=64 max_write_burst_length=64 \
     num_read_outstanding=8 num_write_outstanding=2
 
 #pragma HLS INTERFACE bram port=current_cos depth=SWIFTKV_ROPE_PAIRS

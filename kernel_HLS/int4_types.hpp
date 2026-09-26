@@ -55,8 +55,9 @@ static constexpr int INT4_WEIGHT_SCALES_PER_WORD =
     512 / INT4_WEIGHT_SCALE_BITS;
 static constexpr int INT4_SCALE_ROWS_PER_WORD = 16;
 
-// AutoRound W4G128 Super-Block configuration:
-// 1 Scale burst (256 words = 16 KB) followed by 16 Weight bursts (each 256 words = 16 KB).
+// AutoRound W4G128 super-block configuration.  A 512-bit AXI beat is 64
+// bytes, so every physical burst is capped at 64 beats (4 KiB): four scale
+// bursts followed by 64 weight bursts per super-block.
 static constexpr int INT4_AUTOROUND_GROUP_SIZE = 128;
 static constexpr int INT4_AUTOROUND_GROUPS_PER_TILE =
     INT4_TILE_COLS / INT4_AUTOROUND_GROUP_SIZE; // 2 groups of 128 per tile
@@ -64,9 +65,9 @@ static constexpr int INT4_TILES_PER_BLOCK = 16;
 static constexpr int INT4_SCALE_WORDS_PER_TILE = 16; // 8 active (256 scales) + 8 padding
 static constexpr int INT4_ACTIVE_SCALE_WORDS_PER_TILE = 8;
 static constexpr int INT4_SCALE_WORDS_PER_BLOCK =
-    INT4_TILES_PER_BLOCK * INT4_SCALE_WORDS_PER_TILE; // 256 words (1 burst of 256)
+    INT4_TILES_PER_BLOCK * INT4_SCALE_WORDS_PER_TILE; // 256 words (4 x 64-beat bursts)
 static constexpr int INT4_WEIGHT_WORDS_PER_BLOCK =
-    INT4_TILES_PER_BLOCK * INT4_WEIGHT_WORDS_PER_TILE; // 16 * 256 = 4096 words
+    INT4_TILES_PER_BLOCK * INT4_WEIGHT_WORDS_PER_TILE; // 4096 words (64 x 64-beat bursts)
 static constexpr int INT4_SUPER_BLOCK_WORDS =
     INT4_SCALE_WORDS_PER_BLOCK + INT4_WEIGHT_WORDS_PER_BLOCK; // 4352 words
 
