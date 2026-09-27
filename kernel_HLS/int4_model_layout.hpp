@@ -148,12 +148,12 @@ static constexpr int INT4_LOGITS_BLOCKS_PER_PE =
     INT4_LOGITS_MATRIX_TILES_PER_PE / INT4_TILES_PER_BLOCK; // 63 blocks
 
 static constexpr int INT4_LAYER_DATA_WORDS_PER_PE =
-    INT4_LAYER_BLOCKS_PER_PE * INT4_SUPER_BLOCK_WORDS; // 98 * 4352 = 426,496
+    INT4_LAYER_BLOCKS_PER_PE * INT4_SUPER_BLOCK_WORDS; // 98 * 4224 = 413,952
 static constexpr int INT4_LOGITS_DATA_WORDS_PER_PE =
-    INT4_LOGITS_BLOCKS_PER_PE * INT4_SUPER_BLOCK_WORDS; // 63 * 4352 = 274,176
+    INT4_LOGITS_BLOCKS_PER_PE * INT4_SUPER_BLOCK_WORDS; // 63 * 4224 = 266,112
 static constexpr int INT4_TOTAL_DATA_WORDS_PER_PE =
     INT4_NUM_LAYERS * INT4_LAYER_DATA_WORDS_PER_PE +
-    INT4_LOGITS_DATA_WORDS_PER_PE; // 13,922,048
+    INT4_LOGITS_DATA_WORDS_PER_PE; // 13,512,576
 
 static constexpr int INT4_MODEL_NORM_BASE_WORD = 0;
 static constexpr int INT4_MODEL_DATA_BASE_WORD =
@@ -161,13 +161,15 @@ static constexpr int INT4_MODEL_DATA_BASE_WORD =
 static constexpr int INT4_MODEL_WEIGHT_BASE_WORD =
     INT4_MODEL_DATA_BASE_WORD;
 static constexpr int INT4_MODEL_WORDS_PER_DDR =
-    INT4_MODEL_DATA_BASE_WORD + INT4_TOTAL_DATA_WORDS_PER_PE; // 13,926,208
+    INT4_MODEL_DATA_BASE_WORD + INT4_TOTAL_DATA_WORDS_PER_PE; // 13,516,736
 
 static_assert(INT4_TOTAL_NORM_WORDS_PER_PE == 4160,
               "unexpected local RMSNorm image size");
-static_assert(INT4_TOTAL_DATA_WORDS_PER_PE == 13922048,
+static_assert(INT4_SUPER_BLOCK_WORDS % 64 == 0,
+              "superblock must preserve full 64-beat AXI bursts");
+static_assert(INT4_TOTAL_DATA_WORDS_PER_PE == 13512576,
               "unexpected input-column-sharded W4G128 data image size");
-static_assert(INT4_MODEL_WORDS_PER_DDR == 13926208,
+static_assert(INT4_MODEL_WORDS_PER_DDR == 13516736,
               "unexpected complete per-DDR model image size");
 
 inline int4_output_word_t* int4_model_norm_base(

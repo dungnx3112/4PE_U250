@@ -13,6 +13,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cctype>
+#include <array>
+#include <limits>
+#include <stdexcept>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -33,17 +36,22 @@ static constexpr int LOCAL_DIM = DIM / NUM_PES; // 1024
 static constexpr int LOCAL_HIDDEN_DIM = PADDED_HIDDEN_DIM / NUM_PES; // 2816
 static constexpr int LOCAL_HEADS = NUM_HEADS / NUM_PES; // 8
 static constexpr int GROUP_SIZE = 32;
-static constexpr int MAX_SEQ_LEN = 512;
+static constexpr int MAX_SEQ_LEN = 4096;
 
 
 // HLS Bank Layout Offsets in 512-bit words
-static constexpr int SCALE_BASE_WORD = 0;
-static constexpr int NORM_BASE_WORD = 1600;
-static constexpr int WEIGHT_BASE_WORD = 5760;
-static constexpr int TOTAL_WORDS = 13108864;
+// Current HLS image layout (int4_model_layout.hpp).  Each matrix is a stream
+// of 4224-word superblocks: 128 scale words followed by 4096 weight words.
+static constexpr int NORM_BASE_WORD = 0;
+static constexpr int WEIGHT_BASE_WORD = 4160;
+static constexpr int TOTAL_WORDS = 13516736;
+static constexpr int SUPERBLOCK_WORDS = 4224;
+static constexpr int SCALE_WORDS_PER_BLOCK = 128;
+static constexpr int TILES_PER_BLOCK = 16;
 static constexpr int WORD_BYTES = 64;
 
 static int g_num_layers = 32;
+static int g_cache_seq_len = MAX_SEQ_LEN;
 static const std::string HARDCODED_WEIGHTS_DIR = "C:/KLTN/4PE_U250";
 static bool g_float_act = false;  // --float-act: bypass E8M0, use float activation (for debugging)
 static bool g_e8m0_act = false;   // --e8m0-act: enable E8M0 activation quantization in autoround mode
@@ -65,15 +73,23 @@ struct QuantizedMatrix {
     int cols;
     int local_cols;
     std::vector<std::vector<int4_t>> pe_weights; // [4][rows * local_cols]
-    std::vector<std::vector<float>> pe_scales;   // [4][tile_count]
+    std::vector<std::vector<float>> pe_scales;   // [4][rows * local_cols/128]
 };
 
 struct KVCachePE {
     std::vector<int8_t> k_cache;
-    std::vector<float> k_scale;
+    std::vector<uint8_t> k_shift;
     std::vector<int8_t> v_cache;
-    std::vector<float> v_scale;
+    std::vector<uint8_t> v_shift;
 };
+
+struct RopeTable {
+    std::vector<int32_t> cosine; // signed Q2.17, 64 pairs/position
+    std::vector<int32_t> sine;
+    bool loaded = false;
+};
+
+static RopeTable g_rope;
 
 struct DecoderLayer {
     std::vector<float> attn_norm_gamma; // size DIM (4096)
@@ -133,35 +149,19 @@ static bool g_autoround = false;          // --autoround: use autoround_w4g128.b
 static AutoRoundModel g_ar_model;
 
 
-// ============================================================================
-// IEEE-754 Half-Precision (FP16) Conversion Helper
-// ============================================================================
-static float fp16_to_fp32(uint16_t h) {
-    uint32_t sign = (h & 0x8000) << 16;
-    uint32_t exp = (h & 0x7c00) >> 10;
-    uint32_t frac = (h & 0x03ff);
-    if (exp == 0) {
-        if (frac == 0) return (sign ? -0.0f : 0.0f);
-        while ((frac & 0x0400) == 0) { frac <<= 1; exp--; }
-        exp++; frac &= ~0x0400;
-        exp = (exp - 15 + 127) << 23;
-        frac <<= 13;
-        uint32_t bits = sign | exp | frac;
-        union { uint32_t u; float f; } u = {bits};
-        return u.f;
-    } else if (exp == 31) {
-        uint32_t bits = sign | 0x7f800000 | (frac << 13);
-        union { uint32_t u; float f; } u = {bits};
-        return u.f;
-    }
-    exp = (exp - 15 + 127) << 23;
-    frac <<= 13;
-    uint32_t bits = sign | exp | frac;
-    union { uint32_t u; float f; } u = {bits};
-    return u.f;
+static inline float fp_add(float a, float b) {
+    volatile float r = a + b;
+    return r;
 }
 
-// Group-32 Microscaling E8M0 Activation Quantization to INT14 (QLlama-style)
+static inline float fp_mul(float a, float b) {
+    volatile float r = a * b;
+    return r;
+}
+
+// Group-32 microscaling used by int4_quantize_g32 in the HLS.  ap_fixed's
+// AP_TRN conversion is a floor operation (including negative values), then
+// the fixed-point arithmetic right shift aligns every mantissa to max_exp.
 void quantize_activation_g32(const float* input, int size, QuantizedActivation& out) {
     out.q.resize(size);
     const int num_groups = size / GROUP_SIZE;
@@ -171,16 +171,18 @@ void quantize_activation_g32(const float* input, int size, QuantizedActivation& 
         const int base = g * GROUP_SIZE;
         int max_exp = -255;
         int exps[GROUP_SIZE];
-        float mantissas[GROUP_SIZE];
+        int32_t mantissa_raw[GROUP_SIZE];
 
         // Pass 1: frexpf extracts mantissa in [-1, +1) and exponent (zero division)
         for (int i = 0; i < GROUP_SIZE; ++i) {
             float val = input[base + i];
             if (val != 0.0f) {
-                mantissas[i] = std::frexpf(val, &exps[i]);
+                const float mantissa = std::frexp(val, &exps[i]);
+                mantissa_raw[i] = static_cast<int32_t>(
+                    std::floor(static_cast<double>(mantissa) * 8192.0));
                 if (exps[i] > max_exp) max_exp = exps[i];
             } else {
-                mantissas[i] = 0.0f;
+                mantissa_raw[i] = 0;
                 exps[i] = -255;
             }
         }
@@ -196,8 +198,8 @@ void quantize_activation_g32(const float* input, int size, QuantizedActivation& 
                 continue;
             }
             const int dif = max_exp - exps[i];
-            const float scaled = std::ldexp(mantissas[i], -dif);
-            int val = static_cast<int>(std::round(scaled * 8192.0f));
+            int val = dif >= 31 ? (mantissa_raw[i] < 0 ? -1 : 0)
+                                : (mantissa_raw[i] >> dif);
             if (val > 8191) val = 8191;
             if (val < -8191) val = -8191;
             out.q[base + i] = static_cast<int14_t>(val);
@@ -215,10 +217,6 @@ void sharded_gemv_4pe(
     std::vector<float>& output
 ) {
     output.assign(mat.rows, 0.0f);
-    const int tile_rows = 128;
-    const int tile_cols = 256;
-    const int col_tiles = (mat.local_cols + tile_cols - 1) / tile_cols;
-
     std::vector<std::vector<float>> pe_partials(NUM_PES, std::vector<float>(mat.rows, 0.0f));
 
     #pragma omp parallel for collapse(2) schedule(static)
@@ -227,19 +225,19 @@ void sharded_gemv_4pe(
             const int4_t* weights = mat.pe_weights[p].data();
             const float* scales = mat.pe_scales[p].data();
             const int col_offset = p * mat.local_cols;
-            const int rt = r / tile_rows;
+            const int groups128 = mat.local_cols / 128;
             float row_sum = 0.0f;
 
-            for (int ct = 0; ct < col_tiles; ++ct) {
-                const float tile_scale = scales[rt * col_tiles + ct];
-                const int start_col = ct * tile_cols;
-                const int end_col = std::min(start_col + tile_cols, mat.local_cols);
-
-                for (int c = start_col; c < end_col; c += GROUP_SIZE) {
+            // The HLS consumes groups in increasing local-column order and
+            // rounds every FP32 multiply/add at each group boundary.
+            for (int g128 = 0; g128 < groups128; ++g128) {
+                const float weight_scale = scales[r * groups128 + g128];
+                for (int sg = 0; sg < 4; ++sg) {
+                    const int c = g128 * 128 + sg * GROUP_SIZE;
                     const int global_c = col_offset + c;
                     const int g = global_c / GROUP_SIZE;
                     const float act_scale = act.scale[g];
-                    const float combined_scale = tile_scale * act_scale;
+                    const float combined_scale = fp_mul(weight_scale, act_scale);
 
                     int32_t group_dot = 0;
                     for (int lane = 0; lane < GROUP_SIZE; ++lane) {
@@ -247,7 +245,8 @@ void sharded_gemv_4pe(
                         const int14_t a = act.q[global_c + lane];
                         group_dot += static_cast<int32_t>(w) * static_cast<int32_t>(a);
                     }
-                    row_sum += static_cast<float>(group_dot) * combined_scale;
+                    const float contribution = fp_mul(static_cast<float>(group_dot), combined_scale);
+                    row_sum = fp_add(row_sum, contribution);
                 }
             }
             pe_partials[p][r] = row_sum;
@@ -256,9 +255,9 @@ void sharded_gemv_4pe(
 
     #pragma omp parallel for schedule(static)
     for (int r = 0; r < mat.rows; ++r) {
-        float sum01 = pe_partials[0][r] + pe_partials[1][r];
-        float sum23 = pe_partials[2][r] + pe_partials[3][r];
-        output[r] = sum01 + sum23;
+        float sum01 = fp_add(pe_partials[0][r], pe_partials[1][r]);
+        float sum23 = fp_add(pe_partials[2][r], pe_partials[3][r]);
+        output[r] = fp_add(sum01, sum23);
     }
 }
 
@@ -423,6 +422,34 @@ void rmsnorm(const float* input, const float* gamma, int size, float* output) {
     }
 }
 
+static void rmsnorm_quantize_hls(
+    const float* input, const float* gamma, QuantizedActivation& output) {
+    float pe_partial[NUM_PES] = {0, 0, 0, 0};
+    for (int p = 0; p < NUM_PES; ++p) {
+        float slots[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+        const int base = p * LOCAL_DIM;
+        for (int i = 0; i < LOCAL_DIM; ++i) {
+            const float square = fp_mul(input[base + i], input[base + i]);
+            slots[i & 7] = fp_add(slots[i & 7], square);
+        }
+        float total = 0.0f;
+        for (float slot : slots) total = fp_add(total, slot);
+        pe_partial[p] = total;
+    }
+    const float sum01 = fp_add(pe_partial[0], pe_partial[1]);
+    const float sum23 = fp_add(pe_partial[2], pe_partial[3]);
+    const float total = fp_add(sum01, sum23);
+    const float mean_eps = fp_add(fp_mul(total, 1.0f / static_cast<float>(DIM)), 1.0e-5f);
+    const float reciprocal = 1.0f / std::sqrt(mean_eps);
+
+    std::vector<float> normalized(DIM);
+    #pragma omp parallel for schedule(static)
+    for (int i = 0; i < DIM; ++i) {
+        normalized[i] = fp_mul(fp_mul(input[i], reciprocal), gamma[i]);
+    }
+    quantize_activation_g32(normalized.data(), DIM, output);
+}
+
 void apply_rope(float* vec, int num_heads, int head_dim, int pos) {
     // HuggingFace Llama-2 uses split-half RoPE:
     // first head_dim/2 elements rotate with second head_dim/2 elements
@@ -443,87 +470,242 @@ void apply_rope(float* vec, int num_heads, int head_dim, int pos) {
     }
 }
 
-void swiftkv_attention_4pe(
-    const float* q,
-    const float* k,
-    const float* v,
-    KVCachePE* kv_pes,
-    int layer_idx,
-    int pos,
-    float* attn_out
-) {
-    const float scale = 1.0f / std::sqrt(static_cast<float>(HEAD_DIM));
+static inline int32_t saturate_i32(int64_t value) {
+    if (value > INT32_MAX) return INT32_MAX;
+    if (value < INT32_MIN) return INT32_MIN;
+    return static_cast<int32_t>(value);
+}
+
+static int32_t float_to_q17(float value) {
+    uint32_t bits;
+    std::memcpy(&bits, &value, sizeof(bits));
+    const bool negative = (bits >> 31) != 0;
+    const uint32_t exponent = (bits >> 23) & 0xffU;
+    const uint32_t fraction = bits & 0x7fffffU;
+    if (exponent == 0 || exponent < 109) return 0;
+    if (exponent >= 141) return negative ? INT32_MIN : INT32_MAX;
+    const uint32_t significand = (1U << 23) | fraction;
+    uint64_t magnitude;
+    if (exponent >= 133) {
+        magnitude = static_cast<uint64_t>(significand) << (exponent - 133);
+    } else {
+        const unsigned shift = 133 - exponent;
+        uint32_t quotient = significand >> shift;
+        const uint32_t mask = (1U << shift) - 1U;
+        const uint32_t remainder = significand & mask;
+        const uint32_t halfway = 1U << (shift - 1);
+        if (remainder > halfway || (remainder == halfway && (quotient & 1U))) ++quotient;
+        magnitude = quotient;
+    }
+    if (!negative) return magnitude > static_cast<uint64_t>(INT32_MAX) ? INT32_MAX
+                                                                       : static_cast<int32_t>(magnitude);
+    return magnitude >= (1ULL << 31) ? INT32_MIN : -static_cast<int32_t>(magnitude);
+}
+
+static inline int64_t round_shift_even(int64_t value, unsigned shift) {
+    if (shift == 0) return value;
+    const bool neg = value < 0;
+    const uint64_t mag = neg ? static_cast<uint64_t>(-(value + 1)) + 1U
+                             : static_cast<uint64_t>(value);
+    uint64_t q = mag >> shift;
+    const uint64_t rem = mag & ((uint64_t(1) << shift) - 1U);
+    const uint64_t half = uint64_t(1) << (shift - 1);
+    if (rem > half || (rem == half && (q & 1U))) ++q;
+    return neg ? -static_cast<int64_t>(q) : static_cast<int64_t>(q);
+}
+
+static inline int64_t wrap_signed(int64_t value, unsigned bits) {
+    const uint64_t mask = (uint64_t(1) << bits) - 1U;
+    uint64_t raw = static_cast<uint64_t>(value) & mask;
+    if (raw & (uint64_t(1) << (bits - 1))) raw |= ~mask;
+    return static_cast<int64_t>(raw);
+}
+
+static void apply_rope_q17(int32_t* vec, int pos) {
+    const int rope_base = pos * (HEAD_DIM / 2);
+    for (int h = 0; h < NUM_HEADS; ++h) {
+        int32_t* head = vec + h * HEAD_DIM;
+        for (int pair = 0; pair < HEAD_DIM / 2; ++pair) {
+            const int32_t a = head[2 * pair];
+            const int32_t b = head[2 * pair + 1];
+            const int32_t c = g_rope.cosine[rope_base + pair];
+            const int32_t s = g_rope.sine[rope_base + pair];
+            head[2 * pair] = saturate_i32((static_cast<int64_t>(a) * c -
+                                           static_cast<int64_t>(b) * s) >> 17);
+            head[2 * pair + 1] = saturate_i32((static_cast<int64_t>(a) * s +
+                                               static_cast<int64_t>(b) * c) >> 17);
+        }
+    }
+}
+
+static inline uint8_t swiftkv_shift_for_group(const int32_t* values) {
+    uint32_t maximum = 0;
+    for (int i = 0; i < GROUP_SIZE; ++i) {
+        const int64_t v = values[i];
+        const uint32_t mag = static_cast<uint32_t>(v < 0 ? -v : v);
+        maximum = std::max(maximum, mag);
+    }
+    if (maximum == 0) return 0;
+    int msb = 31;
+    while (msb > 0 && ((maximum >> msb) & 1U) == 0) --msb;
+    return static_cast<uint8_t>(msb > 6 ? msb - 6 : 0);
+}
+
+static inline int8_t swiftkv_quantize_raw(int32_t raw, uint8_t shift) {
+    const int64_t wide = raw;
+    uint64_t magnitude = static_cast<uint64_t>(wide < 0 ? -wide : wide);
+    if (shift) magnitude += uint64_t(1) << (shift - 1);
+    magnitude >>= shift;
+    if (magnitude > 127) magnitude = 127;
+    return static_cast<int8_t>(wide < 0 ? -static_cast<int>(magnitude)
+                                        : static_cast<int>(magnitude));
+}
+
+static constexpr uint32_t SWIFTKV_EXP2_LUT_Q30[33] = {
+    1073741824U,1097253708U,1121280436U,1145833280U,1170923762U,1196563654U,
+    1222764986U,1249540052U,1276901417U,1304861917U,1333434672U,1362633090U,
+    1392470869U,1422962010U,1454120821U,1485961921U,1518500250U,1551751076U,
+    1585730000U,1620452965U,1655936265U,1692196547U,1729250827U,1767116489U,
+    1805811301U,1845353420U,1885761398U,1927054196U,1969251188U,2012372174U,
+    2056437387U,2101467502U,2147483648U
+};
+
+static uint32_t swiftkv_exp_negative_q17(int32_t x) {
+    if (x >= 0) return 1U << 17;
+    if (x <= -(32 << 17)) return 0;
+    const int32_t log2_e_q21 = static_cast<int32_t>(std::nearbyint(1.4426950408889634 * (1 << 21)));
+    int64_t log2_raw = round_shift_even(static_cast<int64_t>(x) * log2_e_q21, 21);
+    log2_raw = wrap_signed(log2_raw, 24);
+    const int exponent = static_cast<int>(log2_raw >> 17);
+    const int32_t fraction = static_cast<int32_t>(log2_raw - (static_cast<int64_t>(exponent) << 17));
+    const unsigned index = static_cast<unsigned>(fraction) >> 12;
+    const unsigned remainder = static_cast<unsigned>(fraction) & 0xfffU;
+    const uint32_t base = SWIFTKV_EXP2_LUT_Q30[index];
+    const uint32_t delta = SWIFTKV_EXP2_LUT_Q30[index + 1] - base;
+    const uint32_t interpolated = base + static_cast<uint32_t>(
+        (static_cast<uint64_t>(delta) * remainder + (1U << 11)) >> 12);
+    const int shift = 13 - exponent;
+    uint64_t output = 0;
+    if (shift <= 0) output = static_cast<uint64_t>(interpolated) << (-shift);
+    else if (shift < 32) output = (static_cast<uint64_t>(interpolated) +
+                                  (uint64_t(1) << (shift - 1))) >> shift;
+    return static_cast<uint32_t>(output) & ((1U << 18) - 1U);
+}
+
+static inline int32_t mul_q17_wrap(int32_t a, uint32_t b) {
+    return static_cast<int32_t>(wrap_signed(
+        round_shift_even(static_cast<int64_t>(a) * static_cast<int64_t>(b), 17), 32));
+}
+
+static void swiftkv_attention_4pe(
+    const int32_t* q, const int32_t* k, const int32_t* v,
+    KVCachePE* kv_pes, int layer_idx, int pos, QuantizedActivation& output) {
+    output.q.assign(DIM, 0);
+    output.scale.assign(DIM / GROUP_SIZE, 0.0f);
+    const int32_t score_scale = float_to_q17(0.08838834764831845f);
 
     #pragma omp parallel for collapse(2) schedule(static)
     for (int p = 0; p < NUM_PES; ++p) {
         for (int lh = 0; lh < LOCAL_HEADS; ++lh) {
             KVCachePE& pe = kv_pes[p];
-            const int head_start = p * LOCAL_HEADS;
-            const int gh = head_start + lh;
-            const float* q_h = q + gh * HEAD_DIM;
-            const float* k_h = k + gh * HEAD_DIM;
-            const float* v_h = v + gh * HEAD_DIM;
-
-            const int cache_entry_base = ((layer_idx * LOCAL_HEADS + lh) * MAX_SEQ_LEN + pos) * HEAD_DIM;
-            const int scale_entry_base = ((layer_idx * LOCAL_HEADS + lh) * MAX_SEQ_LEN + pos) * (HEAD_DIM / 32);
-
-            for (int g = 0; g < HEAD_DIM / 32; ++g) {
-                float k_max = 0.0f, v_max = 0.0f;
-                for (int i = 0; i < 32; ++i) {
-                    if (std::fabs(k_h[g * 32 + i]) > k_max) k_max = std::fabs(k_h[g * 32 + i]);
-                    if (std::fabs(v_h[g * 32 + i]) > v_max) v_max = std::fabs(v_h[g * 32 + i]);
-                }
-                float ks = k_max == 0.0f ? 0.0f : k_max / 127.0f;
-                float vs = v_max == 0.0f ? 0.0f : v_max / 127.0f;
-                pe.k_scale[scale_entry_base + g] = ks;
-                pe.v_scale[scale_entry_base + g] = vs;
-
-                for (int i = 0; i < 32; ++i) {
-                    int kq = ks == 0.0f ? 0 : static_cast<int>(std::round(k_h[g * 32 + i] / ks));
-                    int vq = vs == 0.0f ? 0 : static_cast<int>(std::round(v_h[g * 32 + i] / vs));
-                    pe.k_cache[cache_entry_base + g * 32 + i] = static_cast<int8_t>(std::max(-127, std::min(127, kq)));
-                    pe.v_cache[cache_entry_base + g * 32 + i] = static_cast<int8_t>(std::max(-127, std::min(127, vq)));
+            const int gh = p * LOCAL_HEADS + lh;
+            const int32_t* qh = q + gh * HEAD_DIM;
+            const int32_t* kh = k + gh * HEAD_DIM;
+            const int32_t* vh = v + gh * HEAD_DIM;
+            const size_t record = (static_cast<size_t>(layer_idx) * LOCAL_HEADS + lh) * g_cache_seq_len + pos;
+            const size_t data_base = record * HEAD_DIM;
+            const size_t shift_base = record * 4;
+            for (int group = 0; group < 4; ++group) {
+                const uint8_t ks = swiftkv_shift_for_group(kh + group * GROUP_SIZE);
+                const uint8_t vs = swiftkv_shift_for_group(vh + group * GROUP_SIZE);
+                pe.k_shift[shift_base + group] = ks;
+                pe.v_shift[shift_base + group] = vs;
+                for (int lane = 0; lane < GROUP_SIZE; ++lane) {
+                    pe.k_cache[data_base + group * GROUP_SIZE + lane] =
+                        swiftkv_quantize_raw(kh[group * GROUP_SIZE + lane], ks);
+                    pe.v_cache[data_base + group * GROUP_SIZE + lane] =
+                        swiftkv_quantize_raw(vh[group * GROUP_SIZE + lane], vs);
                 }
             }
 
-            float m_val = -1e30f;
-            float l_val = 0.0f;
-            std::vector<float> acc(HEAD_DIM, 0.0f);
-
-            for (int t = 0; t <= pos; ++t) {
-                const int t_cache_base = ((layer_idx * LOCAL_HEADS + lh) * MAX_SEQ_LEN + t) * HEAD_DIM;
-                const int t_scale_base = ((layer_idx * LOCAL_HEADS + lh) * MAX_SEQ_LEN + t) * (HEAD_DIM / 32);
-
-                float score = 0.0f;
-                for (int g = 0; g < HEAD_DIM / 32; ++g) {
-                    float ks = pe.k_scale[t_scale_base + g];
-                    for (int i = 0; i < 32; ++i) {
-                        float k_val = static_cast<float>(pe.k_cache[t_cache_base + g * 32 + i]) * ks;
-                        score += q_h[g * 32 + i] * k_val;
+            int32_t running_max = 0;
+            uint32_t normalization = 0; // unsigned Q13.17, wrap30
+            int32_t state[HEAD_DIM] = {0};
+            for (int token = 0; token <= pos; ++token) {
+                const size_t tr = (static_cast<size_t>(layer_idx) * LOCAL_HEADS + lh) * g_cache_seq_len + token;
+                const size_t tb = tr * HEAD_DIM;
+                const size_t ts = tr * 4;
+                int64_t token_dot = 0;
+                for (int group = 0; group < 4; ++group) {
+                    int64_t halves[2] = {0, 0};
+                    for (int half = 0; half < 2; ++half) {
+                        int64_t sum = 0;
+                        for (int lane = 0; lane < 16; ++lane) {
+                            const int idx = group * 32 + half * 16 + lane;
+                            sum += static_cast<int64_t>(qh[idx]) * pe.k_cache[tb + idx];
+                        }
+                        const int shift = static_cast<int>(pe.k_shift[ts + group]);
+                        halves[half] = wrap_signed(shift >= 10 ? (sum << (shift - 10))
+                                                               : (sum >> (10 - shift)), 44);
+                    }
+                    const int64_t group_dot = wrap_signed(halves[0] + halves[1], 44);
+                    token_dot = group == 0 ? group_dot : wrap_signed(token_dot + group_dot, 44);
+                }
+                const int32_t score = saturate_i32(round_shift_even(token_dot * score_scale, 24));
+                uint32_t coefficient = 1U << 17;
+                bool rescale_history = false;
+                if (token == 0) {
+                    running_max = score;
+                    normalization = 1U << 17;
+                } else if (score <= running_max) {
+                    coefficient = swiftkv_exp_negative_q17(saturate_i32(
+                        static_cast<int64_t>(score) - running_max));
+                    normalization = (normalization + coefficient) & ((1U << 30) - 1U);
+                } else {
+                    coefficient = swiftkv_exp_negative_q17(saturate_i32(
+                        static_cast<int64_t>(running_max) - score));
+                    normalization = static_cast<uint32_t>(round_shift_even(
+                        static_cast<int64_t>(normalization) * coefficient, 17)) & ((1U << 30) - 1U);
+                    normalization = (normalization + (1U << 17)) & ((1U << 30) - 1U);
+                    running_max = score;
+                    rescale_history = true;
+                }
+                for (int d = 0; d < HEAD_DIM; ++d) {
+                    const int group = d / GROUP_SIZE;
+                    const int32_t value = static_cast<int32_t>(pe.v_cache[tb + d]) << pe.v_shift[ts + group];
+                    if (token == 0) state[d] = value;
+                    else if (rescale_history) {
+                        state[d] = saturate_i32(static_cast<int64_t>(mul_q17_wrap(state[d], coefficient)) + value);
+                    } else {
+                        state[d] = saturate_i32(static_cast<int64_t>(state[d]) + mul_q17_wrap(value, coefficient));
                     }
                 }
-                score *= scale;
-
-                float m_new = std::max(m_val, score);
-                float exp_old = std::exp(m_val - m_new);
-                float exp_score = std::exp(score - m_new);
-
-                l_val = l_val * exp_old + exp_score;
-
-                for (int g = 0; g < HEAD_DIM / 32; ++g) {
-                    float vs = pe.v_scale[t_scale_base + g];
-                    for (int i = 0; i < 32; ++i) {
-                        float v_val = static_cast<float>(pe.v_cache[t_cache_base + g * 32 + i]) * vs;
-                        acc[g * 32 + i] = acc[g * 32 + i] * exp_old + exp_score * v_val;
-                    }
-                }
-                m_val = m_new;
             }
-
-            float inv_l = l_val > 0.0f ? 1.0f / l_val : 0.0f;
-            float* out_h = attn_out + gh * HEAD_DIM;
-            for (int d = 0; d < HEAD_DIM; ++d) {
-                out_h[d] = acc[d] * inv_l;
+            const uint32_t inverse = normalization == 0 ? 0U : static_cast<uint32_t>(
+                ((uint64_t(1) << 34) + (normalization >> 1)) / normalization);
+            int32_t normalized[HEAD_DIM];
+            for (int d = 0; d < HEAD_DIM; ++d) normalized[d] = mul_q17_wrap(state[d], inverse);
+            for (int group = 0; group < 4; ++group) {
+                int32_t max_raw = 0;
+                for (int lane = 0; lane < GROUP_SIZE; ++lane) {
+                    const int32_t value = normalized[group * GROUP_SIZE + lane];
+                    const int32_t mag = value == INT32_MIN ? INT32_MAX : std::abs(value);
+                    max_raw = std::max(max_raw, mag);
+                }
+                const float max_float = static_cast<float>(max_raw) * (1.0f / 131072.0f);
+                int max_exp = -127;
+                if (max_float != 0.0f) std::frexp(max_float, &max_exp);
+                const float scale = max_float == 0.0f ? 0.0f : std::ldexp(1.0f, max_exp - 13);
+                const float inv_scale = max_float == 0.0f ? 0.0f : std::ldexp(1.0f, 13 - max_exp);
+                const int global_group = gh * 4 + group;
+                output.scale[global_group] = scale;
+                for (int lane = 0; lane < GROUP_SIZE; ++lane) {
+                    const float value = static_cast<float>(normalized[group * GROUP_SIZE + lane]) * (1.0f / 131072.0f);
+                    float rounded = fp_mul(value, inv_scale);
+                    rounded += rounded >= 0.0f ? 0.5f : -0.5f;
+                    rounded = std::max(-8191.0f, std::min(8191.0f, rounded));
+                    output.q[global_group * GROUP_SIZE + lane] = static_cast<int16_t>(rounded);
+                }
             }
         }
     }
@@ -551,66 +733,46 @@ float* forward(
     const float* emb_ptr = model.token_embeddings.data() + token * DIM;
     std::copy(emb_ptr, emb_ptr + DIM, residual.begin());
 
-    std::vector<float> normed(DIM);
-    std::vector<float> q(DIM), k(DIM), v(DIM);
-    std::vector<float> attn_out(DIM);
+    std::vector<float> q_float(DIM), k_float(DIM), v_float(DIM);
+    std::vector<int32_t> q(DIM), k(DIM), v(DIM);
     std::vector<float> proj_o(DIM);
     std::vector<float> gate(PADDED_HIDDEN_DIM), up(PADDED_HIDDEN_DIM);
     std::vector<float> swiglu_out(PADDED_HIDDEN_DIM);
     std::vector<float> proj_down(DIM);
-    QuantizedActivation qact;
-
-    // Helper lambda: dispatch GEMV based on g_float_act flag
-    auto do_gemv = [&](const QuantizedMatrix& mat, const float* fp_act, std::vector<float>& out) {
-        if (g_float_act) {
-            sharded_gemv_4pe_float(mat, fp_act, out);
-        } else {
-            quantize_activation_g32(fp_act, mat.cols, qact);
-            sharded_gemv_4pe(mat, qact, out);
-        }
-    };
+    QuantizedActivation norm_act, attn_act, swiglu_act;
 
     for (int l = 0; l < g_num_layers; ++l) {
         const DecoderLayer& layer = model.layers[l];
 
-        // 1. RMSNorm(attention)
-        rmsnorm(residual.data(), layer.attn_norm_gamma.data(), DIM, normed.data());
+        rmsnorm_quantize_hls(residual.data(), layer.attn_norm_gamma.data(), norm_act);
+        sharded_gemv_4pe(layer.w_q, norm_act, q_float);
+        sharded_gemv_4pe(layer.w_k, norm_act, k_float);
+        sharded_gemv_4pe(layer.w_v, norm_act, v_float);
+        #pragma omp parallel for schedule(static)
+        for (int i = 0; i < DIM; ++i) {
+            q[i] = float_to_q17(q_float[i]);
+            k[i] = float_to_q17(k_float[i]);
+            v[i] = float_to_q17(v_float[i]);
+        }
+        apply_rope_q17(q.data(), pos);
+        apply_rope_q17(k.data(), pos);
+        swiftkv_attention_4pe(q.data(), k.data(), v.data(), kv_pes, l, pos, attn_act);
 
-        // 2. Q, K, V
-        do_gemv(layer.w_q, normed.data(), q);
-        do_gemv(layer.w_k, normed.data(), k);
-        do_gemv(layer.w_v, normed.data(), v);
-
-        // 3. RoPE
-        apply_rope(q.data(), NUM_HEADS, HEAD_DIM, pos);
-        apply_rope(k.data(), NUM_HEADS, HEAD_DIM, pos);
-
-        // 4. SwiftKV Attention
-        swiftkv_attention_4pe(q.data(), k.data(), v.data(), kv_pes, l, pos, attn_out.data());
-
-        // 5. O Projection & Residual Add
-        do_gemv(layer.w_o, attn_out.data(), proj_o);
+        sharded_gemv_4pe(layer.w_o, attn_act, proj_o);
         for (int i = 0; i < DIM; ++i) residual[i] += proj_o[i];
 
-        // 6. RMSNorm(FFN)
-        rmsnorm(residual.data(), layer.ffn_norm_gamma.data(), DIM, normed.data());
-
-        // 7. GATE & UP Projections
-        do_gemv(layer.w_gate, normed.data(), gate);
-        do_gemv(layer.w_up, normed.data(), up);
-
-        // 8. SwiGLU & DOWN Projection
+        rmsnorm_quantize_hls(residual.data(), layer.ffn_norm_gamma.data(), norm_act);
+        sharded_gemv_4pe(layer.w_gate, norm_act, gate);
+        sharded_gemv_4pe(layer.w_up, norm_act, up);
         swiglu(gate.data(), up.data(), PADDED_HIDDEN_DIM, swiglu_out.data());
-        do_gemv(layer.w_down, swiglu_out.data(), proj_down);
-
-        // 9. Residual Add
+        quantize_activation_g32(swiglu_out.data(), PADDED_HIDDEN_DIM, swiglu_act);
+        sharded_gemv_4pe(layer.w_down, swiglu_act, proj_down);
         for (int i = 0; i < DIM; ++i) residual[i] += proj_down[i];
     }
 
-    // Final Norm & Logits
-    rmsnorm(residual.data(), model.final_norm_gamma.data(), DIM, normed.data());
+    rmsnorm_quantize_hls(residual.data(), model.final_norm_gamma.data(), norm_act);
     std::vector<float> padded_logits(PADDED_VOCAB_SIZE, 0.0f);
-    do_gemv(model.w_logits, normed.data(), padded_logits);
+    sharded_gemv_4pe(model.w_logits, norm_act, padded_logits);
 
     out_logits.resize(VOCAB_SIZE);
     std::copy(padded_logits.begin(), padded_logits.begin() + VOCAB_SIZE, out_logits.begin());
@@ -622,18 +784,13 @@ float* forward(
 // Binary Bank Loader for Real AutoRound Weights (Hardcoded / Quiet)
 // ============================================================================
 static int get_weight_offset(int layer, int mode) {
-    static const int matrix_weight_words[8] = {32768, 32768, 32768, 32768, 90112, 90112, 90112, 258048};
-    if (mode == 7) return 32 * 401408;
-    int off = layer * 401408;
-    for (int p = 0; p < mode; ++p) off += matrix_weight_words[p];
-    return off;
-}
-
-static int get_scale_offset(int layer, int mode) {
-    static const int matrix_scale_words[8] = {4, 4, 4, 4, 11, 11, 11, 32};
-    if (mode == 7) return 32 * 49;
-    int off = layer * 49;
-    for (int p = 0; p < mode; ++p) off += matrix_scale_words[p];
+    static const int matrix_data_words[8] = {
+        33792, 33792, 33792, 33792, 92928, 92928, 92928, 266112
+    };
+    static constexpr int layer_stride = 413952;
+    if (mode == 7) return 32 * layer_stride;
+    int off = layer * layer_stride;
+    for (int p = 0; p < mode; ++p) off += matrix_data_words[p];
     return off;
 }
 
@@ -654,36 +811,55 @@ void unpack_binary_matrix(
     const int out_tiles = rows / 128;
     const int local_in_tiles = qm.local_cols / 256;
     const int tile_count = out_tiles * local_in_tiles;
-
-    const uint64_t w_byte_offset = static_cast<uint64_t>(WEIGHT_BASE_WORD + get_weight_offset(layer, mode)) * WORD_BYTES;
-    const uint64_t s_byte_offset = static_cast<uint64_t>(SCALE_BASE_WORD + get_scale_offset(layer, mode)) * WORD_BYTES;
+    const int block_count = tile_count / TILES_PER_BLOCK;
+    const size_t matrix_bytes = static_cast<size_t>(block_count) * SUPERBLOCK_WORDS * WORD_BYTES;
+    const uint64_t matrix_byte_offset =
+        static_cast<uint64_t>(WEIGHT_BASE_WORD + get_weight_offset(layer, mode)) * WORD_BYTES;
 
     for (int p = 0; p < NUM_PES; ++p) {
-        qm.pe_weights[p].assign(rows * qm.local_cols, 0);
-        qm.pe_scales[p].assign(tile_count, 0.0f);
-
-        // 1. Read scales (Q1.15 signed fixed-point, ap_int<16>)
-        banks[p].seekg(s_byte_offset);
-        std::vector<int16_t> q115_scales(tile_count);
-        banks[p].read(reinterpret_cast<char*>(q115_scales.data()), tile_count * sizeof(int16_t));
-        for (int t = 0; t < tile_count; ++t) {
-            qm.pe_scales[p][t] = static_cast<float>(q115_scales[t]) * (1.0f / 32768.0f);
+        qm.pe_weights[p].assign(static_cast<size_t>(rows) * qm.local_cols, 0);
+        const int local_groups128 = qm.local_cols / 128;
+        qm.pe_scales[p].assign(static_cast<size_t>(rows) * local_groups128, 0.0f);
+        std::vector<uint8_t> matrix(matrix_bytes);
+        banks[p].clear();
+        banks[p].seekg(static_cast<std::streamoff>(matrix_byte_offset));
+        banks[p].read(reinterpret_cast<char*>(matrix.data()), static_cast<std::streamsize>(matrix.size()));
+        if (banks[p].gcount() != static_cast<std::streamsize>(matrix.size())) {
+            throw std::runtime_error("short matrix read from model_bank" + std::to_string(p) + ".bin");
         }
-
-        // 2. Read and unpack INT4 weights
-        banks[p].seekg(w_byte_offset);
-        const int tile_bytes = 256 * WORD_BYTES; // 16384 bytes
-        std::vector<uint8_t> tile_buf(tile_bytes);
 
         for (int t = 0; t < tile_count; ++t) {
             const int out_tile = t / local_in_tiles;
             const int in_tile = t % local_in_tiles;
+            const int block = t / TILES_PER_BLOCK;
+            const int tile_in_block = t % TILES_PER_BLOCK;
 
-            banks[p].read(reinterpret_cast<char*>(tile_buf.data()), tile_bytes);
+            // Eight scale words encode 128 rows x two G128 scales.
+            for (int row = 0; row < 128; ++row) {
+                const int row_block = row / 4;
+                const int lane = row & 3;
+                const int word = row_block / 4;
+                const int r_local = row_block & 3;
+                for (int g128 = 0; g128 < 2; ++g128) {
+                    const int scalar = r_local * 8 + lane * 2 + g128;
+                    const size_t byte_offset =
+                        (static_cast<size_t>(block) * SUPERBLOCK_WORDS +
+                         tile_in_block * 8 + word) * WORD_BYTES + scalar * 2;
+                    int16_t raw;
+                    std::memcpy(&raw, matrix.data() + byte_offset, sizeof(raw));
+                    const int global_row = out_tile * 128 + row;
+                    const int local_g128 = in_tile * 2 + g128;
+                    qm.pe_scales[p][static_cast<size_t>(global_row) * local_groups128 + local_g128] =
+                        static_cast<float>(raw) * (1.0f / 32768.0f);
+                }
+            }
 
             for (int group = 0; group < 8; ++group) {
                 for (int row_block = 0; row_block < 32; ++row_block) {
-                    const uint8_t* word_bytes = tile_buf.data() + (group * 32 + row_block) * 64;
+                    const size_t word_index =
+                        static_cast<size_t>(block) * SUPERBLOCK_WORDS + SCALE_WORDS_PER_BLOCK +
+                        tile_in_block * 256 + group * 32 + row_block;
+                    const uint8_t* word_bytes = matrix.data() + word_index * WORD_BYTES;
 
                     for (int lane = 0; lane < 32; ++lane) {
                         const int col = in_tile * 256 + group * 32 + lane;
@@ -737,6 +913,15 @@ bool load_real_model(TransformerModel& model, const std::string& base_dir, int n
         std::string path = valid_dir + "/model_bank" + std::to_string(p) + ".bin";
         banks[p].open(path, std::ios::binary);
         if (!banks[p].is_open()) return false;
+        banks[p].seekg(0, std::ios::end);
+        const uint64_t bytes = static_cast<uint64_t>(banks[p].tellg());
+        const uint64_t expected = static_cast<uint64_t>(TOTAL_WORDS) * WORD_BYTES;
+        if (bytes != expected) {
+            std::cerr << "ERROR: " << path << " has " << bytes << " bytes; current dense HLS layout requires "
+                      << expected << " bytes.\n";
+            return false;
+        }
+        banks[p].seekg(0);
     }
 
     std::string emb_path = valid_dir + "/embeddings.bin";
@@ -745,6 +930,40 @@ bool load_real_model(TransformerModel& model, const std::string& base_dir, int n
 
     model.token_embeddings.resize(VOCAB_SIZE * DIM);
     emb_f.read(reinterpret_cast<char*>(model.token_embeddings.data()), model.token_embeddings.size() * sizeof(float));
+    if (emb_f.gcount() != static_cast<std::streamsize>(model.token_embeddings.size() * sizeof(float))) return false;
+
+    // The LUT stores four 608-bit logical words per position, each padded to
+    // two little-endian 512-bit DDR words.
+    std::ifstream rope_f(valid_dir + "/rope_lut.bin", std::ios::binary);
+    if (!rope_f.is_open()) return false;
+    std::vector<uint8_t> rope_bytes(static_cast<size_t>(MAX_SEQ_LEN) * 4 * 128);
+    rope_f.read(reinterpret_cast<char*>(rope_bytes.data()), static_cast<std::streamsize>(rope_bytes.size()));
+    if (rope_f.gcount() != static_cast<std::streamsize>(rope_bytes.size())) return false;
+    g_rope.cosine.resize(static_cast<size_t>(MAX_SEQ_LEN) * 64);
+    g_rope.sine.resize(static_cast<size_t>(MAX_SEQ_LEN) * 64);
+    auto extract_bits = [&](size_t base, int bit, int width) -> uint32_t {
+        uint64_t value = 0;
+        for (int b = 0; b < width; ++b) {
+            const int source = bit + b;
+            value |= static_cast<uint64_t>((rope_bytes[base + source / 8] >> (source & 7)) & 1U) << b;
+        }
+        return static_cast<uint32_t>(value);
+    };
+    auto sign19 = [](uint32_t raw) -> int32_t {
+        return (raw & (1U << 18)) ? static_cast<int32_t>(raw | 0xfff80000U)
+                                 : static_cast<int32_t>(raw);
+    };
+    for (int pos = 0; pos < MAX_SEQ_LEN; ++pos) {
+        for (int group = 0; group < 4; ++group) {
+            const size_t base = (static_cast<size_t>(pos) * 4 + group) * 128;
+            for (int lane = 0; lane < 16; ++lane) {
+                const int pair = group * 16 + lane;
+                g_rope.cosine[static_cast<size_t>(pos) * 64 + pair] = sign19(extract_bits(base, lane * 38, 19));
+                g_rope.sine[static_cast<size_t>(pos) * 64 + pair] = sign19(extract_bits(base, lane * 38 + 19, 19));
+            }
+        }
+    }
+    g_rope.loaded = true;
 
     model.final_norm_gamma.resize(DIM);
     const uint64_t final_norm_base = static_cast<uint64_t>(NORM_BASE_WORD + 32 * 128) * WORD_BYTES;
@@ -1307,8 +1526,22 @@ void softmax_logits(float* x, int size) {
 }
 
 int sample(Sampler* sampler, float* logits) {
-    // Greedy argmax: token co diem cao nhat se duoc chon
-    return sample_argmax(logits, sampler->vocab_size);
+    // Match llama2.c/runq.c: temperature 0 selects greedy argmax; otherwise
+    // temperature scaling + softmax is followed by multinomial or top-p.
+    if (sampler->temperature == 0.0f) {
+        return sample_argmax(logits, sampler->vocab_size);
+    }
+    for (int q = 0; q < sampler->vocab_size; ++q) {
+        logits[q] /= sampler->temperature;
+    }
+    softmax_logits(logits, sampler->vocab_size);
+    const float coin = random_f32(&sampler->rng_state);
+    if (sampler->topp <= 0.0f || sampler->topp >= 1.0f) {
+        return sample_mult(logits, sampler->vocab_size, coin);
+    }
+    return sample_topp(
+        logits, sampler->vocab_size, sampler->topp,
+        sampler->probindex, coin);
 }
 
 // ============================================================================
@@ -1320,9 +1553,9 @@ long time_in_ms() {
 }
 
 // ============================================================================
-// Generation Loop (Identical to runq.c)
+// Generation loop: same prefill/decode boundary as tb_decoder_token.
 // ============================================================================
-void generate(const TransformerModel& model, KVCachePE* kv_pes, Tokenizer *tokenizer, Sampler *sampler, const char *prompt, int steps) {
+void generate(const TransformerModel& model, KVCachePE* kv_pes, Tokenizer *tokenizer, Sampler *sampler, const char *prompt, int max_new_tokens) {
     const char *empty_prompt = "";
     if (prompt == NULL) { prompt = empty_prompt; }
 
@@ -1338,46 +1571,56 @@ void generate(const TransformerModel& model, KVCachePE* kv_pes, Tokenizer *token
     std::vector<float> residual(DIM, 0.0f);
     std::vector<float> logits(VOCAB_SIZE, 0.0f);
 
-    // start the main loop
-    long start = 0;  // used to time our code, only initialized after first iteration
-    int next = 0;    // will store the next token in the sequence
-    int token = prompt_tokens[0]; // kick off with the first token in the prompt
-    int pos = 0;     // position in the sequence
-    while (pos < steps) {
+    std::cout << "[Prompt tokens]";
+    for (int i = 0; i < num_prompt_tokens; ++i) std::cout << ' ' << prompt_tokens[i];
+    std::cout << "\n[Sampling] temperature=" << sampler->temperature
+              << ", top-p=" << sampler->topp
+              << ", seed=" << sampler->rng_state;
+    std::cout << "\n[Text] " << prompt;
+    std::cout.flush();
 
-        // forward the transformer to get logits for the next token
-        float* logits_ptr = forward(model, kv_pes, token, pos, residual, logits);
+    const auto prefill_start = std::chrono::steady_clock::now();
+    float* logits_ptr = nullptr;
+    int pos = 0;
+    for (int i = 0; i < num_prompt_tokens; ++i) {
+        logits_ptr = forward(model, kv_pes, prompt_tokens[i], pos++, residual, logits);
+    }
+    const auto prefill_end = std::chrono::steady_clock::now();
 
-        // advance the state state machine
-        if (pos < num_prompt_tokens - 1) {
-            // if we are still processing the input prompt, force the next prompt token
-            next = prompt_tokens[pos + 1];
-        } else {
-            // otherwise sample the next token from the logits
-            next = sample(sampler, logits_ptr);
-        }
-        pos++;
-
-        // Llama-2 uses token 2 as EOS. Token 1 is BOS and must not be used as
-        // the generation stop condition.
-        if (next == 2) { break; }
-
-        // print the token as string, decode it with the Tokenizer object
-        char* piece = decode(tokenizer, token, next);
-        safe_printf(piece); // same as printf("%s", piece), but skips "unsafe" bytes
+    int token = prompt_tokens[num_prompt_tokens - 1];
+    std::vector<int> generated_ids;
+    std::vector<float> generated_logits;
+    std::vector<float> raw_logits(VOCAB_SIZE);
+    const auto decode_start = std::chrono::steady_clock::now();
+    for (int generated = 0; generated < max_new_tokens && pos < MAX_SEQ_LEN; ++generated) {
+        // runq.c's stochastic sampler overwrites logits with probabilities.
+        // Preserve raw logits so the diagnostic output keeps its stated unit.
+        std::copy(logits_ptr, logits_ptr + VOCAB_SIZE, raw_logits.begin());
+        const int next = sample(sampler, logits_ptr);
+        generated_ids.push_back(next);
+        generated_logits.push_back(raw_logits[next]);
+        if (next == 2) break;
+        safe_printf(decode(tokenizer, token, next));
         fflush(stdout);
         token = next;
-
-        // init the timer here because the first iteration can be slower
-        if (start == 0) { start = time_in_ms(); }
+        if (generated + 1 < max_new_tokens) {
+            logits_ptr = forward(model, kv_pes, token, pos++, residual, logits);
+        }
     }
-    printf("\n");
-
-    // report achieved tok/s (pos-1 because the timer starts after first iteration)
-    if (pos > 1) {
-        long end = time_in_ms();
-        fprintf(stderr, "achieved tok/s: %f\n", (pos-1) / (double)(end-start)*1000);
+    const auto decode_end = std::chrono::steady_clock::now();
+    std::cout << "\n[Generated token IDs]";
+    for (int id : generated_ids) std::cout << ' ' << id;
+    std::cout << "\n[Selected logits]";
+    for (float value : generated_logits) std::cout << ' ' << std::setprecision(7) << value;
+    const double prefill_s = std::chrono::duration<double>(prefill_end - prefill_start).count();
+    const double decode_s = std::chrono::duration<double>(decode_end - decode_start).count();
+    const int decode_forwards = std::max(0, static_cast<int>(generated_ids.size()) - 1);
+    std::cout << "\n[Timing] prefill=" << std::fixed << std::setprecision(3) << prefill_s << " s";
+    if (decode_forwards > 0) {
+        std::cout << ", decode=" << decode_s << " s, "
+                  << (decode_s * 1000.0 / decode_forwards) << " ms/token-forward";
     }
+    std::cout << "\n";
 
     free(prompt_tokens);
 }
@@ -1518,9 +1761,21 @@ void calculate_perplexity(
         std::string text = path_or_text;
         std::ifstream tf(path_or_text);
         if (tf.is_open()) {
-            std::stringstream ss;
-            ss << tf.rdbuf();
-            text = ss.str();
+            if (max_tokens > 0) {
+                // The tokenizer is intentionally simple and expensive on a
+                // complete multi-megabyte corpus.  Read a generously sized
+                // prefix: 64 bytes/token leaves ample look-ahead so truncating
+                // the token vector below is identical to tokenizing the full
+                // file for the requested prefix.
+                const size_t prefix_bytes = static_cast<size_t>(max_tokens) * 64;
+                std::vector<char> prefix(prefix_bytes);
+                tf.read(prefix.data(), static_cast<std::streamsize>(prefix.size()));
+                text.assign(prefix.data(), static_cast<size_t>(tf.gcount()));
+            } else {
+                std::stringstream ss;
+                ss << tf.rdbuf();
+                text = ss.str();
+            }
         }
         all_tokens.resize(text.size() + 16);
         int n_all_tokens = 0;
@@ -1561,9 +1816,9 @@ void calculate_perplexity(
         kv_pes.resize(NUM_PES);
         for (int p = 0; p < NUM_PES; ++p) {
             kv_pes[p].k_cache.assign(g_num_layers * LOCAL_HEADS * MAX_SEQ_LEN * HEAD_DIM, 0);
-            kv_pes[p].k_scale.assign(g_num_layers * LOCAL_HEADS * MAX_SEQ_LEN * (HEAD_DIM / 32), 0.0f);
+            kv_pes[p].k_shift.assign(g_num_layers * LOCAL_HEADS * MAX_SEQ_LEN * (HEAD_DIM / 32), 0);
             kv_pes[p].v_cache.assign(g_num_layers * LOCAL_HEADS * MAX_SEQ_LEN * HEAD_DIM, 0);
-            kv_pes[p].v_scale.assign(g_num_layers * LOCAL_HEADS * MAX_SEQ_LEN * (HEAD_DIM / 32), 0.0f);
+            kv_pes[p].v_shift.assign(g_num_layers * LOCAL_HEADS * MAX_SEQ_LEN * (HEAD_DIM / 32), 0);
         }
     }
     std::vector<float> residual(DIM, 0.0f);
@@ -1581,9 +1836,9 @@ void calculate_perplexity(
         } else {
             for (int p = 0; p < NUM_PES; ++p) {
                 std::fill(kv_pes[p].k_cache.begin(), kv_pes[p].k_cache.end(), 0);
-                std::fill(kv_pes[p].k_scale.begin(), kv_pes[p].k_scale.end(), 0.0f);
+                std::fill(kv_pes[p].k_shift.begin(), kv_pes[p].k_shift.end(), 0);
                 std::fill(kv_pes[p].v_cache.begin(), kv_pes[p].v_cache.end(), 0);
-                std::fill(kv_pes[p].v_scale.begin(), kv_pes[p].v_scale.end(), 0.0f);
+                std::fill(kv_pes[p].v_shift.begin(), kv_pes[p].v_shift.end(), 0);
             }
         }
 
@@ -1651,10 +1906,10 @@ void error_usage() {
     fprintf(stderr, "Usage:   run <checkpoint> [options]\n");
     fprintf(stderr, "Example: run model.bin -n 256 -i \"Once upon a time\"\n");
     fprintf(stderr, "Options:\n");
-    fprintf(stderr, "  -t <float>  temperature in [0,inf], default 0.0 (0.0 = greedy argmax)\n");
+    fprintf(stderr, "  -t <float>  temperature in [0,inf], default 1.0 (0.0 = greedy argmax)\n");
     fprintf(stderr, "  -p <float>  p value in top-p (nucleus) sampling in [0,1] default 0.9\n");
     fprintf(stderr, "  -s <int>    random seed, default time(NULL)\n");
-    fprintf(stderr, "  -n <int>    number of steps to run for, default 256. 0 = max_seq_len\n");
+    fprintf(stderr, "  -n, --max-tokens <int> number of new tokens, default 256\n");
     fprintf(stderr, "  -i <string> input prompt\n");
     fprintf(stderr, "  -z <string> optional path to custom tokenizer\n");
     fprintf(stderr, "  -m <string> mode: generate|chat, default: generate\n");
@@ -1672,7 +1927,7 @@ int main(int argc, char *argv[]) {
     // default parameters
     char *checkpoint_path = (char*)HARDCODED_WEIGHTS_DIR.c_str();  // hardcoded default
     const char *tokenizer_path = "tokenizer.bin";
-    float temperature = 0.0f;   // 0.0 = greedy argmax deterministic
+    float temperature = 1.0f;   // runq.c default; 0.0 = greedy deterministic
     float topp = 0.9f;          // top-p in nucleus sampling. 1.0 = off. 0.9 works well, but slower
     int steps = 256;            // number of steps to run for
     char *prompt = NULL;        // prompt string
@@ -1696,7 +1951,7 @@ int main(int argc, char *argv[]) {
             topp = std::atof(argv[++i]);
         } else if (arg == "-s" && i + 1 < argc) {
             rng_seed = std::atoll(argv[++i]);
-        } else if (arg == "-n" && i + 1 < argc) {
+        } else if ((arg == "-n" || arg == "--max-tokens") && i + 1 < argc) {
             steps = std::atoi(argv[++i]);
         } else if (arg == "-i" && i + 1 < argc) {
             prompt = argv[++i];
@@ -1763,12 +2018,19 @@ int main(int argc, char *argv[]) {
     build_sampler(&sampler, VOCAB_SIZE, temperature, topp, rng_seed);
 
     // Initialize KV Caches for 4 PEs
+    if (strcmp(mode, "generate") == 0) {
+        const int prompt_bound = prompt ? static_cast<int>(std::strlen(prompt)) + 3 : 3;
+        g_cache_seq_len = std::min(MAX_SEQ_LEN, std::max(1, steps + prompt_bound));
+    } else {
+        g_cache_seq_len = MAX_SEQ_LEN;
+    }
     std::vector<KVCachePE> kv_pes(NUM_PES);
     for (int p = 0; p < NUM_PES; ++p) {
-        kv_pes[p].k_cache.assign(g_num_layers * LOCAL_HEADS * MAX_SEQ_LEN * HEAD_DIM, 0);
-        kv_pes[p].k_scale.assign(g_num_layers * LOCAL_HEADS * MAX_SEQ_LEN * (HEAD_DIM / 32), 0.0f);
-        kv_pes[p].v_cache.assign(g_num_layers * LOCAL_HEADS * MAX_SEQ_LEN * HEAD_DIM, 0);
-        kv_pes[p].v_scale.assign(g_num_layers * LOCAL_HEADS * MAX_SEQ_LEN * (HEAD_DIM / 32), 0.0f);
+        const size_t records = static_cast<size_t>(g_num_layers) * LOCAL_HEADS * g_cache_seq_len;
+        kv_pes[p].k_cache.assign(records * HEAD_DIM, 0);
+        kv_pes[p].k_shift.assign(records * (HEAD_DIM / 32), 0);
+        kv_pes[p].v_cache.assign(records * HEAD_DIM, 0);
+        kv_pes[p].v_shift.assign(records * (HEAD_DIM / 32), 0);
     }
 
     // run!

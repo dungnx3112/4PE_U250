@@ -1,12 +1,18 @@
+import argparse
 import os
-import sys
 import time
 import struct
 import numpy as np
 
-# Model paths
-AUTOROUND_BIN_PATH = "C:/KLTN/4PE_U250/autoround_w4g128.bin"
-OUTPUT_DIR = "C:/KLTN/4PE_U250"
+# Portable defaults: repository root on either Linux or Windows.  Explicit CLI
+# arguments still take precedence when the source model lives elsewhere.
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+AUTOROUND_BIN_PATH = os.environ.get(
+    "AUTOROUND_BIN_PATH", os.path.join(REPO_ROOT, "autoround_w4g128.bin")
+)
+OUTPUT_DIR = os.environ.get("MODEL_BANK_OUTPUT_DIR", REPO_ROOT)
+LM_HEAD_ARTIFACT_MAGIC = b"ARLH"
+LM_HEAD_ARTIFACT_HEADER_BYTES = 64
 
 # Architecture constants matching int4_types.hpp & int4_model_layout.hpp
 NUM_LAYERS = 32
@@ -23,17 +29,18 @@ GROUP_SIZE = 32
 AUTOROUND_GROUP_SIZE = 128
 
 TILES_PER_BLOCK = 16
-SCALE_WORDS_PER_BLOCK = 256
+SCALE_WORDS_PER_TILE = 8
+SCALE_WORDS_PER_BLOCK = TILES_PER_BLOCK * SCALE_WORDS_PER_TILE
 WEIGHT_WORDS_PER_BLOCK = 4096
-SUPER_BLOCK_WORDS = 4352
+SUPER_BLOCK_WORDS = SCALE_WORDS_PER_BLOCK + WEIGHT_WORDS_PER_BLOCK
 
 WORD_BYTES = 64
 NORM_BASE_WORD = 0
 TOTAL_NORM_WORDS_PER_PE = 4160
 DATA_BASE_WORD = 4160
-TOTAL_DATA_WORDS_PER_PE = 13922048
-MODEL_WORDS_PER_DDR = 13926208
-TOTAL_BYTES_PER_BANK = MODEL_WORDS_PER_DDR * WORD_BYTES # 891,277,312 bytes
+TOTAL_DATA_WORDS_PER_PE = 13512576
+MODEL_WORDS_PER_DDR = 13516736
+TOTAL_BYTES_PER_BANK = MODEL_WORDS_PER_DDR * WORD_BYTES # 865,071,104 bytes
 
 # Mode indices matching int4_types.hpp
 MODE_Q = 0
@@ -73,7 +80,10 @@ def matrix_shape_info(mode):
     return valid_out, padded_out, valid_in, padded_in, out_tiles, local_in_tiles, tile_count, block_count, data_words
 
 matrix_data_words_map = {m: matrix_shape_info(m)[8] for m in range(8)}
-layer_data_stride = sum(matrix_data_words_map[m] for m in range(7)) # 426,496
+layer_data_stride = sum(matrix_data_words_map[m] for m in range(7)) # 413,952
+assert SUPER_BLOCK_WORDS % 64 == 0
+assert NUM_LAYERS * layer_data_stride + matrix_data_words_map[MODE_LOGITS] == TOTAL_DATA_WORDS_PER_PE
+assert DATA_BASE_WORD + TOTAL_DATA_WORDS_PER_PE == MODEL_WORDS_PER_DDR
 
 def get_data_offset(layer, mode):
     if mode == MODE_LOGITS:
@@ -104,7 +114,7 @@ def permute_qk_rows(mat):
 def pack_matrix_to_super_blocks(pe, mat_w, mat_scales_q115, out_tiles, local_in_tiles, M, K):
     """
     Packs a matrix shard for 1 PE into contiguous Super-Blocks:
-    Each Super-Block = 256 words scale + 4096 words weight = 4352 words (278,528 bytes).
+    Each Super-Block = 128 words scale + 4096 words weight = 4224 words (270,336 bytes).
     """
     total_tiles = out_tiles * local_in_tiles
     block_count = total_tiles // TILES_PER_BLOCK
@@ -113,11 +123,12 @@ def pack_matrix_to_super_blocks(pe, mat_w, mat_scales_q115, out_tiles, local_in_
     out_buf = np.zeros((block_count, SUPER_BLOCK_WORDS, WORD_BYTES), dtype=np.uint8)
     
     for b in range(block_count):
-        # 1. Pack 256 scale words (16 tiles * 16 words per tile)
+        # 1. Pack 128 scale words (16 tiles * 8 words per tile)
         # Each word is 64 bytes = 32 int16 values
-        scale_block = np.zeros((16, 16, 32), dtype=np.int16)
-        for t in range(16):
-            matrix_tile = b * 16 + t
+        scale_block = np.zeros(
+            (TILES_PER_BLOCK, SCALE_WORDS_PER_TILE, 32), dtype=np.int16)
+        for t in range(TILES_PER_BLOCK):
+            matrix_tile = b * TILES_PER_BLOCK + t
             out_tile = matrix_tile // local_in_tiles
             local_col_tile = matrix_tile % local_in_tiles
             
@@ -125,8 +136,7 @@ def pack_matrix_to_super_blocks(pe, mat_w, mat_scales_q115, out_tiles, local_in_
             col_start = (pe * local_in_tiles + local_col_tile) * 256
             g128_start = col_start // 128
             
-            # Unpack 8 active scale words
-            for w in range(8):
+            for w in range(SCALE_WORDS_PER_TILE):
                 for s in range(32):
                     r_local = s // 8
                     lane = (s % 8) // 2
@@ -137,9 +147,8 @@ def pack_matrix_to_super_blocks(pe, mat_w, mat_scales_q115, out_tiles, local_in_
                     global_g128 = g128_start + g128
                     if global_r < M and global_g128 < (K // 128):
                         scale_block[t, w, s] = mat_scales_q115[global_r, global_g128]
-            # Words 8..15 remain 0 (padding)
-            
-        out_buf[b, :SCALE_WORDS_PER_BLOCK] = scale_block.view(np.uint8).reshape(256, 64)
+        out_buf[b, :SCALE_WORDS_PER_BLOCK] = (
+            scale_block.view(np.uint8).reshape(SCALE_WORDS_PER_BLOCK, WORD_BYTES))
         
         # 2. Pack 4096 weight words (16 tiles * 256 words per tile)
         weight_block = np.zeros((16, 8, 32, 64), dtype=np.uint8) # [16 tiles, 8 groups, 32 row_blocks, 64 bytes]
@@ -179,18 +188,147 @@ def pack_matrix_to_super_blocks(pe, mat_w, mat_scales_q115, out_tiles, local_in_
         
     return out_buf.reshape(-1) # 1D byte array
 
+def load_autoround_lm_head(path):
+    """Load the compact artifact emitted by autoround_lm_head_only.py."""
+    path = os.path.abspath(path)
+    with open(path, "rb") as f_head:
+        header = f_head.read(LM_HEAD_ARTIFACT_HEADER_BYTES)
+        if len(header) != LM_HEAD_ARTIFACT_HEADER_BYTES:
+            raise ValueError(f"Truncated lm_head artifact header: {path}")
+        magic, version, rows, cols, group_size, bits, symmetric = struct.unpack(
+            "<4sIIIIII", header[:28]
+        )
+        if magic != LM_HEAD_ARTIFACT_MAGIC or version != 1:
+            raise ValueError(f"Unsupported lm_head artifact: magic={magic!r}, version={version}")
+        if (rows, cols, group_size, bits, symmetric) != (
+            VOCAB_SIZE, DIM, AUTOROUND_GROUP_SIZE, 4, 1
+        ):
+            raise ValueError(
+                "lm_head artifact geometry mismatch: "
+                f"rows={rows}, cols={cols}, group={group_size}, bits={bits}, sym={symmetric}"
+            )
+
+        packed_bytes = rows * (cols // 2)
+        scale_count = rows * (cols // group_size)
+        expected_size = LM_HEAD_ARTIFACT_HEADER_BYTES + packed_bytes + scale_count * 4
+        actual_size = os.path.getsize(path)
+        if actual_size != expected_size:
+            raise ValueError(f"Bad lm_head artifact size {actual_size}; expected {expected_size}")
+
+        packed = np.frombuffer(f_head.read(packed_bytes), dtype=np.uint8).reshape(rows, cols // 2)
+        weights = np.empty((rows, cols), dtype=np.int8)
+        weights[:, 0::2] = (packed & 0x0F).astype(np.int8) - 8
+        weights[:, 1::2] = (packed >> 4).astype(np.int8) - 8
+        scales = np.frombuffer(f_head.read(scale_count * 4), dtype=np.float32).reshape(
+            rows, cols // group_size
+        )
+    return weights, scales
+
+def pack_logits_into_banks(banks, lm_head_artifact=None, head_raw=None):
+    valid_out, padded_out, valid_in, padded_in, out_tiles, local_in_tiles, _, _, _ = matrix_shape_info(
+        MODE_LOGITS
+    )
+
+    if lm_head_artifact:
+        print(f"  Loading calibrated AutoRound lm_head: {os.path.abspath(lm_head_artifact)}")
+        head_valid, scales_valid = load_autoround_lm_head(lm_head_artifact)
+        head_w = np.zeros((padded_out, padded_in), dtype=np.int8)
+        scales_f32 = np.zeros((padded_out, padded_in // AUTOROUND_GROUP_SIZE), dtype=np.float32)
+        head_w[:valid_out, :valid_in] = head_valid
+        scales_f32[:valid_out, :valid_in // AUTOROUND_GROUP_SIZE] = scales_valid
+    else:
+        if head_raw is None:
+            raise ValueError("head_raw is required when no calibrated lm_head artifact is supplied")
+        print("  WARNING: no --lm-head-autoround supplied; using local max-abs RTN for lm_head")
+        head_pad = np.zeros((padded_out, padded_in), dtype=np.float32)
+        head_pad[:valid_out, :valid_in] = head_raw
+        head_reshaped = head_pad.reshape(padded_out, padded_in // AUTOROUND_GROUP_SIZE, AUTOROUND_GROUP_SIZE)
+        max_abs = np.max(np.abs(head_reshaped), axis=2, keepdims=True)
+        max_abs = np.maximum(max_abs, 1e-8)
+        scales_f32 = (max_abs / 7.0).squeeze(axis=2)
+        head_w = np.clip(
+            np.round(head_reshaped / (scales_f32[:, :, None] + 1e-12)), -8, 7
+        ).astype(np.int8).reshape(padded_out, padded_in)
+
+    unclipped = np.round(scales_f32 * 32768.0)
+    clipped_count = int(np.count_nonzero((unclipped < -32768) | (unclipped > 32767)))
+    if clipped_count:
+        print(f"  WARNING: {clipped_count} lm_head scales saturated in Q1.15")
+    head_s_q115 = np.clip(unclipped, -32768, 32767).astype(np.int16)
+
+    logits_offset_word = DATA_BASE_WORD + get_data_offset(0, MODE_LOGITS)
+    logits_byte_start = logits_offset_word * WORD_BYTES
+    for p in range(NUM_PES):
+        packed_bytes = pack_matrix_to_super_blocks(
+            p, head_w, head_s_q115, out_tiles, local_in_tiles, padded_out, padded_in
+        )
+        banks[p][logits_byte_start : logits_byte_start + len(packed_bytes)] = packed_bytes
+
+def flush_banks(banks, output_dir):
+    for p in range(NUM_PES):
+        banks[p].flush()
+        file_size = os.path.getsize(os.path.join(output_dir, f"model_bank{p}.bin"))
+        print(f"  model_bank{p}.bin saved: {file_size:,} bytes ({file_size / (1024*1024):.1f} MB)")
+
 def main():
+    parser = argparse.ArgumentParser(
+        description="Pack AutoRound W4G128 weights into four U250 DDR images"
+    )
+    parser.add_argument(
+        "--input", default=AUTOROUND_BIN_PATH,
+        help="AutoRound source model (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--output-dir", default=OUTPUT_DIR,
+        help="directory for embeddings.bin and model_bank[0-3].bin (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--lm-head-autoround", default=None,
+        help="calibrated lm_head artifact from autoround_lm_head_only.py",
+    )
+    parser.add_argument(
+        "--only-lm-head", action="store_true",
+        help="patch only the logits region of existing model_bank[0-3].bin files",
+    )
+    args = parser.parse_args()
+    autoround_bin_path = os.path.abspath(args.input)
+    output_dir = os.path.abspath(args.output_dir)
+    os.makedirs(output_dir, exist_ok=True)
+
+    if args.only_lm_head:
+        if not args.lm_head_autoround:
+            parser.error("--only-lm-head requires --lm-head-autoround")
+        print("==================================================================")
+        print(" Patching calibrated AutoRound lm_head into existing U250 banks")
+        print("==================================================================")
+        banks = []
+        for p in range(NUM_PES):
+            bin_path = os.path.join(output_dir, f"model_bank{p}.bin")
+            if not os.path.exists(bin_path):
+                raise FileNotFoundError(f"Existing bank not found: {bin_path}")
+            if os.path.getsize(bin_path) != TOTAL_BYTES_PER_BANK:
+                raise ValueError(
+                    f"Bad bank size for {bin_path}: {os.path.getsize(bin_path)}; "
+                    f"expected {TOTAL_BYTES_PER_BANK}"
+                )
+            banks.append(np.memmap(bin_path, dtype=np.uint8, mode="r+", shape=(TOTAL_BYTES_PER_BANK,)))
+        pack_logits_into_banks(banks, args.lm_head_autoround)
+        print("Flushing patched DDR images to disk...")
+        flush_banks(banks, output_dir)
+        print("[OK] Only the logits/lm_head region was changed.")
+        return
+
     print("==================================================================")
     print(" AutoRound W4G128 Model Packer for AMD Alveo U250 (4 PEs)")
-    print(" Layout: Interleaved Super-Blocks (1 Scale : 16 Weight bursts)")
+    print(" Layout: Dense Super-Blocks (2 scale + 64 weight bursts)")
     print("==================================================================")
     
     total_start_time = time.time()
     
-    if not os.path.exists(AUTOROUND_BIN_PATH):
-        raise FileNotFoundError(f"Model file not found: {AUTOROUND_BIN_PATH}")
+    if not os.path.exists(autoround_bin_path):
+        raise FileNotFoundError(f"Model file not found: {autoround_bin_path}")
         
-    f_in = open(AUTOROUND_BIN_PATH, "rb")
+    f_in = open(autoround_bin_path, "rb")
     
     # 1. Read Header
     header = f_in.read(256)
@@ -199,7 +337,7 @@ def main():
     print(f"[1/5] Loaded header: Dim={dim}, Hidden={hidden_dim}, Layers={n_layers}, GroupSize={group_size}")
     
     # 2. Extract Token Embeddings
-    emb_path = os.path.join(OUTPUT_DIR, "embeddings.bin")
+    emb_path = os.path.join(output_dir, "embeddings.bin")
     emb_bytes = vocab_size * dim * 4
     if not os.path.exists(emb_path) or os.path.getsize(emb_path) != emb_bytes:
         print(f"[2/5] Writing {emb_path} ({emb_bytes / (1024*1024):.1f} MB)...")
@@ -214,7 +352,7 @@ def main():
     print(f"\n[3/5] Initializing 4 DDR Binary Files ({TOTAL_BYTES_PER_BANK / (1024*1024):.1f} MB each)...")
     banks = []
     for p in range(NUM_PES):
-        bin_path = os.path.join(OUTPUT_DIR, f"model_bank{p}.bin")
+        bin_path = os.path.join(output_dir, f"model_bank{p}.bin")
         create_mode = "r+b" if os.path.exists(bin_path) else "w+b"
         with open(bin_path, create_mode) as bf:
             bf.truncate(TOTAL_BYTES_PER_BANK)
@@ -314,40 +452,22 @@ def main():
         p_fn = fn_bytes[p * 1024 * 4 : (p + 1) * 1024 * 4]
         banks[p][final_word * WORD_BYTES : (final_word + 64) * WORD_BYTES] = p_fn
         
-    # LM Head: [32000, 4096] float32
-    head_raw = np.frombuffer(f_in.read(VOCAB_SIZE * DIM * 4), dtype=np.float32).reshape(VOCAB_SIZE, DIM)
-    valid_out, padded_out, valid_in, padded_in, out_tiles, local_in_tiles, tile_count, block_count, data_words = matrix_shape_info(MODE_LOGITS)
-    
-    # Pad to [32256, 4096]
-    head_pad = np.zeros((padded_out, padded_in), dtype=np.float32)
-    head_pad[:valid_out, :valid_in] = head_raw
-    
-    # AutoRound W4G128 quantization for LM Head:
-    # Group size 128 along columns -> 32 groups
-    head_reshaped = head_pad.reshape(padded_out, padded_in // 128, 128)
-    max_abs = np.max(np.abs(head_reshaped), axis=2, keepdims=True)
-    max_abs = np.maximum(max_abs, 1e-8)
-    scales_f32 = (max_abs / 7.0).squeeze(axis=2) # [padded_out, 32]
-    
-    q_cand = np.clip(np.round(head_reshaped / (scales_f32[:, :, None] + 1e-12)), -8, 7).astype(np.int8)
-    head_w = q_cand.reshape(padded_out, padded_in)
-    head_s_q115 = np.clip(np.round(scales_f32 * 32768.0), -32768, 32767).astype(np.int16)
-    
-    logits_offset_word = DATA_BASE_WORD + get_data_offset(0, MODE_LOGITS)
-    logits_byte_start = logits_offset_word * WORD_BYTES
-    
-    for p in range(NUM_PES):
-        packed_bytes = pack_matrix_to_super_blocks(p, head_w, head_s_q115, out_tiles, local_in_tiles, padded_out, padded_in)
-        banks[p][logits_byte_start : logits_byte_start + len(packed_bytes)] = packed_bytes
+    if args.lm_head_autoround:
+        # The FP32 head remains in the source stream, but it is not needed when
+        # a calibrated artifact is supplied.
+        f_in.seek(VOCAB_SIZE * DIM * 4, os.SEEK_CUR)
+        pack_logits_into_banks(banks, args.lm_head_autoround)
+    else:
+        head_raw = np.frombuffer(
+            f_in.read(VOCAB_SIZE * DIM * 4), dtype=np.float32
+        ).reshape(VOCAB_SIZE, DIM)
+        pack_logits_into_banks(banks, head_raw=head_raw)
         
     f_in.close()
     
     # Flush all memory-mapped files to disk
     print("\nFlushing 4 DDR binary images to disk...")
-    for p in range(NUM_PES):
-        banks[p].flush()
-        file_size = os.path.getsize(os.path.join(OUTPUT_DIR, f"model_bank{p}.bin"))
-        print(f"  model_bank{p}.bin saved: {file_size:,} bytes ({file_size / (1024*1024):.1f} MB)")
+    flush_banks(banks, output_dir)
         
     print(f"\n==================================================================")
     print(f" SUCCESS: ALL 4 DDR BANKS PACKED IN {time.time() - total_start_time:.1f}s")

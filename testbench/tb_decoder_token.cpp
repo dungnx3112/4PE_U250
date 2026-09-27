@@ -7,9 +7,13 @@
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
+#include <thread>
 #include <windows.h>
 
+#include "int4_decoder_blocks.hpp"
 #include "int4_decoder_controller.hpp"
+#include "int4_decoder_local.hpp"
+#include "int4_linear_controller.hpp"
 #include "int4_types.hpp"
 #include "int4_model_layout.hpp"
 #include "swiftkv_attention.hpp"
@@ -79,6 +83,102 @@ struct MappedFile {
 
     ~MappedFile() { close(); }
 };
+
+static void run_native_dataflow_step(
+    int position,
+    const int4_weight_word_t* const model_bank[4],
+    const int4_output_word_t* const rope_lut[4],
+    int4_output_word_t residual[4][INT4_VECTOR_WORDS_PER_PE],
+    int4_output_word_t logits[4][INT4_LOGIT_WORDS_PER_PE],
+    int4_output_word_t* const kv_cache[4]) {
+    hls::stream<int4_position_command_t> position_stream[4];
+    for (int pe = 0; pe < 4; ++pe) {
+        position_stream[pe].write(position);
+    }
+
+    hls::stream<float> rms_partial[4];
+    hls::stream<float> rms_reciprocal[4];
+    hls::stream<float> rms_sum23_to01;
+    hls::stream<float> rms_reciprocal01_to23;
+    hls::stream<int4_reduction_packet_t> linear_partial[4];
+    hls::stream<int4_reduction_packet_t> linear_output[4];
+    hls::stream<int4_reduction_packet_t> linear_sum01_local;
+    hls::stream<int4_reduction_packet_t> linear_sum01_to23;
+    hls::stream<int4_reduction_packet_t> linear_sum23_local;
+    hls::stream<int4_reduction_packet_t> linear_sum23_to01;
+
+    std::thread pe0([&]() {
+        int4_decoder_local_pe_0(
+            model_bank[0], rope_lut[0], residual[0], logits[0], kv_cache[0],
+            position_stream[0], rms_partial[0], rms_reciprocal[0],
+            linear_partial[0], linear_output[0]);
+    });
+    std::thread pe1([&]() {
+        int4_decoder_local_pe_1(
+            model_bank[1], rope_lut[1], residual[1], logits[1], kv_cache[1],
+            position_stream[1], rms_partial[1], rms_reciprocal[1],
+            linear_partial[1], linear_output[1]);
+    });
+    std::thread pe2([&]() {
+        int4_decoder_local_pe_2(
+            model_bank[2], rope_lut[2], residual[2], logits[2], kv_cache[2],
+            position_stream[2], rms_partial[2], rms_reciprocal[2],
+            linear_partial[2], linear_output[2]);
+    });
+    std::thread pe3([&]() {
+        int4_decoder_local_pe_3(
+            model_bank[3], rope_lut[3], residual[3], logits[3], kv_cache[3],
+            position_stream[3], rms_partial[3], rms_reciprocal[3],
+            linear_partial[3], linear_output[3]);
+    });
+    std::thread rms01([&]() {
+        int4_rms_pair01_schedule(
+            rms_partial[0], rms_partial[1], rms_sum23_to01,
+            rms_reciprocal[0], rms_reciprocal[1],
+            rms_reciprocal01_to23);
+    });
+    std::thread rms23_reduce([&]() {
+        int4_rms_pair23_reduce_schedule(
+            rms_partial[2], rms_partial[3], rms_sum23_to01);
+    });
+    std::thread rms23_distribute([&]() {
+        int4_rms_pair23_distribute_schedule(
+            rms_reciprocal01_to23,
+            rms_reciprocal[2], rms_reciprocal[3]);
+    });
+    std::thread linear01_reduce([&]() {
+        int4_linear_reduce_pair01_schedule(
+            linear_partial[0], linear_partial[1],
+            linear_sum01_local, linear_sum01_to23);
+    });
+    std::thread linear23_reduce([&]() {
+        int4_linear_reduce_pair23_schedule(
+            linear_partial[2], linear_partial[3],
+            linear_sum23_local, linear_sum23_to01);
+    });
+    std::thread linear01_finalize([&]() {
+        int4_linear_finalize_pair01_schedule(
+            linear_sum01_local, linear_sum23_to01,
+            linear_output[0], linear_output[1]);
+    });
+    std::thread linear23_finalize([&]() {
+        int4_linear_finalize_pair23_schedule(
+            linear_sum23_local, linear_sum01_to23,
+            linear_output[2], linear_output[3]);
+    });
+
+    pe0.join();
+    pe1.join();
+    pe2.join();
+    pe3.join();
+    rms01.join();
+    rms23_reduce.join();
+    rms23_distribute.join();
+    linear01_reduce.join();
+    linear23_reduce.join();
+    linear01_finalize.join();
+    linear23_finalize.join();
+}
 
 // Simple BPE Tokenizer matching llama2.c
 typedef struct {
@@ -309,18 +409,18 @@ int main(int argc, char** argv) {
             }
         }
 
-        // Call the Top-Level HLS Decoder Controller!
-        int4_decoder_token_controller(
-            (ap_uint<12>)pos,
+        const int4_weight_word_t* model_banks[4] = {
             (const int4_weight_word_t*)bank0.ptr,
             (const int4_weight_word_t*)bank1.ptr,
             (const int4_weight_word_t*)bank2.ptr,
-            (const int4_weight_word_t*)bank3.ptr,
-            rope_lut_ptr, rope_lut_ptr, rope_lut_ptr, rope_lut_ptr,
-            residual_pe[0], residual_pe[1], residual_pe[2], residual_pe[3],
-            logits_pe[0], logits_pe[1], logits_pe[2], logits_pe[3],
-            kv_cache_pe[0], kv_cache_pe[1], kv_cache_pe[2], kv_cache_pe[3]
-        );
+            (const int4_weight_word_t*)bank3.ptr
+        };
+        const int4_output_word_t* rope_luts[4] = {
+            rope_lut_ptr, rope_lut_ptr, rope_lut_ptr, rope_lut_ptr
+        };
+        run_native_dataflow_step(
+            pos, model_banks, rope_luts,
+            residual_pe, logits_pe, kv_cache_pe);
 
         // Unpack logits: 8064 floats per PE, 16 floats per word
         out_logits.resize(VOCAB_SIZE);
@@ -374,16 +474,24 @@ int main(int argc, char** argv) {
 
     int prev_token = prompt_tokens[n_prompt_tokens - 1];
     auto t_gen_start = std::chrono::high_resolution_clock::now();
+    int decode_forward_passes = 0;
+    std::vector<int> generated_token_ids;
+    std::vector<float> generated_token_logits;
 
     for (int gen = 0; gen < max_new_tokens; ++gen) {
+        generated_token_ids.push_back(next_token);
+        generated_token_logits.push_back(max_logit);
         char* piece = decode_token(&tokenizer, prev_token, next_token);
         std::cout << piece;
         std::cout.flush();
 
         if (next_token == 2) break; // EOS
 
+        if (gen + 1 == max_new_tokens) break;
+
         prev_token = next_token;
         run_hw_step(next_token, pos++, logits);
+        ++decode_forward_passes;
 
         max_logit = -1e9f;
         for (int i = 0; i < VOCAB_SIZE; ++i) {
@@ -396,7 +504,20 @@ int main(int argc, char** argv) {
     std::cout << "\n\n";
     auto t_gen_end = std::chrono::high_resolution_clock::now();
     double gen_sec = std::chrono::duration<double>(t_gen_end - t_gen_start).count();
-    std::cout << "[+] Decode throughput: " << (double)max_new_tokens / gen_sec << " tok/s\n";
+    std::cout << "[Generated Token IDs]: [";
+    for (size_t i = 0; i < generated_token_ids.size(); ++i) {
+        std::cout << generated_token_ids[i]
+                  << " (logit=" << generated_token_logits[i] << ")"
+                  << (i + 1 < generated_token_ids.size() ? ", " : "");
+    }
+    std::cout << "]\n";
+    if (decode_forward_passes > 0) {
+        std::cout << "[+] Decode forward throughput: "
+                  << (double)decode_forward_passes / gen_sec << " tok/s\n";
+    } else {
+        std::cout << "[+] Decode forward passes: 0 "
+                     "(first token sampled from final prefill logits)\n";
+    }
 
     // Cleanup
     for (int p = 0; p < 4; ++p) free(kv_cache_pe[p]);

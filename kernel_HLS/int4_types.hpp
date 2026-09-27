@@ -56,20 +56,27 @@ static constexpr int INT4_WEIGHT_SCALES_PER_WORD =
 static constexpr int INT4_SCALE_ROWS_PER_WORD = 16;
 
 // AutoRound W4G128 super-block configuration.  A 512-bit AXI beat is 64
-// bytes, so every physical burst is capped at 64 beats (4 KiB): four scale
-// bursts followed by 64 weight bursts per super-block.
+// bytes, so every physical burst is capped at 64 beats (4 KiB): two dense
+// scale bursts followed by 64 weight bursts per super-block.
 static constexpr int INT4_AUTOROUND_GROUP_SIZE = 128;
 static constexpr int INT4_AUTOROUND_GROUPS_PER_TILE =
     INT4_TILE_COLS / INT4_AUTOROUND_GROUP_SIZE; // 2 groups of 128 per tile
 static constexpr int INT4_TILES_PER_BLOCK = 16;
-static constexpr int INT4_SCALE_WORDS_PER_TILE = 16; // 8 active (256 scales) + 8 padding
 static constexpr int INT4_ACTIVE_SCALE_WORDS_PER_TILE = 8;
+// Eight 512-bit words hold all 256 Q1.15 scales required by one 128x256
+// tile.  The former eight-word pad is intentionally absent so DDR carries
+// only scale data consumed by the MAC.
+static constexpr int INT4_SCALE_WORDS_PER_TILE =
+    INT4_ACTIVE_SCALE_WORDS_PER_TILE;
 static constexpr int INT4_SCALE_WORDS_PER_BLOCK =
-    INT4_TILES_PER_BLOCK * INT4_SCALE_WORDS_PER_TILE; // 256 words (4 x 64-beat bursts)
+    INT4_TILES_PER_BLOCK * INT4_SCALE_WORDS_PER_TILE; // 128 words (2 x 64-beat bursts)
 static constexpr int INT4_WEIGHT_WORDS_PER_BLOCK =
     INT4_TILES_PER_BLOCK * INT4_WEIGHT_WORDS_PER_TILE; // 4096 words (64 x 64-beat bursts)
 static constexpr int INT4_SUPER_BLOCK_WORDS =
-    INT4_SCALE_WORDS_PER_BLOCK + INT4_WEIGHT_WORDS_PER_BLOCK; // 4352 words
+    INT4_SCALE_WORDS_PER_BLOCK + INT4_WEIGHT_WORDS_PER_BLOCK; // 4224 words (66 bursts)
+// Two complete AXI bursts decouple the m_axi response path from the splitter.
+// The m_axi adapter separately tracks the configured outstanding requests.
+static constexpr int INT4_MODEL_WORD_STREAM_DEPTH = 128;
 
 // Weight scale is stored as Q1.15 signed fixed-point (ap_int<16>).
 // Value = raw_bits * 2^-15.  Range [-1.0, +1.0), LSB ≈ 3.05e-5.

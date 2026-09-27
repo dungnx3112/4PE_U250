@@ -78,7 +78,7 @@ extern "C" void int4_decoder_pe0_kernel(
     hls::stream<float>& rms_reciprocal_from_pe1,
     hls::stream<int4_reduction_packet_t>& linear_partial_to_pe1,
     hls::stream<int4_reduction_packet_t>& linear_output_from_pe1) {
-// Weight traffic is the token critical path: one PE reads roughly 13.9M
+// Weight traffic is the token critical path: one PE reads roughly 13.5M
 // 512-bit words per token.  A deep multi-request window keeps consecutive
 // 4-KiB-safe 64-beat bursts flowing without changing the model-bank layout.
 #pragma HLS INTERFACE m_axi port=model_bank bundle=gmem0 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=64 num_read_outstanding=8

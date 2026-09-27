@@ -253,7 +253,7 @@ read_model_words_loop:
          word_index < total_words;
          ++word_index) {
 #pragma HLS PIPELINE II=1
-#pragma HLS LOOP_TRIPCOUNT min=34816 max=274176
+#pragma HLS LOOP_TRIPCOUNT min=33792 max=266112
         model_word_stream.write(weight_mem[base_address + word_index]);
     }
 }
@@ -276,7 +276,7 @@ split_model_words_loop:
          remaining != 0;
          --remaining) {
 #pragma HLS PIPELINE II=1
-#pragma HLS LOOP_TRIPCOUNT min=34816 max=274176
+#pragma HLS LOOP_TRIPCOUNT min=33792 max=266112
         const int4_weight_word_t word = model_word_stream.read();
         if (offset_in_block < INT4_SCALE_WORDS_PER_BLOCK) {
             scale_stream.write(word);
@@ -314,9 +314,8 @@ buffer_local_weight_loop:
 typedef int4_weight_scale_word_t
     int4_scale_tile_block_t[INT4_ACTIVE_SCALE_WORDS_PER_TILE];
 
-// Strip the eight padding words and ping-pong the eight active scale words.
-// stream_of_blocks allows this producer to fill tile N+1 while the scale
-// emitter and MAC consume tile N.
+// Ping-pong the eight densely packed scale words.  stream_of_blocks allows
+// this producer to fill tile N+1 while the scale emitter and MAC consume tile N.
 template <int PE_ID>
 static void int4_pack_local_scale_tiles(
     hls::stream<int4_weight_request_t>& request_stream,
@@ -332,17 +331,10 @@ pack_local_scale_tile_loop:
     for (ap_uint<16> tile = 0; tile < total_tiles; ++tile) {
 #pragma HLS LOOP_TRIPCOUNT min=128 max=1008
         hls::write_lock<int4_scale_tile_block_t> scale_tile(scale_blocks);
-    pack_local_scale_active_loop:
+    pack_local_scale_words_loop:
         for (int w = 0; w < INT4_ACTIVE_SCALE_WORDS_PER_TILE; ++w) {
 #pragma HLS PIPELINE II=1
             scale_tile[w] = scale_stream.read();
-        }
-    pack_local_scale_pad_loop:
-        for (int w = INT4_ACTIVE_SCALE_WORDS_PER_TILE;
-             w < INT4_SCALE_WORDS_PER_TILE;
-             ++w) {
-#pragma HLS PIPELINE II=1
-            scale_stream.read();
         }
     }
 }
@@ -599,8 +591,8 @@ static void int4_run_local_pe(
 #pragma HLS STREAM variable=buffer_request depth=4
 #pragma HLS STREAM variable=scale_pack_request depth=4
 #pragma HLS STREAM variable=scale_emit_request depth=5
-#pragma HLS STREAM variable=scale_stream depth=256
-#pragma HLS STREAM variable=model_word_stream depth=64
+#pragma HLS STREAM variable=scale_stream depth=INT4_SCALE_WORDS_PER_BLOCK
+#pragma HLS STREAM variable=model_word_stream depth=INT4_MODEL_WORD_STREAM_DEPTH
 #pragma HLS STREAM variable=scale_lane0 depth=64
 #pragma HLS STREAM variable=scale_lane1 depth=64
 #pragma HLS STREAM variable=scale_lane2 depth=64
@@ -689,8 +681,8 @@ static void int4_run_local_pe_with_completion(
 #pragma HLS STREAM variable=buffer_request depth=4
 #pragma HLS STREAM variable=scale_pack_request depth=4
 #pragma HLS STREAM variable=scale_emit_request depth=5
-#pragma HLS STREAM variable=scale_stream depth=256
-#pragma HLS STREAM variable=model_word_stream depth=64
+#pragma HLS STREAM variable=scale_stream depth=INT4_SCALE_WORDS_PER_BLOCK
+#pragma HLS STREAM variable=model_word_stream depth=INT4_MODEL_WORD_STREAM_DEPTH
 #pragma HLS STREAM variable=scale_lane0 depth=64
 #pragma HLS STREAM variable=scale_lane1 depth=64
 #pragma HLS STREAM variable=scale_lane2 depth=64

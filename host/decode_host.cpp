@@ -65,7 +65,7 @@ constexpr int MAX_SEQ_LEN = 4096;
 constexpr int OUTPUTS_PER_WORD = 16;
 constexpr int DDR_WORD_BYTES = 64;
 
-constexpr std::size_t MODEL_BANK_WORDS = 13926208ULL;
+constexpr std::size_t MODEL_BANK_WORDS = 13516736ULL;
 constexpr std::size_t MODEL_BANK_BYTES = MODEL_BANK_WORDS * DDR_WORD_BYTES;
 constexpr std::size_t ROPE_LUT_WORDS = 32768ULL;
 constexpr std::size_t ROPE_LUT_BYTES = ROPE_LUT_WORDS * DDR_WORD_BYTES;
@@ -85,7 +85,7 @@ constexpr std::size_t EMBEDDING_BYTES =
     std::size_t(VOCAB_SIZE) * DIM * sizeof(float);
 constexpr unsigned int RUN_TIMEOUT_MS = 10000;
 
-static_assert(MODEL_BANK_BYTES == 891277312ULL,
+static_assert(MODEL_BANK_BYTES == 865071104ULL,
               "model bank size must match int4_model_layout.hpp");
 static_assert(ROPE_LUT_BYTES == 2097152ULL,
               "RoPE LUT size must match swiftkv_attention.hpp");

@@ -11,6 +11,9 @@
 #include <windows.h>
 
 #include "int4_decoder_multikernel.hpp"
+#include "int4_decoder_blocks.hpp"
+#include "int4_decoder_local.hpp"
+#include "int4_linear_controller.hpp"
 #include "int4_types.hpp"
 #include "int4_model_layout.hpp"
 #include "swiftkv_attention.hpp"
@@ -144,84 +147,145 @@ int main(int argc, char** argv) {
 
     std::cout << "[+] Running pos=0, token=" << token << " across 4 CUs in parallel...\n";
 
-    // 4. Create the 6 inter-SLR streams
-    hls::stream<float> rms_pe0_to_pe1("rms_pe0_to_pe1");
-    hls::stream<float> rms_pe1_to_pe0("rms_pe1_to_pe0");
-    hls::stream<float> rms_pe2_to_pe1("rms_pe2_to_pe1");
-    hls::stream<float> rms_pe1_to_pe2("rms_pe1_to_pe2");
-    hls::stream<float> rms_pe3_to_pe2("rms_pe3_to_pe2");
-    hls::stream<float> rms_pe2_to_pe3("rms_pe2_to_pe3");
+    // 4. Native C simulation of the controller DATAFLOW graph. HLS schedules
+    // these processes concurrently in RTL; std::thread provides the same
+    // blocking-stream semantics when this testbench is compiled with g++.
+    hls::stream<int4_position_command_t> position_pe0("position_pe0");
+    hls::stream<int4_position_command_t> position_pe1("position_pe1");
+    hls::stream<int4_position_command_t> position_pe2("position_pe2");
+    hls::stream<int4_position_command_t> position_pe3("position_pe3");
+    position_pe0.write(position);
+    position_pe1.write(position);
+    position_pe2.write(position);
+    position_pe3.write(position);
 
-    hls::stream<int4_reduction_packet_t> linear_partial_pe0_to_pe1("linear_partial_pe0_to_pe1");
-    hls::stream<int4_reduction_packet_t> linear_output_pe1_to_pe0("linear_output_pe1_to_pe0");
-    hls::stream<int4_reduction_packet_t> linear_sum_pe1_to_pe2("linear_sum_pe1_to_pe2");
-    hls::stream<int4_reduction_packet_t> linear_sum_pe2_to_pe1("linear_sum_pe2_to_pe1");
-    hls::stream<int4_reduction_packet_t> linear_partial_pe3_to_pe2("linear_partial_pe3_to_pe2");
-    hls::stream<int4_reduction_packet_t> linear_output_pe2_to_pe3("linear_output_pe2_to_pe3");
+    hls::stream<float> rms_partial0("rms_partial0");
+    hls::stream<float> rms_partial1("rms_partial1");
+    hls::stream<float> rms_partial2("rms_partial2");
+    hls::stream<float> rms_partial3("rms_partial3");
+    hls::stream<float> rms_reciprocal0("rms_reciprocal0");
+    hls::stream<float> rms_reciprocal1("rms_reciprocal1");
+    hls::stream<float> rms_reciprocal2("rms_reciprocal2");
+    hls::stream<float> rms_reciprocal3("rms_reciprocal3");
+    hls::stream<float> rms_sum23_to01("rms_sum23_to01");
+    hls::stream<float> rms_reciprocal01_to23("rms_reciprocal01_to23");
+
+    hls::stream<int4_reduction_packet_t> linear_partial0("linear_partial0");
+    hls::stream<int4_reduction_packet_t> linear_partial1("linear_partial1");
+    hls::stream<int4_reduction_packet_t> linear_partial2("linear_partial2");
+    hls::stream<int4_reduction_packet_t> linear_partial3("linear_partial3");
+    hls::stream<int4_reduction_packet_t> linear_sum01_local("linear_sum01_local");
+    hls::stream<int4_reduction_packet_t> linear_sum01_to23("linear_sum01_to23");
+    hls::stream<int4_reduction_packet_t> linear_sum23_local("linear_sum23_local");
+    hls::stream<int4_reduction_packet_t> linear_sum23_to01("linear_sum23_to01");
+    hls::stream<int4_reduction_packet_t> linear_output0("linear_output0");
+    hls::stream<int4_reduction_packet_t> linear_output1("linear_output1");
+    hls::stream<int4_reduction_packet_t> linear_output2("linear_output2");
+    hls::stream<int4_reduction_packet_t> linear_output3("linear_output3");
 
     auto t0 = std::chrono::high_resolution_clock::now();
 
     std::thread th0([&]() {
         std::cout << "  [PE0] thread started\n";
-        int4_decoder_pe0_kernel(
-            position, model_bank_pe[0], rope_lut_pe[0], residual_pe[0], logits_pe[0], kv_cache_pe[0],
-            rms_pe0_to_pe1, rms_pe1_to_pe0,
-            linear_partial_pe0_to_pe1, linear_output_pe1_to_pe0);
+        int4_decoder_local_pe_0(
+            model_bank_pe[0], rope_lut_pe[0], residual_pe[0], logits_pe[0], kv_cache_pe[0],
+            position_pe0, rms_partial0, rms_reciprocal0,
+            linear_partial0, linear_output0);
         std::cout << "  [PE0] thread DONE\n";
     });
 
     std::thread th1([&]() {
         std::cout << "  [PE1] thread started\n";
-        int4_decoder_pe1_kernel(
-            position, model_bank_pe[1], rope_lut_pe[1], residual_pe[1], logits_pe[1], kv_cache_pe[1],
-            rms_pe0_to_pe1, rms_pe1_to_pe0,
-            rms_pe2_to_pe1, rms_pe1_to_pe2,
-            linear_partial_pe0_to_pe1, linear_output_pe1_to_pe0,
-            linear_sum_pe2_to_pe1, linear_sum_pe1_to_pe2);
+        int4_decoder_local_pe_1(
+            model_bank_pe[1], rope_lut_pe[1], residual_pe[1], logits_pe[1], kv_cache_pe[1],
+            position_pe1, rms_partial1, rms_reciprocal1,
+            linear_partial1, linear_output1);
         std::cout << "  [PE1] thread DONE\n";
     });
 
     std::thread th2([&]() {
         std::cout << "  [PE2] thread started\n";
-        int4_decoder_pe2_kernel(
-            position, model_bank_pe[2], rope_lut_pe[2], residual_pe[2], logits_pe[2], kv_cache_pe[2],
-            rms_pe1_to_pe2, rms_pe2_to_pe1,
-            rms_pe3_to_pe2, rms_pe2_to_pe3,
-            linear_sum_pe1_to_pe2, linear_sum_pe2_to_pe1,
-            linear_partial_pe3_to_pe2, linear_output_pe2_to_pe3);
+        int4_decoder_local_pe_2(
+            model_bank_pe[2], rope_lut_pe[2], residual_pe[2], logits_pe[2], kv_cache_pe[2],
+            position_pe2, rms_partial2, rms_reciprocal2,
+            linear_partial2, linear_output2);
         std::cout << "  [PE2] thread DONE\n";
     });
 
     std::thread th3([&]() {
         std::cout << "  [PE3] thread started\n";
-        int4_decoder_pe3_kernel(
-            position, model_bank_pe[3], rope_lut_pe[3], residual_pe[3], logits_pe[3], kv_cache_pe[3],
-            rms_pe3_to_pe2, rms_pe2_to_pe3,
-            linear_partial_pe3_to_pe2, linear_output_pe2_to_pe3);
+        int4_decoder_local_pe_3(
+            model_bank_pe[3], rope_lut_pe[3], residual_pe[3], logits_pe[3], kv_cache_pe[3],
+            position_pe3, rms_partial3, rms_reciprocal3,
+            linear_partial3, linear_output3);
         std::cout << "  [PE3] thread DONE\n";
+    });
+
+    std::thread rms01([&]() {
+        int4_rms_pair01_schedule(
+            rms_partial0, rms_partial1, rms_sum23_to01,
+            rms_reciprocal0, rms_reciprocal1, rms_reciprocal01_to23);
+    });
+    std::thread rms23_reduce([&]() {
+        int4_rms_pair23_reduce_schedule(
+            rms_partial2, rms_partial3, rms_sum23_to01);
+    });
+    std::thread rms23_distribute([&]() {
+        int4_rms_pair23_distribute_schedule(
+            rms_reciprocal01_to23, rms_reciprocal2, rms_reciprocal3);
+    });
+    std::thread linear01_reduce([&]() {
+        int4_linear_reduce_pair01_schedule(
+            linear_partial0, linear_partial1,
+            linear_sum01_local, linear_sum01_to23);
+    });
+    std::thread linear23_reduce([&]() {
+        int4_linear_reduce_pair23_schedule(
+            linear_partial2, linear_partial3,
+            linear_sum23_local, linear_sum23_to01);
+    });
+    std::thread linear01_finalize([&]() {
+        int4_linear_finalize_pair01_schedule(
+            linear_sum01_local, linear_sum23_to01,
+            linear_output0, linear_output1);
+    });
+    std::thread linear23_finalize([&]() {
+        int4_linear_finalize_pair23_schedule(
+            linear_sum23_local, linear_sum01_to23,
+            linear_output2, linear_output3);
     });
 
     th0.join();
     th1.join();
     th2.join();
     th3.join();
+    rms01.join();
+    rms23_reduce.join();
+    rms23_distribute.join();
+    linear01_reduce.join();
+    linear23_reduce.join();
+    linear01_finalize.join();
+    linear23_finalize.join();
 
     auto t1 = std::chrono::high_resolution_clock::now();
     double dt = std::chrono::duration<double>(t1 - t0).count();
     std::cout << "\n[+] All 4 CUs completed in " << dt << " seconds!\n";
     std::cout << "[Streams Remaining]:\n";
-    std::cout << "  rms_pe0_to_pe1: " << rms_pe0_to_pe1.size() << "\n";
-    std::cout << "  rms_pe1_to_pe0: " << rms_pe1_to_pe0.size() << "\n";
-    std::cout << "  rms_pe2_to_pe1: " << rms_pe2_to_pe1.size() << "\n";
-    std::cout << "  rms_pe1_to_pe2: " << rms_pe1_to_pe2.size() << "\n";
-    std::cout << "  rms_pe3_to_pe2: " << rms_pe3_to_pe2.size() << "\n";
-    std::cout << "  rms_pe2_to_pe3: " << rms_pe2_to_pe3.size() << "\n";
-    std::cout << "  linear_partial_pe0_to_pe1: " << linear_partial_pe0_to_pe1.size() << "\n";
-    std::cout << "  linear_output_pe1_to_pe0: " << linear_output_pe1_to_pe0.size() << "\n";
-    std::cout << "  linear_sum_pe1_to_pe2: " << linear_sum_pe1_to_pe2.size() << "\n";
-    std::cout << "  linear_sum_pe2_to_pe1: " << linear_sum_pe2_to_pe1.size() << "\n";
-    std::cout << "  linear_partial_pe3_to_pe2: " << linear_partial_pe3_to_pe2.size() << "\n";
-    std::cout << "  linear_output_pe2_to_pe3: " << linear_output_pe2_to_pe3.size() << "\n";
+    std::cout << "  rms: "
+              << rms_partial0.size() + rms_partial1.size()
+                   + rms_partial2.size() + rms_partial3.size()
+                   + rms_reciprocal0.size() + rms_reciprocal1.size()
+                   + rms_reciprocal2.size() + rms_reciprocal3.size()
+                   + rms_sum23_to01.size() + rms_reciprocal01_to23.size()
+              << "\n";
+    std::cout << "  linear: "
+              << linear_partial0.size() + linear_partial1.size()
+                   + linear_partial2.size() + linear_partial3.size()
+                   + linear_sum01_local.size() + linear_sum01_to23.size()
+                   + linear_sum23_local.size() + linear_sum23_to01.size()
+                   + linear_output0.size() + linear_output1.size()
+                   + linear_output2.size() + linear_output3.size()
+              << "\n";
     std::cout.flush();
 
     // 5. Check logits
