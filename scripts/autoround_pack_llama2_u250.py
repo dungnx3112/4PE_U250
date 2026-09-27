@@ -224,6 +224,47 @@ def load_autoround_lm_head(path):
         )
     return weights, scales
 
+def fp32_lm_head_offset():
+    """Return the byte offset of the FP32 lm_head in autoround_w4g128.bin."""
+    def matrix_bytes(rows, cols):
+        packed_weights = rows * (cols // 2)
+        fp32_scales = rows * (cols // AUTOROUND_GROUP_SIZE) * 4
+        return packed_weights + fp32_scales
+
+    offset = 256 + VOCAB_SIZE * DIM * 4
+    for _ in range(NUM_LAYERS):
+        offset += DIM * 4  # attention RMSNorm
+        offset += 4 * matrix_bytes(DIM, DIM)  # q, k, v, o
+        offset += DIM * 4  # FFN RMSNorm
+        offset += 2 * matrix_bytes(HIDDEN_DIM, DIM)  # gate, up
+        offset += matrix_bytes(DIM, HIDDEN_DIM)  # down
+    offset += DIM * 4  # final RMSNorm
+    return offset
+
+def map_fp32_lm_head(path):
+    """Map only the source FP32 lm_head without unpacking all decoder layers."""
+    path = os.path.abspath(path)
+    with open(path, "rb") as f_model:
+        header = f_model.read(36)
+    if len(header) != 36:
+        raise ValueError(f"Truncated AutoRound source header: {path}")
+    magic, _, dim, hidden_dim, n_layers, _, _, vocab_size, group_size = struct.unpack(
+        "<4sIIIIIIII", header
+    )
+    expected = (b"AR4\x00", DIM, HIDDEN_DIM, NUM_LAYERS, VOCAB_SIZE, AUTOROUND_GROUP_SIZE)
+    actual = (magic, dim, hidden_dim, n_layers, vocab_size, group_size)
+    if actual != expected:
+        raise ValueError(f"AutoRound source geometry mismatch: got {actual}, expected {expected}")
+
+    head_offset = fp32_lm_head_offset()
+    required_size = head_offset + VOCAB_SIZE * DIM * 4
+    actual_size = os.path.getsize(path)
+    if actual_size < required_size:
+        raise ValueError(f"Truncated AutoRound source: {actual_size} bytes; need {required_size}")
+    return np.memmap(
+        path, dtype="<f4", mode="r", offset=head_offset, shape=(VOCAB_SIZE, DIM)
+    )
+
 def pack_logits_into_banks(banks, lm_head_artifact=None, head_raw=None):
     valid_out, padded_out, valid_in, padded_in, out_tiles, local_in_tiles, _, _, _ = matrix_shape_info(
         MODE_LOGITS
@@ -288,7 +329,10 @@ def main():
     )
     parser.add_argument(
         "--only-lm-head", action="store_true",
-        help="patch only the logits region of existing model_bank[0-3].bin files",
+        help=(
+            "patch only logits in existing banks; uses --lm-head-autoround when "
+            "provided, otherwise rebuilds the previous max-abs RTN head from --input"
+        ),
     )
     args = parser.parse_args()
     autoround_bin_path = os.path.abspath(args.input)
@@ -296,10 +340,11 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
 
     if args.only_lm_head:
-        if not args.lm_head_autoround:
-            parser.error("--only-lm-head requires --lm-head-autoround")
         print("==================================================================")
-        print(" Patching calibrated AutoRound lm_head into existing U250 banks")
+        if args.lm_head_autoround:
+            print(" Patching calibrated AutoRound lm_head into existing U250 banks")
+        else:
+            print(" Restoring max-abs RTN lm_head in existing U250 banks")
         print("==================================================================")
         banks = []
         for p in range(NUM_PES):
@@ -312,7 +357,12 @@ def main():
                     f"expected {TOTAL_BYTES_PER_BANK}"
                 )
             banks.append(np.memmap(bin_path, dtype=np.uint8, mode="r+", shape=(TOTAL_BYTES_PER_BANK,)))
-        pack_logits_into_banks(banks, args.lm_head_autoround)
+        if args.lm_head_autoround:
+            pack_logits_into_banks(banks, args.lm_head_autoround)
+        else:
+            print(f"  Mapping source FP32 lm_head: {autoround_bin_path}")
+            head_raw = map_fp32_lm_head(autoround_bin_path)
+            pack_logits_into_banks(banks, head_raw=head_raw)
         print("Flushing patched DDR images to disk...")
         flush_banks(banks, output_dir)
         print("[OK] Only the logits/lm_head region was changed.")

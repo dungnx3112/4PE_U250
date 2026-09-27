@@ -36,7 +36,10 @@ BITS = 4
 def _prepare_local_dataset(path: Path, chunk_chars: int = 8192) -> tuple[str, str | None]:
     """Return an AutoRound-compatible dataset path and an optional temp path."""
     if path.suffix.lower() in {".json", ".jsonl"}:
-        return str(path), None
+        # AutoRound uses ':' for dataset options.  An absolute Windows path
+        # such as C:\\data.jsonl would therefore be parsed as a remote dataset
+        # name plus options.  A relative path avoids that ambiguity.
+        return os.path.relpath(path, Path.cwd()), None
 
     text = path.read_text(encoding="utf-8", errors="replace")
     chunks = []
@@ -56,12 +59,20 @@ def _prepare_local_dataset(path: Path, chunk_chars: int = 8192) -> tuple[str, st
         raise ValueError(f"Calibration text is empty: {path}")
 
     tmp = tempfile.NamedTemporaryFile(
-        mode="w", suffix=".jsonl", prefix="autoround_lm_head_", delete=False, encoding="utf-8"
+        mode="w",
+        suffix=".jsonl",
+        prefix="autoround_lm_head_",
+        dir=path.parent,
+        delete=False,
+        encoding="utf-8",
     )
     with tmp:
         for sample in chunks:
-            tmp.write(json.dumps(sample, ensure_ascii=False) + "\n")
-    return tmp.name, tmp.name
+            # Keep the JSONL byte stream ASCII-only because AutoRound's local
+            # loader currently opens files without an explicit encoding on
+            # Windows (therefore using the active ANSI codepage).
+            tmp.write(json.dumps(sample, ensure_ascii=True) + "\n")
+    return os.path.relpath(tmp.name, Path.cwd()), tmp.name
 
 
 def _get_lm_head(model):
@@ -151,7 +162,14 @@ def main() -> None:
     parser.add_argument("--model", default=str(repo_root / "Llama-2-7b-chat-hf"))
     parser.add_argument("--dataset", default=str(repo_root / "software_sim" / "wiki.test.raw"))
     parser.add_argument("--output", default=str(repo_root / "lm_head_autoround_w4g128.bin"))
-    parser.add_argument("--device-map", default="0", help="CUDA device (0) or mapping (auto, 0,1,...) ")
+    parser.add_argument(
+        "--device-map", default="auto",
+        help="device mapping: auto, cpu, CUDA device 0, or a multi-GPU mapping",
+    )
+    parser.add_argument(
+        "--cpu-threads", type=int, default=0,
+        help="PyTorch CPU threads; 0 keeps PyTorch's default",
+    )
     parser.add_argument("--nsamples", type=int, default=128)
     parser.add_argument("--seqlen", type=int, default=512)
     parser.add_argument("--batch-size", type=int, default=1)
@@ -175,14 +193,21 @@ def main() -> None:
     try:
         import torch
         from auto_round import AutoRound
+        from auto_round.algorithms.quantization.sign_round.config import SignRoundConfig
     except ImportError as exc:
         raise RuntimeError(
             "AutoRound dependencies are missing. Activate the CUDA Python environment "
             "used for AutoRound (torch, transformers, datasets, accelerate, safetensors)."
         ) from exc
 
-    if not torch.cuda.is_available():
-        raise RuntimeError("CUDA is required for a practical Llama-2-7B lm_head calibration run")
+    has_cuda = torch.cuda.is_available()
+    has_xpu = hasattr(torch, "xpu") and torch.xpu.is_available()
+    device_map = args.device_map
+    if str(device_map).lower() == "auto" and not has_cuda and not has_xpu:
+        device_map = "cpu"
+        print("[AutoRound] No CUDA/XPU backend detected; falling back to CPU.")
+    if str(device_map).lower() == "cpu" and args.cpu_threads > 0:
+        torch.set_num_threads(args.cpu_threads)
 
     dataset_arg, temporary_dataset = _prepare_local_dataset(dataset_path)
     print("=== AutoRound lm_head-only calibration ===")
@@ -191,25 +216,35 @@ def main() -> None:
     print(f"nsamples   : {args.nsamples}")
     print(f"seqlen     : {args.seqlen}")
     print(f"iterations : {args.iters}")
-    print(f"device_map : {args.device_map}")
+    print(f"device_map : {device_map}")
+    if str(device_map).lower() == "cpu":
+        print(f"CPU threads: {torch.get_num_threads()}")
+        print("WARNING    : CPU calibration is supported but may take hours for 128x512 samples.")
     print("quantized  : lm_head only (decoder layers remain FP16/BF16)")
 
     try:
-        autoround = AutoRound(
-            model=str(model_path),
-            scheme="W4A16",
-            dataset=dataset_arg,
+        signround = SignRoundConfig(
             bits=BITS,
             group_size=GROUP_SIZE,
             sym=True,
+            iters=args.iters,
+            # The 32 decoder layers are explicitly kept in FP16/BF16, so a
+            # second forward pass for "quantized" lm_head inputs is identical
+            # and only stresses Accelerate's disk-offload path on CPU.
+            enable_quanted_input=False,
+        )
+        autoround = AutoRound(
+            model=str(model_path),
+            scheme="W4A16",
+            alg_configs=signround,
+            dataset=dataset_arg,
             scale_dtype="fp32",
             quant_lm_head=True,
             ignore_layers="model.layers",
-            device_map=args.device_map,
+            device_map=device_map,
             nsamples=args.nsamples,
             seqlen=args.seqlen,
             batch_size=args.batch_size,
-            iters=args.iters,
             seed=args.seed,
             low_cpu_mem_usage=True,
             enable_torch_compile=False,
