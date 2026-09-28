@@ -882,7 +882,9 @@ static void int4_pack_local_output_terminal(
 pack_local_output_terminal_word_loop:
     for (int word = 0; word < output_words; ++word) {
 #pragma HLS LOOP_TRIPCOUNT min=64 max=504
-#pragma HLS PIPELINE II=4
+        // Prevent an auto-rewind process under disable_start_propagation;
+        // it can form a cyclic start/ready dependency in the surrounding DATAFLOW.
+#pragma HLS PIPELINE off
         int4_output_word_t packed = 0;
         packed.range(
             INT4_REDUCTION_PACKET_BITS * 1 - 1,

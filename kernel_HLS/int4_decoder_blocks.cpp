@@ -95,7 +95,6 @@ local_sumsq_word_loop:
     local_sumsq_lane_loop:
         for (int lane = 0; lane < INT4_OUTPUTS_PER_WORD; ++lane) {
 #pragma HLS PIPELINE II=1
-#pragma HLS DEPENDENCE variable=accumulator type=inter direction=RAW distance=8 true
             const float value = int4_fp32_from_bits(
                 packed.range(31, 0));
             const float square = value * value;
