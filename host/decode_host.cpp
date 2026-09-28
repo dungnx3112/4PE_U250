@@ -398,12 +398,14 @@ std::string escape_text(const std::string& text) {
     return output.str();
 }
 
-void prepare_logit_dump_directory(const std::string& directory) {
+void prepare_dump_directory(const std::string& directory,
+                            const char* dump_name) {
     std::error_code error;
     std::filesystem::create_directories(directory, error);
     if (error || !std::filesystem::is_directory(directory)) {
         throw std::runtime_error(
-            "cannot create logits dump directory " + directory +
+            std::string("cannot create ") + dump_name +
+            " dump directory " + directory +
             (error ? ": " + error.message() : ""));
     }
 }
@@ -425,6 +427,68 @@ std::string dump_logits(const std::string& directory, int position,
         throw std::runtime_error("cannot write logits dump " + path);
     }
     return path;
+}
+
+std::string dump_residuals(const std::string& directory, int position,
+                           int token_id, const float* residuals) {
+    std::ostringstream name;
+    name << "residual_pos" << std::setw(4) << std::setfill('0') << position
+         << "_token" << std::setw(5) << std::setfill('0') << token_id
+         << ".bin";
+    const std::string path = join_path(directory, name.str());
+    std::ofstream out(path, std::ios::binary | std::ios::trunc);
+    if (!out) {
+        throw std::runtime_error("cannot create residual dump " + path);
+    }
+    out.write(reinterpret_cast<const char*>(residuals),
+              std::size_t(DIM) * sizeof(float));
+    if (!out) {
+        throw std::runtime_error("cannot write residual dump " + path);
+    }
+    return path;
+}
+
+void print_residual_diagnostics(const float* residuals, int position) {
+    int finite_count = 0;
+    int nan_count = 0;
+    int positive_inf_count = 0;
+    int negative_inf_count = 0;
+    float minimum = std::numeric_limits<float>::infinity();
+    float maximum = -std::numeric_limits<float>::infinity();
+    double sum_squares = 0.0;
+    for (int index = 0; index < DIM; ++index) {
+        const float value = residuals[index];
+        if (std::isnan(value)) {
+            ++nan_count;
+        } else if (std::isinf(value)) {
+            if (std::signbit(value)) {
+                ++negative_inf_count;
+            } else {
+                ++positive_inf_count;
+            }
+        } else {
+            ++finite_count;
+            minimum = std::min(minimum, value);
+            maximum = std::max(maximum, value);
+            sum_squares += double(value) * double(value);
+        }
+    }
+
+    const auto old_flags = std::cout.flags();
+    const auto old_precision = std::cout.precision();
+    std::cout << "[Residual] pos=" << position
+              << " finite=" << finite_count
+              << " nan=" << nan_count
+              << " +inf=" << positive_inf_count
+              << " -inf=" << negative_inf_count;
+    if (finite_count > 0) {
+        std::cout << " min=" << std::scientific << std::setprecision(7)
+                  << minimum << " max=" << maximum
+                  << " l2=" << std::sqrt(sum_squares);
+    }
+    std::cout << std::endl;
+    std::cout.flags(old_flags);
+    std::cout.precision(old_precision);
 }
 
 void print_logit_diagnostics(const float* logits, int top_k, int position,
@@ -529,6 +593,18 @@ void pack_residual(const float* embedding, float* shard0, float* shard1,
                 LOCAL_DIM * sizeof(float));
 }
 
+void unpack_residual(const float* shard0, const float* shard1,
+                     const float* shard2, const float* shard3,
+                     float* residual) {
+    constexpr int LOCAL_DIM = DIM / NUM_PES;
+    const std::array<const float*, NUM_PES> shards = {
+        shard0, shard1, shard2, shard3};
+    for (int pe = 0; pe < NUM_PES; ++pe) {
+        std::memcpy(residual + pe * LOCAL_DIM, shards[pe],
+                    std::size_t(LOCAL_DIM) * sizeof(float));
+    }
+}
+
 void unpack_logits(const float* shard0, const float* shard1,
                    const float* shard2, const float* shard3,
                    float* logits) {
@@ -567,6 +643,7 @@ struct Config {
     std::string prompt = "Once upon a time";
     std::string device_id = "0000:13:00.0";
     std::string dump_logits_dir;
+    std::string dump_residuals_dir;
     int max_tokens = 256;
     int top_k = 0;
     bool tokenize_only = false;
@@ -584,6 +661,7 @@ void print_usage(const char* program) {
         << "  --max-tokens N      maximum number of new tokens\n"
         << "  --top-k N           print the N highest valid-vocabulary logits per step\n"
         << "  --dump-logits DIR   dump all 32256 raw FP32 logits for every step\n"
+        << "  --dump-residuals DIR dump the final 4096-value FP32 residual for every step\n"
         << "  --device ID         BDF or numeric XRT device index\n"
         << "  --tokenize-only     print prompt token IDs without loading FPGA\n";
 }
@@ -637,6 +715,12 @@ Config parse_args(int argc, char** argv) {
             config.dump_logits_dir = next();
             if (config.dump_logits_dir.empty()) {
                 throw std::runtime_error("--dump-logits directory is empty");
+            }
+        } else if (argument == "--dump-residuals") {
+            config.dump_residuals_dir = next();
+            if (config.dump_residuals_dir.empty()) {
+                throw std::runtime_error(
+                    "--dump-residuals directory is empty");
             }
         } else if (argument == "--device") config.device_id = next();
         else if (argument == "--help" || argument == "-h") {
@@ -766,10 +850,16 @@ int main(int argc, char** argv) {
         }
 
         if (!config.dump_logits_dir.empty()) {
-            prepare_logit_dump_directory(config.dump_logits_dir);
+            prepare_dump_directory(config.dump_logits_dir, "logits");
             std::cout << "[Init] Logits dumps: "
                       << std::filesystem::absolute(config.dump_logits_dir)
                       << " (32256 FP32 values per step)" << std::endl;
+        }
+        if (!config.dump_residuals_dir.empty()) {
+            prepare_dump_directory(config.dump_residuals_dir, "residual");
+            std::cout << "[Init] Residual dumps: "
+                      << std::filesystem::absolute(config.dump_residuals_dir)
+                      << " (4096 FP32 values per step)" << std::endl;
         }
 
         std::string effective_device_id = config.device_id;
@@ -879,6 +969,7 @@ int main(int argc, char** argv) {
         auto* logits_map2 = logits2.map<float*>();
         auto* logits_map3 = logits3.map<float*>();
         std::vector<float> combined_logits(PADDED_VOCAB_SIZE, 0.0f);
+        std::vector<float> combined_residual(DIM, 0.0f);
 
         auto run_one_token = [&](int position, int token_id) {
             if (position < 0 || position >= MAX_SEQ_LEN) {
@@ -983,6 +1074,31 @@ int main(int argc, char** argv) {
                 }
             }
             std::cout << "[Run] All 4 PEs completed; reading logits" << std::endl;
+
+            if (!config.dump_residuals_dir.empty()) {
+                // The next token overwrites these BOs with its embedding, so
+                // capture all four final decoder-output shards immediately.
+                residual0.sync(XCL_BO_SYNC_BO_FROM_DEVICE,
+                               RESIDUAL_BYTES, 0);
+                residual1.sync(XCL_BO_SYNC_BO_FROM_DEVICE,
+                               RESIDUAL_BYTES, 0);
+                residual2.sync(XCL_BO_SYNC_BO_FROM_DEVICE,
+                               RESIDUAL_BYTES, 0);
+                residual3.sync(XCL_BO_SYNC_BO_FROM_DEVICE,
+                               RESIDUAL_BYTES, 0);
+                unpack_residual(residual_map0, residual_map1,
+                                residual_map2, residual_map3,
+                                combined_residual.data());
+                print_residual_diagnostics(combined_residual.data(),
+                                           position);
+                const std::string dump_path = dump_residuals(
+                    config.dump_residuals_dir, position, token_id,
+                    combined_residual.data());
+                std::cout << "[Residual] dumped=" << dump_path
+                          << " bytes="
+                          << std::size_t(DIM) * sizeof(float)
+                          << std::endl;
+            }
 
             logits0.sync(XCL_BO_SYNC_BO_FROM_DEVICE, LOGIT_BYTES, 0);
             std::cout << "[Run] PE0 logits synced" << std::endl;
