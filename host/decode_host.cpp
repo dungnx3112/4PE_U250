@@ -14,10 +14,13 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <cmath>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <numeric>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -395,6 +398,125 @@ std::string escape_text(const std::string& text) {
     return output.str();
 }
 
+void prepare_logit_dump_directory(const std::string& directory) {
+    std::error_code error;
+    std::filesystem::create_directories(directory, error);
+    if (error || !std::filesystem::is_directory(directory)) {
+        throw std::runtime_error(
+            "cannot create logits dump directory " + directory +
+            (error ? ": " + error.message() : ""));
+    }
+}
+
+std::string dump_logits(const std::string& directory, int position,
+                        int token_id, const float* logits) {
+    std::ostringstream name;
+    name << "logits_pos" << std::setw(4) << std::setfill('0') << position
+         << "_token" << std::setw(5) << std::setfill('0') << token_id
+         << ".bin";
+    const std::string path = join_path(directory, name.str());
+    std::ofstream out(path, std::ios::binary | std::ios::trunc);
+    if (!out) {
+        throw std::runtime_error("cannot create logits dump " + path);
+    }
+    out.write(reinterpret_cast<const char*>(logits),
+              std::size_t(PADDED_VOCAB_SIZE) * sizeof(float));
+    if (!out) {
+        throw std::runtime_error("cannot write logits dump " + path);
+    }
+    return path;
+}
+
+void print_logit_diagnostics(const float* logits, int top_k, int position,
+                             const Tokenizer& tokenizer) {
+    int finite_count = 0;
+    int nan_count = 0;
+    int positive_inf_count = 0;
+    int negative_inf_count = 0;
+    float minimum = std::numeric_limits<float>::infinity();
+    float maximum = -std::numeric_limits<float>::infinity();
+    for (int token = 0; token < VOCAB_SIZE; ++token) {
+        const float value = logits[token];
+        if (std::isnan(value)) {
+            ++nan_count;
+        } else if (std::isinf(value)) {
+            if (std::signbit(value)) {
+                ++negative_inf_count;
+            } else {
+                ++positive_inf_count;
+            }
+        } else {
+            ++finite_count;
+            minimum = std::min(minimum, value);
+            maximum = std::max(maximum, value);
+        }
+    }
+
+    int padded_nonzero = 0;
+    int padded_nonfinite = 0;
+    float padded_max_abs = 0.0f;
+    for (int token = VOCAB_SIZE; token < PADDED_VOCAB_SIZE; ++token) {
+        const float value = logits[token];
+        if (!std::isfinite(value)) {
+            ++padded_nonfinite;
+        } else {
+            if (value != 0.0f) {
+                ++padded_nonzero;
+            }
+            padded_max_abs = std::max(padded_max_abs, std::fabs(value));
+        }
+    }
+
+    const auto old_flags = std::cout.flags();
+    const auto old_precision = std::cout.precision();
+    std::cout << "[Logits] pos=" << position
+              << " valid_finite=" << finite_count
+              << " nan=" << nan_count
+              << " +inf=" << positive_inf_count
+              << " -inf=" << negative_inf_count;
+    if (finite_count > 0) {
+        std::cout << " min=" << std::scientific << std::setprecision(7)
+                  << minimum << " max=" << maximum;
+    }
+    std::cout << " padded_nonzero=" << padded_nonzero
+              << " padded_nonfinite=" << padded_nonfinite
+              << " padded_max_abs=" << std::scientific
+              << std::setprecision(7) << padded_max_abs << std::endl;
+
+    if (top_k > 0) {
+        std::vector<int> indices(VOCAB_SIZE);
+        std::iota(indices.begin(), indices.end(), 0);
+        const auto better = [&](int lhs, int rhs) {
+            const bool lhs_nan = std::isnan(logits[lhs]);
+            const bool rhs_nan = std::isnan(logits[rhs]);
+            if (lhs_nan != rhs_nan) {
+                return !lhs_nan;
+            }
+            if (lhs_nan) {
+                return lhs < rhs;
+            }
+            if (logits[lhs] != logits[rhs]) {
+                return logits[lhs] > logits[rhs];
+            }
+            return lhs < rhs;
+        };
+        std::partial_sort(indices.begin(), indices.begin() + top_k,
+                          indices.end(), better);
+        for (int rank = 0; rank < top_k; ++rank) {
+            const int token = indices[rank];
+            std::cout << "[TopK] pos=" << position
+                      << " rank=" << rank + 1
+                      << " token=" << token
+                      << " logit=" << std::scientific
+                      << std::setprecision(9) << logits[token]
+                      << " piece=\"" << escape_text(tokenizer.vocab[token])
+                      << "\"" << std::endl;
+        }
+    }
+    std::cout.flags(old_flags);
+    std::cout.precision(old_precision);
+}
+
 void pack_residual(const float* embedding, float* shard0, float* shard1,
                    float* shard2, float* shard3) {
     constexpr int LOCAL_DIM = DIM / NUM_PES;
@@ -415,20 +537,23 @@ void unpack_logits(const float* shard0, const float* shard1,
         shard0, shard1, shard2, shard3};
     for (int pe = 0; pe < NUM_PES; ++pe) {
         const int begin = pe * LOCAL_VOCAB;
-        const int count = std::min(LOCAL_VOCAB, VOCAB_SIZE - begin);
-        if (count > 0) {
-            std::memcpy(logits + begin, shards[pe],
-                        std::size_t(count) * sizeof(float));
-        }
+        std::memcpy(logits + begin, shards[pe],
+                    std::size_t(LOCAL_VOCAB) * sizeof(float));
     }
 }
 
 int argmax_logits(const float* logits) {
-    int best = 0;
-    for (int i = 1; i < VOCAB_SIZE; ++i) {
-        if (logits[i] > logits[best]) {
+    int best = -1;
+    for (int i = 0; i < VOCAB_SIZE; ++i) {
+        if (std::isnan(logits[i])) {
+            continue;
+        }
+        if (best < 0 || logits[i] > logits[best]) {
             best = i;
         }
+    }
+    if (best < 0) {
+        throw std::runtime_error("all valid-vocabulary logits are NaN");
     }
     return best;
 }
@@ -436,12 +561,14 @@ int argmax_logits(const float* logits) {
 struct Config {
     std::string xclbin = "int4_decoder_multikernel_300mhz.xclbin";
     std::string banks_dir = ".";
-    std::string rope_lut = "rope_lut.bin";
-    std::string tokenizer = "tokenizer.bin";
+    std::string rope_lut;
+    std::string tokenizer;
     std::string embeddings;
     std::string prompt = "Once upon a time";
     std::string device_id = "0000:13:00.0";
+    std::string dump_logits_dir;
     int max_tokens = 256;
+    int top_k = 0;
     bool tokenize_only = false;
 };
 
@@ -450,11 +577,13 @@ void print_usage(const char* program) {
         << "Usage: " << program << " [options]\n"
         << "  --xclbin PATH       decoder xclbin\n"
         << "  --banks DIR         directory containing model_bank0..3.bin\n"
-        << "  --rope PATH         rope_lut.bin\n"
-        << "  --tokenizer PATH    llama2.c tokenizer.bin\n"
+        << "  --rope PATH         rope_lut.bin (default: BANKS/rope_lut.bin)\n"
+        << "  --tokenizer PATH    tokenizer.bin (default: BANKS/tokenizer.bin)\n"
         << "  --embeddings PATH   embeddings.bin (default: BANKS/embeddings.bin)\n"
         << "  --prompt TEXT       prompt text\n"
         << "  --max-tokens N      maximum number of new tokens\n"
+        << "  --top-k N           print the N highest valid-vocabulary logits per step\n"
+        << "  --dump-logits DIR   dump all 32256 raw FP32 logits for every step\n"
         << "  --device ID         BDF or numeric XRT device index\n"
         << "  --tokenize-only     print prompt token IDs without loading FPGA\n";
 }
@@ -499,6 +628,16 @@ Config parse_args(int argc, char** argv) {
         else if (argument == "--tokenize-only") config.tokenize_only = true;
         else if (argument == "--max-tokens") {
             config.max_tokens = parse_positive_int(next(), "--max-tokens");
+        } else if (argument == "--top-k") {
+            config.top_k = parse_positive_int(next(), "--top-k");
+            if (config.top_k > VOCAB_SIZE) {
+                throw std::runtime_error("--top-k exceeds vocabulary size");
+            }
+        } else if (argument == "--dump-logits") {
+            config.dump_logits_dir = next();
+            if (config.dump_logits_dir.empty()) {
+                throw std::runtime_error("--dump-logits directory is empty");
+            }
         } else if (argument == "--device") config.device_id = next();
         else if (argument == "--help" || argument == "-h") {
             print_usage(argv[0]);
@@ -510,6 +649,12 @@ Config parse_args(int argc, char** argv) {
 
     if (config.embeddings.empty()) {
         config.embeddings = join_path(config.banks_dir, "embeddings.bin");
+    }
+    if (config.rope_lut.empty()) {
+        config.rope_lut = join_path(config.banks_dir, "rope_lut.bin");
+    }
+    if (config.tokenizer.empty()) {
+        config.tokenizer = join_path(config.banks_dir, "tokenizer.bin");
     }
     return config;
 }
@@ -620,6 +765,13 @@ int main(int argc, char** argv) {
             return 0;
         }
 
+        if (!config.dump_logits_dir.empty()) {
+            prepare_logit_dump_directory(config.dump_logits_dir);
+            std::cout << "[Init] Logits dumps: "
+                      << std::filesystem::absolute(config.dump_logits_dir)
+                      << " (32256 FP32 values per step)" << std::endl;
+        }
+
         std::string effective_device_id = config.device_id;
         const char* emu_env = std::getenv("XCL_EMULATION_MODE");
         if (emu_env && (std::strcmp(emu_env, "hw_emu") == 0 || std::strcmp(emu_env, "sw_emu") == 0)) {
@@ -726,7 +878,7 @@ int main(int argc, char** argv) {
         auto* logits_map1 = logits1.map<float*>();
         auto* logits_map2 = logits2.map<float*>();
         auto* logits_map3 = logits3.map<float*>();
-        std::vector<float> combined_logits(VOCAB_SIZE, 0.0f);
+        std::vector<float> combined_logits(PADDED_VOCAB_SIZE, 0.0f);
 
         auto run_one_token = [&](int position, int token_id) {
             if (position < 0 || position >= MAX_SEQ_LEN) {
@@ -842,6 +994,20 @@ int main(int argc, char** argv) {
             std::cout << "[Run] PE3 logits synced" << std::endl;
             unpack_logits(logits_map0, logits_map1, logits_map2, logits_map3,
                           combined_logits.data());
+
+            if (config.top_k > 0 || !config.dump_logits_dir.empty()) {
+                print_logit_diagnostics(combined_logits.data(), config.top_k,
+                                        position, tokenizer);
+            }
+            if (!config.dump_logits_dir.empty()) {
+                const std::string dump_path = dump_logits(
+                    config.dump_logits_dir, position, token_id,
+                    combined_logits.data());
+                std::cout << "[Logits] dumped=" << dump_path
+                          << " bytes="
+                          << std::size_t(PADDED_VOCAB_SIZE) * sizeof(float)
+                          << std::endl;
+            }
 
             TokenRunResult result;
             result.next_token = argmax_logits(combined_logits.data());
