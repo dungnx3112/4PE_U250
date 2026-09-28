@@ -1488,7 +1488,12 @@ update_value_engine_phase_loop:
          update_phase < update_phase_count;
          ++update_phase) {
 #pragma HLS PIPELINE II=1
-#pragma HLS DEPENDENCE variable=weighted_value inter false
+        // A state slot is revisited once per token, eight phases later.  This
+        // is a real loop-carried RAW dependency: token N consumes the value
+        // committed for token N-1.  Declaring it false made C simulation look
+        // correct while scheduled RTL used stale BRAM data from position 1
+        // onward.  Let HLS enforce the distance-8 dependency; the recurrence
+        // latency is shorter than eight cycles, so II=1 remains attainable.
         const swiftkv_update_engine_packet_t packet =
             phase_stream.read();
         const int phase =
