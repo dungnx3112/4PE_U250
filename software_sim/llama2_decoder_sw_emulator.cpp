@@ -36,6 +36,7 @@ static constexpr int LOCAL_DIM = DIM / NUM_PES; // 1024
 static constexpr int LOCAL_HIDDEN_DIM = PADDED_HIDDEN_DIM / NUM_PES; // 2816
 static constexpr int LOCAL_HEADS = NUM_HEADS / NUM_PES; // 8
 static constexpr int GROUP_SIZE = 32;
+static constexpr int ACTIVATION_BITS = 14;
 static constexpr int MAX_SEQ_LEN = 4096;
 static constexpr int NUM_LAYERS = 32;
 
@@ -54,8 +55,36 @@ static constexpr int KV_WORDS_PER_TOKEN_HEAD = 5;
 static constexpr int KV_RECORD_BYTES = KV_WORDS_PER_TOKEN_HEAD * WORD_BYTES;
 static constexpr int KV_DUMP_BYTES =
     NUM_PES * LOCAL_HEADS * KV_RECORD_BYTES;
+static constexpr int VECTOR_WORDS_PER_PE = LOCAL_DIM / 16;
+static constexpr int HIDDEN_WORDS_PER_PE = LOCAL_HIDDEN_DIM / 16;
+static constexpr int LOCAL_GROUPS_DIM = LOCAL_DIM / GROUP_SIZE;
+static constexpr int LOCAL_GROUPS_HIDDEN = LOCAL_HIDDEN_DIM / GROUP_SIZE;
+static constexpr int QSCALE_DIM_WORDS = LOCAL_GROUPS_DIM + 1;
+static constexpr int QSCALE_HIDDEN_WORDS = LOCAL_GROUPS_HIDDEN + 2;
+static constexpr int STAGE_ATTN_RMS_WORD = 0;
+static constexpr int STAGE_Q_WORD = STAGE_ATTN_RMS_WORD + QSCALE_DIM_WORDS;
+static constexpr int STAGE_K_WORD = STAGE_Q_WORD + VECTOR_WORDS_PER_PE;
+static constexpr int STAGE_V_WORD = STAGE_K_WORD + VECTOR_WORDS_PER_PE;
+static constexpr int STAGE_ATTN_QSCALE_WORD =
+    STAGE_V_WORD + VECTOR_WORDS_PER_PE;
+static constexpr int STAGE_O_WORD =
+    STAGE_ATTN_QSCALE_WORD + QSCALE_DIM_WORDS;
+static constexpr int STAGE_FFN_RMS_WORD = STAGE_O_WORD + VECTOR_WORDS_PER_PE;
+static constexpr int STAGE_GATE_WORD =
+    STAGE_FFN_RMS_WORD + QSCALE_DIM_WORDS;
+static constexpr int STAGE_UP_WORD = STAGE_GATE_WORD + HIDDEN_WORDS_PER_PE;
+static constexpr int STAGE_SWIGLU_WORD =
+    STAGE_UP_WORD + HIDDEN_WORDS_PER_PE;
+static constexpr int STAGE_DOWN_WORD =
+    STAGE_SWIGLU_WORD + QSCALE_HIDDEN_WORDS;
+static constexpr int STAGE_WORDS_PER_PE =
+    STAGE_DOWN_WORD + VECTOR_WORDS_PER_PE;
+static constexpr int STAGE_BYTES_PER_PE = STAGE_WORDS_PER_PE * WORD_BYTES;
+static constexpr int STAGE_DUMP_BYTES = NUM_PES * STAGE_BYTES_PER_PE;
 static_assert(KV_DUMP_BYTES == 10240,
               "one layer-zero KV dump must contain all PE/head records");
+static_assert(STAGE_WORDS_PER_PE == 861,
+              "layer-zero full-stage trace layout changed unexpectedly");
 
 static int g_num_layers = 32;
 static int g_cache_seq_len = MAX_SEQ_LEN;
@@ -66,7 +95,9 @@ static std::string g_dump_logits_dir;
 static std::string g_dump_residuals_dir;
 static std::string g_dump_layer_trace_dir;
 static std::string g_dump_kv_cache_dir;
+static std::string g_dump_stage_trace_dir;
 static std::vector<float> g_layer_trace;
+static std::vector<uint8_t> g_stage_trace;
 
 
 // ============================================================================
@@ -731,6 +762,87 @@ void swiglu(const float* gate, const float* up, int size, float* output) {
     }
 }
 
+static uint8_t* stage_word_ptr(int pe, int word) {
+    return g_stage_trace.data() +
+        (static_cast<size_t>(pe) * STAGE_WORDS_PER_PE + word) *
+            WORD_BYTES;
+}
+
+static void store_u32_le(uint8_t* destination, uint32_t value) {
+    destination[0] = static_cast<uint8_t>(value);
+    destination[1] = static_cast<uint8_t>(value >> 8);
+    destination[2] = static_cast<uint8_t>(value >> 16);
+    destination[3] = static_cast<uint8_t>(value >> 24);
+}
+
+static void pack_stage_fxp32(const std::vector<int32_t>& values,
+                             int local_values, int stage_word) {
+    for (int pe = 0; pe < NUM_PES; ++pe) {
+        const int global_base = pe * local_values;
+        for (int index = 0; index < local_values; ++index) {
+            uint8_t* destination = stage_word_ptr(
+                pe, stage_word + index / 16) + (index % 16) * 4;
+            store_u32_le(destination,
+                         static_cast<uint32_t>(values[global_base + index]));
+        }
+    }
+}
+
+static void pack_stage_fp32(const std::vector<float>& values,
+                            int local_values, int stage_word) {
+    for (int pe = 0; pe < NUM_PES; ++pe) {
+        const int global_base = pe * local_values;
+        for (int index = 0; index < local_values; ++index) {
+            uint32_t bits = 0;
+            std::memcpy(&bits, &values[global_base + index], sizeof(bits));
+            uint8_t* destination = stage_word_ptr(
+                pe, stage_word + index / 16) + (index % 16) * 4;
+            store_u32_le(destination, bits);
+        }
+    }
+}
+
+static void pack_stage_qscale(const QuantizedActivation& activation,
+                              int local_groups, int stage_word) {
+    for (int pe = 0; pe < NUM_PES; ++pe) {
+        for (int group = 0; group < local_groups; ++group) {
+            uint8_t* quantized = stage_word_ptr(pe, stage_word + group);
+            const int global_group = pe * local_groups + group;
+            for (int lane = 0; lane < GROUP_SIZE; ++lane) {
+                const uint16_t raw = static_cast<uint16_t>(
+                    activation.q[global_group * GROUP_SIZE + lane]) &
+                    0x3fffU;
+                const int first_bit = lane * 14;
+                for (int bit = 0; bit < 14; ++bit) {
+                    if ((raw >> bit) & 1U) {
+                        const int destination_bit = first_bit + bit;
+                        quantized[destination_bit / 8] |=
+                            static_cast<uint8_t>(1U <<
+                                (destination_bit % 8));
+                    }
+                }
+            }
+        }
+
+        const int scale_word = stage_word + local_groups;
+        for (int group = 0; group < local_groups; ++group) {
+            const float scale = activation.scale[
+                pe * local_groups + group];
+            uint8_t encoded = 0;
+            if (scale != 0.0f) {
+                int scale_exp = 0;
+                (void)std::frexp(scale, &scale_exp);
+                const int raw = scale_exp + 127 +
+                    ACTIVATION_BITS - 2;
+                encoded = static_cast<uint8_t>(
+                    std::max(0, std::min(255, raw)));
+            }
+            stage_word_ptr(pe, scale_word + group / WORD_BYTES)
+                [group % WORD_BYTES] = encoded;
+        }
+    }
+}
+
 // ============================================================================
 // Model Forward Pass (returning logits array)
 // ============================================================================
@@ -744,6 +856,9 @@ float* forward(
 ) {
     const float* emb_ptr = model.token_embeddings.data() + token * DIM;
     std::copy(emb_ptr, emb_ptr + DIM, residual.begin());
+    if (!g_dump_stage_trace_dir.empty()) {
+        g_stage_trace.assign(STAGE_DUMP_BYTES, 0);
+    }
     if (!g_dump_layer_trace_dir.empty()) {
         g_layer_trace.assign(static_cast<size_t>(1 + 2 * NUM_LAYERS) * DIM,
                              0.0f);
@@ -762,6 +877,10 @@ float* forward(
         const DecoderLayer& layer = model.layers[l];
 
         rmsnorm_quantize_hls(residual.data(), layer.attn_norm_gamma.data(), norm_act);
+        if (l == 0 && !g_dump_stage_trace_dir.empty()) {
+            pack_stage_qscale(norm_act, LOCAL_GROUPS_DIM,
+                              STAGE_ATTN_RMS_WORD);
+        }
         sharded_gemv_4pe(layer.w_q, norm_act, q_float);
         sharded_gemv_4pe(layer.w_k, norm_act, k_float);
         sharded_gemv_4pe(layer.w_v, norm_act, v_float);
@@ -771,11 +890,23 @@ float* forward(
             k[i] = float_to_q17(k_float[i]);
             v[i] = float_to_q17(v_float[i]);
         }
+        if (l == 0 && !g_dump_stage_trace_dir.empty()) {
+            pack_stage_fxp32(q, LOCAL_DIM, STAGE_Q_WORD);
+            pack_stage_fxp32(k, LOCAL_DIM, STAGE_K_WORD);
+            pack_stage_fxp32(v, LOCAL_DIM, STAGE_V_WORD);
+        }
         apply_rope_q17(q.data(), pos);
         apply_rope_q17(k.data(), pos);
         swiftkv_attention_4pe(q.data(), k.data(), v.data(), kv_pes, l, pos, attn_act);
+        if (l == 0 && !g_dump_stage_trace_dir.empty()) {
+            pack_stage_qscale(attn_act, LOCAL_GROUPS_DIM,
+                              STAGE_ATTN_QSCALE_WORD);
+        }
 
         sharded_gemv_4pe(layer.w_o, attn_act, proj_o);
+        if (l == 0 && !g_dump_stage_trace_dir.empty()) {
+            pack_stage_fp32(proj_o, LOCAL_DIM, STAGE_O_WORD);
+        }
         for (int i = 0; i < DIM; ++i) residual[i] += proj_o[i];
         if (!g_dump_layer_trace_dir.empty()) {
             std::copy(residual.begin(), residual.end(),
@@ -784,11 +915,26 @@ float* forward(
         }
 
         rmsnorm_quantize_hls(residual.data(), layer.ffn_norm_gamma.data(), norm_act);
+        if (l == 0 && !g_dump_stage_trace_dir.empty()) {
+            pack_stage_qscale(norm_act, LOCAL_GROUPS_DIM,
+                              STAGE_FFN_RMS_WORD);
+        }
         sharded_gemv_4pe(layer.w_gate, norm_act, gate);
         sharded_gemv_4pe(layer.w_up, norm_act, up);
+        if (l == 0 && !g_dump_stage_trace_dir.empty()) {
+            pack_stage_fp32(gate, LOCAL_HIDDEN_DIM, STAGE_GATE_WORD);
+            pack_stage_fp32(up, LOCAL_HIDDEN_DIM, STAGE_UP_WORD);
+        }
         swiglu(gate.data(), up.data(), PADDED_HIDDEN_DIM, swiglu_out.data());
         quantize_activation_g32(swiglu_out.data(), PADDED_HIDDEN_DIM, swiglu_act);
+        if (l == 0 && !g_dump_stage_trace_dir.empty()) {
+            pack_stage_qscale(swiglu_act, LOCAL_GROUPS_HIDDEN,
+                              STAGE_SWIGLU_WORD);
+        }
         sharded_gemv_4pe(layer.w_down, swiglu_act, proj_down);
+        if (l == 0 && !g_dump_stage_trace_dir.empty()) {
+            pack_stage_fp32(proj_down, LOCAL_DIM, STAGE_DOWN_WORD);
+        }
         for (int i = 0; i < DIM; ++i) residual[i] += proj_down[i];
         if (!g_dump_layer_trace_dir.empty()) {
             std::copy(residual.begin(), residual.end(),
@@ -1642,6 +1788,23 @@ static void dump_reference_step(int pos, int token,
                   static_cast<std::streamsize>(
                       g_layer_trace.size() * sizeof(float)));
     }
+    if (!g_dump_stage_trace_dir.empty()) {
+        snprintf(filename, sizeof(filename),
+                 "stage_trace_pos%04d_token%05d.bin", pos, token);
+        std::ofstream out(g_dump_stage_trace_dir + "/" + filename,
+                          std::ios::binary | std::ios::trunc);
+        if (!out) {
+            throw std::runtime_error(
+                "cannot create software stage trace dump");
+        }
+        out.write(reinterpret_cast<const char*>(g_stage_trace.data()),
+                  static_cast<std::streamsize>(g_stage_trace.size()));
+        if (!out || g_stage_trace.size() !=
+                static_cast<size_t>(STAGE_DUMP_BYTES)) {
+            throw std::runtime_error(
+                "cannot write complete software stage trace dump");
+        }
+    }
     if (!g_dump_kv_cache_dir.empty()) {
         // Repack the semantic software cache into the exact headerless HLS
         // DDR layout: [PE][local_head][metadata,K0,K1,V0,V1].
@@ -2073,6 +2236,7 @@ void error_usage() {
     fprintf(stderr, "  --dump-residuals <dir> dump final FP32 residual for every generate step\n");
     fprintf(stderr, "  --dump-layer-trace <dir> dump 65 x 4096 layer-boundary residuals\n");
     fprintf(stderr, "  --dump-kv-cache <dir> dump layer-0 compressed KV records per step\n");
+    fprintf(stderr, "  --dump-stage-trace <dir> dump all layer-0 internal stage checkpoints\n");
     fprintf(stderr, "  --replay-residual <file> run final norm + LM head on a dumped residual\n");
     fprintf(stderr, "  --replay-logits <file> output path used with --replay-residual\n");
     exit(EXIT_FAILURE);
@@ -2138,6 +2302,8 @@ int main(int argc, char *argv[]) {
             g_dump_layer_trace_dir = argv[++i];
         } else if (arg == "--dump-kv-cache" && i + 1 < argc) {
             g_dump_kv_cache_dir = argv[++i];
+        } else if (arg == "--dump-stage-trace" && i + 1 < argc) {
+            g_dump_stage_trace_dir = argv[++i];
         } else if (arg == "--replay-residual" && i + 1 < argc) {
             replay_residual_path = argv[++i];
         } else if (arg == "--replay-logits" && i + 1 < argc) {

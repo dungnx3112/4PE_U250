@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -O3 -std=c++14 -static -static-libgcc -static-libstdc++
+CFLAGS = -O3 -std=c++14 -static-libgcc -static-libstdc++
 
 .PHONY: all runq clean
 

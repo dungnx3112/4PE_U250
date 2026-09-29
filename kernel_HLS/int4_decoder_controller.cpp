@@ -111,13 +111,77 @@ dump_local_residual_checkpoint_word_loop:
             residual[word];
     }
 }
+
+template <int WORDS>
+static void int4_dump_local_stage_words(
+    const int4_output_word_t values[WORDS],
+    int4_output_word_t* layer_trace,
+    int stage_offset) {
+#pragma HLS INLINE off
+dump_local_stage_word_loop:
+    for (int word = 0; word < WORDS; ++word) {
+#pragma HLS PIPELINE II=1
+        layer_trace[
+            INT4_STAGE_TRACE_BASE_WORD + stage_offset + word] =
+            values[word];
+    }
+}
+
+template <int GROUPS>
+static void int4_dump_local_stage_qscale(
+    const int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
+    const int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],
+    int4_output_word_t* layer_trace,
+    int stage_offset) {
+#pragma HLS INLINE off
+dump_local_stage_quantized_group_loop:
+    for (int group = 0; group < GROUPS; ++group) {
+#pragma HLS PIPELINE II=1
+        int4_output_word_t packed = 0;
+        packed.range(INT4_GROUP_SIZE * INT4_ACTIVATION_BITS - 1, 0) =
+            activation_q[group];
+        layer_trace[
+            INT4_STAGE_TRACE_BASE_WORD + stage_offset + group] =
+            packed;
+    }
+
+    const int scale_words =
+        (GROUPS + INT4_TRACE_SCALE_BYTES_PER_WORD - 1) /
+        INT4_TRACE_SCALE_BYTES_PER_WORD;
+dump_local_stage_scale_word_loop:
+    for (int word = 0; word < scale_words; ++word) {
+#pragma HLS PIPELINE II=1
+        int4_output_word_t packed = 0;
+    dump_local_stage_scale_lane_loop:
+        for (int lane = 0;
+             lane < INT4_TRACE_SCALE_BYTES_PER_WORD;
+             ++lane) {
+#pragma HLS UNROLL
+            const int group =
+                word * INT4_TRACE_SCALE_BYTES_PER_WORD + lane;
+            if (group < GROUPS) {
+                packed.range(8 * lane + 7, 8 * lane) =
+                    activation_scale[group];
+            }
+        }
+        layer_trace[
+            INT4_STAGE_TRACE_BASE_WORD + stage_offset + GROUPS + word] =
+            packed;
+    }
+}
 #define INT4_LOCAL_TRACE_DECL , int4_output_word_t* layer_trace
 #define INT4_DUMP_LOCAL_TRACE(RESIDUAL, CHECKPOINT)                    \
     int4_dump_local_residual_checkpoint(                              \
         RESIDUAL, layer_trace, CHECKPOINT)
+#define INT4_DUMP_STAGE_WORDS(VALUES, WORDS, OFFSET)                   \
+    int4_dump_local_stage_words<WORDS>(VALUES, layer_trace, OFFSET)
+#define INT4_DUMP_STAGE_QSCALE(Q, SCALE, GROUPS, OFFSET)              \
+    int4_dump_local_stage_qscale<GROUPS>(Q, SCALE, layer_trace, OFFSET)
 #else
 #define INT4_LOCAL_TRACE_DECL
 #define INT4_DUMP_LOCAL_TRACE(RESIDUAL, CHECKPOINT) do { } while (0)
+#define INT4_DUMP_STAGE_WORDS(VALUES, WORDS, OFFSET) do { } while (0)
+#define INT4_DUMP_STAGE_QSCALE(Q, SCALE, GROUPS, OFFSET) do { } while (0)
 #endif
 
 template <int PE_ID>
@@ -230,15 +294,39 @@ local_projection_layer_loop_##PE:                                     \
                     activation_q, activation_scale,                   \
                     int4_norm_offset(layer, norm_mode),               \
                     rms_partial, rms_reciprocal);                     \
+                if (layer == 0 && stage_flags[INT4_LINEAR_Q]) {       \
+                    INT4_DUMP_STAGE_QSCALE(                           \
+                        activation_q, activation_scale,               \
+                        INT4_LOCAL_GROUPS_DIM,                        \
+                        INT4_STAGE_TRACE_ATTN_RMS_WORD);              \
+                } else if (layer == 0 &&                              \
+                           stage_flags[INT4_LINEAR_GATE]) {           \
+                    INT4_DUMP_STAGE_QSCALE(                           \
+                        activation_q, activation_scale,               \
+                        INT4_LOCAL_GROUPS_DIM,                        \
+                        INT4_STAGE_TRACE_FFN_RMS_WORD);               \
+                }                                                     \
             } else if (stage_flags[INT4_LINEAR_O]) {                  \
                 ATTENTION_STAGE(                                      \
                     q, k, v, kv_cache, rope_lut,                      \
                     activation_q, activation_scale,                   \
                     (ap_uint<6>)layer, local_position);                \
+                if (layer == 0) {                                    \
+                    INT4_DUMP_STAGE_QSCALE(                           \
+                        activation_q, activation_scale,               \
+                        INT4_LOCAL_GROUPS_DIM,                        \
+                        INT4_STAGE_TRACE_ATTN_QSCALE_WORD);           \
+                }                                                     \
             } else if (stage_flags[INT4_LINEAR_DOWN]) {               \
                 SWIGLU_STAGE(                                         \
                     gate, projection,                                \
                     activation_q, activation_scale);                  \
+                if (layer == 0) {                                    \
+                    INT4_DUMP_STAGE_QSCALE(                           \
+                        activation_q, activation_scale,               \
+                        INT4_LOCAL_GROUPS_HIDDEN,                     \
+                        INT4_STAGE_TRACE_SWIGLU_WORD);                \
+                }                                                     \
             }                                                         \
             LINEAR_STAGE(                                             \
                 weight_mem,                                           \
@@ -246,6 +334,37 @@ local_projection_layer_loop_##PE:                                     \
                 mode,                                                 \
                 (ap_uint<24>)int4_weight_offset(layer, (int)mode),    \
                 linear_partial, linear_completed);                    \
+            if (layer == 0) {                                        \
+                if (stage_flags[INT4_LINEAR_Q]) {                     \
+                    INT4_DUMP_STAGE_WORDS(                            \
+                        projection, INT4_VECTOR_WORDS_PER_PE,         \
+                        INT4_STAGE_TRACE_Q_WORD);                     \
+                } else if (stage_flags[INT4_LINEAR_K]) {              \
+                    INT4_DUMP_STAGE_WORDS(                            \
+                        projection, INT4_VECTOR_WORDS_PER_PE,         \
+                        INT4_STAGE_TRACE_K_WORD);                     \
+                } else if (stage_flags[INT4_LINEAR_V]) {              \
+                    INT4_DUMP_STAGE_WORDS(                            \
+                        projection, INT4_VECTOR_WORDS_PER_PE,         \
+                        INT4_STAGE_TRACE_V_WORD);                     \
+                } else if (stage_flags[INT4_LINEAR_O]) {              \
+                    INT4_DUMP_STAGE_WORDS(                            \
+                        projection, INT4_VECTOR_WORDS_PER_PE,         \
+                        INT4_STAGE_TRACE_O_WORD);                     \
+                } else if (stage_flags[INT4_LINEAR_GATE]) {           \
+                    INT4_DUMP_STAGE_WORDS(                            \
+                        projection, INT4_HIDDEN_WORDS_PER_PE,         \
+                        INT4_STAGE_TRACE_GATE_WORD);                  \
+                } else if (stage_flags[INT4_LINEAR_UP]) {             \
+                    INT4_DUMP_STAGE_WORDS(                            \
+                        projection, INT4_HIDDEN_WORDS_PER_PE,         \
+                        INT4_STAGE_TRACE_UP_WORD);                    \
+                } else if (stage_flags[INT4_LINEAR_DOWN]) {           \
+                    INT4_DUMP_STAGE_WORDS(                            \
+                        projection, INT4_VECTOR_WORDS_PER_PE,         \
+                        INT4_STAGE_TRACE_DOWN_WORD);                  \
+                }                                                     \
+            }                                                         \
             if (stage_flags[INT4_LINEAR_Q] ||                         \
                 stage_flags[INT4_LINEAR_K] ||                         \
                 stage_flags[INT4_LINEAR_V] ||                         \
@@ -285,6 +404,8 @@ INT4_DEFINE_LOCAL_DECODER_PE(
     int4_local_residual_add_pe3)
 
 #undef INT4_DEFINE_LOCAL_DECODER_PE
+#undef INT4_DUMP_STAGE_QSCALE
+#undef INT4_DUMP_STAGE_WORDS
 #undef INT4_DUMP_LOCAL_TRACE
 #undef INT4_LOCAL_TRACE_DECL
 

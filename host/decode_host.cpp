@@ -71,6 +71,11 @@ constexpr int OUTPUTS_PER_WORD = 16;
 constexpr int DDR_WORD_BYTES = 64;
 constexpr int LAYER_TRACE_CHECKPOINTS = 1 + 2 * NUM_LAYERS;
 constexpr int LOCAL_DIM = DIM / NUM_PES;
+constexpr int LAYER_TRACE_RESIDUAL_WORDS_PER_PE =
+    LAYER_TRACE_CHECKPOINTS * (LOCAL_DIM / OUTPUTS_PER_WORD);
+constexpr int STAGE_TRACE_WORDS_PER_PE = 861;
+constexpr int LAYER_TRACE_WORDS_PER_PE =
+    LAYER_TRACE_RESIDUAL_WORDS_PER_PE + STAGE_TRACE_WORDS_PER_PE;
 
 constexpr std::size_t MODEL_BANK_WORDS_LEGACY = 13926208ULL;
 constexpr std::size_t MODEL_BANK_BYTES_LEGACY =
@@ -84,10 +89,14 @@ constexpr std::size_t ROPE_LUT_WORDS = 32768ULL;
 constexpr std::size_t ROPE_LUT_BYTES = ROPE_LUT_WORDS * DDR_WORD_BYTES;
 constexpr std::size_t RESIDUAL_WORDS = (DIM / NUM_PES) / OUTPUTS_PER_WORD;
 constexpr std::size_t RESIDUAL_BYTES = RESIDUAL_WORDS * DDR_WORD_BYTES;
-constexpr std::size_t LAYER_TRACE_FLOATS_PER_PE =
-    std::size_t(LAYER_TRACE_CHECKPOINTS) * LOCAL_DIM;
 constexpr std::size_t LAYER_TRACE_BYTES_PER_PE =
-    LAYER_TRACE_FLOATS_PER_PE * sizeof(float);
+    std::size_t(LAYER_TRACE_WORDS_PER_PE) * DDR_WORD_BYTES;
+constexpr std::size_t STAGE_TRACE_OFFSET_BYTES =
+    std::size_t(LAYER_TRACE_RESIDUAL_WORDS_PER_PE) * DDR_WORD_BYTES;
+constexpr std::size_t STAGE_TRACE_BYTES_PER_PE =
+    std::size_t(STAGE_TRACE_WORDS_PER_PE) * DDR_WORD_BYTES;
+constexpr std::size_t STAGE_TRACE_DUMP_BYTES =
+    NUM_PES * STAGE_TRACE_BYTES_PER_PE;
 constexpr std::size_t LOGIT_WORDS =
     (PADDED_VOCAB_SIZE / NUM_PES) / OUTPUTS_PER_WORD;
 constexpr std::size_t LOGIT_BYTES = LOGIT_WORDS * DDR_WORD_BYTES;
@@ -114,8 +123,10 @@ static_assert(ROPE_LUT_BYTES == 2097152ULL,
               "RoPE LUT size must match swiftkv_attention.hpp");
 static_assert(RESIDUAL_BYTES == 4096ULL,
               "residual shard size must match the kernel ABI");
-static_assert(LAYER_TRACE_BYTES_PER_PE == 266240ULL,
-              "layer trace ABI must contain 65 local residual shards");
+static_assert(LAYER_TRACE_BYTES_PER_PE == 321344ULL,
+              "full debug trace ABI size changed unexpectedly");
+static_assert(STAGE_TRACE_DUMP_BYTES == 220416ULL,
+              "full stage dump size changed unexpectedly");
 static_assert(LOGIT_BYTES == 32256ULL,
               "logit shard size must match the kernel ABI");
 static_assert(KV_BYTES == 335544320ULL,
@@ -500,6 +511,31 @@ std::string dump_layer_trace(const std::string& directory, int position,
               std::size_t(LAYER_TRACE_CHECKPOINTS) * DIM * sizeof(float));
     if (!out) {
         throw std::runtime_error("cannot write layer trace dump " + path);
+    }
+    return path;
+}
+
+std::string dump_stage_trace(
+    const std::string& directory, int position, int token_id,
+    const std::array<const std::uint8_t*, NUM_PES>& trace_maps) {
+    // Headerless layout: [PE0 stage region][PE1]...[PE3]. Segment offsets
+    // are shared with scripts/analyze_stage_trace.py and int4_types.hpp.
+    std::ostringstream name;
+    name << "stage_trace_pos" << std::setw(4) << std::setfill('0')
+         << position << "_token" << std::setw(5) << std::setfill('0')
+         << token_id << ".bin";
+    const std::string path = join_path(directory, name.str());
+    std::ofstream out(path, std::ios::binary | std::ios::trunc);
+    if (!out) {
+        throw std::runtime_error("cannot create stage trace dump " + path);
+    }
+    for (int pe = 0; pe < NUM_PES; ++pe) {
+        out.write(reinterpret_cast<const char*>(
+                      trace_maps[pe] + STAGE_TRACE_OFFSET_BYTES),
+                  static_cast<std::streamsize>(STAGE_TRACE_BYTES_PER_PE));
+    }
+    if (!out) {
+        throw std::runtime_error("cannot write stage trace dump " + path);
     }
     return path;
 }
@@ -890,6 +926,7 @@ struct Config {
     std::string dump_residuals_dir;
     std::string dump_layer_trace_dir;
     std::string dump_kv_cache_dir;
+    std::string dump_stage_trace_dir;
     int max_tokens = 256;
     int top_k = 0;
     float temperature = 0.0f;
@@ -919,6 +956,7 @@ void print_usage(const char* program) {
         << "  --dump-residuals DIR dump the final 4096-value FP32 residual for every step\n"
         << "  --dump-layer-trace DIR dump 65 x 4096 FP32 layer-boundary residuals per step\n"
         << "  --dump-kv-cache DIR dump layer-0 compressed KV records for every step\n"
+        << "  --dump-stage-trace DIR dump all layer-0 internal stage checkpoints\n"
         << "  --device ID         BDF or numeric XRT device index\n"
         << "  --verbose           print initialization, per-PE timing, token IDs, and statistics\n"
         << "  --tokenize-only     print prompt token IDs without loading FPGA\n";
@@ -1033,6 +1071,12 @@ Config parse_args(int argc, char** argv) {
             if (config.dump_kv_cache_dir.empty()) {
                 throw std::runtime_error(
                     "--dump-kv-cache directory is empty");
+            }
+        } else if (argument == "--dump-stage-trace") {
+            config.dump_stage_trace_dir = next();
+            if (config.dump_stage_trace_dir.empty()) {
+                throw std::runtime_error(
+                    "--dump-stage-trace directory is empty");
             }
         } else if (argument == "--device") config.device_id = next();
         else if (argument == "--help" || argument == "-h") {
@@ -1191,6 +1235,16 @@ int main(int argc, char** argv) {
                       << std::filesystem::absolute(
                              config.dump_kv_cache_dir)
                       << " (layer 0, [4 PEs][8 heads][5 x 64-byte words])"
+                      << std::endl;
+        }
+        if (!config.dump_stage_trace_dir.empty()) {
+            prepare_dump_directory(config.dump_stage_trace_dir,
+                                   "stage trace");
+            std::cout << "[Init] Full stage trace dumps: "
+                      << std::filesystem::absolute(
+                             config.dump_stage_trace_dir)
+                      << " (11 layer-0 checkpoints, "
+                      << STAGE_TRACE_DUMP_BYTES << " bytes per step)"
                       << std::endl;
         }
 
@@ -1360,10 +1414,14 @@ int main(int argc, char** argv) {
         auto* kv_map1 = kv1.map<std::uint8_t*>();
         auto* kv_map2 = kv2.map<std::uint8_t*>();
         auto* kv_map3 = kv3.map<std::uint8_t*>();
-        auto* trace_map0 = trace0.map<float*>();
-        auto* trace_map1 = trace1.map<float*>();
-        auto* trace_map2 = trace2.map<float*>();
-        auto* trace_map3 = trace3.map<float*>();
+        auto* trace_raw0 = trace0.map<std::uint8_t*>();
+        auto* trace_raw1 = trace1.map<std::uint8_t*>();
+        auto* trace_raw2 = trace2.map<std::uint8_t*>();
+        auto* trace_raw3 = trace3.map<std::uint8_t*>();
+        auto* trace_map0 = reinterpret_cast<float*>(trace_raw0);
+        auto* trace_map1 = reinterpret_cast<float*>(trace_raw1);
+        auto* trace_map2 = reinterpret_cast<float*>(trace_raw2);
+        auto* trace_map3 = reinterpret_cast<float*>(trace_raw3);
         std::vector<float> combined_logits(PADDED_VOCAB_SIZE, 0.0f);
         std::vector<float> combined_residual(DIM, 0.0f);
         std::vector<float> combined_layer_trace(
@@ -1542,7 +1600,8 @@ int main(int argc, char** argv) {
                           << " bytes=" << KV_DUMP_BYTES << std::endl;
             }
 
-            if (!config.dump_layer_trace_dir.empty()) {
+            if (!config.dump_layer_trace_dir.empty() ||
+                !config.dump_stage_trace_dir.empty()) {
                 {
                     auto t0 = std::async(std::launch::async, [&]{
                         trace0.sync(XCL_BO_SYNC_BO_FROM_DEVICE,
@@ -1558,6 +1617,9 @@ int main(int argc, char** argv) {
                                     LAYER_TRACE_BYTES_PER_PE, 0); });
                     t0.get(); t1.get(); t2.get(); t3.get();
                 }
+            }
+
+            if (!config.dump_layer_trace_dir.empty()) {
                 const std::array<const float*, NUM_PES> trace_maps = {
                     trace_map0, trace_map1, trace_map2, trace_map3};
                 for (int checkpoint = 0;
@@ -1579,6 +1641,17 @@ int main(int argc, char** argv) {
                           << " shape=[" << LAYER_TRACE_CHECKPOINTS
                           << "][" << DIM << "] bytes="
                           << combined_layer_trace.size() * sizeof(float)
+                          << std::endl;
+            }
+
+            if (!config.dump_stage_trace_dir.empty()) {
+                const std::array<const std::uint8_t*, NUM_PES> trace_maps = {
+                    trace_raw0, trace_raw1, trace_raw2, trace_raw3};
+                const std::string stage_path = dump_stage_trace(
+                    config.dump_stage_trace_dir, position, token_id,
+                    trace_maps);
+                std::cout << "[Stage trace] dumped=" << stage_path
+                          << " bytes=" << STAGE_TRACE_DUMP_BYTES
                           << std::endl;
             }
 

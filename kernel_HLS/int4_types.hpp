@@ -123,8 +123,6 @@ static constexpr int INT4_LOCAL_VOCAB_SIZE =
     INT4_PADDED_VOCAB_SIZE / INT4_PE_COUNT;
 static constexpr int INT4_VECTOR_WORDS_PER_PE =
     INT4_LOCAL_DIM / INT4_OUTPUTS_PER_WORD;
-static constexpr int INT4_LAYER_TRACE_WORDS_PER_PE =
-    INT4_LAYER_TRACE_CHECKPOINTS * INT4_VECTOR_WORDS_PER_PE;
 static constexpr int INT4_HIDDEN_WORDS_PER_PE =
     INT4_LOCAL_HIDDEN_DIM / INT4_OUTPUTS_PER_WORD;
 static constexpr int INT4_LOGIT_WORDS_PER_PE =
@@ -135,6 +133,59 @@ static constexpr int INT4_LOCAL_GROUPS_HIDDEN =
     INT4_LOCAL_HIDDEN_DIM / INT4_GROUP_SIZE;
 static constexpr int INT4_MAX_LOCAL_GROUPS = INT4_LOCAL_GROUPS_HIDDEN;
 static constexpr int INT4_MAX_LOCAL_OUTPUT_WORDS = INT4_LOGIT_WORDS_PER_PE;
+
+// One full-debug build captures every important layer-zero boundary in the
+// same trace BO.  Each packed-activation region stores one 448-bit INT14/G32
+// word in a 512-bit trace word, followed by packed E8M0 scale bytes.  This
+// deliberately trades debug-only DDR traffic for avoiding repeated XCLBIN
+// rebuilds while narrowing hardware/software divergence.
+static constexpr int INT4_TRACE_SCALE_BYTES_PER_WORD = 64;
+static constexpr int INT4_TRACE_DIM_SCALE_WORDS =
+    (INT4_LOCAL_GROUPS_DIM + INT4_TRACE_SCALE_BYTES_PER_WORD - 1) /
+    INT4_TRACE_SCALE_BYTES_PER_WORD;
+static constexpr int INT4_TRACE_HIDDEN_SCALE_WORDS =
+    (INT4_LOCAL_GROUPS_HIDDEN + INT4_TRACE_SCALE_BYTES_PER_WORD - 1) /
+    INT4_TRACE_SCALE_BYTES_PER_WORD;
+static constexpr int INT4_TRACE_QSCALE_DIM_WORDS =
+    INT4_LOCAL_GROUPS_DIM + INT4_TRACE_DIM_SCALE_WORDS;
+static constexpr int INT4_TRACE_QSCALE_HIDDEN_WORDS =
+    INT4_LOCAL_GROUPS_HIDDEN + INT4_TRACE_HIDDEN_SCALE_WORDS;
+
+static constexpr int INT4_LAYER_TRACE_RESIDUAL_WORDS_PER_PE =
+    INT4_LAYER_TRACE_CHECKPOINTS * INT4_VECTOR_WORDS_PER_PE;
+static constexpr int INT4_STAGE_TRACE_BASE_WORD =
+    INT4_LAYER_TRACE_RESIDUAL_WORDS_PER_PE;
+static constexpr int INT4_STAGE_TRACE_ATTN_RMS_WORD = 0;
+static constexpr int INT4_STAGE_TRACE_Q_WORD =
+    INT4_STAGE_TRACE_ATTN_RMS_WORD + INT4_TRACE_QSCALE_DIM_WORDS;
+static constexpr int INT4_STAGE_TRACE_K_WORD =
+    INT4_STAGE_TRACE_Q_WORD + INT4_VECTOR_WORDS_PER_PE;
+static constexpr int INT4_STAGE_TRACE_V_WORD =
+    INT4_STAGE_TRACE_K_WORD + INT4_VECTOR_WORDS_PER_PE;
+static constexpr int INT4_STAGE_TRACE_ATTN_QSCALE_WORD =
+    INT4_STAGE_TRACE_V_WORD + INT4_VECTOR_WORDS_PER_PE;
+static constexpr int INT4_STAGE_TRACE_O_WORD =
+    INT4_STAGE_TRACE_ATTN_QSCALE_WORD + INT4_TRACE_QSCALE_DIM_WORDS;
+static constexpr int INT4_STAGE_TRACE_FFN_RMS_WORD =
+    INT4_STAGE_TRACE_O_WORD + INT4_VECTOR_WORDS_PER_PE;
+static constexpr int INT4_STAGE_TRACE_GATE_WORD =
+    INT4_STAGE_TRACE_FFN_RMS_WORD + INT4_TRACE_QSCALE_DIM_WORDS;
+static constexpr int INT4_STAGE_TRACE_UP_WORD =
+    INT4_STAGE_TRACE_GATE_WORD + INT4_HIDDEN_WORDS_PER_PE;
+static constexpr int INT4_STAGE_TRACE_SWIGLU_WORD =
+    INT4_STAGE_TRACE_UP_WORD + INT4_HIDDEN_WORDS_PER_PE;
+static constexpr int INT4_STAGE_TRACE_DOWN_WORD =
+    INT4_STAGE_TRACE_SWIGLU_WORD + INT4_TRACE_QSCALE_HIDDEN_WORDS;
+static constexpr int INT4_STAGE_TRACE_WORDS_PER_PE =
+    INT4_STAGE_TRACE_DOWN_WORD + INT4_VECTOR_WORDS_PER_PE;
+static constexpr int INT4_LAYER_TRACE_WORDS_PER_PE =
+    INT4_LAYER_TRACE_RESIDUAL_WORDS_PER_PE +
+    INT4_STAGE_TRACE_WORDS_PER_PE;
+
+static_assert(INT4_STAGE_TRACE_WORDS_PER_PE == 861,
+              "layer-zero full-stage trace layout changed unexpectedly");
+static_assert(INT4_LAYER_TRACE_WORDS_PER_PE == 5021,
+              "combined residual/stage trace layout changed unexpectedly");
 
 static_assert(INT4_LOCAL_DIM == 1024,
               "four SLRs must own 1024 model channels each");

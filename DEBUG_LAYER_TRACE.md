@@ -6,7 +6,7 @@ mixed with a production host or production XCLBIN.
 
 ## What is captured
 
-Each token produces one FP32 tensor with shape `[65][4096]`:
+Each token produces one FP32 residual tensor with shape `[65][4096]`:
 
 - slot 0: decoder input embedding;
 - slot `1 + 2 * layer`: residual after attention projection/add;
@@ -15,10 +15,24 @@ Each token produces one FP32 tensor with shape `[65][4096]`:
 Every PE writes its local 1024-value shard.  The host combines PE0..PE3 in
 model-dimension order before saving the file.
 
+The same XCLBIN also captures eleven layer-zero internal checkpoints in one
+raw stage trace, so narrowing a mismatch does not require another XCLBIN
+build:
+
+- attention RMS INT14/E8M0 input;
+- Q, K, and V Q15.17 projections;
+- attention INT14/E8M0 output;
+- O projection;
+- FFN RMS INT14/E8M0 input;
+- Gate and Up projections;
+- SwiGLU INT14/E8M0 output;
+- Down projection.
+
 ## Build the debug XCLBIN
 
-The HLS datapath is scheduled with the same 300 MHz constraints as production,
-but the linked hardware clock defaults to 200 MHz for reliable trace capture.
+The debug build uses the same datapath source as production, while the linked
+hardware clock defaults to 200 MHz for reliable trace capture. This command
+rebuilds the four debug XOs once, then links one full-stage XCLBIN.
 
 ```bash
 cd ~/XuanDung_AnhDuc/XuanDung/debug
@@ -31,7 +45,7 @@ bash scripts/build_layer_trace.sh
 Output:
 
 ```text
-int4_decoder_multikernel_200mhz_layer_trace.xclbin
+int4_decoder_multikernel_200mhz_full_stage_debug.xclbin
 ```
 
 ## Build the matching debug host
@@ -55,9 +69,10 @@ Start with one generated token.  The two prompt forwards are also captured.
 ```bash
 mkdir -p /dev/shm/layer_trace_hw
 mkdir -p /dev/shm/kv_cache_hw
+mkdir -p /dev/shm/stage_trace_hw
 
 ./decode_host_layer_trace \
-  --xclbin "$PWD/int4_decoder_multikernel_200mhz_layer_trace.xclbin" \
+  --xclbin "$PWD/int4_decoder_multikernel_200mhz_full_stage_debug.xclbin" \
   --device 0000:13:00.0 \
   --banks /dev/shm/4PE_U250_dense \
   --prompt "Hello" \
@@ -66,6 +81,7 @@ mkdir -p /dev/shm/kv_cache_hw
   --dump-logits /dev/shm/layer_trace_hw/logits \
   --dump-residuals /dev/shm/layer_trace_hw/residuals \
   --dump-kv-cache /dev/shm/kv_cache_hw \
+  --dump-stage-trace /dev/shm/stage_trace_hw \
   --verbose
 ```
 
@@ -77,12 +93,14 @@ the same dense bank directory, prompt, and greedy sampling:
 ```bash
 mkdir -p /dev/shm/layer_trace_sw
 mkdir -p /dev/shm/kv_cache_sw
+mkdir -p /dev/shm/stage_trace_sw
 
 ./llama2_decoder_sw_emulator /dev/shm/4PE_U250_dense \
   -z /dev/shm/4PE_U250_dense/tokenizer.bin \
   -i "Hello" -n 1 -t 0 \
   --dump-layer-trace /dev/shm/layer_trace_sw \
-  --dump-kv-cache /dev/shm/kv_cache_sw
+  --dump-kv-cache /dev/shm/kv_cache_sw \
+  --dump-stage-trace /dev/shm/stage_trace_sw
 ```
 
 ## Find the first divergent layer
@@ -121,3 +139,20 @@ env -u LD_LIBRARY_PATH -u PYTHONHOME -u PYTHONPATH \
 An exact match moves the investigation downstream to cache routing,
 dequantization, attention-output quantization, and O projection. A mismatch
 moves it upstream to the Q/K/V projection boundary or KV quantize/pack logic.
+
+## Find the first divergent internal stage
+
+One command compares every layer-zero checkpoint captured by the full-stage
+debug build:
+
+```bash
+env -u LD_LIBRARY_PATH -u PYTHONHOME -u PYTHONPATH \
+  /usr/bin/python3 scripts/analyze_stage_trace.py \
+  --hardware /dev/shm/stage_trace_hw/stage_trace_pos0000_token00001.bin \
+  --software /dev/shm/stage_trace_sw/stage_trace_pos0000_token00001.bin
+```
+
+Repeat with `stage_trace_pos0004_token00626.bin` for the first forward that
+produces a different greedy token. INT14/E8M0 and Q15.17 checkpoints are
+compared exactly; FP32 projections report relative L2, RMSE, and maximum
+absolute error.
