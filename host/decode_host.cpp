@@ -647,6 +647,157 @@ int argmax_logits(const float* logits) {
     return best;
 }
 
+struct ProbIndex {
+    float probability = 0.0f;
+    int index = 0;
+};
+
+class Sampler {
+public:
+    Sampler(float temperature, float top_p, float repeat_penalty,
+            std::uint64_t seed)
+        : temperature_(temperature),
+          top_p_(top_p),
+          repeat_penalty_(repeat_penalty),
+          rng_state_(seed == 0 ? 1 : seed),
+          probabilities_(VOCAB_SIZE),
+          penalized_(VOCAB_SIZE, false) {
+        candidates_.reserve(VOCAB_SIZE);
+    }
+
+    int select(const float* logits, const std::vector<int>& token_history) {
+        if (temperature_ == 0.0f && repeat_penalty_ == 1.0f) {
+            return argmax_logits(logits);
+        }
+
+        std::copy(logits, logits + VOCAB_SIZE, probabilities_.begin());
+        apply_repeat_penalty(token_history);
+
+        if (temperature_ == 0.0f) {
+            return argmax_logits(probabilities_.data());
+        }
+
+        float maximum = -std::numeric_limits<float>::infinity();
+        for (float value : probabilities_) {
+            if (std::isfinite(value)) {
+                maximum = std::max(maximum, value);
+            }
+        }
+        if (!std::isfinite(maximum)) {
+            throw std::runtime_error(
+                "all valid-vocabulary logits are non-finite");
+        }
+
+        float sum = 0.0f;
+        for (float& value : probabilities_) {
+            value = std::isfinite(value)
+                ? std::exp((value - maximum) / temperature_)
+                : 0.0f;
+            sum += value;
+        }
+        if (!(sum > 0.0f) || !std::isfinite(sum)) {
+            throw std::runtime_error("invalid probability sum during sampling");
+        }
+        for (float& value : probabilities_) {
+            value /= sum;
+        }
+
+        const float coin = random_f32();
+        if (top_p_ <= 0.0f || top_p_ >= 1.0f) {
+            return sample_multinomial(coin);
+        }
+        return sample_top_p(coin);
+    }
+
+private:
+    void apply_repeat_penalty(const std::vector<int>& token_history) {
+        if (repeat_penalty_ == 1.0f) {
+            return;
+        }
+        std::fill(penalized_.begin(), penalized_.end(), false);
+        for (int token : token_history) {
+            if (token < 0 || token >= VOCAB_SIZE || penalized_[token]) {
+                continue;
+            }
+            float& logit = probabilities_[token];
+            if (std::isfinite(logit)) {
+                logit = logit < 0.0f
+                    ? logit * repeat_penalty_
+                    : logit / repeat_penalty_;
+            }
+            penalized_[token] = true;
+        }
+    }
+
+    std::uint32_t random_u32() {
+        rng_state_ ^= rng_state_ >> 12;
+        rng_state_ ^= rng_state_ << 25;
+        rng_state_ ^= rng_state_ >> 27;
+        return static_cast<std::uint32_t>(
+            (rng_state_ * 0x2545F4914F6CDD1DULL) >> 32);
+    }
+
+    float random_f32() {
+        return (random_u32() >> 8) / 16777216.0f;
+    }
+
+    int sample_multinomial(float coin) const {
+        float cumulative = 0.0f;
+        for (int token = 0; token < VOCAB_SIZE; ++token) {
+            cumulative += probabilities_[token];
+            if (coin < cumulative) {
+                return token;
+            }
+        }
+        return VOCAB_SIZE - 1;
+    }
+
+    int sample_top_p(float coin) {
+        candidates_.clear();
+        const float cutoff = (1.0f - top_p_) / (VOCAB_SIZE - 1);
+        for (int token = 0; token < VOCAB_SIZE; ++token) {
+            if (probabilities_[token] >= cutoff) {
+                candidates_.push_back({probabilities_[token], token});
+            }
+        }
+        if (candidates_.empty()) {
+            return argmax_logits(probabilities_.data());
+        }
+        std::sort(candidates_.begin(), candidates_.end(),
+                  [](const ProbIndex& lhs, const ProbIndex& rhs) {
+                      return lhs.probability > rhs.probability;
+                  });
+
+        float nucleus_sum = 0.0f;
+        std::size_t last = 0;
+        for (; last < candidates_.size(); ++last) {
+            nucleus_sum += candidates_[last].probability;
+            if (nucleus_sum >= top_p_) {
+                break;
+            }
+        }
+        last = std::min(last, candidates_.size() - 1);
+
+        const float target = coin * nucleus_sum;
+        float cumulative = 0.0f;
+        for (std::size_t i = 0; i <= last; ++i) {
+            cumulative += candidates_[i].probability;
+            if (target < cumulative) {
+                return candidates_[i].index;
+            }
+        }
+        return candidates_[last].index;
+    }
+
+    float temperature_;
+    float top_p_;
+    float repeat_penalty_;
+    std::uint64_t rng_state_;
+    std::vector<float> probabilities_;
+    std::vector<bool> penalized_;
+    std::vector<ProbIndex> candidates_;
+};
+
 struct Config {
     std::string xclbin = "int4_decoder_multikernel_300mhz.xclbin";
     std::string banks_dir = ".";
@@ -659,6 +810,10 @@ struct Config {
     std::string dump_residuals_dir;
     int max_tokens = 256;
     int top_k = 0;
+    float temperature = 0.0f;
+    float top_p = 0.9f;
+    float repeat_penalty = 1.0f;
+    std::uint64_t seed = 42;
     bool tokenize_only = false;
     bool verbose = false;
 };
@@ -673,6 +828,10 @@ void print_usage(const char* program) {
         << "  --embeddings PATH   embeddings.bin (default: BANKS/embeddings.bin)\n"
         << "  --prompt TEXT       prompt text\n"
         << "  --max-tokens N      maximum number of new tokens\n"
+        << "  --temperature F     sampling temperature (default: 0 = greedy)\n"
+        << "  --top-p F           nucleus sampling probability in [0,1] (default: 0.9)\n"
+        << "  --repeat-penalty F  token repetition penalty > 0 (default: 1.0)\n"
+        << "  --seed N            sampling RNG seed (default: 42)\n"
         << "  --top-k N           print the N highest valid-vocabulary logits per step\n"
         << "  --dump-logits DIR   dump all 32256 raw FP32 logits for every step\n"
         << "  --dump-residuals DIR dump the final 4096-value FP32 residual for every step\n"
@@ -689,6 +848,28 @@ int parse_positive_int(const std::string& text, const char* name) {
         throw std::runtime_error(std::string("invalid ") + name + ": " + text);
     }
     return static_cast<int>(value);
+}
+
+float parse_finite_float(const std::string& text, const char* name) {
+    std::size_t consumed = 0;
+    const float value = std::stof(text, &consumed);
+    if (consumed != text.size() || !std::isfinite(value)) {
+        throw std::runtime_error(std::string("invalid ") + name + ": " +
+                                 text);
+    }
+    return value;
+}
+
+std::uint64_t parse_seed(const std::string& text) {
+    if (text.empty() || text.front() == '-') {
+        throw std::runtime_error("invalid --seed: " + text);
+    }
+    std::size_t consumed = 0;
+    const unsigned long long value = std::stoull(text, &consumed, 10);
+    if (consumed != text.size()) {
+        throw std::runtime_error("invalid --seed: " + text);
+    }
+    return static_cast<std::uint64_t>(value);
 }
 
 int parse_device_index(const std::string& text) {
@@ -722,6 +903,25 @@ Config parse_args(int argc, char** argv) {
         else if (argument == "--verbose") config.verbose = true;
         else if (argument == "--max-tokens") {
             config.max_tokens = parse_positive_int(next(), "--max-tokens");
+        } else if (argument == "--temperature") {
+            config.temperature =
+                parse_finite_float(next(), "--temperature");
+            if (config.temperature < 0.0f) {
+                throw std::runtime_error("--temperature must be >= 0");
+            }
+        } else if (argument == "--top-p") {
+            config.top_p = parse_finite_float(next(), "--top-p");
+            if (config.top_p < 0.0f || config.top_p > 1.0f) {
+                throw std::runtime_error("--top-p must be in [0,1]");
+            }
+        } else if (argument == "--repeat-penalty") {
+            config.repeat_penalty =
+                parse_finite_float(next(), "--repeat-penalty");
+            if (config.repeat_penalty <= 0.0f) {
+                throw std::runtime_error("--repeat-penalty must be > 0");
+            }
+        } else if (argument == "--seed") {
+            config.seed = parse_seed(next());
         } else if (argument == "--top-k") {
             config.top_k = parse_positive_int(next(), "--top-k");
             if (config.top_k > VOCAB_SIZE) {
@@ -1017,8 +1217,14 @@ int main(int argc, char** argv) {
         auto* logits_map3 = logits3.map<float*>();
         std::vector<float> combined_logits(PADDED_VOCAB_SIZE, 0.0f);
         std::vector<float> combined_residual(DIM, 0.0f);
+        std::vector<int> token_history = prompt_tokens;
+        token_history.reserve(
+            prompt_tokens.size() + static_cast<std::size_t>(config.max_tokens));
+        Sampler sampler(config.temperature, config.top_p,
+                        config.repeat_penalty, config.seed);
 
-        auto run_one_token = [&](int position, int token_id) {
+        auto run_one_token = [&](int position, int token_id,
+                                 bool select_next_token) {
             if (position < 0 || position >= MAX_SEQ_LEN) {
                 throw std::runtime_error("position out of range: " +
                                          std::to_string(position));
@@ -1198,18 +1404,28 @@ int main(int argc, char** argv) {
             }
 
             TokenRunResult result;
-            result.next_token = argmax_logits(combined_logits.data());
+            result.next_token = select_next_token
+                ? sampler.select(combined_logits.data(), token_history)
+                : -1;
             result.step_ms = elapsed_ms(begin, Clock::now());
             if (config.verbose) {
                 std::cout << "[Run] pos=" << position << " done in "
                           << std::fixed << std::setprecision(3)
-                          << result.step_ms << " ms, next="
-                          << result.next_token << std::endl;
+                          << result.step_ms << " ms";
+                if (select_next_token) {
+                    std::cout << ", next=" << result.next_token;
+                }
+                std::cout << std::endl;
             }
             return result;
         };
 
         if (config.verbose) {
+            std::cout << "[Sampling] temperature=" << std::fixed
+                      << std::setprecision(3) << config.temperature
+                      << " top_p=" << config.top_p
+                      << " repeat_penalty=" << config.repeat_penalty
+                      << " seed=" << config.seed << std::endl;
             std::cout << "[Prefill] Processing " << prompt_tokens.size()
                       << " tokens ..." << std::endl;
         }
@@ -1219,7 +1435,9 @@ int main(int argc, char** argv) {
         for (std::size_t position = 0;
              position < prompt_tokens.size(); ++position) {
             token_result = run_one_token(static_cast<int>(position),
-                                         prompt_tokens[position]);
+                                         prompt_tokens[position],
+                                         position + 1 ==
+                                             prompt_tokens.size());
             total_inference_ms += token_result.step_ms;
             if (position + 1 < prompt_tokens.size()) {
                 prefill_ms += token_result.step_ms;
@@ -1246,6 +1464,7 @@ int main(int argc, char** argv) {
             const std::string piece =
                 tokenizer.decode_piece(previous_token, next_token);
             generated_tokens.push_back(next_token);
+            token_history.push_back(next_token);
             generated_text += piece;
             std::cout << piece;
             std::cout.flush();
@@ -1256,7 +1475,7 @@ int main(int argc, char** argv) {
                 break;
             }
 
-            token_result = run_one_token(position, next_token);
+            token_result = run_one_token(position, next_token, true);
             total_inference_ms += token_result.step_ms;
             previous_token = next_token;
             ++position;
