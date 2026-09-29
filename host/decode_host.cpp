@@ -70,8 +70,14 @@ constexpr int MAX_SEQ_LEN = 4096;
 constexpr int OUTPUTS_PER_WORD = 16;
 constexpr int DDR_WORD_BYTES = 64;
 
-constexpr std::size_t MODEL_BANK_WORDS = 13516736ULL;
-constexpr std::size_t MODEL_BANK_BYTES = MODEL_BANK_WORDS * DDR_WORD_BYTES;
+constexpr std::size_t MODEL_BANK_WORDS_LEGACY = 13926208ULL;
+constexpr std::size_t MODEL_BANK_BYTES_LEGACY =
+    MODEL_BANK_WORDS_LEGACY * DDR_WORD_BYTES;
+constexpr std::size_t MODEL_BANK_WORDS_DENSE = 13516736ULL;
+constexpr std::size_t MODEL_BANK_BYTES_DENSE =
+    MODEL_BANK_WORDS_DENSE * DDR_WORD_BYTES;
+constexpr std::size_t MODEL_BANK_WORDS = MODEL_BANK_WORDS_LEGACY;
+constexpr std::size_t MODEL_BANK_BYTES = MODEL_BANK_BYTES_LEGACY;
 constexpr std::size_t ROPE_LUT_WORDS = 32768ULL;
 constexpr std::size_t ROPE_LUT_BYTES = ROPE_LUT_WORDS * DDR_WORD_BYTES;
 constexpr std::size_t RESIDUAL_WORDS = (DIM / NUM_PES) / OUTPUTS_PER_WORD;
@@ -90,8 +96,10 @@ constexpr std::size_t EMBEDDING_BYTES =
     std::size_t(VOCAB_SIZE) * DIM * sizeof(float);
 constexpr unsigned int RUN_TIMEOUT_MS = 10000;
 
-static_assert(MODEL_BANK_BYTES == 865071104ULL,
-              "model bank size must match int4_model_layout.hpp");
+static_assert(MODEL_BANK_BYTES_LEGACY == 891277312ULL,
+              "legacy model bank size must match 13926208 words");
+static_assert(MODEL_BANK_BYTES_DENSE == 865071104ULL,
+              "dense model bank size must match 13516736 words");
 static_assert(ROPE_LUT_BYTES == 2097152ULL,
               "RoPE LUT size must match swiftkv_attention.hpp");
 static_assert(RESIDUAL_BYTES == 4096ULL,
@@ -1125,13 +1133,35 @@ int main(int argc, char** argv) {
         auto kernel3 = open_kernel(device, uuid,
             "int4_decoder_pe3_kernel", "pe3");
 
-        if (config.verbose) {
-            std::cout << "[Init] Allocating DDR buffers ..." << std::endl;
+        const auto bank_path = [&](int pe) {
+            return join_path(config.banks_dir,
+                             "model_bank" + std::to_string(pe) + ".bin");
+        };
+
+        const std::string probe_bank0 = bank_path(0);
+        const std::size_t detected_model_bytes = file_size(probe_bank0);
+        if (detected_model_bytes != MODEL_BANK_BYTES_LEGACY &&
+            detected_model_bytes != MODEL_BANK_BYTES_DENSE) {
+            std::ostringstream message;
+            message << "Unexpected model bank size for " << probe_bank0
+                    << ": got " << detected_model_bytes
+                    << " bytes; expected " << MODEL_BANK_BYTES_LEGACY
+                    << " (891 MiB legacy) or " << MODEL_BANK_BYTES_DENSE
+                    << " (865 MiB dense)";
+            throw std::runtime_error(message.str());
         }
-        xrt::bo model0(device, MODEL_BANK_BYTES, kernel0.group_id(1));
-        xrt::bo model1(device, MODEL_BANK_BYTES, kernel1.group_id(1));
-        xrt::bo model2(device, MODEL_BANK_BYTES, kernel2.group_id(1));
-        xrt::bo model3(device, MODEL_BANK_BYTES, kernel3.group_id(1));
+
+        if (config.verbose) {
+            std::cout << "[Init] Allocating DDR buffers ("
+                      << (detected_model_bytes == MODEL_BANK_BYTES_LEGACY
+                              ? "891 MiB legacy"
+                              : "865 MiB dense")
+                      << " model banks) ..." << std::endl;
+        }
+        xrt::bo model0(device, detected_model_bytes, kernel0.group_id(1));
+        xrt::bo model1(device, detected_model_bytes, kernel1.group_id(1));
+        xrt::bo model2(device, detected_model_bytes, kernel2.group_id(1));
+        xrt::bo model3(device, detected_model_bytes, kernel3.group_id(1));
 
         xrt::bo rope0(device, ROPE_LUT_BYTES, kernel0.group_id(2));
         xrt::bo rope1(device, ROPE_LUT_BYTES, kernel1.group_id(2));
@@ -1153,18 +1183,13 @@ int main(int argc, char** argv) {
         xrt::bo kv2(device, KV_BYTES, kernel2.group_id(5));
         xrt::bo kv3(device, KV_BYTES, kernel3.group_id(5));
 
-        const auto bank_path = [&](int pe) {
-            return join_path(config.banks_dir,
-                             "model_bank" + std::to_string(pe) + ".bin");
-        };
-
-        load_bo_from_file(model0, bank_path(0), MODEL_BANK_BYTES,
+        load_bo_from_file(model0, bank_path(0), detected_model_bytes,
                           config.verbose);
-        load_bo_from_file(model1, bank_path(1), MODEL_BANK_BYTES,
+        load_bo_from_file(model1, bank_path(1), detected_model_bytes,
                           config.verbose);
-        load_bo_from_file(model2, bank_path(2), MODEL_BANK_BYTES,
+        load_bo_from_file(model2, bank_path(2), detected_model_bytes,
                           config.verbose);
-        load_bo_from_file(model3, bank_path(3), MODEL_BANK_BYTES,
+        load_bo_from_file(model3, bank_path(3), detected_model_bytes,
                           config.verbose);
 
         load_bo_from_file(rope0, config.rope_lut, ROPE_LUT_BYTES,
