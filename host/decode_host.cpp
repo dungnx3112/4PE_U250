@@ -158,34 +158,47 @@ void read_exact_file(const std::string& path, void* destination,
 }
 
 void load_bo_from_file(xrt::bo& bo, const std::string& path,
-                       std::size_t bytes) {
-    std::cout << "[Init] Reading " << path << " ("
-              << bytes / (1024 * 1024) << " MiB) ..." << std::endl;
+                       std::size_t bytes, bool verbose) {
+    if (verbose) {
+        std::cout << "[Init] Reading " << path << " ("
+                  << bytes / (1024 * 1024) << " MiB) ..." << std::endl;
+    }
     const auto read_begin = Clock::now();
     auto* mapped = bo.map<std::uint8_t*>();
     read_exact_file(path, mapped, bytes);
     const auto read_end = Clock::now();
 
-    std::cout << "[Init] Syncing " << path << " to device ..." << std::endl;
+    if (verbose) {
+        std::cout << "[Init] Syncing " << path << " to device ..."
+                  << std::endl;
+    }
     bo.sync(XCL_BO_SYNC_BO_TO_DEVICE, bytes, 0);
     const auto sync_end = Clock::now();
 
-    std::cout << "[Init] Loaded " << path
-              << " (read=" << std::fixed << std::setprecision(1)
-              << elapsed_ms(read_begin, read_end) << " ms, sync="
-              << elapsed_ms(read_end, sync_end) << " ms)" << std::endl;
+    if (verbose) {
+        std::cout << "[Init] Loaded " << path
+                  << " (read=" << std::fixed << std::setprecision(1)
+                  << elapsed_ms(read_begin, read_end) << " ms, sync="
+                  << elapsed_ms(read_end, sync_end) << " ms)" << std::endl;
+    }
 }
 
-std::vector<float> load_embeddings(const std::string& path) {
-    std::cout << "[Init] Reading " << path << " ("
-              << EMBEDDING_BYTES / (1024 * 1024) << " MiB) ..." << std::endl;
+std::vector<float> load_embeddings(const std::string& path, bool verbose) {
+    if (verbose) {
+        std::cout << "[Init] Reading " << path << " ("
+                  << EMBEDDING_BYTES / (1024 * 1024) << " MiB) ..."
+                  << std::endl;
+    }
     const auto begin = Clock::now();
     std::vector<float> embeddings(std::size_t(VOCAB_SIZE) * DIM);
     read_exact_file(path, embeddings.data(), EMBEDDING_BYTES);
     const auto end = Clock::now();
-    std::cout << "[Init] Loaded " << VOCAB_SIZE << " x " << DIM
-              << " embedding table in " << std::fixed << std::setprecision(1)
-              << elapsed_ms(begin, end) << " ms" << std::endl;
+    if (verbose) {
+        std::cout << "[Init] Loaded " << VOCAB_SIZE << " x " << DIM
+                  << " embedding table in " << std::fixed
+                  << std::setprecision(1) << elapsed_ms(begin, end)
+                  << " ms" << std::endl;
+    }
     return embeddings;
 }
 
@@ -647,6 +660,7 @@ struct Config {
     int max_tokens = 256;
     int top_k = 0;
     bool tokenize_only = false;
+    bool verbose = false;
 };
 
 void print_usage(const char* program) {
@@ -663,6 +677,7 @@ void print_usage(const char* program) {
         << "  --dump-logits DIR   dump all 32256 raw FP32 logits for every step\n"
         << "  --dump-residuals DIR dump the final 4096-value FP32 residual for every step\n"
         << "  --device ID         BDF or numeric XRT device index\n"
+        << "  --verbose           print initialization, per-PE timing, token IDs, and statistics\n"
         << "  --tokenize-only     print prompt token IDs without loading FPGA\n";
 }
 
@@ -704,6 +719,7 @@ Config parse_args(int argc, char** argv) {
         else if (argument == "--embeddings") config.embeddings = next();
         else if (argument == "--prompt") config.prompt = next();
         else if (argument == "--tokenize-only") config.tokenize_only = true;
+        else if (argument == "--verbose") config.verbose = true;
         else if (argument == "--max-tokens") {
             config.max_tokens = parse_positive_int(next(), "--max-tokens");
         } else if (argument == "--top-k") {
@@ -761,16 +777,20 @@ xrt::kernel open_kernel(xrt::device& device, const Uuid& uuid,
                              ": " + last_error);
 }
 
-void zero_bo(xrt::bo& bo, std::size_t bytes, int pe) {
-    std::cout << "[Init] Clearing PE" << pe << " KV cache ("
-              << bytes / (1024 * 1024) << " MiB) ..." << std::endl;
+void zero_bo(xrt::bo& bo, std::size_t bytes, int pe, bool verbose) {
+    if (verbose) {
+        std::cout << "[Init] Clearing PE" << pe << " KV cache ("
+                  << bytes / (1024 * 1024) << " MiB) ..." << std::endl;
+    }
     const auto begin = Clock::now();
     std::memset(bo.map<std::uint8_t*>(), 0, bytes);
     bo.sync(XCL_BO_SYNC_BO_TO_DEVICE, bytes, 0);
     const auto end = Clock::now();
-    std::cout << "[Init] Cleared PE" << pe << " KV cache in "
-              << std::fixed << std::setprecision(1)
-              << elapsed_ms(begin, end) << " ms" << std::endl;
+    if (verbose) {
+        std::cout << "[Init] Cleared PE" << pe << " KV cache in "
+                  << std::fixed << std::setprecision(1)
+                  << elapsed_ms(begin, end) << " ms" << std::endl;
+    }
 }
 
 #ifdef HAS_XRT_IP
@@ -866,23 +886,33 @@ int main(int argc, char** argv) {
         const char* emu_env = std::getenv("XCL_EMULATION_MODE");
         if (emu_env && (std::strcmp(emu_env, "hw_emu") == 0 || std::strcmp(emu_env, "sw_emu") == 0)) {
             if (effective_device_id.find(':') != std::string::npos) {
-                std::cout << "[Init] Emulation mode (" << emu_env << ") detected: overriding physical BDF "
-                          << effective_device_id << " with device index 0" << std::endl;
+                if (config.verbose) {
+                    std::cout << "[Init] Emulation mode (" << emu_env
+                              << ") detected: overriding physical BDF "
+                              << effective_device_id
+                              << " with device index 0" << std::endl;
+                }
                 effective_device_id = "0";
             }
         }
 
-        std::cout << "[Init] Opening device " << effective_device_id << " ..."
-                  << std::endl;
+        if (config.verbose) {
+            std::cout << "[Init] Opening device " << effective_device_id
+                      << " ..." << std::endl;
+        }
         xrt::device device =
             effective_device_id.find(':') != std::string::npos
                 ? xrt::device(effective_device_id)
                 : xrt::device(parse_device_index(effective_device_id));
 
-        std::cout << "[Init] Loading " << config.xclbin << " ..."
-                  << std::endl;
+        if (config.verbose) {
+            std::cout << "[Init] Loading " << config.xclbin << " ..."
+                      << std::endl;
+        }
         const auto uuid = device.load_xclbin(config.xclbin);
-        std::cout << "[Init] xclbin loaded OK." << std::endl;
+        if (config.verbose) {
+            std::cout << "[Init] xclbin loaded OK." << std::endl;
+        }
 
         auto kernel0 = open_kernel(device, uuid,
             "int4_decoder_pe0_kernel", "pe0");
@@ -893,7 +923,9 @@ int main(int argc, char** argv) {
         auto kernel3 = open_kernel(device, uuid,
             "int4_decoder_pe3_kernel", "pe3");
 
-        std::cout << "[Init] Allocating DDR buffers ..." << std::endl;
+        if (config.verbose) {
+            std::cout << "[Init] Allocating DDR buffers ..." << std::endl;
+        }
         xrt::bo model0(device, MODEL_BANK_BYTES, kernel0.group_id(1));
         xrt::bo model1(device, MODEL_BANK_BYTES, kernel1.group_id(1));
         xrt::bo model2(device, MODEL_BANK_BYTES, kernel2.group_id(1));
@@ -924,28 +956,41 @@ int main(int argc, char** argv) {
                              "model_bank" + std::to_string(pe) + ".bin");
         };
 
-        load_bo_from_file(model0, bank_path(0), MODEL_BANK_BYTES);
-        load_bo_from_file(model1, bank_path(1), MODEL_BANK_BYTES);
-        load_bo_from_file(model2, bank_path(2), MODEL_BANK_BYTES);
-        load_bo_from_file(model3, bank_path(3), MODEL_BANK_BYTES);
+        load_bo_from_file(model0, bank_path(0), MODEL_BANK_BYTES,
+                          config.verbose);
+        load_bo_from_file(model1, bank_path(1), MODEL_BANK_BYTES,
+                          config.verbose);
+        load_bo_from_file(model2, bank_path(2), MODEL_BANK_BYTES,
+                          config.verbose);
+        load_bo_from_file(model3, bank_path(3), MODEL_BANK_BYTES,
+                          config.verbose);
 
-        load_bo_from_file(rope0, config.rope_lut, ROPE_LUT_BYTES);
-        load_bo_from_file(rope1, config.rope_lut, ROPE_LUT_BYTES);
-        load_bo_from_file(rope2, config.rope_lut, ROPE_LUT_BYTES);
-        load_bo_from_file(rope3, config.rope_lut, ROPE_LUT_BYTES);
+        load_bo_from_file(rope0, config.rope_lut, ROPE_LUT_BYTES,
+                          config.verbose);
+        load_bo_from_file(rope1, config.rope_lut, ROPE_LUT_BYTES,
+                          config.verbose);
+        load_bo_from_file(rope2, config.rope_lut, ROPE_LUT_BYTES,
+                          config.verbose);
+        load_bo_from_file(rope3, config.rope_lut, ROPE_LUT_BYTES,
+                          config.verbose);
 
-        zero_bo(kv0, KV_BYTES, 0);
-        zero_bo(kv1, KV_BYTES, 1);
-        zero_bo(kv2, KV_BYTES, 2);
-        zero_bo(kv3, KV_BYTES, 3);
+        zero_bo(kv0, KV_BYTES, 0, config.verbose);
+        zero_bo(kv1, KV_BYTES, 1, config.verbose);
+        zero_bo(kv2, KV_BYTES, 2, config.verbose);
+        zero_bo(kv3, KV_BYTES, 3, config.verbose);
 
-        std::vector<float> embeddings = load_embeddings(config.embeddings);
+        std::vector<float> embeddings =
+            load_embeddings(config.embeddings, config.verbose);
         Tokenizer tokenizer;
-        std::cout << "[Init] Loading tokenizer " << config.tokenizer << " ..."
-                  << std::endl;
+        if (config.verbose) {
+            std::cout << "[Init] Loading tokenizer " << config.tokenizer
+                      << " ..." << std::endl;
+        }
         tokenizer.load(config.tokenizer);
-        std::cout << "[Init] Tokenizer loaded (" << VOCAB_SIZE
-                  << " entries)." << std::endl;
+        if (config.verbose) {
+            std::cout << "[Init] Tokenizer loaded (" << VOCAB_SIZE
+                      << " entries)." << std::endl;
+        }
 
         const std::vector<int> prompt_tokens =
             tokenizer.encode(config.prompt, true, false);
@@ -956,9 +1001,11 @@ int main(int argc, char** argv) {
             throw std::runtime_error("encoded prompt exceeds MAX_SEQ_LEN");
         }
 
-        std::cout << "[Prompt] \"" << escape_text(config.prompt) << "\""
-                  << std::endl;
-        print_tokens("[Tokens]", prompt_tokens);
+        if (config.verbose) {
+            std::cout << "[Prompt] \"" << escape_text(config.prompt)
+                      << "\"" << std::endl;
+            print_tokens("[Tokens]", prompt_tokens);
+        }
 
         auto* residual_map0 = residual0.map<float*>();
         auto* residual_map1 = residual1.map<float*>();
@@ -991,31 +1038,41 @@ int main(int argc, char** argv) {
             residual2.sync(XCL_BO_SYNC_BO_TO_DEVICE, RESIDUAL_BYTES, 0);
             residual3.sync(XCL_BO_SYNC_BO_TO_DEVICE, RESIDUAL_BYTES, 0);
 
-            std::cout << "[Run] pos=" << position << " token=" << token_id
-                      << " submit PE1,PE2,PE0,PE3" << std::endl;
+            if (config.verbose) {
+                std::cout << "[Run] pos=" << position
+                          << " token=" << token_id
+                          << " submit PE1,PE2,PE0,PE3" << std::endl;
+            }
 
             auto run1 = kernel1(
                 static_cast<std::uint32_t>(position), model1, rope1,
                 residual1, logits1, kv1);
-            std::cout << "[Run] PE1 submitted state="
-                      << static_cast<int>(run1.state()) << std::endl;
+            if (config.verbose) {
+                std::cout << "[Run] PE1 submitted state="
+                          << static_cast<int>(run1.state()) << std::endl;
+            }
             auto run2 = kernel2(
                 static_cast<std::uint32_t>(position), model2, rope2,
                 residual2, logits2, kv2);
-            std::cout << "[Run] PE2 submitted state="
-                      << static_cast<int>(run2.state()) << std::endl;
+            if (config.verbose) {
+                std::cout << "[Run] PE2 submitted state="
+                          << static_cast<int>(run2.state()) << std::endl;
+            }
             auto run0 = kernel0(
                 static_cast<std::uint32_t>(position), model0, rope0,
                 residual0, logits0, kv0);
-            std::cout << "[Run] PE0 submitted state="
-                      << static_cast<int>(run0.state()) << std::endl;
+            if (config.verbose) {
+                std::cout << "[Run] PE0 submitted state="
+                          << static_cast<int>(run0.state()) << std::endl;
+            }
             auto run3 = kernel3(
                 static_cast<std::uint32_t>(position), model3, rope3,
                 residual3, logits3, kv3);
-            std::cout << "[Run] PE3 submitted state="
-                      << static_cast<int>(run3.state())
-                      << "; waiting for completion"
-                      << std::endl;
+            if (config.verbose) {
+                std::cout << "[Run] PE3 submitted state="
+                          << static_cast<int>(run3.state())
+                          << "; waiting for completion" << std::endl;
+            }
 
             const auto wait_start = Clock::now();
             bool pe_done[NUM_PES] = {false, false, false, false};
@@ -1030,10 +1087,14 @@ int main(int argc, char** argv) {
                         if (state == ERT_CMD_STATE_COMPLETED) {
                             pe_done[i] = true;
                             completed_pes++;
-                            std::cout << "[Run] " << pe_names[i] << " completed in "
-                                      << std::fixed << std::setprecision(2)
-                                      << elapsed_ms(wait_start, Clock::now())
-                                      << " ms" << std::endl;
+                            if (config.verbose) {
+                                std::cout << "[Run] " << pe_names[i]
+                                          << " completed in " << std::fixed
+                                          << std::setprecision(2)
+                                          << elapsed_ms(wait_start,
+                                                        Clock::now())
+                                          << " ms" << std::endl;
+                            }
                         }
                     }
                 }
@@ -1073,7 +1134,10 @@ int main(int argc, char** argv) {
                     throw std::runtime_error(message.str());
                 }
             }
-            std::cout << "[Run] All 4 PEs completed; reading logits" << std::endl;
+            if (config.verbose) {
+                std::cout << "[Run] All 4 PEs completed; reading logits"
+                          << std::endl;
+            }
 
             if (!config.dump_residuals_dir.empty()) {
                 // The next token overwrites these BOs with its embedding, so
@@ -1101,13 +1165,21 @@ int main(int argc, char** argv) {
             }
 
             logits0.sync(XCL_BO_SYNC_BO_FROM_DEVICE, LOGIT_BYTES, 0);
-            std::cout << "[Run] PE0 logits synced" << std::endl;
+            if (config.verbose) {
+                std::cout << "[Run] PE0 logits synced" << std::endl;
+            }
             logits1.sync(XCL_BO_SYNC_BO_FROM_DEVICE, LOGIT_BYTES, 0);
-            std::cout << "[Run] PE1 logits synced" << std::endl;
+            if (config.verbose) {
+                std::cout << "[Run] PE1 logits synced" << std::endl;
+            }
             logits2.sync(XCL_BO_SYNC_BO_FROM_DEVICE, LOGIT_BYTES, 0);
-            std::cout << "[Run] PE2 logits synced" << std::endl;
+            if (config.verbose) {
+                std::cout << "[Run] PE2 logits synced" << std::endl;
+            }
             logits3.sync(XCL_BO_SYNC_BO_FROM_DEVICE, LOGIT_BYTES, 0);
-            std::cout << "[Run] PE3 logits synced" << std::endl;
+            if (config.verbose) {
+                std::cout << "[Run] PE3 logits synced" << std::endl;
+            }
             unpack_logits(logits_map0, logits_map1, logits_map2, logits_map3,
                           combined_logits.data());
 
@@ -1128,15 +1200,19 @@ int main(int argc, char** argv) {
             TokenRunResult result;
             result.next_token = argmax_logits(combined_logits.data());
             result.step_ms = elapsed_ms(begin, Clock::now());
-            std::cout << "[Run] pos=" << position << " done in "
-                      << std::fixed << std::setprecision(3)
-                      << result.step_ms << " ms, next="
-                      << result.next_token << std::endl;
+            if (config.verbose) {
+                std::cout << "[Run] pos=" << position << " done in "
+                          << std::fixed << std::setprecision(3)
+                          << result.step_ms << " ms, next="
+                          << result.next_token << std::endl;
+            }
             return result;
         };
 
-        std::cout << "[Prefill] Processing " << prompt_tokens.size()
-                  << " tokens ..." << std::endl;
+        if (config.verbose) {
+            std::cout << "[Prefill] Processing " << prompt_tokens.size()
+                      << " tokens ..." << std::endl;
+        }
         double prefill_ms = 0.0;
         double total_inference_ms = 0.0;
         TokenRunResult token_result;
@@ -1156,7 +1232,10 @@ int main(int argc, char** argv) {
         int position = static_cast<int>(prompt_tokens.size());
         int previous_token = prompt_tokens.back();
 
-        std::cout << "[Generate] " << config.prompt;
+        if (config.verbose) {
+            std::cout << "[Generate] ";
+        }
+        std::cout << config.prompt;
         std::cout.flush();
         while (static_cast<int>(generated_tokens.size()) < config.max_tokens) {
             const int next_token = token_result.next_token;
@@ -1184,18 +1263,23 @@ int main(int argc, char** argv) {
         }
         std::cout << std::endl;
 
-        print_tokens("[Generated tokens]", generated_tokens);
+        if (config.verbose) {
+            print_tokens("[Generated tokens]", generated_tokens);
+        }
         const int generated_count =
             static_cast<int>(generated_tokens.size());
-        std::cout << "[Stats] prompt_eval_ms=" << std::fixed
-                  << std::setprecision(3) << prefill_ms
-                  << " total_inference_ms=" << total_inference_ms;
-        if (generated_count > 0 && total_inference_ms > 0.0) {
-            std::cout << " generated=" << generated_count
-                      << " effective_tok/s="
-                      << (1000.0 * generated_count / total_inference_ms);
+        if (config.verbose) {
+            std::cout << "[Stats] prompt_eval_ms=" << std::fixed
+                      << std::setprecision(3) << prefill_ms
+                      << " total_inference_ms=" << total_inference_ms;
+            if (generated_count > 0 && total_inference_ms > 0.0) {
+                std::cout << " generated=" << generated_count
+                          << " effective_tok/s="
+                          << (1000.0 * generated_count /
+                              total_inference_ms);
+            }
+            std::cout << std::endl;
         }
-        std::cout << std::endl;
         return 0;
     } catch (const std::exception& error) {
         std::cerr << "ERROR: " << error.what() << std::endl;

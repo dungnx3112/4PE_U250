@@ -218,6 +218,7 @@ run_capture() {
             --embeddings "$embeddings_abs" \
             --prompt "$prompt" \
             --max-tokens "$max_tokens" \
+            --verbose \
             "$@"
     ) 2>&1 | tee "$evidence_dir/host.log"
     host_status=${PIPESTATUS[0]}
