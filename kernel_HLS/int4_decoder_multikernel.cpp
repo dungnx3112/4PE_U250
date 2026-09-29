@@ -95,7 +95,7 @@ extern "C" void int4_decoder_pe0_kernel(
 #pragma HLS INTERFACE m_axi port=logits bundle=gmem0 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #pragma HLS INTERFACE m_axi port=kv_cache bundle=gmem0 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #ifdef INT4_ENABLE_LAYER_TRACE
-#pragma HLS INTERFACE m_axi port=layer_trace bundle=gmem0 offset=slave depth=INT4_LAYER_TRACE_WORDS_PER_PE latency=64 max_write_burst_length=64 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=layer_trace bundle=gmem0 offset=slave depth=INT4_LAYER_TRACE_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #endif
 
 #pragma HLS INTERFACE axis port=rms_partial_to_pe1 register_mode=both
@@ -173,7 +173,7 @@ extern "C" void int4_decoder_pe1_kernel(
 #pragma HLS INTERFACE m_axi port=logits bundle=gmem1 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #pragma HLS INTERFACE m_axi port=kv_cache bundle=gmem1 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #ifdef INT4_ENABLE_LAYER_TRACE
-#pragma HLS INTERFACE m_axi port=layer_trace bundle=gmem1 offset=slave depth=INT4_LAYER_TRACE_WORDS_PER_PE latency=64 max_write_burst_length=64 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=layer_trace bundle=gmem1 offset=slave depth=INT4_LAYER_TRACE_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #endif
 
 #pragma HLS INTERFACE axis port=rms_partial_from_pe0 register_mode=both
@@ -293,7 +293,7 @@ extern "C" void int4_decoder_pe2_kernel(
 #pragma HLS INTERFACE m_axi port=logits bundle=gmem2 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #pragma HLS INTERFACE m_axi port=kv_cache bundle=gmem2 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #ifdef INT4_ENABLE_LAYER_TRACE
-#pragma HLS INTERFACE m_axi port=layer_trace bundle=gmem2 offset=slave depth=INT4_LAYER_TRACE_WORDS_PER_PE latency=64 max_write_burst_length=64 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=layer_trace bundle=gmem2 offset=slave depth=INT4_LAYER_TRACE_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #endif
 
 #pragma HLS INTERFACE axis port=rms_reciprocal_from_pe1 register_mode=both
@@ -410,7 +410,7 @@ extern "C" void int4_decoder_pe3_kernel(
 #pragma HLS INTERFACE m_axi port=logits bundle=gmem3 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #pragma HLS INTERFACE m_axi port=kv_cache bundle=gmem3 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #ifdef INT4_ENABLE_LAYER_TRACE
-#pragma HLS INTERFACE m_axi port=layer_trace bundle=gmem3 offset=slave depth=INT4_LAYER_TRACE_WORDS_PER_PE latency=64 max_write_burst_length=64 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=layer_trace bundle=gmem3 offset=slave depth=INT4_LAYER_TRACE_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #endif
 
 #pragma HLS INTERFACE axis port=rms_partial_to_pe2 register_mode=both
