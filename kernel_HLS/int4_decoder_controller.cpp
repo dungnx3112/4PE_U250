@@ -98,6 +98,28 @@ store_local_residual_loop:
     }
 }
 
+#ifdef INT4_ENABLE_LAYER_TRACE
+static void int4_dump_local_residual_checkpoint(
+    const int4_output_word_t residual[INT4_VECTOR_WORDS_PER_PE],
+    int4_output_word_t* layer_trace,
+    int checkpoint) {
+#pragma HLS INLINE off
+dump_local_residual_checkpoint_word_loop:
+    for (int word = 0; word < INT4_VECTOR_WORDS_PER_PE; ++word) {
+#pragma HLS PIPELINE II=1
+        layer_trace[checkpoint * INT4_VECTOR_WORDS_PER_PE + word] =
+            residual[word];
+    }
+}
+#define INT4_LOCAL_TRACE_DECL , int4_output_word_t* layer_trace
+#define INT4_DUMP_LOCAL_TRACE(RESIDUAL, CHECKPOINT)                    \
+    int4_dump_local_residual_checkpoint(                              \
+        RESIDUAL, layer_trace, CHECKPOINT)
+#else
+#define INT4_LOCAL_TRACE_DECL
+#define INT4_DUMP_LOCAL_TRACE(RESIDUAL, CHECKPOINT) do { } while (0)
+#endif
+
 template <int PE_ID>
 static void int4_save_local_projection(
     const int4_output_word_t scratch[INT4_PROJECTION_SCRATCH_WORDS],
@@ -143,7 +165,7 @@ void int4_decoder_local_pe_##PE(                                       \
     const int4_output_word_t* rope_lut,                                \
     int4_output_word_t* external_residual,                            \
     int4_output_word_t* logits,                                       \
-    int4_output_word_t* kv_cache,                                     \
+    int4_output_word_t* kv_cache INT4_LOCAL_TRACE_DECL,               \
     hls::stream<int4_position_command_t>& position_stream,            \
     hls::stream<float>& rms_partial,                                  \
     hls::stream<float>& rms_reciprocal,                               \
@@ -175,6 +197,7 @@ void int4_decoder_local_pe_##PE(                                       \
             model_bank, norm_cache);                                  \
     }                                                                 \
     int4_load_local_residual<PE>(external_residual, residual);        \
+    INT4_DUMP_LOCAL_TRACE(residual, 0);                               \
     const int4_weight_word_t* weight_mem =                            \
         model_bank + INT4_MODEL_WEIGHT_BASE_WORD;                     \
 local_projection_layer_loop_##PE:                                     \
@@ -232,6 +255,10 @@ local_projection_layer_loop_##PE:                                     \
             } else if (stage_flags[INT4_LINEAR_O] ||                  \
                        stage_flags[INT4_LINEAR_DOWN]) {               \
                 RESIDUAL_ADD(residual, projection);                   \
+                const int checkpoint = stage_flags[INT4_LINEAR_O]    \
+                    ? 1 + 2 * layer                                  \
+                    : 2 + 2 * layer;                                 \
+                INT4_DUMP_LOCAL_TRACE(residual, checkpoint);         \
             } else {                                                  \
                 int4_store_local_logits<PE>(projection, logits);      \
             }                                                         \
@@ -258,6 +285,20 @@ INT4_DEFINE_LOCAL_DECODER_PE(
     int4_local_residual_add_pe3)
 
 #undef INT4_DEFINE_LOCAL_DECODER_PE
+#undef INT4_DUMP_LOCAL_TRACE
+#undef INT4_LOCAL_TRACE_DECL
+
+#ifdef INT4_ENABLE_LAYER_TRACE
+#define INT4_CONTROLLER_TRACE_DECL                                    \
+    , int4_output_word_t* layer_trace_pe0                             \
+    , int4_output_word_t* layer_trace_pe1                             \
+    , int4_output_word_t* layer_trace_pe2                             \
+    , int4_output_word_t* layer_trace_pe3
+#define INT4_CONTROLLER_TRACE_ARG(PE) , layer_trace_pe##PE
+#else
+#define INT4_CONTROLLER_TRACE_DECL
+#define INT4_CONTROLLER_TRACE_ARG(PE)
+#endif
 
 void int4_decoder_token_controller(
     ap_uint<12> position,
@@ -280,7 +321,7 @@ void int4_decoder_token_controller(
     int4_output_word_t* kv_cache_pe0,
     int4_output_word_t* kv_cache_pe1,
     int4_output_word_t* kv_cache_pe2,
-    int4_output_word_t* kv_cache_pe3) {
+    int4_output_word_t* kv_cache_pe3 INT4_CONTROLLER_TRACE_DECL) {
 #pragma HLS INTERFACE m_axi port=model_bank0 bundle=gmem0 offset=slave depth=INT4_MODEL_WORDS_PER_DDR latency=64 max_read_burst_length=64 num_read_outstanding=8
 #pragma HLS INTERFACE m_axi port=rope_lut_pe0 bundle=gmem0 offset=slave depth=SWIFTKV_ROPE_DDR_WORDS latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #pragma HLS INTERFACE m_axi port=residual_pe0 bundle=gmem0 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
@@ -301,6 +342,12 @@ void int4_decoder_token_controller(
 #pragma HLS INTERFACE m_axi port=residual_pe3 bundle=gmem3 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #pragma HLS INTERFACE m_axi port=logits_pe3 bundle=gmem3 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #pragma HLS INTERFACE m_axi port=kv_cache_pe3 bundle=gmem3 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
+#ifdef INT4_ENABLE_LAYER_TRACE
+#pragma HLS INTERFACE m_axi port=layer_trace_pe0 bundle=gmem0 offset=slave depth=INT4_LAYER_TRACE_WORDS_PER_PE latency=64 max_write_burst_length=64 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=layer_trace_pe1 bundle=gmem1 offset=slave depth=INT4_LAYER_TRACE_WORDS_PER_PE latency=64 max_write_burst_length=64 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=layer_trace_pe2 bundle=gmem2 offset=slave depth=INT4_LAYER_TRACE_WORDS_PER_PE latency=64 max_write_burst_length=64 num_write_outstanding=2
+#pragma HLS INTERFACE m_axi port=layer_trace_pe3 bundle=gmem3 offset=slave depth=INT4_LAYER_TRACE_WORDS_PER_PE latency=64 max_write_burst_length=64 num_write_outstanding=2
+#endif
 
 #pragma HLS INTERFACE s_axilite port=position bundle=control
 #pragma HLS INTERFACE s_axilite port=model_bank0 bundle=control
@@ -323,6 +370,12 @@ void int4_decoder_token_controller(
 #pragma HLS INTERFACE s_axilite port=kv_cache_pe1 bundle=control
 #pragma HLS INTERFACE s_axilite port=kv_cache_pe2 bundle=control
 #pragma HLS INTERFACE s_axilite port=kv_cache_pe3 bundle=control
+#ifdef INT4_ENABLE_LAYER_TRACE
+#pragma HLS INTERFACE s_axilite port=layer_trace_pe0 bundle=control
+#pragma HLS INTERFACE s_axilite port=layer_trace_pe1 bundle=control
+#pragma HLS INTERFACE s_axilite port=layer_trace_pe2 bundle=control
+#pragma HLS INTERFACE s_axilite port=layer_trace_pe3 bundle=control
+#endif
 #pragma HLS INTERFACE s_axilite port=return bundle=control
 
 #pragma HLS DATAFLOW disable_start_propagation
@@ -350,6 +403,12 @@ void int4_decoder_token_controller(
 #pragma HLS STABLE variable=kv_cache_pe1
 #pragma HLS STABLE variable=kv_cache_pe2
 #pragma HLS STABLE variable=kv_cache_pe3
+#ifdef INT4_ENABLE_LAYER_TRACE
+#pragma HLS STABLE variable=layer_trace_pe0
+#pragma HLS STABLE variable=layer_trace_pe1
+#pragma HLS STABLE variable=layer_trace_pe2
+#pragma HLS STABLE variable=layer_trace_pe3
+#endif
 
     hls::stream<int4_position_command_t> position_pe0, position_pe1;
     hls::stream<int4_position_command_t> position_pe2, position_pe3;
@@ -421,19 +480,23 @@ void int4_decoder_token_controller(
     int4_relay_position<2>(position_12, position_pe2, position_23);
     int4_terminate_position_chain(position_23, position_pe3);
     int4_decoder_local_pe_0(
-        model_bank0, rope_lut_pe0, residual_pe0, logits_pe0, kv_cache_pe0,
+        model_bank0, rope_lut_pe0, residual_pe0, logits_pe0, kv_cache_pe0
+            INT4_CONTROLLER_TRACE_ARG(0),
         position_pe0, rms_partial0, rms_reciprocal0,
         linear_partial0, linear_output0);
     int4_decoder_local_pe_1(
-        model_bank1, rope_lut_pe1, residual_pe1, logits_pe1, kv_cache_pe1,
+        model_bank1, rope_lut_pe1, residual_pe1, logits_pe1, kv_cache_pe1
+            INT4_CONTROLLER_TRACE_ARG(1),
         position_pe1, rms_partial1, rms_reciprocal1,
         linear_partial1, linear_output1);
     int4_decoder_local_pe_2(
-        model_bank2, rope_lut_pe2, residual_pe2, logits_pe2, kv_cache_pe2,
+        model_bank2, rope_lut_pe2, residual_pe2, logits_pe2, kv_cache_pe2
+            INT4_CONTROLLER_TRACE_ARG(2),
         position_pe2, rms_partial2, rms_reciprocal2,
         linear_partial2, linear_output2);
     int4_decoder_local_pe_3(
-        model_bank3, rope_lut_pe3, residual_pe3, logits_pe3, kv_cache_pe3,
+        model_bank3, rope_lut_pe3, residual_pe3, logits_pe3, kv_cache_pe3
+            INT4_CONTROLLER_TRACE_ARG(3),
         position_pe3, rms_partial3, rms_reciprocal3,
         linear_partial3, linear_output3);
     int4_rms_pair01_schedule(
@@ -456,3 +519,6 @@ void int4_decoder_token_controller(
         linear_sum23_local, linear_sum01_to23,
         linear_output2, linear_output3);
 }
+
+#undef INT4_CONTROLLER_TRACE_ARG
+#undef INT4_CONTROLLER_TRACE_DECL

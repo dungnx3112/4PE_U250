@@ -36,6 +36,12 @@ static constexpr int INT4_HIDDEN_DIM = 11008;
 static constexpr int INT4_VOCAB_SIZE = 32000;
 static constexpr int INT4_NUM_LAYERS = 32;
 
+// Layer-trace ABI used only by the dedicated debug build.  Slot zero captures
+// the decoder input.  Every model layer then contributes two checkpoints:
+// residual after the attention projection/add and residual after FFN/add.
+static constexpr int INT4_LAYER_TRACE_CHECKPOINTS =
+    1 + 2 * INT4_NUM_LAYERS;
+
 static constexpr int INT4_PE_COUNT = 4;
 static constexpr int INT4_TILE_ROWS = 128;
 static constexpr int INT4_TILE_COLS = 256;
@@ -117,6 +123,8 @@ static constexpr int INT4_LOCAL_VOCAB_SIZE =
     INT4_PADDED_VOCAB_SIZE / INT4_PE_COUNT;
 static constexpr int INT4_VECTOR_WORDS_PER_PE =
     INT4_LOCAL_DIM / INT4_OUTPUTS_PER_WORD;
+static constexpr int INT4_LAYER_TRACE_WORDS_PER_PE =
+    INT4_LAYER_TRACE_CHECKPOINTS * INT4_VECTOR_WORDS_PER_PE;
 static constexpr int INT4_HIDDEN_WORDS_PER_PE =
     INT4_LOCAL_HIDDEN_DIM / INT4_OUTPUTS_PER_WORD;
 static constexpr int INT4_LOGIT_WORDS_PER_PE =

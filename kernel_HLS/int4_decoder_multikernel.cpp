@@ -7,6 +7,14 @@
 #include "int4_model_layout.hpp"
 #include "swiftkv_attention.hpp"
 
+#ifdef INT4_ENABLE_LAYER_TRACE
+#define INT4_KERNEL_TRACE_DECL , int4_output_word_t* layer_trace
+#define INT4_KERNEL_TRACE_ARG , layer_trace
+#else
+#define INT4_KERNEL_TRACE_DECL
+#define INT4_KERNEL_TRACE_ARG
+#endif
+
 template <int PE_ID>
 static void int4_seed_local_position(
     ap_uint<12> position,
@@ -73,7 +81,7 @@ extern "C" void int4_decoder_pe0_kernel(
     const int4_output_word_t* rope_lut,
     int4_output_word_t* residual,
     int4_output_word_t* logits,
-    int4_output_word_t* kv_cache,
+    int4_output_word_t* kv_cache INT4_KERNEL_TRACE_DECL,
     hls::stream<float>& rms_partial_to_pe1,
     hls::stream<float>& rms_reciprocal_from_pe1,
     hls::stream<int4_reduction_packet_t>& linear_partial_to_pe1,
@@ -86,6 +94,9 @@ extern "C" void int4_decoder_pe0_kernel(
 #pragma HLS INTERFACE m_axi port=residual bundle=gmem0 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #pragma HLS INTERFACE m_axi port=logits bundle=gmem0 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #pragma HLS INTERFACE m_axi port=kv_cache bundle=gmem0 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
+#ifdef INT4_ENABLE_LAYER_TRACE
+#pragma HLS INTERFACE m_axi port=layer_trace bundle=gmem0 offset=slave depth=INT4_LAYER_TRACE_WORDS_PER_PE latency=64 max_write_burst_length=64 num_write_outstanding=2
+#endif
 
 #pragma HLS INTERFACE axis port=rms_partial_to_pe1 register_mode=both
 #pragma HLS INTERFACE axis port=rms_reciprocal_from_pe1 register_mode=both
@@ -98,6 +109,9 @@ extern "C" void int4_decoder_pe0_kernel(
 #pragma HLS INTERFACE s_axilite port=residual bundle=control
 #pragma HLS INTERFACE s_axilite port=logits bundle=control
 #pragma HLS INTERFACE s_axilite port=kv_cache bundle=control
+#ifdef INT4_ENABLE_LAYER_TRACE
+#pragma HLS INTERFACE s_axilite port=layer_trace bundle=control
+#endif
 #pragma HLS INTERFACE s_axilite port=return bundle=control
 
 #pragma HLS DATAFLOW disable_start_propagation
@@ -106,6 +120,9 @@ extern "C" void int4_decoder_pe0_kernel(
 #pragma HLS STABLE variable=residual
 #pragma HLS STABLE variable=logits
 #pragma HLS STABLE variable=kv_cache
+#ifdef INT4_ENABLE_LAYER_TRACE
+#pragma HLS STABLE variable=layer_trace
+#endif
 
     hls::stream<int4_position_command_t> position_local("pe0_position_local");
     hls::stream<float> rms_partial0("pe0_rms_partial0");
@@ -122,7 +139,7 @@ extern "C" void int4_decoder_pe0_kernel(
 
     int4_seed_local_position<0>(position, position_local);
     int4_decoder_local_pe_0(
-        model_bank, rope_lut, residual, logits, kv_cache,
+        model_bank, rope_lut, residual, logits, kv_cache INT4_KERNEL_TRACE_ARG,
         position_local, rms_partial0, rms_reciprocal0,
         linear_partial0, linear_output0);
     int4_relay_rms_schedule<0>(
@@ -141,7 +158,7 @@ extern "C" void int4_decoder_pe1_kernel(
     const int4_output_word_t* rope_lut,
     int4_output_word_t* residual,
     int4_output_word_t* logits,
-    int4_output_word_t* kv_cache,
+    int4_output_word_t* kv_cache INT4_KERNEL_TRACE_DECL,
     hls::stream<float>& rms_partial_from_pe0,
     hls::stream<float>& rms_reciprocal_to_pe0,
     hls::stream<float>& rms_sum_from_pe2,
@@ -155,6 +172,9 @@ extern "C" void int4_decoder_pe1_kernel(
 #pragma HLS INTERFACE m_axi port=residual bundle=gmem1 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #pragma HLS INTERFACE m_axi port=logits bundle=gmem1 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #pragma HLS INTERFACE m_axi port=kv_cache bundle=gmem1 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
+#ifdef INT4_ENABLE_LAYER_TRACE
+#pragma HLS INTERFACE m_axi port=layer_trace bundle=gmem1 offset=slave depth=INT4_LAYER_TRACE_WORDS_PER_PE latency=64 max_write_burst_length=64 num_write_outstanding=2
+#endif
 
 #pragma HLS INTERFACE axis port=rms_partial_from_pe0 register_mode=both
 #pragma HLS INTERFACE axis port=rms_reciprocal_to_pe0 register_mode=both
@@ -171,6 +191,9 @@ extern "C" void int4_decoder_pe1_kernel(
 #pragma HLS INTERFACE s_axilite port=residual bundle=control
 #pragma HLS INTERFACE s_axilite port=logits bundle=control
 #pragma HLS INTERFACE s_axilite port=kv_cache bundle=control
+#ifdef INT4_ENABLE_LAYER_TRACE
+#pragma HLS INTERFACE s_axilite port=layer_trace bundle=control
+#endif
 #pragma HLS INTERFACE s_axilite port=return bundle=control
 
 #pragma HLS DATAFLOW disable_start_propagation
@@ -179,6 +202,9 @@ extern "C" void int4_decoder_pe1_kernel(
 #pragma HLS STABLE variable=residual
 #pragma HLS STABLE variable=logits
 #pragma HLS STABLE variable=kv_cache
+#ifdef INT4_ENABLE_LAYER_TRACE
+#pragma HLS STABLE variable=layer_trace
+#endif
 
     hls::stream<int4_position_command_t> position_local("pe1_position_local");
     hls::stream<float> rms_partial0("pe1_rms_partial0");
@@ -216,7 +242,7 @@ extern "C" void int4_decoder_pe1_kernel(
 
     int4_seed_local_position<1>(position, position_local);
     int4_decoder_local_pe_1(
-        model_bank, rope_lut, residual, logits, kv_cache,
+        model_bank, rope_lut, residual, logits, kv_cache INT4_KERNEL_TRACE_ARG,
         position_local, rms_partial1, rms_reciprocal1,
         linear_partial1, linear_output1);
     int4_rms_pair01_schedule(
@@ -252,7 +278,7 @@ extern "C" void int4_decoder_pe2_kernel(
     const int4_output_word_t* rope_lut,
     int4_output_word_t* residual,
     int4_output_word_t* logits,
-    int4_output_word_t* kv_cache,
+    int4_output_word_t* kv_cache INT4_KERNEL_TRACE_DECL,
     hls::stream<float>& rms_reciprocal_from_pe1,
     hls::stream<float>& rms_sum_to_pe1,
     hls::stream<float>& rms_partial_from_pe3,
@@ -266,6 +292,9 @@ extern "C" void int4_decoder_pe2_kernel(
 #pragma HLS INTERFACE m_axi port=residual bundle=gmem2 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #pragma HLS INTERFACE m_axi port=logits bundle=gmem2 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #pragma HLS INTERFACE m_axi port=kv_cache bundle=gmem2 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
+#ifdef INT4_ENABLE_LAYER_TRACE
+#pragma HLS INTERFACE m_axi port=layer_trace bundle=gmem2 offset=slave depth=INT4_LAYER_TRACE_WORDS_PER_PE latency=64 max_write_burst_length=64 num_write_outstanding=2
+#endif
 
 #pragma HLS INTERFACE axis port=rms_reciprocal_from_pe1 register_mode=both
 #pragma HLS INTERFACE axis port=rms_sum_to_pe1 register_mode=both
@@ -282,6 +311,9 @@ extern "C" void int4_decoder_pe2_kernel(
 #pragma HLS INTERFACE s_axilite port=residual bundle=control
 #pragma HLS INTERFACE s_axilite port=logits bundle=control
 #pragma HLS INTERFACE s_axilite port=kv_cache bundle=control
+#ifdef INT4_ENABLE_LAYER_TRACE
+#pragma HLS INTERFACE s_axilite port=layer_trace bundle=control
+#endif
 #pragma HLS INTERFACE s_axilite port=return bundle=control
 
 #pragma HLS DATAFLOW disable_start_propagation
@@ -290,6 +322,9 @@ extern "C" void int4_decoder_pe2_kernel(
 #pragma HLS STABLE variable=residual
 #pragma HLS STABLE variable=logits
 #pragma HLS STABLE variable=kv_cache
+#ifdef INT4_ENABLE_LAYER_TRACE
+#pragma HLS STABLE variable=layer_trace
+#endif
 
     hls::stream<int4_position_command_t> position_local("pe2_position_local");
     hls::stream<float> rms_partial2("pe2_rms_partial2");
@@ -327,7 +362,7 @@ extern "C" void int4_decoder_pe2_kernel(
 
     int4_seed_local_position<2>(position, position_local);
     int4_decoder_local_pe_2(
-        model_bank, rope_lut, residual, logits, kv_cache,
+        model_bank, rope_lut, residual, logits, kv_cache INT4_KERNEL_TRACE_ARG,
         position_local, rms_partial2, rms_reciprocal2,
         linear_partial2, linear_output2);
     int4_rms_pair23_reduce_schedule(
@@ -364,7 +399,7 @@ extern "C" void int4_decoder_pe3_kernel(
     const int4_output_word_t* rope_lut,
     int4_output_word_t* residual,
     int4_output_word_t* logits,
-    int4_output_word_t* kv_cache,
+    int4_output_word_t* kv_cache INT4_KERNEL_TRACE_DECL,
     hls::stream<float>& rms_partial_to_pe2,
     hls::stream<float>& rms_reciprocal_from_pe2,
     hls::stream<int4_reduction_packet_t>& linear_partial_to_pe2,
@@ -374,6 +409,9 @@ extern "C" void int4_decoder_pe3_kernel(
 #pragma HLS INTERFACE m_axi port=residual bundle=gmem3 offset=slave depth=INT4_VECTOR_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #pragma HLS INTERFACE m_axi port=logits bundle=gmem3 offset=slave depth=INT4_LOGIT_WORDS_PER_PE latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
 #pragma HLS INTERFACE m_axi port=kv_cache bundle=gmem3 offset=slave depth=SWIFTKV_KV_AXI_DEPTH latency=64 max_read_burst_length=64 max_write_burst_length=16 num_read_outstanding=8 num_write_outstanding=2
+#ifdef INT4_ENABLE_LAYER_TRACE
+#pragma HLS INTERFACE m_axi port=layer_trace bundle=gmem3 offset=slave depth=INT4_LAYER_TRACE_WORDS_PER_PE latency=64 max_write_burst_length=64 num_write_outstanding=2
+#endif
 
 #pragma HLS INTERFACE axis port=rms_partial_to_pe2 register_mode=both
 #pragma HLS INTERFACE axis port=rms_reciprocal_from_pe2 register_mode=both
@@ -386,6 +424,9 @@ extern "C" void int4_decoder_pe3_kernel(
 #pragma HLS INTERFACE s_axilite port=residual bundle=control
 #pragma HLS INTERFACE s_axilite port=logits bundle=control
 #pragma HLS INTERFACE s_axilite port=kv_cache bundle=control
+#ifdef INT4_ENABLE_LAYER_TRACE
+#pragma HLS INTERFACE s_axilite port=layer_trace bundle=control
+#endif
 #pragma HLS INTERFACE s_axilite port=return bundle=control
 
 #pragma HLS DATAFLOW disable_start_propagation
@@ -394,6 +435,9 @@ extern "C" void int4_decoder_pe3_kernel(
 #pragma HLS STABLE variable=residual
 #pragma HLS STABLE variable=logits
 #pragma HLS STABLE variable=kv_cache
+#ifdef INT4_ENABLE_LAYER_TRACE
+#pragma HLS STABLE variable=layer_trace
+#endif
 
     hls::stream<int4_position_command_t> position_local("pe3_position_local");
     hls::stream<float> rms_partial3("pe3_rms_partial3");
@@ -410,7 +454,7 @@ extern "C" void int4_decoder_pe3_kernel(
 
     int4_seed_local_position<3>(position, position_local);
     int4_decoder_local_pe_3(
-        model_bank, rope_lut, residual, logits, kv_cache,
+        model_bank, rope_lut, residual, logits, kv_cache INT4_KERNEL_TRACE_ARG,
         position_local, rms_partial3, rms_reciprocal3,
         linear_partial3, linear_output3);
     int4_relay_rms_schedule<30>(
@@ -422,3 +466,6 @@ extern "C" void int4_decoder_pe3_kernel(
     int4_relay_linear_schedule<31, INT4_RELAY_LINEAR_LOCAL_OUTPUT>(
         linear_output_from_pe2, linear_output3);
 }
+
+#undef INT4_KERNEL_TRACE_ARG
+#undef INT4_KERNEL_TRACE_DECL

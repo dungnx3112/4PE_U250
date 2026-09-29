@@ -35,6 +35,9 @@ Environment overrides:
                     One-shot deadlock build: add full trace/counters, AXI
                     protocol checkers, and System ILA to all 12 AXI streams.
                     Implies ENABLE_STALL_PROFILE=1.
+  ENABLE_LAYER_TRACE=1
+                    Build the dedicated 65-checkpoint residual-trace kernel
+                    ABI. XOs are isolated from production/profile XOs.
   DEBUG_CLOCK_HZ=N  Link clock for profile builds (default: 150000000). The
                     production build remains fixed at 300000000 Hz.
   JOBS=<N>          Parallel synthesis/linking jobs (default: nproc)
@@ -53,6 +56,7 @@ reuse_xo=${REUSE_XO:-0}
 rebuild_xo=${REBUILD_XO:-0}
 enable_stall_profile=${ENABLE_STALL_PROFILE:-0}
 enable_full_stream_debug=${ENABLE_FULL_STREAM_DEBUG:-0}
+enable_layer_trace=${ENABLE_LAYER_TRACE:-0}
 debug_clock_hz=${DEBUG_CLOCK_HZ:-150000000}
 detected_jobs=$(nproc 2>/dev/null || echo 32)
 if (( detected_jobs < 8 )); then
@@ -66,6 +70,10 @@ if [[ "$enable_stall_profile" != "0" && "$enable_stall_profile" != "1" ]]; then
 fi
 if [[ "$enable_full_stream_debug" != "0" && "$enable_full_stream_debug" != "1" ]]; then
     echo "ERROR: ENABLE_FULL_STREAM_DEBUG must be 0 or 1." >&2
+    exit 2
+fi
+if [[ "$enable_layer_trace" != "0" && "$enable_layer_trace" != "1" ]]; then
+    echo "ERROR: ENABLE_LAYER_TRACE must be 0 or 1." >&2
     exit 2
 fi
 if (( enable_full_stream_debug == 1 )); then
@@ -91,7 +99,7 @@ stream_debug_specs=(
 )
 
 link_clock_hz=300000000
-if (( enable_stall_profile == 1 )); then
+if (( enable_stall_profile == 1 || enable_layer_trace == 1 )); then
     if [[ ! "$debug_clock_hz" =~ ^[0-9]+$ ]] ||
        (( debug_clock_hz < 100000000 || debug_clock_hz > 300000000 )); then
         echo "ERROR: DEBUG_CLOCK_HZ must be an integer from 100000000 to 300000000." >&2
@@ -222,7 +230,9 @@ if [[ ! -f "$config_path" ]]; then
     exit 1
 fi
 
-if (( enable_stall_profile == 1 )); then
+if (( enable_layer_trace == 1 )); then
+    xo_output_dir="$repo_root/build_multikernel_300mhz/layer_trace_xo"
+elif (( enable_stall_profile == 1 )); then
     xo_output_dir="$repo_root/build_multikernel_300mhz/profile_xo"
 else
     xo_output_dir="$repo_root"
@@ -294,6 +304,7 @@ if (( need_hls == 1 )); then
 
     export TARGET_FREQ="300mhz"
     export ENABLE_STALL_PROFILE="$enable_stall_profile"
+    export ENABLE_LAYER_TRACE="$enable_layer_trace"
     export XO_OUTPUT_DIR="$xo_output_dir"
     hls_pids=()
     for pe in 0 1 2 3; do

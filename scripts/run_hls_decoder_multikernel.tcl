@@ -36,6 +36,10 @@ if {[info exists ::env(XO_OUTPUT_DIR)] && $::env(XO_OUTPUT_DIR) ne ""} {
 file mkdir $xo_output_dir
 
 set cflags "-std=c++11 -DAP_INT_MAX_W=4096 -I$kernel_dir"
+if {[info exists ::env(ENABLE_LAYER_TRACE)] &&
+    $::env(ENABLE_LAYER_TRACE) eq "1"} {
+    append cflags " -DINT4_ENABLE_LAYER_TRACE=1"
+}
 set production_sources [list \
     [file join $kernel_dir "swiftkv_attention.cpp"] \
     [file join $kernel_dir "int4_linear_controller.cpp"] \

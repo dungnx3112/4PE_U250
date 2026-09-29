@@ -7,6 +7,16 @@
 // zero; that call initializes the persistent scale and RMSNorm caches.
 // Port suffix N is a strict ownership rule: model, RoPE, residual, logits and
 // KV cache N are consumed only by PE N in SLR N.
+#ifdef INT4_ENABLE_LAYER_TRACE
+#define INT4_CONTROLLER_TRACE_DECL                                    \
+    , int4_output_word_t* layer_trace_pe0                             \
+    , int4_output_word_t* layer_trace_pe1                             \
+    , int4_output_word_t* layer_trace_pe2                             \
+    , int4_output_word_t* layer_trace_pe3
+#else
+#define INT4_CONTROLLER_TRACE_DECL
+#endif
+
 void int4_decoder_token_controller(
     ap_uint<12> position,
     const int4_weight_word_t* model_bank0,
@@ -28,4 +38,6 @@ void int4_decoder_token_controller(
     int4_output_word_t* kv_cache_pe0,
     int4_output_word_t* kv_cache_pe1,
     int4_output_word_t* kv_cache_pe2,
-    int4_output_word_t* kv_cache_pe3);
+    int4_output_word_t* kv_cache_pe3 INT4_CONTROLLER_TRACE_DECL);
+
+#undef INT4_CONTROLLER_TRACE_DECL

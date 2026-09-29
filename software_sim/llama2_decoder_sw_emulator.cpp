@@ -37,6 +37,7 @@ static constexpr int LOCAL_HIDDEN_DIM = PADDED_HIDDEN_DIM / NUM_PES; // 2816
 static constexpr int LOCAL_HEADS = NUM_HEADS / NUM_PES; // 8
 static constexpr int GROUP_SIZE = 32;
 static constexpr int MAX_SEQ_LEN = 4096;
+static constexpr int NUM_LAYERS = 32;
 
 
 // HLS Bank Layout Offsets in 512-bit words
@@ -57,6 +58,8 @@ static bool g_float_act = false;  // --float-act: bypass E8M0, use float activat
 static bool g_e8m0_act = false;   // --e8m0-act: enable E8M0 activation quantization in autoround mode
 static std::string g_dump_logits_dir;
 static std::string g_dump_residuals_dir;
+static std::string g_dump_layer_trace_dir;
+static std::vector<float> g_layer_trace;
 
 
 // ============================================================================
@@ -734,6 +737,11 @@ float* forward(
 ) {
     const float* emb_ptr = model.token_embeddings.data() + token * DIM;
     std::copy(emb_ptr, emb_ptr + DIM, residual.begin());
+    if (!g_dump_layer_trace_dir.empty()) {
+        g_layer_trace.assign(static_cast<size_t>(1 + 2 * NUM_LAYERS) * DIM,
+                             0.0f);
+        std::copy(residual.begin(), residual.end(), g_layer_trace.begin());
+    }
 
     std::vector<float> q_float(DIM), k_float(DIM), v_float(DIM);
     std::vector<int32_t> q(DIM), k(DIM), v(DIM);
@@ -762,6 +770,11 @@ float* forward(
 
         sharded_gemv_4pe(layer.w_o, attn_act, proj_o);
         for (int i = 0; i < DIM; ++i) residual[i] += proj_o[i];
+        if (!g_dump_layer_trace_dir.empty()) {
+            std::copy(residual.begin(), residual.end(),
+                      g_layer_trace.begin() +
+                          static_cast<size_t>(1 + 2 * l) * DIM);
+        }
 
         rmsnorm_quantize_hls(residual.data(), layer.ffn_norm_gamma.data(), norm_act);
         sharded_gemv_4pe(layer.w_gate, norm_act, gate);
@@ -770,6 +783,11 @@ float* forward(
         quantize_activation_g32(swiglu_out.data(), PADDED_HIDDEN_DIM, swiglu_act);
         sharded_gemv_4pe(layer.w_down, swiglu_act, proj_down);
         for (int i = 0; i < DIM; ++i) residual[i] += proj_down[i];
+        if (!g_dump_layer_trace_dir.empty()) {
+            std::copy(residual.begin(), residual.end(),
+                      g_layer_trace.begin() +
+                          static_cast<size_t>(2 + 2 * l) * DIM);
+        }
     }
 
     rmsnorm_quantize_hls(residual.data(), model.final_norm_gamma.data(), norm_act);
@@ -1603,6 +1621,19 @@ static void dump_reference_step(int pos, int token,
         out.write(reinterpret_cast<const char*>(residual.data()),
                   static_cast<std::streamsize>(DIM * sizeof(float)));
     }
+    if (!g_dump_layer_trace_dir.empty()) {
+        snprintf(filename, sizeof(filename),
+                 "layer_trace_pos%04d_token%05d.bin", pos, token);
+        std::ofstream out(g_dump_layer_trace_dir + "/" + filename,
+                          std::ios::binary);
+        if (!out) {
+            throw std::runtime_error(
+                "cannot create software layer trace dump");
+        }
+        out.write(reinterpret_cast<const char*>(g_layer_trace.data()),
+                  static_cast<std::streamsize>(
+                      g_layer_trace.size() * sizeof(float)));
+    }
 }
 
 void generate(const TransformerModel& model, KVCachePE* kv_pes, Tokenizer *tokenizer, Sampler *sampler, const char *prompt, int max_new_tokens) {
@@ -1979,6 +2010,7 @@ void error_usage() {
     fprintf(stderr, "  --e8m0-act   enable E8M0 activation quantization in autoround mode\n");
     fprintf(stderr, "  --dump-logits <dir> dump padded FP32 logits for every generate step\n");
     fprintf(stderr, "  --dump-residuals <dir> dump final FP32 residual for every generate step\n");
+    fprintf(stderr, "  --dump-layer-trace <dir> dump 65 x 4096 layer-boundary residuals\n");
     fprintf(stderr, "  --replay-residual <file> run final norm + LM head on a dumped residual\n");
     fprintf(stderr, "  --replay-logits <file> output path used with --replay-residual\n");
     exit(EXIT_FAILURE);
@@ -2040,6 +2072,8 @@ int main(int argc, char *argv[]) {
             g_dump_logits_dir = argv[++i];
         } else if (arg == "--dump-residuals" && i + 1 < argc) {
             g_dump_residuals_dir = argv[++i];
+        } else if (arg == "--dump-layer-trace" && i + 1 < argc) {
+            g_dump_layer_trace_dir = argv[++i];
         } else if (arg == "--replay-residual" && i + 1 < argc) {
             replay_residual_path = argv[++i];
         } else if (arg == "--replay-logits" && i + 1 < argc) {

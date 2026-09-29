@@ -69,6 +69,8 @@ constexpr int NUM_LAYERS = 32;
 constexpr int MAX_SEQ_LEN = 4096;
 constexpr int OUTPUTS_PER_WORD = 16;
 constexpr int DDR_WORD_BYTES = 64;
+constexpr int LAYER_TRACE_CHECKPOINTS = 1 + 2 * NUM_LAYERS;
+constexpr int LOCAL_DIM = DIM / NUM_PES;
 
 constexpr std::size_t MODEL_BANK_WORDS_LEGACY = 13926208ULL;
 constexpr std::size_t MODEL_BANK_BYTES_LEGACY =
@@ -82,6 +84,10 @@ constexpr std::size_t ROPE_LUT_WORDS = 32768ULL;
 constexpr std::size_t ROPE_LUT_BYTES = ROPE_LUT_WORDS * DDR_WORD_BYTES;
 constexpr std::size_t RESIDUAL_WORDS = (DIM / NUM_PES) / OUTPUTS_PER_WORD;
 constexpr std::size_t RESIDUAL_BYTES = RESIDUAL_WORDS * DDR_WORD_BYTES;
+constexpr std::size_t LAYER_TRACE_FLOATS_PER_PE =
+    std::size_t(LAYER_TRACE_CHECKPOINTS) * LOCAL_DIM;
+constexpr std::size_t LAYER_TRACE_BYTES_PER_PE =
+    LAYER_TRACE_FLOATS_PER_PE * sizeof(float);
 constexpr std::size_t LOGIT_WORDS =
     (PADDED_VOCAB_SIZE / NUM_PES) / OUTPUTS_PER_WORD;
 constexpr std::size_t LOGIT_BYTES = LOGIT_WORDS * DDR_WORD_BYTES;
@@ -104,6 +110,8 @@ static_assert(ROPE_LUT_BYTES == 2097152ULL,
               "RoPE LUT size must match swiftkv_attention.hpp");
 static_assert(RESIDUAL_BYTES == 4096ULL,
               "residual shard size must match the kernel ABI");
+static_assert(LAYER_TRACE_BYTES_PER_PE == 266240ULL,
+              "layer trace ABI must contain 65 local residual shards");
 static_assert(LOGIT_BYTES == 32256ULL,
               "logit shard size must match the kernel ABI");
 static_assert(KV_BYTES == 335544320ULL,
@@ -471,6 +479,25 @@ std::string dump_residuals(const std::string& directory, int position,
     return path;
 }
 
+std::string dump_layer_trace(const std::string& directory, int position,
+                             int token_id, const float* trace) {
+    std::ostringstream name;
+    name << "layer_trace_pos" << std::setw(4) << std::setfill('0')
+         << position << "_token" << std::setw(5) << std::setfill('0')
+         << token_id << ".bin";
+    const std::string path = join_path(directory, name.str());
+    std::ofstream out(path, std::ios::binary | std::ios::trunc);
+    if (!out) {
+        throw std::runtime_error("cannot create layer trace dump " + path);
+    }
+    out.write(reinterpret_cast<const char*>(trace),
+              std::size_t(LAYER_TRACE_CHECKPOINTS) * DIM * sizeof(float));
+    if (!out) {
+        throw std::runtime_error("cannot write layer trace dump " + path);
+    }
+    return path;
+}
+
 void print_residual_diagnostics(const float* residuals, int position) {
     int finite_count = 0;
     int nan_count = 0;
@@ -818,6 +845,7 @@ struct Config {
     std::string device_id = "0000:13:00.0";
     std::string dump_logits_dir;
     std::string dump_residuals_dir;
+    std::string dump_layer_trace_dir;
     int max_tokens = 256;
     int top_k = 0;
     float temperature = 0.0f;
@@ -845,6 +873,7 @@ void print_usage(const char* program) {
         << "  --top-k N           print the N highest valid-vocabulary logits per step\n"
         << "  --dump-logits DIR   dump all 32256 raw FP32 logits for every step\n"
         << "  --dump-residuals DIR dump the final 4096-value FP32 residual for every step\n"
+        << "  --dump-layer-trace DIR dump 65 x 4096 FP32 layer-boundary residuals per step\n"
         << "  --device ID         BDF or numeric XRT device index\n"
         << "  --verbose           print initialization, per-PE timing, token IDs, and statistics\n"
         << "  --tokenize-only     print prompt token IDs without loading FPGA\n";
@@ -947,6 +976,12 @@ Config parse_args(int argc, char** argv) {
             if (config.dump_residuals_dir.empty()) {
                 throw std::runtime_error(
                     "--dump-residuals directory is empty");
+            }
+        } else if (argument == "--dump-layer-trace") {
+            config.dump_layer_trace_dir = next();
+            if (config.dump_layer_trace_dir.empty()) {
+                throw std::runtime_error(
+                    "--dump-layer-trace directory is empty");
             }
         } else if (argument == "--device") config.device_id = next();
         else if (argument == "--help" || argument == "-h") {
@@ -1091,6 +1126,14 @@ int main(int argc, char** argv) {
                       << std::filesystem::absolute(config.dump_residuals_dir)
                       << " (4096 FP32 values per step)" << std::endl;
         }
+        if (!config.dump_layer_trace_dir.empty()) {
+            prepare_dump_directory(config.dump_layer_trace_dir,
+                                   "layer trace");
+            std::cout << "[Init] Layer trace dumps: "
+                      << std::filesystem::absolute(
+                             config.dump_layer_trace_dir)
+                      << " (65 x 4096 FP32 values per step)" << std::endl;
+        }
 
         std::string effective_device_id = config.device_id;
         const char* emu_env = std::getenv("XCL_EMULATION_MODE");
@@ -1183,6 +1226,18 @@ int main(int argc, char** argv) {
         xrt::bo kv2(device, KV_BYTES, kernel2.group_id(5));
         xrt::bo kv3(device, KV_BYTES, kernel3.group_id(5));
 
+        // Debug-kernel ABI: argument 6 is a 65-checkpoint residual trace.
+        // Allocate it even when dumping is disabled so every invocation still
+        // matches the dedicated layer-trace XCLBIN signature.
+        xrt::bo trace0(device, LAYER_TRACE_BYTES_PER_PE,
+                       kernel0.group_id(6));
+        xrt::bo trace1(device, LAYER_TRACE_BYTES_PER_PE,
+                       kernel1.group_id(6));
+        xrt::bo trace2(device, LAYER_TRACE_BYTES_PER_PE,
+                       kernel2.group_id(6));
+        xrt::bo trace3(device, LAYER_TRACE_BYTES_PER_PE,
+                       kernel3.group_id(6));
+
         load_bo_from_file(model0, bank_path(0), detected_model_bytes,
                           config.verbose);
         load_bo_from_file(model1, bank_path(1), detected_model_bytes,
@@ -1242,8 +1297,14 @@ int main(int argc, char** argv) {
         auto* logits_map1 = logits1.map<float*>();
         auto* logits_map2 = logits2.map<float*>();
         auto* logits_map3 = logits3.map<float*>();
+        auto* trace_map0 = trace0.map<float*>();
+        auto* trace_map1 = trace1.map<float*>();
+        auto* trace_map2 = trace2.map<float*>();
+        auto* trace_map3 = trace3.map<float*>();
         std::vector<float> combined_logits(PADDED_VOCAB_SIZE, 0.0f);
         std::vector<float> combined_residual(DIM, 0.0f);
+        std::vector<float> combined_layer_trace(
+            std::size_t(LAYER_TRACE_CHECKPOINTS) * DIM, 0.0f);
         std::vector<int> token_history = prompt_tokens;
         token_history.reserve(
             prompt_tokens.size() + static_cast<std::size_t>(config.max_tokens));
@@ -1290,28 +1351,28 @@ int main(int argc, char** argv) {
 
             auto run1 = kernel1(
                 static_cast<std::uint32_t>(position), model1, rope1,
-                residual1, logits1, kv1);
+                residual1, logits1, kv1, trace1);
             if (config.verbose) {
                 std::cout << "[Run] PE1 submitted state="
                           << static_cast<int>(run1.state()) << std::endl;
             }
             auto run2 = kernel2(
                 static_cast<std::uint32_t>(position), model2, rope2,
-                residual2, logits2, kv2);
+                residual2, logits2, kv2, trace2);
             if (config.verbose) {
                 std::cout << "[Run] PE2 submitted state="
                           << static_cast<int>(run2.state()) << std::endl;
             }
             auto run0 = kernel0(
                 static_cast<std::uint32_t>(position), model0, rope0,
-                residual0, logits0, kv0);
+                residual0, logits0, kv0, trace0);
             if (config.verbose) {
                 std::cout << "[Run] PE0 submitted state="
                           << static_cast<int>(run0.state()) << std::endl;
             }
             auto run3 = kernel3(
                 static_cast<std::uint32_t>(position), model3, rope3,
-                residual3, logits3, kv3);
+                residual3, logits3, kv3, trace3);
             if (config.verbose) {
                 std::cout << "[Run] PE3 submitted state="
                           << static_cast<int>(run3.state())
@@ -1382,6 +1443,46 @@ int main(int argc, char** argv) {
             const auto t_kernel_done = Clock::now();
             if (config.verbose) {
                 std::cout << "[Run] All 4 PEs completed; reading logits"
+                          << std::endl;
+            }
+
+            if (!config.dump_layer_trace_dir.empty()) {
+                {
+                    auto t0 = std::async(std::launch::async, [&]{
+                        trace0.sync(XCL_BO_SYNC_BO_FROM_DEVICE,
+                                    LAYER_TRACE_BYTES_PER_PE, 0); });
+                    auto t1 = std::async(std::launch::async, [&]{
+                        trace1.sync(XCL_BO_SYNC_BO_FROM_DEVICE,
+                                    LAYER_TRACE_BYTES_PER_PE, 0); });
+                    auto t2 = std::async(std::launch::async, [&]{
+                        trace2.sync(XCL_BO_SYNC_BO_FROM_DEVICE,
+                                    LAYER_TRACE_BYTES_PER_PE, 0); });
+                    auto t3 = std::async(std::launch::async, [&]{
+                        trace3.sync(XCL_BO_SYNC_BO_FROM_DEVICE,
+                                    LAYER_TRACE_BYTES_PER_PE, 0); });
+                    t0.get(); t1.get(); t2.get(); t3.get();
+                }
+                const std::array<const float*, NUM_PES> trace_maps = {
+                    trace_map0, trace_map1, trace_map2, trace_map3};
+                for (int checkpoint = 0;
+                     checkpoint < LAYER_TRACE_CHECKPOINTS;
+                     ++checkpoint) {
+                    for (int pe = 0; pe < NUM_PES; ++pe) {
+                        const float* source = trace_maps[pe] +
+                            std::size_t(checkpoint) * LOCAL_DIM;
+                        float* destination = combined_layer_trace.data() +
+                            std::size_t(checkpoint) * DIM + pe * LOCAL_DIM;
+                        std::memcpy(destination, source,
+                                    std::size_t(LOCAL_DIM) * sizeof(float));
+                    }
+                }
+                const std::string trace_path = dump_layer_trace(
+                    config.dump_layer_trace_dir, position, token_id,
+                    combined_layer_trace.data());
+                std::cout << "[Layer trace] dumped=" << trace_path
+                          << " shape=[" << LAYER_TRACE_CHECKPOINTS
+                          << "][" << DIM << "] bytes="
+                          << combined_layer_trace.size() * sizeof(float)
                           << std::endl;
             }
 
