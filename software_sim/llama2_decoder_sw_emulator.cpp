@@ -55,6 +55,8 @@ static int g_cache_seq_len = MAX_SEQ_LEN;
 static const std::string HARDCODED_WEIGHTS_DIR = "C:/KLTN/4PE_U250";
 static bool g_float_act = false;  // --float-act: bypass E8M0, use float activation (for debugging)
 static bool g_e8m0_act = false;   // --e8m0-act: enable E8M0 activation quantization in autoround mode
+static std::string g_dump_logits_dir;
+static std::string g_dump_residuals_dir;
 
 
 // ============================================================================
@@ -1416,8 +1418,10 @@ typedef struct {
 typedef struct {
     int vocab_size;
     ProbIndex* probindex;
+    unsigned char* penalized;
     float temperature;
     float topp;
+    float repeat_penalty;
     unsigned long long rng_state;
 } Sampler;
 
@@ -1485,16 +1489,21 @@ int sample_topp(float* probabilities, int n, float topp, ProbIndex* probindex, f
     return probindex[last_idx].index;
 }
 
-void build_sampler(Sampler* sampler, int vocab_size, float temperature, float topp, unsigned long long rng_seed) {
+void build_sampler(Sampler* sampler, int vocab_size, float temperature,
+                   float topp, float repeat_penalty,
+                   unsigned long long rng_seed) {
     sampler->vocab_size = vocab_size;
     sampler->temperature = temperature;
     sampler->topp = topp;
+    sampler->repeat_penalty = repeat_penalty;
     sampler->rng_state = rng_seed;
     sampler->probindex = (ProbIndex*)malloc(sampler->vocab_size * sizeof(ProbIndex));
+    sampler->penalized = (unsigned char*)calloc(sampler->vocab_size, 1);
 }
 
 void free_sampler(Sampler* sampler) {
     free(sampler->probindex);
+    free(sampler->penalized);
 }
 
 unsigned int random_u32(unsigned long long *state) {
@@ -1525,7 +1534,21 @@ void softmax_logits(float* x, int size) {
     }
 }
 
-int sample(Sampler* sampler, float* logits) {
+int sample(Sampler* sampler, float* logits,
+           const std::vector<int>& token_history) {
+    if (sampler->repeat_penalty != 1.0f) {
+        memset(sampler->penalized, 0, sampler->vocab_size);
+        for (int token : token_history) {
+            if (token < 0 || token >= sampler->vocab_size ||
+                sampler->penalized[token]) {
+                continue;
+            }
+            logits[token] = logits[token] < 0.0f
+                ? logits[token] * sampler->repeat_penalty
+                : logits[token] / sampler->repeat_penalty;
+            sampler->penalized[token] = 1;
+        }
+    }
     // Match llama2.c/runq.c: temperature 0 selects greedy argmax; otherwise
     // temperature scaling + softmax is followed by multinomial or top-p.
     if (sampler->temperature == 0.0f) {
@@ -1555,6 +1578,33 @@ long time_in_ms() {
 // ============================================================================
 // Generation loop: same prefill/decode boundary as tb_decoder_token.
 // ============================================================================
+static void dump_reference_step(int pos, int token,
+                                const std::vector<float>& logits,
+                                const std::vector<float>& residual) {
+    char filename[128];
+    if (!g_dump_logits_dir.empty()) {
+        snprintf(filename, sizeof(filename),
+                 "logits_pos%04d_token%05d.bin", pos, token);
+        std::ofstream out(g_dump_logits_dir + "/" + filename,
+                          std::ios::binary);
+        if (!out) throw std::runtime_error("cannot create software logits dump");
+        out.write(reinterpret_cast<const char*>(logits.data()),
+                  static_cast<std::streamsize>(VOCAB_SIZE * sizeof(float)));
+        const std::array<float, PADDED_VOCAB_SIZE - VOCAB_SIZE> padding{};
+        out.write(reinterpret_cast<const char*>(padding.data()),
+                  static_cast<std::streamsize>(padding.size() * sizeof(float)));
+    }
+    if (!g_dump_residuals_dir.empty()) {
+        snprintf(filename, sizeof(filename),
+                 "residual_pos%04d_token%05d.bin", pos, token);
+        std::ofstream out(g_dump_residuals_dir + "/" + filename,
+                          std::ios::binary);
+        if (!out) throw std::runtime_error("cannot create software residual dump");
+        out.write(reinterpret_cast<const char*>(residual.data()),
+                  static_cast<std::streamsize>(DIM * sizeof(float)));
+    }
+}
+
 void generate(const TransformerModel& model, KVCachePE* kv_pes, Tokenizer *tokenizer, Sampler *sampler, const char *prompt, int max_new_tokens) {
     const char *empty_prompt = "";
     if (prompt == NULL) { prompt = empty_prompt; }
@@ -1575,6 +1625,7 @@ void generate(const TransformerModel& model, KVCachePE* kv_pes, Tokenizer *token
     for (int i = 0; i < num_prompt_tokens; ++i) std::cout << ' ' << prompt_tokens[i];
     std::cout << "\n[Sampling] temperature=" << sampler->temperature
               << ", top-p=" << sampler->topp
+              << ", repeat-penalty=" << sampler->repeat_penalty
               << ", seed=" << sampler->rng_state;
     std::cout << "\n[Text] " << prompt;
     std::cout.flush();
@@ -1584,10 +1635,13 @@ void generate(const TransformerModel& model, KVCachePE* kv_pes, Tokenizer *token
     int pos = 0;
     for (int i = 0; i < num_prompt_tokens; ++i) {
         logits_ptr = forward(model, kv_pes, prompt_tokens[i], pos++, residual, logits);
+        dump_reference_step(pos - 1, prompt_tokens[i], logits, residual);
     }
     const auto prefill_end = std::chrono::steady_clock::now();
 
     int token = prompt_tokens[num_prompt_tokens - 1];
+    std::vector<int> token_history(prompt_tokens,
+                                   prompt_tokens + num_prompt_tokens);
     std::vector<int> generated_ids;
     std::vector<float> generated_logits;
     std::vector<float> raw_logits(VOCAB_SIZE);
@@ -1596,8 +1650,9 @@ void generate(const TransformerModel& model, KVCachePE* kv_pes, Tokenizer *token
         // runq.c's stochastic sampler overwrites logits with probabilities.
         // Preserve raw logits so the diagnostic output keeps its stated unit.
         std::copy(logits_ptr, logits_ptr + VOCAB_SIZE, raw_logits.begin());
-        const int next = sample(sampler, logits_ptr);
+        const int next = sample(sampler, logits_ptr, token_history);
         generated_ids.push_back(next);
+        token_history.push_back(next);
         generated_logits.push_back(raw_logits[next]);
         if (next == 2) break;
         safe_printf(decode(tokenizer, token, next));
@@ -1605,6 +1660,7 @@ void generate(const TransformerModel& model, KVCachePE* kv_pes, Tokenizer *token
         token = next;
         if (generated + 1 < max_new_tokens) {
             logits_ptr = forward(model, kv_pes, token, pos++, residual, logits);
+            dump_reference_step(pos - 1, token, logits, residual);
         }
     }
     const auto decode_end = std::chrono::steady_clock::now();
@@ -1655,6 +1711,7 @@ void chat(const TransformerModel& model, KVCachePE* kv_pes, Tokenizer *tokenizer
     int next = 0;        // will store the next token in the sequence
     int token = 0;       // stores the current token to feed into the transformer
     int pos = 0;         // position in the sequence
+    std::vector<int> token_history;
     while (pos < steps) {
 
         if (user_turn) {
@@ -1689,9 +1746,10 @@ void chat(const TransformerModel& model, KVCachePE* kv_pes, Tokenizer *tokenizer
             token = next;
         }
         if (token == 2) { user_turn = 1; }
+        token_history.push_back(token);
 
         float* logits_ptr = forward(model, kv_pes, token, pos, residual, logits);
-        next = sample(sampler, logits_ptr);
+        next = sample(sampler, logits_ptr, token_history);
         pos++;
 
         if (user_idx >= num_prompt_tokens && next != 2) {
@@ -1908,6 +1966,7 @@ void error_usage() {
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "  -t <float>  temperature in [0,inf], default 1.0 (0.0 = greedy argmax)\n");
     fprintf(stderr, "  -p <float>  p value in top-p (nucleus) sampling in [0,1] default 0.9\n");
+    fprintf(stderr, "  -r, --repeat-penalty <float> repetition penalty > 0, default 1.0\n");
     fprintf(stderr, "  -s <int>    random seed, default time(NULL)\n");
     fprintf(stderr, "  -n, --max-tokens <int> number of new tokens, default 256\n");
     fprintf(stderr, "  -i <string> input prompt\n");
@@ -1918,6 +1977,10 @@ void error_usage() {
     fprintf(stderr, "  --float-act  bypass E8M0, use FP32 activation (for debug)\n");
     fprintf(stderr, "  --autoround  use autoround_w4g128.bin (W4G128 scale per-group-128)\n");
     fprintf(stderr, "  --e8m0-act   enable E8M0 activation quantization in autoround mode\n");
+    fprintf(stderr, "  --dump-logits <dir> dump padded FP32 logits for every generate step\n");
+    fprintf(stderr, "  --dump-residuals <dir> dump final FP32 residual for every generate step\n");
+    fprintf(stderr, "  --replay-residual <file> run final norm + LM head on a dumped residual\n");
+    fprintf(stderr, "  --replay-logits <file> output path used with --replay-residual\n");
     exit(EXIT_FAILURE);
 
 
@@ -1929,6 +1992,7 @@ int main(int argc, char *argv[]) {
     const char *tokenizer_path = "tokenizer.bin";
     float temperature = 1.0f;   // runq.c default; 0.0 = greedy deterministic
     float topp = 0.9f;          // top-p in nucleus sampling. 1.0 = off. 0.9 works well, but slower
+    float repeat_penalty = 1.0f;
     int steps = 256;            // number of steps to run for
     char *prompt = NULL;        // prompt string
     unsigned long long rng_seed = 0; // seed rng with time by default
@@ -1936,6 +2000,8 @@ int main(int argc, char *argv[]) {
     char *system_prompt = NULL; // the (optional) system prompt to use in chat mode
     bool is_ppl_mode = false;
     std::string ppl_path = "";
+    std::string replay_residual_path;
+    std::string replay_logits_path;
 
     // Parse command line arguments
     for (int i = 1; i < argc; ++i) {
@@ -1949,6 +2015,9 @@ int main(int argc, char *argv[]) {
             temperature = std::atof(argv[++i]);
         } else if (arg == "-p" && i + 1 < argc) {
             topp = std::atof(argv[++i]);
+        } else if ((arg == "-r" || arg == "--repeat-penalty") &&
+                   i + 1 < argc) {
+            repeat_penalty = std::atof(argv[++i]);
         } else if (arg == "-s" && i + 1 < argc) {
             rng_seed = std::atoll(argv[++i]);
         } else if ((arg == "-n" || arg == "--max-tokens") && i + 1 < argc) {
@@ -1967,6 +2036,14 @@ int main(int argc, char *argv[]) {
             g_autoround = true;
         } else if (arg == "--e8m0-act" || arg == "--e8m0") {
             g_e8m0_act = true;
+        } else if (arg == "--dump-logits" && i + 1 < argc) {
+            g_dump_logits_dir = argv[++i];
+        } else if (arg == "--dump-residuals" && i + 1 < argc) {
+            g_dump_residuals_dir = argv[++i];
+        } else if (arg == "--replay-residual" && i + 1 < argc) {
+            replay_residual_path = argv[++i];
+        } else if (arg == "--replay-logits" && i + 1 < argc) {
+            replay_logits_path = argv[++i];
         } else if (arg[0] != '-') {
             checkpoint_path = argv[i];
         }
@@ -1977,6 +2054,7 @@ int main(int argc, char *argv[]) {
     if (rng_seed <= 0) rng_seed = (unsigned int)time(NULL);
     if (temperature < 0.0) temperature = 0.0;
     if (topp < 0.0 || 1.0 < topp) topp = 0.9;
+    if (repeat_penalty <= 0.0f) repeat_penalty = 1.0f;
     if (steps < 0) steps = 0;
 
     // Load Model weights
@@ -2005,6 +2083,35 @@ int main(int argc, char *argv[]) {
     Tokenizer tokenizer;
     build_tokenizer(&tokenizer, tokenizer_path, VOCAB_SIZE);
 
+    if (!replay_residual_path.empty()) {
+        if (replay_logits_path.empty()) {
+            throw std::runtime_error(
+                "--replay-logits is required with --replay-residual");
+        }
+        std::vector<float> replay_residual(DIM);
+        std::ifstream input(replay_residual_path, std::ios::binary);
+        input.read(reinterpret_cast<char*>(replay_residual.data()),
+                   static_cast<std::streamsize>(DIM * sizeof(float)));
+        if (!input) {
+            throw std::runtime_error("cannot read replay residual");
+        }
+        QuantizedActivation replay_norm;
+        rmsnorm_quantize_hls(replay_residual.data(),
+                             model.final_norm_gamma.data(), replay_norm);
+        std::vector<float> replay_logits(PADDED_VOCAB_SIZE, 0.0f);
+        sharded_gemv_4pe(model.w_logits, replay_norm, replay_logits);
+        std::ofstream output(replay_logits_path,
+                             std::ios::binary | std::ios::trunc);
+        output.write(reinterpret_cast<const char*>(replay_logits.data()),
+                     static_cast<std::streamsize>(
+                         replay_logits.size() * sizeof(float)));
+        if (!output) {
+            throw std::runtime_error("cannot write replay logits");
+        }
+        free_tokenizer(&tokenizer);
+        return 0;
+    }
+
     // PPL Mode
     if (is_ppl_mode) {
         calculate_perplexity(model, &tokenizer, ppl_path, steps);
@@ -2015,7 +2122,8 @@ int main(int argc, char *argv[]) {
 
     // build the Sampler
     Sampler sampler;
-    build_sampler(&sampler, VOCAB_SIZE, temperature, topp, rng_seed);
+    build_sampler(&sampler, VOCAB_SIZE, temperature, topp,
+                  repeat_penalty, rng_seed);
 
     // Initialize KV Caches for 4 PEs
     if (strcmp(mode, "generate") == 0) {
