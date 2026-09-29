@@ -94,6 +94,10 @@ constexpr std::size_t LOGIT_BYTES = LOGIT_WORDS * DDR_WORD_BYTES;
 
 constexpr int LOCAL_HEADS = NUM_HEADS / NUM_PES;
 constexpr int KV_WORDS_PER_TOKEN_HEAD = 5;
+constexpr std::size_t KV_RECORD_BYTES =
+    KV_WORDS_PER_TOKEN_HEAD * DDR_WORD_BYTES;
+constexpr std::size_t KV_DUMP_BYTES =
+    std::size_t(NUM_PES) * LOCAL_HEADS * KV_RECORD_BYTES;
 constexpr std::size_t KV_WORDS_PER_PE =
     std::size_t(NUM_LAYERS) * LOCAL_HEADS * MAX_SEQ_LEN *
     KV_WORDS_PER_TOKEN_HEAD;
@@ -116,6 +120,8 @@ static_assert(LOGIT_BYTES == 32256ULL,
               "logit shard size must match the kernel ABI");
 static_assert(KV_BYTES == 335544320ULL,
               "KV cache size must match swiftkv_attention.hpp");
+static_assert(KV_DUMP_BYTES == 10240ULL,
+              "one layer-zero KV dump must contain all PE/head records");
 
 using Clock = std::chrono::steady_clock;
 
@@ -498,6 +504,43 @@ std::string dump_layer_trace(const std::string& directory, int position,
     return path;
 }
 
+std::size_t kv_record_offset_bytes(int layer, int local_head,
+                                   int position) {
+    const std::size_t record =
+        (std::size_t(layer) * LOCAL_HEADS + local_head) * MAX_SEQ_LEN +
+        position;
+    return record * KV_RECORD_BYTES;
+}
+
+std::string dump_kv_cache(const std::string& directory, int position,
+                          int token_id,
+                          const std::array<const std::uint8_t*, NUM_PES>& maps) {
+    // Headerless byte-for-byte HLS DDR record layout:
+    // [PE][local_head][metadata,K0,K1,V0,V1]. Only layer zero is dumped,
+    // because the first observed hardware/software divergence is at layer 0.
+    std::ostringstream name;
+    name << "kv_layer00_pos" << std::setw(4) << std::setfill('0')
+         << position << "_token" << std::setw(5) << std::setfill('0')
+         << token_id << ".bin";
+    const std::string path = join_path(directory, name.str());
+    std::ofstream out(path, std::ios::binary | std::ios::trunc);
+    if (!out) {
+        throw std::runtime_error("cannot create KV cache dump " + path);
+    }
+    for (int pe = 0; pe < NUM_PES; ++pe) {
+        for (int head = 0; head < LOCAL_HEADS; ++head) {
+            const std::size_t offset =
+                kv_record_offset_bytes(0, head, position);
+            out.write(reinterpret_cast<const char*>(maps[pe] + offset),
+                      static_cast<std::streamsize>(KV_RECORD_BYTES));
+        }
+    }
+    if (!out) {
+        throw std::runtime_error("cannot write KV cache dump " + path);
+    }
+    return path;
+}
+
 void print_residual_diagnostics(const float* residuals, int position) {
     int finite_count = 0;
     int nan_count = 0;
@@ -846,6 +889,7 @@ struct Config {
     std::string dump_logits_dir;
     std::string dump_residuals_dir;
     std::string dump_layer_trace_dir;
+    std::string dump_kv_cache_dir;
     int max_tokens = 256;
     int top_k = 0;
     float temperature = 0.0f;
@@ -874,6 +918,7 @@ void print_usage(const char* program) {
         << "  --dump-logits DIR   dump all 32256 raw FP32 logits for every step\n"
         << "  --dump-residuals DIR dump the final 4096-value FP32 residual for every step\n"
         << "  --dump-layer-trace DIR dump 65 x 4096 FP32 layer-boundary residuals per step\n"
+        << "  --dump-kv-cache DIR dump layer-0 compressed KV records for every step\n"
         << "  --device ID         BDF or numeric XRT device index\n"
         << "  --verbose           print initialization, per-PE timing, token IDs, and statistics\n"
         << "  --tokenize-only     print prompt token IDs without loading FPGA\n";
@@ -982,6 +1027,12 @@ Config parse_args(int argc, char** argv) {
             if (config.dump_layer_trace_dir.empty()) {
                 throw std::runtime_error(
                     "--dump-layer-trace directory is empty");
+            }
+        } else if (argument == "--dump-kv-cache") {
+            config.dump_kv_cache_dir = next();
+            if (config.dump_kv_cache_dir.empty()) {
+                throw std::runtime_error(
+                    "--dump-kv-cache directory is empty");
             }
         } else if (argument == "--device") config.device_id = next();
         else if (argument == "--help" || argument == "-h") {
@@ -1133,6 +1184,14 @@ int main(int argc, char** argv) {
                       << std::filesystem::absolute(
                              config.dump_layer_trace_dir)
                       << " (65 x 4096 FP32 values per step)" << std::endl;
+        }
+        if (!config.dump_kv_cache_dir.empty()) {
+            prepare_dump_directory(config.dump_kv_cache_dir, "KV cache");
+            std::cout << "[Init] KV cache dumps: "
+                      << std::filesystem::absolute(
+                             config.dump_kv_cache_dir)
+                      << " (layer 0, [4 PEs][8 heads][5 x 64-byte words])"
+                      << std::endl;
         }
 
         std::string effective_device_id = config.device_id;
@@ -1297,6 +1356,10 @@ int main(int argc, char** argv) {
         auto* logits_map1 = logits1.map<float*>();
         auto* logits_map2 = logits2.map<float*>();
         auto* logits_map3 = logits3.map<float*>();
+        auto* kv_map0 = kv0.map<std::uint8_t*>();
+        auto* kv_map1 = kv1.map<std::uint8_t*>();
+        auto* kv_map2 = kv2.map<std::uint8_t*>();
+        auto* kv_map3 = kv3.map<std::uint8_t*>();
         auto* trace_map0 = trace0.map<float*>();
         auto* trace_map1 = trace1.map<float*>();
         auto* trace_map2 = trace2.map<float*>();
@@ -1444,6 +1507,39 @@ int main(int argc, char** argv) {
             if (config.verbose) {
                 std::cout << "[Run] All 4 PEs completed; reading logits"
                           << std::endl;
+            }
+
+            if (!config.dump_kv_cache_dir.empty()) {
+                // Sync one contiguous layer-zero prefix per PE. The final
+                // requested record belongs to local head 7; round the length
+                // to 4 KiB for compatibility with older XRT DMA paths.
+                const std::size_t required_bytes =
+                    kv_record_offset_bytes(0, LOCAL_HEADS - 1, position) +
+                    KV_RECORD_BYTES;
+                constexpr std::size_t PAGE_BYTES = 4096;
+                const std::size_t sync_bytes =
+                    (required_bytes + PAGE_BYTES - 1) & ~(PAGE_BYTES - 1);
+                {
+                    auto k0 = std::async(std::launch::async, [&]{
+                        kv0.sync(XCL_BO_SYNC_BO_FROM_DEVICE,
+                                 sync_bytes, 0); });
+                    auto k1 = std::async(std::launch::async, [&]{
+                        kv1.sync(XCL_BO_SYNC_BO_FROM_DEVICE,
+                                 sync_bytes, 0); });
+                    auto k2 = std::async(std::launch::async, [&]{
+                        kv2.sync(XCL_BO_SYNC_BO_FROM_DEVICE,
+                                 sync_bytes, 0); });
+                    auto k3 = std::async(std::launch::async, [&]{
+                        kv3.sync(XCL_BO_SYNC_BO_FROM_DEVICE,
+                                 sync_bytes, 0); });
+                    k0.get(); k1.get(); k2.get(); k3.get();
+                }
+                const std::array<const std::uint8_t*, NUM_PES> kv_maps = {
+                    kv_map0, kv_map1, kv_map2, kv_map3};
+                const std::string kv_path = dump_kv_cache(
+                    config.dump_kv_cache_dir, position, token_id, kv_maps);
+                std::cout << "[KV cache] dumped=" << kv_path
+                          << " bytes=" << KV_DUMP_BYTES << std::endl;
             }
 
             if (!config.dump_layer_trace_dir.empty()) {

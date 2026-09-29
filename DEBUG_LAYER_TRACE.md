@@ -54,6 +54,7 @@ Start with one generated token.  The two prompt forwards are also captured.
 
 ```bash
 mkdir -p /dev/shm/layer_trace_hw
+mkdir -p /dev/shm/kv_cache_hw
 
 ./decode_host_layer_trace \
   --xclbin "$PWD/int4_decoder_multikernel_200mhz_layer_trace.xclbin" \
@@ -64,6 +65,7 @@ mkdir -p /dev/shm/layer_trace_hw
   --dump-layer-trace /dev/shm/layer_trace_hw \
   --dump-logits /dev/shm/layer_trace_hw/logits \
   --dump-residuals /dev/shm/layer_trace_hw/residuals \
+  --dump-kv-cache /dev/shm/kv_cache_hw \
   --verbose
 ```
 
@@ -74,11 +76,13 @@ the same dense bank directory, prompt, and greedy sampling:
 
 ```bash
 mkdir -p /dev/shm/layer_trace_sw
+mkdir -p /dev/shm/kv_cache_sw
 
 ./llama2_decoder_sw_emulator /dev/shm/4PE_U250_dense \
   -z /dev/shm/4PE_U250_dense/tokenizer.bin \
   -i "Hello" -n 1 -t 0 \
-  --dump-layer-trace /dev/shm/layer_trace_sw
+  --dump-layer-trace /dev/shm/layer_trace_sw \
+  --dump-kv-cache /dev/shm/kv_cache_sw
 ```
 
 ## Find the first divergent layer
@@ -100,3 +104,20 @@ After locating the first bad half-layer, add fine-grained checkpoints only for
 that one layer.  Avoid tracing every internal tensor across all 32 layers,
 because the extra AXI traffic and RAM readers can perturb the schedule being
 diagnosed.
+
+## Compare the compressed layer-0 KV cache
+
+The hardware host copies the actual DDR records, while the emulator repacks
+its semantic cache into the same headerless 10,240-byte layout:
+`[PE0..3][local head 0..7][metadata,K0,K1,V0,V1]`.
+
+```bash
+env -u LD_LIBRARY_PATH -u PYTHONHOME -u PYTHONPATH \
+  /usr/bin/python3 scripts/analyze_kv_cache.py \
+  --hardware /dev/shm/kv_cache_hw/kv_layer00_pos0000_token00001.bin \
+  --software /dev/shm/kv_cache_sw/kv_layer00_pos0000_token00001.bin
+```
+
+An exact match moves the investigation downstream to cache routing,
+dequantization, attention-output quantization, and O projection. A mismatch
+moves it upstream to the Q/K/V projection boundary or KV quantize/pack logic.

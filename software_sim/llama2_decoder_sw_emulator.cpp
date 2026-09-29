@@ -50,6 +50,12 @@ static constexpr int SUPERBLOCK_WORDS = 4224;
 static constexpr int SCALE_WORDS_PER_BLOCK = 128;
 static constexpr int TILES_PER_BLOCK = 16;
 static constexpr int WORD_BYTES = 64;
+static constexpr int KV_WORDS_PER_TOKEN_HEAD = 5;
+static constexpr int KV_RECORD_BYTES = KV_WORDS_PER_TOKEN_HEAD * WORD_BYTES;
+static constexpr int KV_DUMP_BYTES =
+    NUM_PES * LOCAL_HEADS * KV_RECORD_BYTES;
+static_assert(KV_DUMP_BYTES == 10240,
+              "one layer-zero KV dump must contain all PE/head records");
 
 static int g_num_layers = 32;
 static int g_cache_seq_len = MAX_SEQ_LEN;
@@ -59,6 +65,7 @@ static bool g_e8m0_act = false;   // --e8m0-act: enable E8M0 activation quantiza
 static std::string g_dump_logits_dir;
 static std::string g_dump_residuals_dir;
 static std::string g_dump_layer_trace_dir;
+static std::string g_dump_kv_cache_dir;
 static std::vector<float> g_layer_trace;
 
 
@@ -1598,7 +1605,8 @@ long time_in_ms() {
 // ============================================================================
 static void dump_reference_step(int pos, int token,
                                 const std::vector<float>& logits,
-                                const std::vector<float>& residual) {
+                                const std::vector<float>& residual,
+                                const KVCachePE* kv_pes) {
     char filename[128];
     if (!g_dump_logits_dir.empty()) {
         snprintf(filename, sizeof(filename),
@@ -1634,6 +1642,58 @@ static void dump_reference_step(int pos, int token,
                   static_cast<std::streamsize>(
                       g_layer_trace.size() * sizeof(float)));
     }
+    if (!g_dump_kv_cache_dir.empty()) {
+        // Repack the semantic software cache into the exact headerless HLS
+        // DDR layout: [PE][local_head][metadata,K0,K1,V0,V1].
+        snprintf(filename, sizeof(filename),
+                 "kv_layer00_pos%04d_token%05d.bin", pos, token);
+        std::ofstream out(g_dump_kv_cache_dir + "/" + filename,
+                          std::ios::binary | std::ios::trunc);
+        if (!out) {
+            throw std::runtime_error(
+                "cannot create software KV cache dump");
+        }
+        std::array<uint8_t, KV_RECORD_BYTES> packed{};
+        for (int pe = 0; pe < NUM_PES; ++pe) {
+            for (int head = 0; head < LOCAL_HEADS; ++head) {
+                packed.fill(0);
+                const size_t semantic_record =
+                    static_cast<size_t>(head) * g_cache_seq_len + pos;
+                const size_t data_base = semantic_record * HEAD_DIM;
+                const size_t shift_base = semantic_record *
+                    (HEAD_DIM / GROUP_SIZE);
+                uint64_t metadata = 0;
+                for (int group = 0; group < HEAD_DIM / GROUP_SIZE;
+                     ++group) {
+                    metadata |=
+                        static_cast<uint64_t>(
+                            kv_pes[pe].k_shift[shift_base + group] & 0x1fU)
+                        << (group * 5);
+                    metadata |=
+                        static_cast<uint64_t>(
+                            kv_pes[pe].v_shift[shift_base + group] & 0x1fU)
+                        << (20 + group * 5);
+                }
+                for (int byte = 0; byte < 5; ++byte) {
+                    packed[byte] = static_cast<uint8_t>(
+                        metadata >> (byte * 8));
+                }
+                for (int index = 0; index < HEAD_DIM; ++index) {
+                    packed[WORD_BYTES + index] = static_cast<uint8_t>(
+                        kv_pes[pe].k_cache[data_base + index]);
+                    packed[3 * WORD_BYTES + index] = static_cast<uint8_t>(
+                        kv_pes[pe].v_cache[data_base + index]);
+                }
+                out.write(reinterpret_cast<const char*>(packed.data()),
+                          static_cast<std::streamsize>(packed.size()));
+            }
+        }
+        if (!out || out.tellp() !=
+                static_cast<std::streampos>(KV_DUMP_BYTES)) {
+            throw std::runtime_error(
+                "cannot write complete software KV cache dump");
+        }
+    }
 }
 
 void generate(const TransformerModel& model, KVCachePE* kv_pes, Tokenizer *tokenizer, Sampler *sampler, const char *prompt, int max_new_tokens) {
@@ -1666,7 +1726,8 @@ void generate(const TransformerModel& model, KVCachePE* kv_pes, Tokenizer *token
     int pos = 0;
     for (int i = 0; i < num_prompt_tokens; ++i) {
         logits_ptr = forward(model, kv_pes, prompt_tokens[i], pos++, residual, logits);
-        dump_reference_step(pos - 1, prompt_tokens[i], logits, residual);
+        dump_reference_step(pos - 1, prompt_tokens[i], logits, residual,
+                            kv_pes);
     }
     const auto prefill_end = std::chrono::steady_clock::now();
 
@@ -1691,7 +1752,7 @@ void generate(const TransformerModel& model, KVCachePE* kv_pes, Tokenizer *token
         token = next;
         if (generated + 1 < max_new_tokens) {
             logits_ptr = forward(model, kv_pes, token, pos++, residual, logits);
-            dump_reference_step(pos - 1, token, logits, residual);
+            dump_reference_step(pos - 1, token, logits, residual, kv_pes);
         }
     }
     const auto decode_end = std::chrono::steady_clock::now();
@@ -2011,6 +2072,7 @@ void error_usage() {
     fprintf(stderr, "  --dump-logits <dir> dump padded FP32 logits for every generate step\n");
     fprintf(stderr, "  --dump-residuals <dir> dump final FP32 residual for every generate step\n");
     fprintf(stderr, "  --dump-layer-trace <dir> dump 65 x 4096 layer-boundary residuals\n");
+    fprintf(stderr, "  --dump-kv-cache <dir> dump layer-0 compressed KV records per step\n");
     fprintf(stderr, "  --replay-residual <file> run final norm + LM head on a dumped residual\n");
     fprintf(stderr, "  --replay-logits <file> output path used with --replay-residual\n");
     exit(EXIT_FAILURE);
@@ -2074,6 +2136,8 @@ int main(int argc, char *argv[]) {
             g_dump_residuals_dir = argv[++i];
         } else if (arg == "--dump-layer-trace" && i + 1 < argc) {
             g_dump_layer_trace_dir = argv[++i];
+        } else if (arg == "--dump-kv-cache" && i + 1 < argc) {
+            g_dump_kv_cache_dir = argv[++i];
         } else if (arg == "--replay-residual" && i + 1 < argc) {
             replay_residual_path = argv[++i];
         } else if (arg == "--replay-logits" && i + 1 < argc) {
