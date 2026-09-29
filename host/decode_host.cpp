@@ -24,6 +24,8 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <future>
+#include <thread>
 #include <vector>
 
 #ifndef __has_include
@@ -1239,10 +1241,21 @@ int main(int argc, char** argv) {
                 std::size_t(token_id) * DIM;
             pack_residual(embedding, residual_map0, residual_map1,
                           residual_map2, residual_map3);
-            residual0.sync(XCL_BO_SYNC_BO_TO_DEVICE, RESIDUAL_BYTES, 0);
-            residual1.sync(XCL_BO_SYNC_BO_TO_DEVICE, RESIDUAL_BYTES, 0);
-            residual2.sync(XCL_BO_SYNC_BO_TO_DEVICE, RESIDUAL_BYTES, 0);
-            residual3.sync(XCL_BO_SYNC_BO_TO_DEVICE, RESIDUAL_BYTES, 0);
+            const auto t_pack = Clock::now();
+
+            // Fire all 4 PCIe DMA writes in parallel (different DDR banks).
+            {
+                auto s0 = std::async(std::launch::async, [&]{
+                    residual0.sync(XCL_BO_SYNC_BO_TO_DEVICE, RESIDUAL_BYTES, 0); });
+                auto s1 = std::async(std::launch::async, [&]{
+                    residual1.sync(XCL_BO_SYNC_BO_TO_DEVICE, RESIDUAL_BYTES, 0); });
+                auto s2 = std::async(std::launch::async, [&]{
+                    residual2.sync(XCL_BO_SYNC_BO_TO_DEVICE, RESIDUAL_BYTES, 0); });
+                auto s3 = std::async(std::launch::async, [&]{
+                    residual3.sync(XCL_BO_SYNC_BO_TO_DEVICE, RESIDUAL_BYTES, 0); });
+                s0.get(); s1.get(); s2.get(); s3.get();
+            }
+            const auto t_res_sync = Clock::now();
 
             if (config.verbose) {
                 std::cout << "[Run] pos=" << position
@@ -1280,6 +1293,7 @@ int main(int argc, char** argv) {
                           << "; waiting for completion" << std::endl;
             }
 
+            const auto t_submit = Clock::now();
             const auto wait_start = Clock::now();
             bool pe_done[NUM_PES] = {false, false, false, false};
             xrt::run* pe_runs[NUM_PES] = {&run0, &run1, &run2, &run3};
@@ -1340,6 +1354,7 @@ int main(int argc, char** argv) {
                     throw std::runtime_error(message.str());
                 }
             }
+            const auto t_kernel_done = Clock::now();
             if (config.verbose) {
                 std::cout << "[Run] All 4 PEs completed; reading logits"
                           << std::endl;
@@ -1370,22 +1385,22 @@ int main(int argc, char** argv) {
                           << std::endl;
             }
 
-            logits0.sync(XCL_BO_SYNC_BO_FROM_DEVICE, LOGIT_BYTES, 0);
-            if (config.verbose) {
-                std::cout << "[Run] PE0 logits synced" << std::endl;
+            // Fire all 4 PCIe DMA reads in parallel.
+            {
+                auto l0 = std::async(std::launch::async, [&]{
+                    logits0.sync(XCL_BO_SYNC_BO_FROM_DEVICE, LOGIT_BYTES, 0); });
+                auto l1 = std::async(std::launch::async, [&]{
+                    logits1.sync(XCL_BO_SYNC_BO_FROM_DEVICE, LOGIT_BYTES, 0); });
+                auto l2 = std::async(std::launch::async, [&]{
+                    logits2.sync(XCL_BO_SYNC_BO_FROM_DEVICE, LOGIT_BYTES, 0); });
+                auto l3 = std::async(std::launch::async, [&]{
+                    logits3.sync(XCL_BO_SYNC_BO_FROM_DEVICE, LOGIT_BYTES, 0); });
+                l0.get(); l1.get(); l2.get(); l3.get();
             }
-            logits1.sync(XCL_BO_SYNC_BO_FROM_DEVICE, LOGIT_BYTES, 0);
             if (config.verbose) {
-                std::cout << "[Run] PE1 logits synced" << std::endl;
+                std::cout << "[Run] All PE logits synced (parallel)" << std::endl;
             }
-            logits2.sync(XCL_BO_SYNC_BO_FROM_DEVICE, LOGIT_BYTES, 0);
-            if (config.verbose) {
-                std::cout << "[Run] PE2 logits synced" << std::endl;
-            }
-            logits3.sync(XCL_BO_SYNC_BO_FROM_DEVICE, LOGIT_BYTES, 0);
-            if (config.verbose) {
-                std::cout << "[Run] PE3 logits synced" << std::endl;
-            }
+            const auto t_logit_sync = Clock::now();
             unpack_logits(logits_map0, logits_map1, logits_map2, logits_map3,
                           combined_logits.data());
 
@@ -1407,11 +1422,19 @@ int main(int argc, char** argv) {
             result.next_token = select_next_token
                 ? sampler.select(combined_logits.data(), token_history)
                 : -1;
-            result.step_ms = elapsed_ms(begin, Clock::now());
+            const auto t_end = Clock::now();
+            result.step_ms = elapsed_ms(begin, t_end);
             if (config.verbose) {
                 std::cout << "[Run] pos=" << position << " done in "
                           << std::fixed << std::setprecision(3)
-                          << result.step_ms << " ms";
+                          << result.step_ms << " ms"
+                          << "  [pack=" << elapsed_ms(begin, t_pack)
+                          << " res_sync=" << elapsed_ms(t_pack, t_res_sync)
+                          << " submit=" << elapsed_ms(t_res_sync, t_submit)
+                          << " kernel=" << elapsed_ms(wait_start, t_kernel_done)
+                          << " logit_sync=" << elapsed_ms(t_kernel_done, t_logit_sync)
+                          << " sample=" << elapsed_ms(t_logit_sync, t_end)
+                          << " ms]";
                 if (select_next_token) {
                     std::cout << ", next=" << result.next_token;
                 }
