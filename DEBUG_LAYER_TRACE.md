@@ -38,7 +38,8 @@ RUN_RTL_COSIM=1 DEBUG_CLOCK_HZ=200000000 JOBS=32 REBUILD_XO=1 \
 ```
 
 With `RUN_RTL_COSIM=1`, the preflight first synthesizes the local linear
-module and runs XSIM C/RTL co-simulation with non-zero Q/O/Gate/Down/Logits
+module and runs XSIM C/RTL co-simulation with non-zero
+Q/K/V/O/Gate/Up/Down/Logits
 transactions. The build is accepted only if that passes and the final link
 finds debug metadata for all twelve
 streams and a non-empty matching `.ltx` file. Outputs:

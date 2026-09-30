@@ -154,8 +154,11 @@ static bool run_mode(int mode) {
 int main() {
     const int modes[] = {
         INT4_LINEAR_Q,
+        INT4_LINEAR_K,
+        INT4_LINEAR_V,
         INT4_LINEAR_O,
         INT4_LINEAR_GATE,
+        INT4_LINEAR_UP,
         INT4_LINEAR_DOWN,
         INT4_LINEAR_LOGITS,
     };

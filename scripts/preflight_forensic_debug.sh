@@ -52,10 +52,10 @@ env -u LD_LIBRARY_PATH -u PYTHONHOME -u PYTHONPATH \
     'import ast, pathlib; ast.parse(pathlib.Path("scripts/analyze_stage_trace.py").read_text())'
 
 if [[ "${RUN_RTL_COSIM:-0}" == "1" ]]; then
-    echo "[Preflight] HLS C/RTL co-simulation for Q/O/Gate/Down/Logits"
+    echo "[Preflight] HLS C/RTL co-simulation for Q/K/V/O/Gate/Up/Down/Logits"
     vitis_hls -f scripts/run_hls_deep_trace_rtl_cosim.tcl
 else
-    echo "[Preflight] HLS C simulation for Q/O/Gate/Down/Logits trace shapes"
+    echo "[Preflight] HLS C simulation for Q/K/V/O/Gate/Up/Down/Logits trace shapes"
     vitis_hls -f scripts/run_hls_deep_o_trace_test.tcl
 fi
 
