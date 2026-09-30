@@ -933,6 +933,7 @@ struct Config {
     float top_p = 0.9f;
     float repeat_penalty = 1.0f;
     std::uint64_t seed = 42;
+    bool add_bos = true;
     bool tokenize_only = false;
     bool verbose = false;
 };
@@ -959,6 +960,7 @@ void print_usage(const char* program) {
         << "  --dump-stage-trace DIR dump all layer-0 internal stage checkpoints\n"
         << "  --device ID         BDF or numeric XRT device index\n"
         << "  --verbose           print initialization, per-PE timing, token IDs, and statistics\n"
+        << "  --no-bos            do not prepend the BOS token to the prompt\n"
         << "  --tokenize-only     print prompt token IDs without loading FPGA\n";
 }
 
@@ -1021,6 +1023,7 @@ Config parse_args(int argc, char** argv) {
         else if (argument == "--tokenizer") config.tokenizer = next();
         else if (argument == "--embeddings") config.embeddings = next();
         else if (argument == "--prompt") config.prompt = next();
+        else if (argument == "--no-bos") config.add_bos = false;
         else if (argument == "--tokenize-only") config.tokenize_only = true;
         else if (argument == "--verbose") config.verbose = true;
         else if (argument == "--max-tokens") {
@@ -1201,7 +1204,7 @@ int main(int argc, char** argv) {
             Tokenizer tokenizer;
             tokenizer.load(config.tokenizer);
             const std::vector<int> tokens =
-                tokenizer.encode(config.prompt, true, false);
+                tokenizer.encode(config.prompt, config.add_bos, false);
             std::cout << "[Prompt] \"" << escape_text(config.prompt) << "\""
                       << std::endl;
             std::cout << "[Token count] " << tokens.size() << std::endl;
@@ -1388,7 +1391,7 @@ int main(int argc, char** argv) {
         }
 
         const std::vector<int> prompt_tokens =
-            tokenizer.encode(config.prompt, true, false);
+            tokenizer.encode(config.prompt, config.add_bos, false);
         if (prompt_tokens.empty()) {
             throw std::runtime_error("prompt produced no tokens");
         }
