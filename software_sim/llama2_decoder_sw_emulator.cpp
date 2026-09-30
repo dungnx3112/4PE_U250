@@ -377,9 +377,9 @@ void sharded_gemv_4pe(
                     const uint8_t row3 = static_cast<uint8_t>(
                         weights[3 * mat.local_cols + c + lane]) & 0x0fU;
                     weight_destination[2 * lane] =
-                        static_cast<uint8_t>(row0 | (row1 << 4));
+                        static_cast<uint8_t>((row0 << 4) | row1);
                     weight_destination[2 * lane + 1] =
-                        static_cast<uint8_t>(row2 | (row3 << 4));
+                        static_cast<uint8_t>((row2 << 4) | row3);
                 }
             }
             for (int r = 0; r < mat.rows; ++r) {
