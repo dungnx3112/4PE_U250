@@ -73,7 +73,7 @@ constexpr int LAYER_TRACE_CHECKPOINTS = 1 + 2 * NUM_LAYERS;
 constexpr int LOCAL_DIM = DIM / NUM_PES;
 constexpr int LAYER_TRACE_RESIDUAL_WORDS_PER_PE =
     LAYER_TRACE_CHECKPOINTS * (LOCAL_DIM / OUTPUTS_PER_WORD);
-constexpr int STAGE_TRACE_WORDS_PER_PE = 861;
+constexpr int STAGE_TRACE_WORDS_PER_PE = 1205;
 constexpr int LAYER_TRACE_WORDS_PER_PE =
     LAYER_TRACE_RESIDUAL_WORDS_PER_PE + STAGE_TRACE_WORDS_PER_PE;
 
@@ -123,9 +123,9 @@ static_assert(ROPE_LUT_BYTES == 2097152ULL,
               "RoPE LUT size must match swiftkv_attention.hpp");
 static_assert(RESIDUAL_BYTES == 4096ULL,
               "residual shard size must match the kernel ABI");
-static_assert(LAYER_TRACE_BYTES_PER_PE == 321344ULL,
+static_assert(LAYER_TRACE_BYTES_PER_PE == 343360ULL,
               "full debug trace ABI size changed unexpectedly");
-static_assert(STAGE_TRACE_DUMP_BYTES == 220416ULL,
+static_assert(STAGE_TRACE_DUMP_BYTES == 308480ULL,
               "full stage dump size changed unexpectedly");
 static_assert(LOGIT_BYTES == 32256ULL,
               "logit shard size must match the kernel ABI");

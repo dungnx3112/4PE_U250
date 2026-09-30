@@ -77,13 +77,30 @@ static constexpr int STAGE_SWIGLU_WORD =
     STAGE_UP_WORD + HIDDEN_WORDS_PER_PE;
 static constexpr int STAGE_DOWN_WORD =
     STAGE_SWIGLU_WORD + QSCALE_HIDDEN_WORDS;
-static constexpr int STAGE_WORDS_PER_PE =
+static constexpr int Q_DEEP_ROWS = 4;
+static constexpr int Q_DEEP_VALUES = LOCAL_GROUPS_DIM * Q_DEEP_ROWS;
+static constexpr int Q_DEEP_WORDS = Q_DEEP_VALUES / 16;
+static constexpr int STAGE_Q_LOCAL_PARTIAL_WORD =
     STAGE_DOWN_WORD + VECTOR_WORDS_PER_PE;
+static constexpr int STAGE_Q_GROUP_DOT_WORD =
+    STAGE_Q_LOCAL_PARTIAL_WORD + DIM / 16;
+static constexpr int STAGE_Q_WEIGHT_SCALE_WORD =
+    STAGE_Q_GROUP_DOT_WORD + Q_DEEP_WORDS;
+static constexpr int STAGE_Q_CUMULATIVE_WORD =
+    STAGE_Q_WEIGHT_SCALE_WORD + Q_DEEP_WORDS;
+static constexpr int STAGE_Q_ACTIVATION_WORD =
+    STAGE_Q_CUMULATIVE_WORD + Q_DEEP_WORDS;
+static constexpr int STAGE_Q_WEIGHT_WORD =
+    STAGE_Q_ACTIVATION_WORD + LOCAL_GROUPS_DIM;
+static constexpr int STAGE_WORDS_PER_PE =
+    STAGE_Q_WEIGHT_WORD + LOCAL_GROUPS_DIM;
 static constexpr int STAGE_BYTES_PER_PE = STAGE_WORDS_PER_PE * WORD_BYTES;
 static constexpr int STAGE_DUMP_BYTES = NUM_PES * STAGE_BYTES_PER_PE;
 static_assert(KV_DUMP_BYTES == 10240,
               "one layer-zero KV dump must contain all PE/head records");
-static_assert(STAGE_WORDS_PER_PE == 861,
+static_assert(Q_DEEP_WORDS == 8,
+              "four Q rows across 32 local groups must occupy eight words");
+static_assert(STAGE_WORDS_PER_PE == 1205,
               "layer-zero full-stage trace layout changed unexpectedly");
 
 static int g_num_layers = 32;
@@ -91,6 +108,7 @@ static int g_cache_seq_len = MAX_SEQ_LEN;
 static const std::string HARDCODED_WEIGHTS_DIR = "C:/KLTN/4PE_U250";
 static bool g_float_act = false;  // --float-act: bypass E8M0, use float activation (for debugging)
 static bool g_e8m0_act = false;   // --e8m0-act: enable E8M0 activation quantization in autoround mode
+static bool g_add_bos = true;     // --no-bos: align a prompt token with host position zero
 static std::string g_dump_logits_dir;
 static std::string g_dump_residuals_dir;
 static std::string g_dump_layer_trace_dir;
@@ -98,6 +116,9 @@ static std::string g_dump_kv_cache_dir;
 static std::string g_dump_stage_trace_dir;
 static std::vector<float> g_layer_trace;
 static std::vector<uint8_t> g_stage_trace;
+
+static uint8_t* stage_word_ptr(int pe, int word);
+static void store_u32_le(uint8_t* destination, uint32_t value);
 
 
 // ============================================================================
@@ -257,7 +278,8 @@ void quantize_activation_g32(const float* input, int size, QuantizedActivation& 
 void sharded_gemv_4pe(
     const QuantizedMatrix& mat,
     const QuantizedActivation& act,
-    std::vector<float>& output
+    std::vector<float>& output,
+    bool capture_deep_q = false
 ) {
     output.assign(mat.rows, 0.0f);
     std::vector<std::vector<float>> pe_partials(NUM_PES, std::vector<float>(mat.rows, 0.0f));
@@ -290,9 +312,84 @@ void sharded_gemv_4pe(
                     }
                     const float contribution = fp_mul(static_cast<float>(group_dot), combined_scale);
                     row_sum = fp_add(row_sum, contribution);
+                    if (capture_deep_q && r < Q_DEEP_ROWS) {
+                        const int group = g128 * 4 + sg;
+                        const int trace_index = group * Q_DEEP_ROWS + r;
+                        uint32_t scale_bits = 0;
+                        uint32_t cumulative_bits = 0;
+                        std::memcpy(&scale_bits, &weight_scale,
+                                    sizeof(scale_bits));
+                        std::memcpy(&cumulative_bits, &row_sum,
+                                    sizeof(cumulative_bits));
+                        uint8_t* dot_destination = stage_word_ptr(
+                            p, STAGE_Q_GROUP_DOT_WORD + trace_index / 16) +
+                            (trace_index % 16) * 4;
+                        uint8_t* scale_destination = stage_word_ptr(
+                            p, STAGE_Q_WEIGHT_SCALE_WORD +
+                                   trace_index / 16) +
+                            (trace_index % 16) * 4;
+                        uint8_t* cumulative_destination = stage_word_ptr(
+                            p, STAGE_Q_CUMULATIVE_WORD +
+                                   trace_index / 16) +
+                            (trace_index % 16) * 4;
+                        store_u32_le(dot_destination,
+                                     static_cast<uint32_t>(group_dot));
+                        store_u32_le(scale_destination, scale_bits);
+                        store_u32_le(cumulative_destination,
+                                     cumulative_bits);
+                    }
                 }
             }
             pe_partials[p][r] = row_sum;
+        }
+    }
+
+    if (capture_deep_q) {
+        for (int p = 0; p < NUM_PES; ++p) {
+            const int4_t* weights = mat.pe_weights[p].data();
+            const int col_offset = p * mat.local_cols;
+            for (int group = 0; group < LOCAL_GROUPS_DIM; ++group) {
+                uint8_t* activation_destination = stage_word_ptr(
+                    p, STAGE_Q_ACTIVATION_WORD + group);
+                const int global_c = col_offset + group * GROUP_SIZE;
+                for (int lane = 0; lane < GROUP_SIZE; ++lane) {
+                    const uint16_t value = static_cast<uint16_t>(
+                        act.q[global_c + lane]) & 0x3fffU;
+                    for (int bit = 0; bit < 14; ++bit) {
+                        const int destination_bit = lane * 14 + bit;
+                        activation_destination[destination_bit / 8] |=
+                            static_cast<uint8_t>(
+                                ((value >> bit) & 1U) <<
+                                (destination_bit % 8));
+                    }
+                }
+
+                uint8_t* weight_destination = stage_word_ptr(
+                    p, STAGE_Q_WEIGHT_WORD + group);
+                const int c = group * GROUP_SIZE;
+                for (int lane = 0; lane < GROUP_SIZE; ++lane) {
+                    const uint8_t row0 = static_cast<uint8_t>(
+                        weights[c + lane]) & 0x0fU;
+                    const uint8_t row1 = static_cast<uint8_t>(
+                        weights[mat.local_cols + c + lane]) & 0x0fU;
+                    const uint8_t row2 = static_cast<uint8_t>(
+                        weights[2 * mat.local_cols + c + lane]) & 0x0fU;
+                    const uint8_t row3 = static_cast<uint8_t>(
+                        weights[3 * mat.local_cols + c + lane]) & 0x0fU;
+                    weight_destination[2 * lane] =
+                        static_cast<uint8_t>(row0 | (row1 << 4));
+                    weight_destination[2 * lane + 1] =
+                        static_cast<uint8_t>(row2 | (row3 << 4));
+                }
+            }
+            for (int r = 0; r < mat.rows; ++r) {
+                uint32_t bits = 0;
+                std::memcpy(&bits, &pe_partials[p][r], sizeof(bits));
+                uint8_t* destination = stage_word_ptr(
+                    p, STAGE_Q_LOCAL_PARTIAL_WORD + r / 16) +
+                    (r % 16) * 4;
+                store_u32_le(destination, bits);
+            }
         }
     }
 
@@ -881,7 +978,9 @@ float* forward(
             pack_stage_qscale(norm_act, LOCAL_GROUPS_DIM,
                               STAGE_ATTN_RMS_WORD);
         }
-        sharded_gemv_4pe(layer.w_q, norm_act, q_float);
+        sharded_gemv_4pe(
+            layer.w_q, norm_act, q_float,
+            l == 0 && !g_dump_stage_trace_dir.empty());
         sharded_gemv_4pe(layer.w_k, norm_act, k_float);
         sharded_gemv_4pe(layer.w_v, norm_act, v_float);
         #pragma omp parallel for schedule(static)
@@ -1866,7 +1965,8 @@ void generate(const TransformerModel& model, KVCachePE* kv_pes, Tokenizer *token
     // encode the (string) prompt into tokens sequence
     int num_prompt_tokens = 0;
     int* prompt_tokens = (int*)malloc((strlen(prompt)+3) * sizeof(int)); // +3 for '\0', ?BOS, ?EOS
-    encode(tokenizer, prompt, 1, 0, prompt_tokens, &num_prompt_tokens);
+    encode(tokenizer, prompt, g_add_bos ? 1 : 0, 0,
+           prompt_tokens, &num_prompt_tokens);
     if (num_prompt_tokens < 1) {
         fprintf(stderr, "something is wrong, expected at least 1 prompt token\n");
         exit(EXIT_FAILURE);
@@ -2225,6 +2325,7 @@ void error_usage() {
     fprintf(stderr, "  -s <int>    random seed, default time(NULL)\n");
     fprintf(stderr, "  -n, --max-tokens <int> number of new tokens, default 256\n");
     fprintf(stderr, "  -i <string> input prompt\n");
+    fprintf(stderr, "  --no-bos     do not prepend BOS (debug HW/SW position alignment)\n");
     fprintf(stderr, "  -z <string> optional path to custom tokenizer\n");
     fprintf(stderr, "  -m <string> mode: generate|chat, default: generate\n");
     fprintf(stderr, "  -y <string> (optional) system prompt in chat mode\n");
@@ -2282,6 +2383,8 @@ int main(int argc, char *argv[]) {
             steps = std::atoi(argv[++i]);
         } else if (arg == "-i" && i + 1 < argc) {
             prompt = argv[++i];
+        } else if (arg == "--no-bos") {
+            g_add_bos = false;
         } else if (arg == "-z" && i + 1 < argc) {
             tokenizer_path = argv[++i];
         } else if (arg == "-m" && i + 1 < argc) {

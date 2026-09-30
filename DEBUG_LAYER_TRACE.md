@@ -28,6 +28,20 @@ build:
 - SwiGLU INT14/E8M0 output;
 - Down projection.
 
+For the layer-zero Q projection, the trace also records enough intermediate
+state to distinguish local GEMV arithmetic from the 4-PE reduction path:
+
+- every PE-local FP32 partial for all 4096 output rows;
+- the exact INT14 activation word consumed by the Q MAC for every local group;
+- the exact packed INT4 weights consumed for rows 0..3 in every local group;
+- raw INT32 group dots for output rows 0..3 and all 32 local G32 groups;
+- the matching FP32 Q weight scale for each audited group;
+- the cumulative FP32 row sum after every audited group.
+
+The deep stage trace is exactly 308,480 bytes per token
+(`[4 PE][1205 words][64 bytes]`). Old 220,416-byte and 292,096-byte stage traces are not
+compatible with the deep analyzer and must be regenerated.
+
 ## Build the debug XCLBIN
 
 The debug build uses the same datapath source as production, while the linked
@@ -39,13 +53,15 @@ cd ~/XuanDung_AnhDuc/XuanDung/debug
 
 DEBUG_CLOCK_HZ=200000000 \
 JOBS=32 \
-bash scripts/build_layer_trace.sh
+REBUILD_XO=1 \
+XCLBIN_OUTPUT=int4_decoder_multikernel_200mhz_deep_q_debug.xclbin \
+bash scripts/build_layer_trace.sh 2>&1 | tee build_deep_q.log
 ```
 
 Output:
 
 ```text
-int4_decoder_multikernel_200mhz_full_stage_debug.xclbin
+int4_decoder_multikernel_200mhz_deep_q_debug.xclbin
 ```
 
 ## Build the matching debug host
@@ -54,12 +70,7 @@ Use a compiler with C++17 support:
 
 ```bash
 source /opt/xilinx/xrt/setup.sh
-
-g++ -std=c++17 -O2 -g host/decode_host.cpp \
-  -o decode_host_layer_trace \
-  -I"$XILINX_XRT/include" \
-  -L"$XILINX_XRT/lib" \
-  -lxrt_coreutil -pthread
+HOST_OUTPUT=decode_host_layer_trace bash scripts/build_decode_host.sh
 ```
 
 ## Capture FPGA traces
@@ -67,40 +78,58 @@ g++ -std=c++17 -O2 -g host/decode_host.cpp \
 Start with one generated token.  The two prompt forwards are also captured.
 
 ```bash
-mkdir -p /dev/shm/layer_trace_hw
-mkdir -p /dev/shm/kv_cache_hw
-mkdir -p /dev/shm/stage_trace_hw
+HW_ROOT=/dev/shm/deep_q_hw_$(date +%Y%m%d_%H%M%S)
+mkdir -p "$HW_ROOT/layer" "$HW_ROOT/logits" "$HW_ROOT/residuals" \
+  "$HW_ROOT/kv" "$HW_ROOT/stage"
 
 ./decode_host_layer_trace \
-  --xclbin "$PWD/int4_decoder_multikernel_200mhz_full_stage_debug.xclbin" \
+  --xclbin "$PWD/int4_decoder_multikernel_200mhz_deep_q_debug.xclbin" \
   --device 0000:13:00.0 \
   --banks /dev/shm/4PE_U250_dense \
+  --rope /dev/shm/4PE_U250_dense/rope_lut.bin \
+  --tokenizer /dev/shm/4PE_U250_dense/tokenizer.bin \
+  --embeddings /dev/shm/4PE_U250_dense/embeddings.bin \
   --prompt "Hello" \
+  --no-bos \
   --max-tokens 1 \
-  --dump-layer-trace /dev/shm/layer_trace_hw \
-  --dump-logits /dev/shm/layer_trace_hw/logits \
-  --dump-residuals /dev/shm/layer_trace_hw/residuals \
-  --dump-kv-cache /dev/shm/kv_cache_hw \
-  --dump-stage-trace /dev/shm/stage_trace_hw \
-  --verbose
+  --dump-layer-trace "$HW_ROOT/layer" \
+  --dump-logits "$HW_ROOT/logits" \
+  --dump-residuals "$HW_ROOT/residuals" \
+  --dump-kv-cache "$HW_ROOT/kv" \
+  --dump-stage-trace "$HW_ROOT/stage" \
+  --verbose 2>&1 | tee "$HW_ROOT/host.log"
+
+HOST_RC=${PIPESTATUS[0]}
+echo "HOST_RC=$HOST_RC HW_ROOT=$HW_ROOT"
+test "$HOST_RC" -eq 0
+stat -c '%n %s bytes' "$HW_ROOT/stage/stage_trace_pos0000_token15043.bin"
 ```
 
 ## Create the software reference
 
-Build `software_sim/llama2_decoder_sw_emulator.cpp` as usual, then run it with
-the same dense bank directory, prompt, and greedy sampling:
+Build with the GCC 9.3 compiler bundled with Vivado (some login shells select
+an older `g++` that does not recognize C++14), then run with the same prompt,
+position and greedy sampling:
 
 ```bash
-mkdir -p /dev/shm/layer_trace_sw
-mkdir -p /dev/shm/kv_cache_sw
-mkdir -p /dev/shm/stage_trace_sw
+make -C software_sim \
+  CC=/home/eda/xilinx/Vivado/2023.2/tps/lnx64/gcc-9.3.0/bin/g++
 
-./llama2_decoder_sw_emulator /dev/shm/4PE_U250_dense \
+SW_ROOT=/dev/shm/deep_q_sw_$(date +%Y%m%d_%H%M%S)
+mkdir -p "$SW_ROOT/layer" "$SW_ROOT/kv" "$SW_ROOT/stage"
+
+./software_sim/runq.exe /dev/shm/4PE_U250_dense \
   -z /dev/shm/4PE_U250_dense/tokenizer.bin \
-  -i "Hello" -n 1 -t 0 \
-  --dump-layer-trace /dev/shm/layer_trace_sw \
-  --dump-kv-cache /dev/shm/kv_cache_sw \
-  --dump-stage-trace /dev/shm/stage_trace_sw
+  -i "Hello" --no-bos -n 1 -t 0 -s 42 \
+  --dump-layer-trace "$SW_ROOT/layer" \
+  --dump-kv-cache "$SW_ROOT/kv" \
+  --dump-stage-trace "$SW_ROOT/stage" \
+  2>&1 | tee "$SW_ROOT/software.log"
+
+SW_RC=${PIPESTATUS[0]}
+echo "SW_RC=$SW_RC SW_ROOT=$SW_ROOT"
+test "$SW_RC" -eq 0
+stat -c '%n %s bytes' "$SW_ROOT/stage/stage_trace_pos0000_token15043.bin"
 ```
 
 ## Find the first divergent layer
@@ -148,11 +177,13 @@ debug build:
 ```bash
 env -u LD_LIBRARY_PATH -u PYTHONHOME -u PYTHONPATH \
   /usr/bin/python3 scripts/analyze_stage_trace.py \
-  --hardware /dev/shm/stage_trace_hw/stage_trace_pos0000_token00001.bin \
-  --software /dev/shm/stage_trace_sw/stage_trace_pos0000_token00001.bin
+  --hardware "$HW_ROOT/stage/stage_trace_pos0000_token15043.bin" \
+  --software "$SW_ROOT/stage/stage_trace_pos0000_token15043.bin"
 ```
 
-Repeat with `stage_trace_pos0004_token00626.bin` for the first forward that
-produces a different greedy token. INT14/E8M0 and Q15.17 checkpoints are
+The analyzer prints `DEEP-Q RESULT` after the normal stage comparison. Its
+result separates packed dot/activation/weight ordering, scale addressing,
+FP32 accumulation, PE-local packet ordering, and the final 4-PE AXIS
+reduction/conversion/store path. INT14/E8M0 and Q15.17 checkpoints are
 compared exactly; FP32 projections report relative L2, RMSE, and maximum
 absolute error.

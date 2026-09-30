@@ -177,11 +177,13 @@ dump_local_stage_scale_word_loop:
     int4_dump_local_stage_words<WORDS>(VALUES, layer_trace, OFFSET)
 #define INT4_DUMP_STAGE_QSCALE(Q, SCALE, GROUPS, OFFSET)              \
     int4_dump_local_stage_qscale<GROUPS>(Q, SCALE, layer_trace, OFFSET)
+#define INT4_LINEAR_DEEP_TRACE_ARG , layer_trace
 #else
 #define INT4_LOCAL_TRACE_DECL
 #define INT4_DUMP_LOCAL_TRACE(RESIDUAL, CHECKPOINT) do { } while (0)
 #define INT4_DUMP_STAGE_WORDS(VALUES, WORDS, OFFSET) do { } while (0)
 #define INT4_DUMP_STAGE_QSCALE(Q, SCALE, GROUPS, OFFSET) do { } while (0)
+#define INT4_LINEAR_DEEP_TRACE_ARG
 #endif
 
 template <int PE_ID>
@@ -333,7 +335,8 @@ local_projection_layer_loop_##PE:                                     \
                 activation_q, activation_scale, projection,           \
                 mode,                                                 \
                 (ap_uint<24>)int4_weight_offset(layer, (int)mode),    \
-                linear_partial, linear_completed);                    \
+                linear_partial, linear_completed                      \
+                INT4_LINEAR_DEEP_TRACE_ARG);                          \
             if (layer == 0) {                                        \
                 if (stage_flags[INT4_LINEAR_Q]) {                     \
                     INT4_DUMP_STAGE_WORDS(                            \
@@ -408,6 +411,7 @@ INT4_DEFINE_LOCAL_DECODER_PE(
 #undef INT4_DUMP_STAGE_WORDS
 #undef INT4_DUMP_LOCAL_TRACE
 #undef INT4_LOCAL_TRACE_DECL
+#undef INT4_LINEAR_DEEP_TRACE_ARG
 
 #ifdef INT4_ENABLE_LAYER_TRACE
 #define INT4_CONTROLLER_TRACE_DECL                                    \

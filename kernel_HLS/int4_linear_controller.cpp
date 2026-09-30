@@ -7,6 +7,14 @@
 #include <hls_streamofblocks.h>
 #include <hls_math.h>
 
+#ifdef INT4_ENABLE_LAYER_TRACE
+#define INT4_LINEAR_TRACE_DECL , int4_output_word_t* q_deep_trace
+#define INT4_LINEAR_TRACE_ARG , q_deep_trace
+#else
+#define INT4_LINEAR_TRACE_DECL
+#define INT4_LINEAR_TRACE_ARG
+#endif
+
 // Convert Q1.15 signed fixed-point (ap_int<16>) to float.
 // Value = raw_bits * 2^-15.  One multiply; no branching.
 // This replaces the old int4_half_bits_to_float (FP16 → FP32) that required
@@ -138,6 +146,26 @@ static int int4_command_local_output_tiles(int4_linear_command_t command) {
 #pragma HLS INLINE
     return (int)command.range(60, 55);
 }
+
+static ap_uint<3> int4_command_mode(int4_linear_command_t command) {
+#pragma HLS INLINE
+    return command.range(2, 0);
+}
+
+static ap_uint<24> int4_command_weight_offset(
+    int4_linear_command_t command) {
+#pragma HLS INLINE
+    return command.range(26, 3);
+}
+
+#ifdef INT4_ENABLE_LAYER_TRACE
+static bool int4_command_captures_deep_q(
+    int4_linear_command_t command) {
+#pragma HLS INLINE
+    return int4_command_mode(command) == INT4_LINEAR_Q &&
+           int4_command_weight_offset(command) == 0;
+}
+#endif
 
 static void int4_seed_linear_command_chain(
     ap_uint<3> mode,
@@ -398,7 +426,15 @@ static void int4_accumulate_local_partial_tiles(
     hls::stream<int4_weight_scale_t>& scale_lane2,
     hls::stream<int4_weight_scale_t>& scale_lane3,
     hls::stream<int4_weight_word_t>& weight_stream,
-    hls::stream_of_blocks<int4_partial_tile_block_t>& partial_blocks) {
+    hls::stream_of_blocks<int4_partial_tile_block_t>& partial_blocks
+#ifdef INT4_ENABLE_LAYER_TRACE
+    , hls::stream<int4_reduction_packet_t>& q_group_dot
+    , hls::stream<int4_reduction_packet_t>& q_weight_scale
+    , hls::stream<int4_reduction_packet_t>& q_cumulative
+    , hls::stream<int4_output_word_t>& q_activation_word
+    , hls::stream<int4_output_word_t>& q_weight_word
+#endif
+    ) {
 #pragma HLS INLINE off
     const int4_linear_command_t command = command_stream.read();
     const int output_tiles = int4_command_output_tiles(command);
@@ -406,6 +442,9 @@ static void int4_accumulate_local_partial_tiles(
     const int total_groups = local_input_tiles * INT4_GROUPS_PER_TILE;
     const int total_weight_words =
         local_input_tiles * INT4_WEIGHT_WORDS_PER_TILE;
+#ifdef INT4_ENABLE_LAYER_TRACE
+    const bool capture_deep_q = int4_command_captures_deep_q(command);
+#endif
 
 local_partial_output_tile_loop:
     for (int output_tile = 0; output_tile < output_tiles; ++output_tile) {
@@ -498,6 +537,36 @@ local_partial_output_tile_loop:
                     partial_packet.range(32 * lane + 31, 32 * lane) =
                         int4_fp32_to_bits(updated);
                 }
+#ifdef INT4_ENABLE_LAYER_TRACE
+                // A compact group-by-group audit for global output rows 0..3.
+                // These streams retain the actual activation/weight operands
+                // plus the dot, scale and cumulative sum, so one build can
+                // distinguish delivery, packed MAC, scale and accumulation
+                // failures without perturbing every output row.
+                if (capture_deep_q && output_tile == 0 && row_block == 0) {
+                    int4_reduction_packet_t dot_packet = 0;
+                    int4_reduction_packet_t scale_packet = 0;
+                capture_deep_q_lane_loop:
+                    for (int lane = 0;
+                         lane < INT4_REDUCTION_LANES;
+                         ++lane) {
+#pragma HLS UNROLL
+                        const ap_int<32> dot =
+                            (ap_int<32>)integer_sum[lane];
+                        dot_packet.range(32 * lane + 31, 32 * lane) =
+                            dot.range(31, 0);
+                        scale_packet.range(
+                            32 * lane + 31, 32 * lane) =
+                            int4_fp32_to_bits(int4_q115_to_float(
+                                weight_scale_q[lane]));
+                    }
+                    q_group_dot.write(dot_packet);
+                    q_weight_scale.write(scale_packet);
+                    q_cumulative.write(partial_packet);
+                    q_activation_word.write((int4_output_word_t)quantized);
+                    q_weight_word.write((int4_output_word_t)weight);
+                }
+#endif
                 partial[row_block] = partial_packet;
 
                 if (row_block == INT4_ROW_BLOCKS - 1 &&
@@ -512,10 +581,17 @@ template <int PE_ID>
 static void int4_emit_local_partial_tiles(
     hls::stream<int4_linear_command_t>& command_stream,
     hls::stream_of_blocks<int4_partial_tile_block_t>& partial_blocks,
-    hls::stream<int4_reduction_packet_t>& partial_stream) {
+    hls::stream<int4_reduction_packet_t>& partial_stream
+#ifdef INT4_ENABLE_LAYER_TRACE
+    , hls::stream<int4_reduction_packet_t>& q_local_partial
+#endif
+    ) {
 #pragma HLS INLINE off
     const int4_linear_command_t command = command_stream.read();
     const int output_tiles = int4_command_output_tiles(command);
+#ifdef INT4_ENABLE_LAYER_TRACE
+    const bool capture_deep_q = int4_command_captures_deep_q(command);
+#endif
 
 local_partial_emit_output_tile_loop:
     for (int output_tile = 0; output_tile < output_tiles; ++output_tile) {
@@ -526,7 +602,13 @@ local_partial_emit_output_tile_loop:
              row_block < INT4_ROW_BLOCKS;
              ++row_block) {
 #pragma HLS PIPELINE II=1
-            partial_stream.write(partial[row_block]);
+            const int4_reduction_packet_t value = partial[row_block];
+#ifdef INT4_ENABLE_LAYER_TRACE
+            if (capture_deep_q) {
+                q_local_partial.write(value);
+            }
+#endif
+            partial_stream.write(value);
         }
     }
 }
@@ -562,7 +644,16 @@ static void int4_run_local_pe(
     const int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS],
     const int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS],
     hls::stream<int4_linear_command_t>& command_stream,
-    hls::stream<int4_reduction_packet_t>& partial_stream) {
+    hls::stream<int4_reduction_packet_t>& partial_stream
+#ifdef INT4_ENABLE_LAYER_TRACE
+    , hls::stream<int4_reduction_packet_t>& q_local_partial
+    , hls::stream<int4_reduction_packet_t>& q_group_dot
+    , hls::stream<int4_reduction_packet_t>& q_weight_scale
+    , hls::stream<int4_reduction_packet_t>& q_cumulative
+    , hls::stream<int4_output_word_t>& q_activation_word
+    , hls::stream<int4_output_word_t>& q_weight_word
+#endif
+    ) {
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW disable_start_propagation
     hls::stream<int4_linear_command_t> reader_command;
@@ -640,9 +731,18 @@ static void int4_run_local_pe(
         buffer_request, weight_ingress, weight_buffer);
     int4_accumulate_local_partial_tiles<PE_ID>(
         activation_q, activation_scale, compute_command, scale_lane0,
-        scale_lane1, scale_lane2, scale_lane3, weight_buffer, partial_blocks);
+        scale_lane1, scale_lane2, scale_lane3, weight_buffer, partial_blocks
+#ifdef INT4_ENABLE_LAYER_TRACE
+        , q_group_dot, q_weight_scale, q_cumulative
+        , q_activation_word, q_weight_word
+#endif
+        );
     int4_emit_local_partial_tiles<PE_ID>(
-        emit_command, partial_blocks, partial_stream);
+        emit_command, partial_blocks, partial_stream
+#ifdef INT4_ENABLE_LAYER_TRACE
+        , q_local_partial
+#endif
+        );
 }
 
 template <int PE_ID>
@@ -911,7 +1011,16 @@ static void int4_run_local_linear_stage_dataflow(
     ap_uint<24> weight_word_offset,
     hls::stream<int4_reduction_packet_t>& partial_stream,
     hls::stream<int4_reduction_packet_t>& completed_stream,
-    hls::stream<int4_output_word_t>& staged_output) {
+    hls::stream<int4_output_word_t>& staged_output
+#ifdef INT4_ENABLE_LAYER_TRACE
+    , hls::stream<int4_reduction_packet_t>& q_local_partial
+    , hls::stream<int4_reduction_packet_t>& q_group_dot
+    , hls::stream<int4_reduction_packet_t>& q_weight_scale
+    , hls::stream<int4_reduction_packet_t>& q_cumulative
+    , hls::stream<int4_output_word_t>& q_activation_word
+    , hls::stream<int4_output_word_t>& q_weight_word
+#endif
+    ) {
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW disable_start_propagation
 #pragma HLS STABLE variable=weight_mem
@@ -929,10 +1038,86 @@ static void int4_run_local_linear_stage_dataflow(
         mode, weight_word_offset, 0, command_compute);
     int4_run_local_pe<PE_ID>(
         weight_mem, activation_q, activation_scale,
-        command_compute, partial_stream);
+        command_compute, partial_stream
+#ifdef INT4_ENABLE_LAYER_TRACE
+        , q_local_partial, q_group_dot, q_weight_scale, q_cumulative
+        , q_activation_word, q_weight_word
+#endif
+        );
     int4_pack_local_output_terminal<PE_ID>(
         completed_stream, staged_output, mode);
 }
+
+#ifdef INT4_ENABLE_LAYER_TRACE
+template <int PACKETS>
+static void int4_dump_q_packet_region(
+    hls::stream<int4_reduction_packet_t>& packets,
+    int4_output_word_t* q_deep_trace,
+    int stage_word) {
+#pragma HLS INLINE off
+dump_q_packet_region_word_loop:
+    for (int word = 0; word < PACKETS / 4; ++word) {
+#pragma HLS PIPELINE II=1
+        int4_output_word_t packed = 0;
+    dump_q_packet_region_lane_loop:
+        for (int lane = 0; lane < 4; ++lane) {
+#pragma HLS UNROLL
+            packed.range(
+                (lane + 1) * INT4_REDUCTION_PACKET_BITS - 1,
+                lane * INT4_REDUCTION_PACKET_BITS) =
+                packets.read();
+        }
+        q_deep_trace[
+            INT4_STAGE_TRACE_BASE_WORD + stage_word + word] = packed;
+    }
+}
+
+template <int WORDS>
+static void int4_dump_q_word_region(
+    hls::stream<int4_output_word_t>& words,
+    int4_output_word_t* q_deep_trace,
+    int stage_word) {
+#pragma HLS INLINE off
+dump_q_word_region_loop:
+    for (int word = 0; word < WORDS; ++word) {
+#pragma HLS PIPELINE II=1
+        q_deep_trace[
+            INT4_STAGE_TRACE_BASE_WORD + stage_word + word] = words.read();
+    }
+}
+
+static void int4_dump_q_deep_trace(
+    hls::stream<int4_reduction_packet_t>& q_local_partial,
+    hls::stream<int4_reduction_packet_t>& q_group_dot,
+    hls::stream<int4_reduction_packet_t>& q_weight_scale,
+    hls::stream<int4_reduction_packet_t>& q_cumulative,
+    hls::stream<int4_output_word_t>& q_activation_word,
+    hls::stream<int4_output_word_t>& q_weight_word,
+    int4_output_word_t* q_deep_trace,
+    ap_uint<3> mode,
+    ap_uint<24> weight_word_offset) {
+#pragma HLS INLINE off
+    if (mode != INT4_LINEAR_Q || weight_word_offset != 0) return;
+    int4_dump_q_packet_region<INT4_Q_LOCAL_PARTIAL_PACKETS>(
+        q_local_partial, q_deep_trace,
+        INT4_STAGE_TRACE_Q_LOCAL_PARTIAL_WORD);
+    int4_dump_q_packet_region<INT4_LOCAL_GROUPS_DIM>(
+        q_group_dot, q_deep_trace,
+        INT4_STAGE_TRACE_Q_GROUP_DOT_WORD);
+    int4_dump_q_packet_region<INT4_LOCAL_GROUPS_DIM>(
+        q_weight_scale, q_deep_trace,
+        INT4_STAGE_TRACE_Q_WEIGHT_SCALE_WORD);
+    int4_dump_q_packet_region<INT4_LOCAL_GROUPS_DIM>(
+        q_cumulative, q_deep_trace,
+        INT4_STAGE_TRACE_Q_CUMULATIVE_WORD);
+    int4_dump_q_word_region<INT4_LOCAL_GROUPS_DIM>(
+        q_activation_word, q_deep_trace,
+        INT4_STAGE_TRACE_Q_ACTIVATION_WORD);
+    int4_dump_q_word_region<INT4_LOCAL_GROUPS_DIM>(
+        q_weight_word, q_deep_trace,
+        INT4_STAGE_TRACE_Q_WEIGHT_WORD);
+}
+#endif
 
 template <int PE_ID>
 static void int4_commit_local_output(
@@ -960,17 +1145,52 @@ static void int4_run_local_linear_stage(
     ap_uint<3> mode,
     ap_uint<24> weight_word_offset,
     hls::stream<int4_reduction_packet_t>& partial_stream,
-    hls::stream<int4_reduction_packet_t>& completed_stream) {
+    hls::stream<int4_reduction_packet_t>& completed_stream
+#ifdef INT4_ENABLE_LAYER_TRACE
+    , int4_output_word_t* q_deep_trace
+#endif
+    ) {
 #pragma HLS INLINE off
     hls::stream<int4_output_word_t> staged_output;
 #pragma HLS STREAM variable=staged_output depth=INT4_MAX_LOCAL_OUTPUT_WORDS
 #pragma HLS BIND_STORAGE variable=staged_output type=fifo impl=bram
+#ifdef INT4_ENABLE_LAYER_TRACE
+    hls::stream<int4_reduction_packet_t> q_local_partial;
+    hls::stream<int4_reduction_packet_t> q_group_dot;
+    hls::stream<int4_reduction_packet_t> q_weight_scale;
+    hls::stream<int4_reduction_packet_t> q_cumulative;
+    hls::stream<int4_output_word_t> q_activation_word;
+    hls::stream<int4_output_word_t> q_weight_word;
+#pragma HLS STREAM variable=q_local_partial depth=INT4_Q_LOCAL_PARTIAL_PACKETS
+#pragma HLS STREAM variable=q_group_dot depth=INT4_LOCAL_GROUPS_DIM
+#pragma HLS STREAM variable=q_weight_scale depth=INT4_LOCAL_GROUPS_DIM
+#pragma HLS STREAM variable=q_cumulative depth=INT4_LOCAL_GROUPS_DIM
+#pragma HLS STREAM variable=q_activation_word depth=INT4_LOCAL_GROUPS_DIM
+#pragma HLS STREAM variable=q_weight_word depth=INT4_LOCAL_GROUPS_DIM
+#pragma HLS BIND_STORAGE variable=q_local_partial type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=q_group_dot type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=q_weight_scale type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=q_cumulative type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=q_activation_word type=fifo impl=bram
+#pragma HLS BIND_STORAGE variable=q_weight_word type=fifo impl=bram
+#endif
 
     int4_run_local_linear_stage_dataflow<PE_ID>(
         weight_mem, activation_q, activation_scale,
         mode, weight_word_offset, partial_stream, completed_stream,
-        staged_output);
+        staged_output
+#ifdef INT4_ENABLE_LAYER_TRACE
+        , q_local_partial, q_group_dot, q_weight_scale, q_cumulative
+        , q_activation_word, q_weight_word
+#endif
+        );
     int4_commit_local_output<PE_ID>(staged_output, output_mem, mode);
+#ifdef INT4_ENABLE_LAYER_TRACE
+    int4_dump_q_deep_trace(
+        q_local_partial, q_group_dot, q_weight_scale, q_cumulative,
+        q_activation_word, q_weight_word,
+        q_deep_trace, mode, weight_word_offset);
+#endif
 }
 
 #define INT4_DEFINE_LOCAL_LINEAR_STAGE(PE)                              \
@@ -982,12 +1202,14 @@ void int4_linear_local_stage_pe##PE(                                   \
     ap_uint<3> mode,                                                   \
     ap_uint<24> weight_word_offset,                                    \
     hls::stream<int4_reduction_packet_t>& partial_stream,              \
-    hls::stream<int4_reduction_packet_t>& completed_stream) {          \
+    hls::stream<int4_reduction_packet_t>& completed_stream             \
+    INT4_LINEAR_TRACE_DECL) {                                          \
     _Pragma("HLS INLINE off")                                         \
     int4_run_local_linear_stage<PE>(                                   \
         weight_mem, activation_q, activation_scale,                   \
         output_mem, mode, weight_word_offset,                          \
-        partial_stream, completed_stream);                             \
+        partial_stream, completed_stream                              \
+        INT4_LINEAR_TRACE_ARG);                                        \
 }
 
 INT4_DEFINE_LOCAL_LINEAR_STAGE(0)
@@ -1356,10 +1578,23 @@ static void int4_linear_standalone_compute(
     int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS];
 #pragma HLS BIND_STORAGE variable=activation_q type=ram_2p impl=bram
 #pragma HLS BIND_STORAGE variable=activation_scale type=ram_2p impl=bram
+#ifdef INT4_ENABLE_LAYER_TRACE
+    hls::stream<int4_reduction_packet_t> q_local_partial;
+    hls::stream<int4_reduction_packet_t> q_group_dot;
+    hls::stream<int4_reduction_packet_t> q_weight_scale;
+    hls::stream<int4_reduction_packet_t> q_cumulative;
+    hls::stream<int4_output_word_t> q_activation_word;
+    hls::stream<int4_output_word_t> q_weight_word;
+#endif
 
     int4_run_local_pe<PE_ID>(
         weight_mem, activation_q, activation_scale,
-        command_stream, partial_stream);
+        command_stream, partial_stream
+#ifdef INT4_ENABLE_LAYER_TRACE
+        , q_local_partial, q_group_dot, q_weight_scale, q_cumulative
+        , q_activation_word, q_weight_word
+#endif
+        );
 }
 
 extern "C" void int4_linear_kernel_4pe(

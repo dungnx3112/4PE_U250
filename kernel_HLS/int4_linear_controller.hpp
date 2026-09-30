@@ -47,6 +47,12 @@ void int4_sharded_linear_4pe(
 // command register, MAC pipeline and projection writer. The only data leaving
 // the hierarchy is a 128-bit partial stream; the completed 128-bit stream
 // returns directly to the same PE.
+#ifdef INT4_ENABLE_LAYER_TRACE
+#define INT4_LINEAR_TRACE_DECL , int4_output_word_t* q_deep_trace
+#else
+#define INT4_LINEAR_TRACE_DECL
+#endif
+
 #define INT4_DECLARE_LOCAL_LINEAR_STAGE(PE)                             \
 void int4_linear_local_stage_pe##PE(                                   \
     const int4_weight_word_t* weight_mem,                              \
@@ -56,7 +62,8 @@ void int4_linear_local_stage_pe##PE(                                   \
     ap_uint<3> mode,                                                   \
     ap_uint<24> weight_word_offset,                                    \
     hls::stream<int4_reduction_packet_t>& partial_stream,              \
-    hls::stream<int4_reduction_packet_t>& completed_stream)
+    hls::stream<int4_reduction_packet_t>& completed_stream             \
+    INT4_LINEAR_TRACE_DECL)
 
 INT4_DECLARE_LOCAL_LINEAR_STAGE(0);
 INT4_DECLARE_LOCAL_LINEAR_STAGE(1);
@@ -64,6 +71,7 @@ INT4_DECLARE_LOCAL_LINEAR_STAGE(2);
 INT4_DECLARE_LOCAL_LINEAR_STAGE(3);
 
 #undef INT4_DECLARE_LOCAL_LINEAR_STAGE
+#undef INT4_LINEAR_TRACE_DECL
 
 // Long-lived pair services walk the fixed decoder schedule locally. They do
 // not receive a global mode/state signal. Only the pair sums cross the central

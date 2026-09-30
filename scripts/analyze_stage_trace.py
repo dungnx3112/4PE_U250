@@ -13,9 +13,19 @@ WORD_BYTES = 64
 LOCAL_DIM = 1024
 LOCAL_HIDDEN = 2816
 GROUP_SIZE = 32
-STAGE_WORDS_PER_PE = 861
+STAGE_WORDS_PER_PE = 1205
 STAGE_BYTES_PER_PE = STAGE_WORDS_PER_PE * WORD_BYTES
 DUMP_BYTES = NUM_PES * STAGE_BYTES_PER_PE
+Q_DEEP_ROWS = 4
+Q_DEEP_GROUPS = LOCAL_DIM // GROUP_SIZE
+Q_DEEP_VALUES = Q_DEEP_ROWS * Q_DEEP_GROUPS
+Q_DEEP_WORDS = Q_DEEP_VALUES // 16
+Q_LOCAL_PARTIAL_WORD = 861
+Q_GROUP_DOT_WORD = Q_LOCAL_PARTIAL_WORD + 256
+Q_WEIGHT_SCALE_WORD = Q_GROUP_DOT_WORD + Q_DEEP_WORDS
+Q_CUMULATIVE_WORD = Q_WEIGHT_SCALE_WORD + Q_DEEP_WORDS
+Q_ACTIVATION_WORD = Q_CUMULATIVE_WORD + Q_DEEP_WORDS
+Q_WEIGHT_WORD = Q_ACTIVATION_WORD + Q_DEEP_GROUPS
 
 # name, word offset, words, representation, logical values/groups per PE
 SEGMENTS = [
@@ -132,8 +142,84 @@ def compare_fp32(hardware, software, word, words, values):
                 first = "PE%d index%d HW=%.9g SW=%.9g" % (
                     pe, index, h, s)
     rmse = math.sqrt(sum_e2 / finite) if finite else float("inf")
-    rel_l2 = math.sqrt(sum_e2 / sum_s2) if sum_s2 else float("inf")
+    rel_l2 = (math.sqrt(sum_e2 / sum_s2) if sum_s2 else
+              (0.0 if sum_e2 == 0.0 else float("inf")))
     return rel_l2, rmse, max_abs, nonfinite, first
+
+
+def compare_deep_i32(hardware, software, word):
+    different = 0
+    max_raw = 0
+    first = None
+    for pe in range(NUM_PES):
+        hw = segment_bytes(hardware, pe, word, Q_DEEP_WORDS)
+        sw = segment_bytes(software, pe, word, Q_DEEP_WORDS)
+        for index in range(Q_DEEP_VALUES):
+            h = struct.unpack_from("<i", hw, index * 4)[0]
+            s = struct.unpack_from("<i", sw, index * 4)[0]
+            if h != s:
+                different += 1
+                max_raw = max(max_raw, abs(h - s))
+                if first is None:
+                    first = "PE%d group%d row%d HW=%d SW=%d" % (
+                        pe, index // Q_DEEP_ROWS,
+                        index % Q_DEEP_ROWS, h, s)
+    return different, max_raw, first
+
+
+def compare_deep_words(hardware, software, word):
+    different = 0
+    first = None
+    for pe in range(NUM_PES):
+        hw = segment_bytes(hardware, pe, word, Q_DEEP_GROUPS)
+        sw = segment_bytes(software, pe, word, Q_DEEP_GROUPS)
+        for index, (h, s) in enumerate(zip(hw, sw)):
+            if h != s:
+                different += 1
+                if first is None:
+                    first = "PE%d group%d byte%d HW=0x%02x SW=0x%02x" % (
+                        pe, index // WORD_BYTES, index % WORD_BYTES, h, s)
+    return different, first
+
+
+def compare_deep_fp32(hardware, software, word, values, grouped):
+    different_bits = 0
+    sum_e2 = 0.0
+    sum_s2 = 0.0
+    max_abs = 0.0
+    finite = 0
+    nonfinite = 0
+    first = None
+    words = (values + 15) // 16
+    for pe in range(NUM_PES):
+        hw = segment_bytes(hardware, pe, word, words)
+        sw = segment_bytes(software, pe, word, words)
+        for index in range(values):
+            hb = struct.unpack_from("<I", hw, index * 4)[0]
+            sb = struct.unpack_from("<I", sw, index * 4)[0]
+            h = struct.unpack_from("<f", hw, index * 4)[0]
+            s = struct.unpack_from("<f", sw, index * 4)[0]
+            if hb != sb:
+                different_bits += 1
+                if first is None:
+                    location = ("group%d row%d" %
+                                (index // Q_DEEP_ROWS,
+                                 index % Q_DEEP_ROWS)) if grouped else (
+                                     "row%d" % index)
+                    first = "PE%d %s HW=%.9g SW=%.9g" % (
+                        pe, location, h, s)
+            if not math.isfinite(h) or not math.isfinite(s):
+                nonfinite += 1
+                continue
+            error = h - s
+            finite += 1
+            sum_e2 += error * error
+            sum_s2 += s * s
+            max_abs = max(max_abs, abs(error))
+    rmse = math.sqrt(sum_e2 / finite) if finite else float("inf")
+    rel_l2 = (math.sqrt(sum_e2 / sum_s2) if sum_s2 else
+              (0.0 if sum_e2 == 0.0 else float("inf")))
+    return (different_bits, rel_l2, rmse, max_abs, nonfinite, first)
 
 
 def main():
@@ -152,8 +238,9 @@ def main():
 
     print("hardware=%s" % os.path.abspath(args.hardware))
     print("software=%s" % os.path.abspath(args.software))
-    print("bytes=%d layout=[4 PE][861 x 64-byte stage words]" % DUMP_BYTES)
+    print("bytes=%d layout=[4 PE][1205 x 64-byte stage words]" % DUMP_BYTES)
     first_bad = None
+    stage_bad = {}
     for name, word, words, kind, count in SEGMENTS:
         bad = False
         detail = None
@@ -183,10 +270,74 @@ def main():
             print("  first: %s" % detail)
         if bad and first_bad is None:
             first_bad = name
+        stage_bad[name] = bad
 
-    if first_bad is None:
+    print("\nDeep Q localization:")
+    deep_bad = {}
+    for name, word in [
+            ("q_activation_consumed", Q_ACTIVATION_WORD),
+            ("q_packed_weight_rows0_3", Q_WEIGHT_WORD)]:
+        different, detail = compare_deep_words(hardware, software, word)
+        deep_bad[name] = different != 0
+        total = NUM_PES * Q_DEEP_GROUPS * WORD_BYTES
+        print("%-29s bytes_different=%d/%d%s" % (
+            name, different, total, "  BAD" if different else ""))
+        if detail:
+            print("  first: %s" % detail)
+
+    different, max_raw, detail = compare_deep_i32(
+        hardware, software, Q_GROUP_DOT_WORD)
+    deep_bad["q_group_dot_i32"] = different != 0
+    print("%-29s different=%d/%d max_raw_diff=%d%s" % (
+        "q_group_dot_i32", different, NUM_PES * Q_DEEP_VALUES,
+        max_raw, "  BAD" if different else ""))
+    if detail:
+        print("  first: %s" % detail)
+
+    for name, word, values, grouped in [
+            ("q_weight_scale_fp32", Q_WEIGHT_SCALE_WORD,
+             Q_DEEP_VALUES, True),
+            ("q_cumulative_fp32", Q_CUMULATIVE_WORD,
+             Q_DEEP_VALUES, True),
+            ("q_local_partial_fp32", Q_LOCAL_PARTIAL_WORD,
+             4096, False)]:
+        result = compare_deep_fp32(
+            hardware, software, word, values, grouped)
+        different_bits, rel_l2, rmse, max_abs, nonfinite, detail = result
+        bad = different_bits != 0 or nonfinite != 0
+        deep_bad[name] = bad
+        print("%-29s bits_different=%d/%d rel_l2=%.8g "
+              "rmse=%.8g max_abs=%.8g nonfinite=%d%s" % (
+                  name, different_bits, NUM_PES * values, rel_l2,
+                  rmse, max_abs, nonfinite, "  BAD" if bad else ""))
+        if detail:
+            print("  first: %s" % detail)
+
+    if deep_bad["q_activation_consumed"]:
+        localization = "activation delivery/addressing inside the Q MAC"
+    elif deep_bad["q_packed_weight_rows0_3"]:
+        localization = "Q packed-weight stream/address ordering"
+    elif deep_bad["q_group_dot_i32"]:
+        localization = "packed INT4xINT14 MAC arithmetic"
+    elif deep_bad["q_weight_scale_fp32"]:
+        localization = "Q weight-scale stream/address ordering"
+    elif deep_bad["q_cumulative_fp32"]:
+        localization = "FP32 contribution/accumulation or group ordering"
+    elif deep_bad["q_local_partial_fp32"]:
+        localization = "local MAC outside audited rows 0..3 or local packet ordering"
+    elif stage_bad.get("layer0_q_projection_q17", False):
+        localization = "4-PE AXIS reduction/routing, final Q15.17 conversion, or store"
+    else:
+        localization = "no Q-path divergence detected"
+    print("DEEP-Q RESULT: %s" % localization)
+
+    any_deep_bad = any(deep_bad.values())
+    if first_bad is None and not any_deep_bad:
         print("RESULT: all layer-zero stage checkpoints match.")
         return 0
+    if first_bad is None:
+        print("RESULT: normal stages match; deep Q trace diverges.")
+        return 1
     print("RESULT: first divergent stage: %s" % first_bad)
     return 1
 
