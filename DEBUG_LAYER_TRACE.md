@@ -20,7 +20,7 @@ Every token can dump:
 The deep trace records, per PE:
 
 - every FP32 local partial for every output row (up to 32,256 logits);
-- exact INT14 activation and packed INT4 weight words consumed;
+- exact INT14 activation, its E8M0 scale, and packed INT4 weight words consumed;
 - raw INT32 dots, FP32 weight scales and cumulative FP32 sums for output rows
   0..3 across every local G32 group (32 groups, or 88 for Down).
 
@@ -33,11 +33,14 @@ are a different ABI and must not be compared with this analyzer.
 ```bash
 cd ~/XuanDung_AnhDuc/XuanDung/debug
 
-DEBUG_CLOCK_HZ=200000000 JOBS=32 REBUILD_XO=1 \
+RUN_RTL_COSIM=1 DEBUG_CLOCK_HZ=200000000 JOBS=32 REBUILD_XO=1 \
   bash scripts/build_forensic_debug.sh 2>&1 | tee build_forensic_debug.log
 ```
 
-The build is accepted only if the script finds debug metadata for all twelve
+With `RUN_RTL_COSIM=1`, the preflight first synthesizes the local linear
+module and runs XSIM C/RTL co-simulation with non-zero Q/O/Gate/Down/Logits
+transactions. The build is accepted only if that passes and the final link
+finds debug metadata for all twelve
 streams and a non-empty matching `.ltx` file. Outputs:
 
 ```text

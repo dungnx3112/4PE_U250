@@ -565,7 +565,14 @@ local_partial_output_tile_loop:
                     q_group_dot.write(dot_packet);
                     q_weight_scale.write(scale_packet);
                     q_cumulative.write(partial_packet);
-                    q_activation_word.write((int4_output_word_t)quantized);
+                    int4_output_word_t traced_activation =
+                        (int4_output_word_t)quantized;
+                    // INT14x32 occupies bits 447:0. Preserve the exact E8M0
+                    // scale consumed by this group in the otherwise-unused
+                    // next byte so the trace covers the complete operand.
+                    traced_activation.range(455, 448) =
+                        activation_scale[global_group];
+                    q_activation_word.write(traced_activation);
                     q_weight_word.write((int4_output_word_t)weight);
                 }
 #endif

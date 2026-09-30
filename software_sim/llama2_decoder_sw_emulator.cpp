@@ -368,6 +368,18 @@ void sharded_gemv_4pe(
                                 (destination_bit % 8));
                     }
                 }
+                const float activation_scale = act.scale[
+                    (col_offset + group * GROUP_SIZE) / GROUP_SIZE];
+                uint8_t encoded_scale = 0;
+                if (activation_scale != 0.0f) {
+                    int scale_exp = 0;
+                    (void)std::frexp(activation_scale, &scale_exp);
+                    const int raw = scale_exp + 127 +
+                        ACTIVATION_BITS - 2;
+                    encoded_scale = static_cast<uint8_t>(
+                        std::max(0, std::min(255, raw)));
+                }
+                activation_destination[56] = encoded_scale;
 
                 uint8_t* weight_destination = stage_word_ptr(
                     p, STAGE_Q_WEIGHT_WORD + group);
