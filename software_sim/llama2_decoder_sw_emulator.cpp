@@ -78,12 +78,13 @@ static constexpr int STAGE_SWIGLU_WORD =
 static constexpr int STAGE_DOWN_WORD =
     STAGE_SWIGLU_WORD + QSCALE_HIDDEN_WORDS;
 static constexpr int Q_DEEP_ROWS = 4;
-static constexpr int Q_DEEP_VALUES = LOCAL_GROUPS_DIM * Q_DEEP_ROWS;
+static constexpr int DEEP_MAX_LOCAL_GROUPS = LOCAL_GROUPS_HIDDEN;
+static constexpr int Q_DEEP_VALUES = DEEP_MAX_LOCAL_GROUPS * Q_DEEP_ROWS;
 static constexpr int Q_DEEP_WORDS = Q_DEEP_VALUES / 16;
 static constexpr int STAGE_Q_LOCAL_PARTIAL_WORD =
     STAGE_DOWN_WORD + VECTOR_WORDS_PER_PE;
 static constexpr int STAGE_Q_GROUP_DOT_WORD =
-    STAGE_Q_LOCAL_PARTIAL_WORD + DIM / 16;
+    STAGE_Q_LOCAL_PARTIAL_WORD + PADDED_VOCAB_SIZE / 16;
 static constexpr int STAGE_Q_WEIGHT_SCALE_WORD =
     STAGE_Q_GROUP_DOT_WORD + Q_DEEP_WORDS;
 static constexpr int STAGE_Q_CUMULATIVE_WORD =
@@ -91,16 +92,16 @@ static constexpr int STAGE_Q_CUMULATIVE_WORD =
 static constexpr int STAGE_Q_ACTIVATION_WORD =
     STAGE_Q_CUMULATIVE_WORD + Q_DEEP_WORDS;
 static constexpr int STAGE_Q_WEIGHT_WORD =
-    STAGE_Q_ACTIVATION_WORD + LOCAL_GROUPS_DIM;
+    STAGE_Q_ACTIVATION_WORD + DEEP_MAX_LOCAL_GROUPS;
 static constexpr int STAGE_WORDS_PER_PE =
-    STAGE_Q_WEIGHT_WORD + LOCAL_GROUPS_DIM;
+    STAGE_Q_WEIGHT_WORD + DEEP_MAX_LOCAL_GROUPS;
 static constexpr int STAGE_BYTES_PER_PE = STAGE_WORDS_PER_PE * WORD_BYTES;
 static constexpr int STAGE_DUMP_BYTES = NUM_PES * STAGE_BYTES_PER_PE;
 static_assert(KV_DUMP_BYTES == 10240,
               "one layer-zero KV dump must contain all PE/head records");
-static_assert(Q_DEEP_WORDS == 8,
-              "four Q rows across 32 local groups must occupy eight words");
-static_assert(STAGE_WORDS_PER_PE == 1205,
+static_assert(Q_DEEP_WORDS == 22,
+              "four rows across 88 local groups must occupy 22 words");
+static_assert(STAGE_WORDS_PER_PE == 3119,
               "layer-zero full-stage trace layout changed unexpectedly");
 
 static int g_num_layers = 32;
@@ -113,7 +114,10 @@ static std::string g_dump_logits_dir;
 static std::string g_dump_residuals_dir;
 static std::string g_dump_layer_trace_dir;
 static std::string g_dump_kv_cache_dir;
+static int g_dump_kv_layer = 0;
 static std::string g_dump_stage_trace_dir;
+static int g_trace_layer = 0;
+static int g_trace_mode = 3;
 static std::vector<float> g_layer_trace;
 static std::vector<uint8_t> g_stage_trace;
 
@@ -348,7 +352,8 @@ void sharded_gemv_4pe(
         for (int p = 0; p < NUM_PES; ++p) {
             const int4_t* weights = mat.pe_weights[p].data();
             const int col_offset = p * mat.local_cols;
-            for (int group = 0; group < LOCAL_GROUPS_DIM; ++group) {
+            const int local_groups = mat.local_cols / GROUP_SIZE;
+            for (int group = 0; group < local_groups; ++group) {
                 uint8_t* activation_destination = stage_word_ptr(
                     p, STAGE_Q_ACTIVATION_WORD + group);
                 const int global_c = col_offset + group * GROUP_SIZE;
@@ -969,6 +974,10 @@ float* forward(
     std::vector<float> swiglu_out(PADDED_HIDDEN_DIM);
     std::vector<float> proj_down(DIM);
     QuantizedActivation norm_act, attn_act, swiglu_act;
+    const auto capture_deep = [](int layer, int mode) {
+        return !g_dump_stage_trace_dir.empty() &&
+               layer == g_trace_layer && mode == g_trace_mode;
+    };
 
     for (int l = 0; l < g_num_layers; ++l) {
         const DecoderLayer& layer = model.layers[l];
@@ -980,9 +989,11 @@ float* forward(
         }
         sharded_gemv_4pe(
             layer.w_q, norm_act, q_float,
-            l == 0 && !g_dump_stage_trace_dir.empty());
-        sharded_gemv_4pe(layer.w_k, norm_act, k_float);
-        sharded_gemv_4pe(layer.w_v, norm_act, v_float);
+            capture_deep(l, 0));
+        sharded_gemv_4pe(layer.w_k, norm_act, k_float,
+                         capture_deep(l, 1));
+        sharded_gemv_4pe(layer.w_v, norm_act, v_float,
+                         capture_deep(l, 2));
         #pragma omp parallel for schedule(static)
         for (int i = 0; i < DIM; ++i) {
             q[i] = float_to_q17(q_float[i]);
@@ -1002,12 +1013,11 @@ float* forward(
                               STAGE_ATTN_QSCALE_WORD);
         }
 
-        // The shared deep-linear trace region is written by Q first and then
-        // overwritten by layer-0 O, leaving the first divergent projection
-        // available without increasing the host/kernel trace ABI again.
+        // One runtime selector chooses exactly one layer/mode for the shared
+        // deep-linear trace region; changing it does not require a new XCLBIN.
         sharded_gemv_4pe(
             layer.w_o, attn_act, proj_o,
-            l == 0 && !g_dump_stage_trace_dir.empty());
+            capture_deep(l, 3));
         if (l == 0 && !g_dump_stage_trace_dir.empty()) {
             pack_stage_fp32(proj_o, LOCAL_DIM, STAGE_O_WORD);
         }
@@ -1023,8 +1033,10 @@ float* forward(
             pack_stage_qscale(norm_act, LOCAL_GROUPS_DIM,
                               STAGE_FFN_RMS_WORD);
         }
-        sharded_gemv_4pe(layer.w_gate, norm_act, gate);
-        sharded_gemv_4pe(layer.w_up, norm_act, up);
+        sharded_gemv_4pe(layer.w_gate, norm_act, gate,
+                         capture_deep(l, 4));
+        sharded_gemv_4pe(layer.w_up, norm_act, up,
+                         capture_deep(l, 5));
         if (l == 0 && !g_dump_stage_trace_dir.empty()) {
             pack_stage_fp32(gate, LOCAL_HIDDEN_DIM, STAGE_GATE_WORD);
             pack_stage_fp32(up, LOCAL_HIDDEN_DIM, STAGE_UP_WORD);
@@ -1035,7 +1047,8 @@ float* forward(
             pack_stage_qscale(swiglu_act, LOCAL_GROUPS_HIDDEN,
                               STAGE_SWIGLU_WORD);
         }
-        sharded_gemv_4pe(layer.w_down, swiglu_act, proj_down);
+        sharded_gemv_4pe(layer.w_down, swiglu_act, proj_down,
+                         capture_deep(l, 6));
         if (l == 0 && !g_dump_stage_trace_dir.empty()) {
             pack_stage_fp32(proj_down, LOCAL_DIM, STAGE_DOWN_WORD);
         }
@@ -1049,7 +1062,8 @@ float* forward(
 
     rmsnorm_quantize_hls(residual.data(), model.final_norm_gamma.data(), norm_act);
     std::vector<float> padded_logits(PADDED_VOCAB_SIZE, 0.0f);
-    sharded_gemv_4pe(model.w_logits, norm_act, padded_logits);
+    sharded_gemv_4pe(model.w_logits, norm_act, padded_logits,
+                     capture_deep(NUM_LAYERS, 7));
 
     out_logits.resize(VOCAB_SIZE);
     std::copy(padded_logits.begin(), padded_logits.begin() + VOCAB_SIZE, out_logits.begin());
@@ -1913,7 +1927,8 @@ static void dump_reference_step(int pos, int token,
         // Repack the semantic software cache into the exact headerless HLS
         // DDR layout: [PE][local_head][metadata,K0,K1,V0,V1].
         snprintf(filename, sizeof(filename),
-                 "kv_layer00_pos%04d_token%05d.bin", pos, token);
+                 "kv_layer%02d_pos%04d_token%05d.bin",
+                 g_dump_kv_layer, pos, token);
         std::ofstream out(g_dump_kv_cache_dir + "/" + filename,
                           std::ios::binary | std::ios::trunc);
         if (!out) {
@@ -1925,7 +1940,8 @@ static void dump_reference_step(int pos, int token,
             for (int head = 0; head < LOCAL_HEADS; ++head) {
                 packed.fill(0);
                 const size_t semantic_record =
-                    static_cast<size_t>(head) * g_cache_seq_len + pos;
+                    (static_cast<size_t>(g_dump_kv_layer) * LOCAL_HEADS +
+                     head) * g_cache_seq_len + pos;
                 const size_t data_base = semantic_record * HEAD_DIM;
                 const size_t shift_base = semantic_record *
                     (HEAD_DIM / GROUP_SIZE);
@@ -2320,6 +2336,15 @@ void calculate_perplexity(
 // ============================================================================
 // CLI & Main Entry (Identical to runq.c, with hardcoded weights support)
 // ============================================================================
+static int parse_trace_mode(const std::string& name) {
+    static const char* names[] = {
+        "q", "k", "v", "o", "gate", "up", "down", "logits"};
+    for (int mode = 0; mode < 8; ++mode) {
+        if (name == names[mode]) return mode;
+    }
+    throw std::runtime_error("invalid --trace-mode: " + name);
+}
+
 void error_usage() {
     fprintf(stderr, "Usage:   run <checkpoint> [options]\n");
     fprintf(stderr, "Example: run model.bin -n 256 -i \"Once upon a time\"\n");
@@ -2341,8 +2366,11 @@ void error_usage() {
     fprintf(stderr, "  --dump-logits <dir> dump padded FP32 logits for every generate step\n");
     fprintf(stderr, "  --dump-residuals <dir> dump final FP32 residual for every generate step\n");
     fprintf(stderr, "  --dump-layer-trace <dir> dump 65 x 4096 layer-boundary residuals\n");
-    fprintf(stderr, "  --dump-kv-cache <dir> dump layer-0 compressed KV records per step\n");
+    fprintf(stderr, "  --dump-kv-cache <dir> dump selected-layer compressed KV records per step\n");
+    fprintf(stderr, "  --kv-layer <0..31> layer used by --dump-kv-cache\n");
     fprintf(stderr, "  --dump-stage-trace <dir> dump all layer-0 internal stage checkpoints\n");
+    fprintf(stderr, "  --trace-layer <0..32> select deep linear layer (32=logits)\n");
+    fprintf(stderr, "  --trace-mode <q|k|v|o|gate|up|down|logits> select deep linear mode\n");
     fprintf(stderr, "  --replay-residual <file> run final norm + LM head on a dumped residual\n");
     fprintf(stderr, "  --replay-logits <file> output path used with --replay-residual\n");
     exit(EXIT_FAILURE);
@@ -2410,8 +2438,14 @@ int main(int argc, char *argv[]) {
             g_dump_layer_trace_dir = argv[++i];
         } else if (arg == "--dump-kv-cache" && i + 1 < argc) {
             g_dump_kv_cache_dir = argv[++i];
+        } else if (arg == "--kv-layer" && i + 1 < argc) {
+            g_dump_kv_layer = std::atoi(argv[++i]);
         } else if (arg == "--dump-stage-trace" && i + 1 < argc) {
             g_dump_stage_trace_dir = argv[++i];
+        } else if (arg == "--trace-layer" && i + 1 < argc) {
+            g_trace_layer = std::atoi(argv[++i]);
+        } else if (arg == "--trace-mode" && i + 1 < argc) {
+            g_trace_mode = parse_trace_mode(argv[++i]);
         } else if (arg == "--replay-residual" && i + 1 < argc) {
             replay_residual_path = argv[++i];
         } else if (arg == "--replay-logits" && i + 1 < argc) {
@@ -2428,6 +2462,16 @@ int main(int argc, char *argv[]) {
     if (topp < 0.0 || 1.0 < topp) topp = 0.9;
     if (repeat_penalty <= 0.0f) repeat_penalty = 1.0f;
     if (steps < 0) steps = 0;
+    if (g_trace_layer < 0 || g_trace_layer > NUM_LAYERS) {
+        throw std::runtime_error("--trace-layer must be in [0,32]");
+    }
+    if (g_dump_kv_layer < 0 || g_dump_kv_layer >= g_num_layers) {
+        throw std::runtime_error("--kv-layer must be in [0,num-layers-1]");
+    }
+    if ((g_trace_mode == 7) != (g_trace_layer == NUM_LAYERS)) {
+        throw std::runtime_error(
+            "logits requires --trace-layer 32; decoder modes require 0..31");
+    }
 
     // Load Model weights
     TransformerModel model;

@@ -10,7 +10,10 @@
 using int4_position_command_t = ap_uint<12>;
 
 #ifdef INT4_ENABLE_LAYER_TRACE
-#define INT4_LOCAL_TRACE_DECL , int4_output_word_t* layer_trace
+#define INT4_LOCAL_TRACE_DECL                                         \
+    , int4_output_word_t* layer_trace                                 \
+    , ap_uint<6> trace_layer                                          \
+    , ap_uint<3> trace_mode
 #else
 #define INT4_LOCAL_TRACE_DECL
 #endif

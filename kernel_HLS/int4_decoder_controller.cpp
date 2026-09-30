@@ -169,7 +169,10 @@ dump_local_stage_scale_word_loop:
             packed;
     }
 }
-#define INT4_LOCAL_TRACE_DECL , int4_output_word_t* layer_trace
+#define INT4_LOCAL_TRACE_DECL                                         \
+    , int4_output_word_t* layer_trace                                 \
+    , ap_uint<6> trace_layer                                          \
+    , ap_uint<3> trace_mode
 #define INT4_DUMP_LOCAL_TRACE(RESIDUAL, CHECKPOINT)                    \
     int4_dump_local_residual_checkpoint(                              \
         RESIDUAL, layer_trace, CHECKPOINT)
@@ -178,12 +181,15 @@ dump_local_stage_scale_word_loop:
 #define INT4_DUMP_STAGE_QSCALE(Q, SCALE, GROUPS, OFFSET)              \
     int4_dump_local_stage_qscale<GROUPS>(Q, SCALE, layer_trace, OFFSET)
 #define INT4_LINEAR_DEEP_TRACE_ARG , layer_trace
+#define INT4_LINEAR_CAPTURE(LAYER, MODE)                              \
+    ((ap_uint<6>)(LAYER) == trace_layer && (ap_uint<3>)(MODE) == trace_mode)
 #else
 #define INT4_LOCAL_TRACE_DECL
 #define INT4_DUMP_LOCAL_TRACE(RESIDUAL, CHECKPOINT) do { } while (0)
 #define INT4_DUMP_STAGE_WORDS(VALUES, WORDS, OFFSET) do { } while (0)
 #define INT4_DUMP_STAGE_QSCALE(Q, SCALE, GROUPS, OFFSET) do { } while (0)
 #define INT4_LINEAR_DEEP_TRACE_ARG
+#define INT4_LINEAR_CAPTURE(LAYER, MODE) false
 #endif
 
 template <int PE_ID>
@@ -335,6 +341,7 @@ local_projection_layer_loop_##PE:                                     \
                 activation_q, activation_scale, projection,           \
                 mode,                                                 \
                 (ap_uint<24>)int4_weight_offset(layer, (int)mode),    \
+                INT4_LINEAR_CAPTURE(layer, mode),                     \
                 linear_partial, linear_completed                      \
                 INT4_LINEAR_DEEP_TRACE_ARG);                          \
             if (layer == 0) {                                        \
@@ -412,14 +419,18 @@ INT4_DEFINE_LOCAL_DECODER_PE(
 #undef INT4_DUMP_LOCAL_TRACE
 #undef INT4_LOCAL_TRACE_DECL
 #undef INT4_LINEAR_DEEP_TRACE_ARG
+#undef INT4_LINEAR_CAPTURE
 
 #ifdef INT4_ENABLE_LAYER_TRACE
 #define INT4_CONTROLLER_TRACE_DECL                                    \
     , int4_output_word_t* layer_trace_pe0                             \
     , int4_output_word_t* layer_trace_pe1                             \
     , int4_output_word_t* layer_trace_pe2                             \
-    , int4_output_word_t* layer_trace_pe3
-#define INT4_CONTROLLER_TRACE_ARG(PE) , layer_trace_pe##PE
+    , int4_output_word_t* layer_trace_pe3                             \
+    , ap_uint<6> trace_layer                                          \
+    , ap_uint<3> trace_mode
+#define INT4_CONTROLLER_TRACE_ARG(PE)                                 \
+    , layer_trace_pe##PE, trace_layer, trace_mode
 #else
 #define INT4_CONTROLLER_TRACE_DECL
 #define INT4_CONTROLLER_TRACE_ARG(PE)
@@ -500,6 +511,8 @@ void int4_decoder_token_controller(
 #pragma HLS INTERFACE s_axilite port=layer_trace_pe1 bundle=control
 #pragma HLS INTERFACE s_axilite port=layer_trace_pe2 bundle=control
 #pragma HLS INTERFACE s_axilite port=layer_trace_pe3 bundle=control
+#pragma HLS INTERFACE s_axilite port=trace_layer bundle=control
+#pragma HLS INTERFACE s_axilite port=trace_mode bundle=control
 #endif
 #pragma HLS INTERFACE s_axilite port=return bundle=control
 

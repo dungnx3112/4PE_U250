@@ -73,7 +73,7 @@ constexpr int LAYER_TRACE_CHECKPOINTS = 1 + 2 * NUM_LAYERS;
 constexpr int LOCAL_DIM = DIM / NUM_PES;
 constexpr int LAYER_TRACE_RESIDUAL_WORDS_PER_PE =
     LAYER_TRACE_CHECKPOINTS * (LOCAL_DIM / OUTPUTS_PER_WORD);
-constexpr int STAGE_TRACE_WORDS_PER_PE = 1205;
+constexpr int STAGE_TRACE_WORDS_PER_PE = 3119;
 constexpr int LAYER_TRACE_WORDS_PER_PE =
     LAYER_TRACE_RESIDUAL_WORDS_PER_PE + STAGE_TRACE_WORDS_PER_PE;
 
@@ -123,9 +123,9 @@ static_assert(ROPE_LUT_BYTES == 2097152ULL,
               "RoPE LUT size must match swiftkv_attention.hpp");
 static_assert(RESIDUAL_BYTES == 4096ULL,
               "residual shard size must match the kernel ABI");
-static_assert(LAYER_TRACE_BYTES_PER_PE == 343360ULL,
+static_assert(LAYER_TRACE_BYTES_PER_PE == 465856ULL,
               "full debug trace ABI size changed unexpectedly");
-static_assert(STAGE_TRACE_DUMP_BYTES == 308480ULL,
+static_assert(STAGE_TRACE_DUMP_BYTES == 798464ULL,
               "full stage dump size changed unexpectedly");
 static_assert(LOGIT_BYTES == 32256ULL,
               "logit shard size must match the kernel ABI");
@@ -549,13 +549,13 @@ std::size_t kv_record_offset_bytes(int layer, int local_head,
 }
 
 std::string dump_kv_cache(const std::string& directory, int position,
-                          int token_id,
+                          int token_id, int layer,
                           const std::array<const std::uint8_t*, NUM_PES>& maps) {
     // Headerless byte-for-byte HLS DDR record layout:
-    // [PE][local_head][metadata,K0,K1,V0,V1]. Only layer zero is dumped,
-    // because the first observed hardware/software divergence is at layer 0.
+    // [PE][local_head][metadata,K0,K1,V0,V1].
     std::ostringstream name;
-    name << "kv_layer00_pos" << std::setw(4) << std::setfill('0')
+    name << "kv_layer" << std::setw(2) << std::setfill('0') << layer
+         << "_pos" << std::setw(4) << std::setfill('0')
          << position << "_token" << std::setw(5) << std::setfill('0')
          << token_id << ".bin";
     const std::string path = join_path(directory, name.str());
@@ -566,7 +566,7 @@ std::string dump_kv_cache(const std::string& directory, int position,
     for (int pe = 0; pe < NUM_PES; ++pe) {
         for (int head = 0; head < LOCAL_HEADS; ++head) {
             const std::size_t offset =
-                kv_record_offset_bytes(0, head, position);
+                kv_record_offset_bytes(layer, head, position);
             out.write(reinterpret_cast<const char*>(maps[pe] + offset),
                       static_cast<std::streamsize>(KV_RECORD_BYTES));
         }
@@ -927,6 +927,9 @@ struct Config {
     std::string dump_layer_trace_dir;
     std::string dump_kv_cache_dir;
     std::string dump_stage_trace_dir;
+    int trace_layer = 0;
+    int trace_mode = 3;
+    int kv_layer = 0;
     int max_tokens = 256;
     int top_k = 0;
     float temperature = 0.0f;
@@ -956,8 +959,11 @@ void print_usage(const char* program) {
         << "  --dump-logits DIR   dump all 32256 raw FP32 logits for every step\n"
         << "  --dump-residuals DIR dump the final 4096-value FP32 residual for every step\n"
         << "  --dump-layer-trace DIR dump 65 x 4096 FP32 layer-boundary residuals per step\n"
-        << "  --dump-kv-cache DIR dump layer-0 compressed KV records for every step\n"
-        << "  --dump-stage-trace DIR dump all layer-0 internal stage checkpoints\n"
+        << "  --dump-kv-cache DIR dump selected-layer compressed KV records per step\n"
+        << "  --kv-layer N        KV layer to dump, 0..31 (default: 0)\n"
+        << "  --dump-stage-trace DIR dump layer-0 checkpoints plus the selected deep linear trace\n"
+        << "  --trace-layer N     deep-trace layer 0..31, or 32 for final logits (default: 0)\n"
+        << "  --trace-mode NAME   q|k|v|o|gate|up|down|logits (default: o)\n"
         << "  --device ID         BDF or numeric XRT device index\n"
         << "  --verbose           print initialization, per-PE timing, token IDs, and statistics\n"
         << "  --no-bos            do not prepend the BOS token to the prompt\n"
@@ -1004,6 +1010,34 @@ int parse_device_index(const std::string& text) {
         throw std::runtime_error("invalid --device: " + text);
     }
     return static_cast<int>(value);
+}
+
+int parse_nonnegative_int(const std::string& text, const char* name) {
+    std::size_t consumed = 0;
+    const long value = std::stol(text, &consumed, 10);
+    if (consumed != text.size() || value < 0 ||
+        value > std::numeric_limits<int>::max()) {
+        throw std::runtime_error(std::string("invalid ") + name + ": " + text);
+    }
+    return static_cast<int>(value);
+}
+
+int parse_trace_mode(const std::string& text) {
+    static const std::array<const char*, 8> names = {
+        "q", "k", "v", "o", "gate", "up", "down", "logits"};
+    for (std::size_t i = 0; i < names.size(); ++i) {
+        if (text == names[i]) return static_cast<int>(i);
+    }
+    throw std::runtime_error(
+        "invalid --trace-mode: " + text +
+        " (expected q|k|v|o|gate|up|down|logits)");
+}
+
+const char* trace_mode_name(int mode) {
+    static const std::array<const char*, 8> names = {
+        "q", "k", "v", "o", "gate", "up", "down", "logits"};
+    return mode >= 0 && mode < static_cast<int>(names.size())
+        ? names[static_cast<std::size_t>(mode)] : "invalid";
 }
 
 Config parse_args(int argc, char** argv) {
@@ -1075,12 +1109,19 @@ Config parse_args(int argc, char** argv) {
                 throw std::runtime_error(
                     "--dump-kv-cache directory is empty");
             }
+        } else if (argument == "--kv-layer") {
+            config.kv_layer = parse_nonnegative_int(next(), "--kv-layer");
         } else if (argument == "--dump-stage-trace") {
             config.dump_stage_trace_dir = next();
             if (config.dump_stage_trace_dir.empty()) {
                 throw std::runtime_error(
                     "--dump-stage-trace directory is empty");
             }
+        } else if (argument == "--trace-layer") {
+            config.trace_layer =
+                parse_nonnegative_int(next(), "--trace-layer");
+        } else if (argument == "--trace-mode") {
+            config.trace_mode = parse_trace_mode(next());
         } else if (argument == "--device") config.device_id = next();
         else if (argument == "--help" || argument == "-h") {
             print_usage(argv[0]);
@@ -1098,6 +1139,17 @@ Config parse_args(int argc, char** argv) {
     }
     if (config.tokenizer.empty()) {
         config.tokenizer = join_path(config.banks_dir, "tokenizer.bin");
+    }
+    if (config.trace_layer > NUM_LAYERS) {
+        throw std::runtime_error("--trace-layer must be in [0,32]");
+    }
+    if (config.kv_layer >= NUM_LAYERS) {
+        throw std::runtime_error("--kv-layer must be in [0,31]");
+    }
+    if ((config.trace_layer == NUM_LAYERS) !=
+        (config.trace_mode == 7)) {
+        throw std::runtime_error(
+            "trace layer 32 must use mode logits, and logits must use layer 32");
     }
     return config;
 }
@@ -1237,7 +1289,8 @@ int main(int argc, char** argv) {
             std::cout << "[Init] KV cache dumps: "
                       << std::filesystem::absolute(
                              config.dump_kv_cache_dir)
-                      << " (layer 0, [4 PEs][8 heads][5 x 64-byte words])"
+                      << " (layer " << config.kv_layer
+                      << ", [4 PEs][8 heads][5 x 64-byte words])"
                       << std::endl;
         }
         if (!config.dump_stage_trace_dir.empty()) {
@@ -1246,7 +1299,9 @@ int main(int argc, char** argv) {
             std::cout << "[Init] Full stage trace dumps: "
                       << std::filesystem::absolute(
                              config.dump_stage_trace_dir)
-                      << " (11 layer-0 checkpoints, "
+                      << " (11 layer-0 checkpoints + deep layer "
+                      << config.trace_layer << ' '
+                      << trace_mode_name(config.trace_mode) << ", "
                       << STAGE_TRACE_DUMP_BYTES << " bytes per step)"
                       << std::endl;
         }
@@ -1475,28 +1530,36 @@ int main(int argc, char** argv) {
 
             auto run1 = kernel1(
                 static_cast<std::uint32_t>(position), model1, rope1,
-                residual1, logits1, kv1, trace1);
+                residual1, logits1, kv1, trace1,
+                static_cast<std::uint32_t>(config.trace_layer),
+                static_cast<std::uint32_t>(config.trace_mode));
             if (config.verbose) {
                 std::cout << "[Run] PE1 submitted state="
                           << static_cast<int>(run1.state()) << std::endl;
             }
             auto run2 = kernel2(
                 static_cast<std::uint32_t>(position), model2, rope2,
-                residual2, logits2, kv2, trace2);
+                residual2, logits2, kv2, trace2,
+                static_cast<std::uint32_t>(config.trace_layer),
+                static_cast<std::uint32_t>(config.trace_mode));
             if (config.verbose) {
                 std::cout << "[Run] PE2 submitted state="
                           << static_cast<int>(run2.state()) << std::endl;
             }
             auto run0 = kernel0(
                 static_cast<std::uint32_t>(position), model0, rope0,
-                residual0, logits0, kv0, trace0);
+                residual0, logits0, kv0, trace0,
+                static_cast<std::uint32_t>(config.trace_layer),
+                static_cast<std::uint32_t>(config.trace_mode));
             if (config.verbose) {
                 std::cout << "[Run] PE0 submitted state="
                           << static_cast<int>(run0.state()) << std::endl;
             }
             auto run3 = kernel3(
                 static_cast<std::uint32_t>(position), model3, rope3,
-                residual3, logits3, kv3, trace3);
+                residual3, logits3, kv3, trace3,
+                static_cast<std::uint32_t>(config.trace_layer),
+                static_cast<std::uint32_t>(config.trace_mode));
             if (config.verbose) {
                 std::cout << "[Run] PE3 submitted state="
                           << static_cast<int>(run3.state())
@@ -1571,34 +1634,38 @@ int main(int argc, char** argv) {
             }
 
             if (!config.dump_kv_cache_dir.empty()) {
-                // Sync one contiguous layer-zero prefix per PE. The final
+                // Sync one contiguous selected-layer span per PE. The final
                 // requested record belongs to local head 7; round the length
                 // to 4 KiB for compatibility with older XRT DMA paths.
-                const std::size_t required_bytes =
-                    kv_record_offset_bytes(0, LOCAL_HEADS - 1, position) +
-                    KV_RECORD_BYTES;
                 constexpr std::size_t PAGE_BYTES = 4096;
+                const std::size_t sync_offset =
+                    kv_record_offset_bytes(config.kv_layer, 0, 0);
+                const std::size_t required_end = kv_record_offset_bytes(
+                    config.kv_layer, LOCAL_HEADS - 1, position) +
+                    KV_RECORD_BYTES;
                 const std::size_t sync_bytes =
-                    (required_bytes + PAGE_BYTES - 1) & ~(PAGE_BYTES - 1);
+                    (required_end - sync_offset + PAGE_BYTES - 1) &
+                    ~(PAGE_BYTES - 1);
                 {
                     auto k0 = std::async(std::launch::async, [&]{
                         kv0.sync(XCL_BO_SYNC_BO_FROM_DEVICE,
-                                 sync_bytes, 0); });
+                                 sync_bytes, sync_offset); });
                     auto k1 = std::async(std::launch::async, [&]{
                         kv1.sync(XCL_BO_SYNC_BO_FROM_DEVICE,
-                                 sync_bytes, 0); });
+                                 sync_bytes, sync_offset); });
                     auto k2 = std::async(std::launch::async, [&]{
                         kv2.sync(XCL_BO_SYNC_BO_FROM_DEVICE,
-                                 sync_bytes, 0); });
+                                 sync_bytes, sync_offset); });
                     auto k3 = std::async(std::launch::async, [&]{
                         kv3.sync(XCL_BO_SYNC_BO_FROM_DEVICE,
-                                 sync_bytes, 0); });
+                                 sync_bytes, sync_offset); });
                     k0.get(); k1.get(); k2.get(); k3.get();
                 }
                 const std::array<const std::uint8_t*, NUM_PES> kv_maps = {
                     kv_map0, kv_map1, kv_map2, kv_map3};
                 const std::string kv_path = dump_kv_cache(
-                    config.dump_kv_cache_dir, position, token_id, kv_maps);
+                    config.dump_kv_cache_dir, position, token_id,
+                    config.kv_layer, kv_maps);
                 std::cout << "[KV cache] dumped=" << kv_path
                           << " bytes=" << KV_DUMP_BYTES << std::endl;
             }

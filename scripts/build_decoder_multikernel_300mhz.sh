@@ -36,8 +36,9 @@ Environment overrides:
                     protocol checkers, and System ILA to all 12 AXI streams.
                     Implies ENABLE_STALL_PROFILE=1.
   ENABLE_LAYER_TRACE=1
-                    Build the dedicated 65-residual plus layer-0 full-stage
-                    trace ABI. XOs are isolated from production/profile XOs.
+                    Build the debug ABI: 65 residuals, layer-0 stages and one
+                    runtime-selected deep linear layer/mode. Debug XOs are
+                    isolated from production/profile XOs.
   DEBUG_CLOCK_HZ=N  Link clock for profile builds (default: 150000000). The
                     production build remains fixed at 300000000 Hz.
   JOBS=<N>          Parallel synthesis/linking jobs (default: nproc)

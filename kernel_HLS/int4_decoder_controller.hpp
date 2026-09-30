@@ -12,7 +12,9 @@
     , int4_output_word_t* layer_trace_pe0                             \
     , int4_output_word_t* layer_trace_pe1                             \
     , int4_output_word_t* layer_trace_pe2                             \
-    , int4_output_word_t* layer_trace_pe3
+    , int4_output_word_t* layer_trace_pe3                             \
+    , ap_uint<6> trace_layer                                          \
+    , ap_uint<3> trace_mode
 #else
 #define INT4_CONTROLLER_TRACE_DECL
 #endif

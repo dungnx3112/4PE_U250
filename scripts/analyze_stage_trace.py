@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare all layer-zero full-stage checkpoints from FPGA and software."""
+"""Compare FPGA/software stage traces and localize one selected linear op."""
 
 import argparse
 import math
@@ -10,22 +10,37 @@ import sys
 
 NUM_PES = 4
 WORD_BYTES = 64
+GROUP_SIZE = 32
 LOCAL_DIM = 1024
 LOCAL_HIDDEN = 2816
-GROUP_SIZE = 32
-STAGE_WORDS_PER_PE = 1205
+STAGE_WORDS_PER_PE = 3119
 STAGE_BYTES_PER_PE = STAGE_WORDS_PER_PE * WORD_BYTES
 DUMP_BYTES = NUM_PES * STAGE_BYTES_PER_PE
-Q_DEEP_ROWS = 4
-Q_DEEP_GROUPS = LOCAL_DIM // GROUP_SIZE
-Q_DEEP_VALUES = Q_DEEP_ROWS * Q_DEEP_GROUPS
-Q_DEEP_WORDS = Q_DEEP_VALUES // 16
-Q_LOCAL_PARTIAL_WORD = 861
-Q_GROUP_DOT_WORD = Q_LOCAL_PARTIAL_WORD + 256
-Q_WEIGHT_SCALE_WORD = Q_GROUP_DOT_WORD + Q_DEEP_WORDS
-Q_CUMULATIVE_WORD = Q_WEIGHT_SCALE_WORD + Q_DEEP_WORDS
-Q_ACTIVATION_WORD = Q_CUMULATIVE_WORD + Q_DEEP_WORDS
-Q_WEIGHT_WORD = Q_ACTIVATION_WORD + Q_DEEP_GROUPS
+
+# The ABI reserves capacity for the largest operation. Only the prefix
+# dictated by MODE_INFO is meaningful for a selected operation.
+DEEP_ROWS = 4
+DEEP_MAX_GROUPS = 88
+DEEP_MAX_AUDIT_WORDS = 22
+DEEP_LOCAL_PARTIAL_WORDS = 2016
+DEEP_LOCAL_PARTIAL_WORD = 861
+DEEP_GROUP_DOT_WORD = DEEP_LOCAL_PARTIAL_WORD + DEEP_LOCAL_PARTIAL_WORDS
+DEEP_WEIGHT_SCALE_WORD = DEEP_GROUP_DOT_WORD + DEEP_MAX_AUDIT_WORDS
+DEEP_CUMULATIVE_WORD = DEEP_WEIGHT_SCALE_WORD + DEEP_MAX_AUDIT_WORDS
+DEEP_ACTIVATION_WORD = DEEP_CUMULATIVE_WORD + DEEP_MAX_AUDIT_WORDS
+DEEP_WEIGHT_WORD = DEEP_ACTIVATION_WORD + DEEP_MAX_GROUPS
+
+# groups, padded global outputs, normal layer-0 segment name/offset/type/local rows
+MODE_INFO = {
+    "q": (32, 4096, "layer0_q_projection_q17", 33, "fxp32", LOCAL_DIM),
+    "k": (32, 4096, "layer0_k_projection_q17", 97, "fxp32", LOCAL_DIM),
+    "v": (32, 4096, "layer0_v_projection_q17", 161, "fxp32", LOCAL_DIM),
+    "o": (32, 4096, "layer0_o_projection", 258, "fp32", LOCAL_DIM),
+    "gate": (32, 11264, "layer0_gate_projection", 355, "fp32", LOCAL_HIDDEN),
+    "up": (32, 11264, "layer0_up_projection", 531, "fp32", LOCAL_HIDDEN),
+    "down": (88, 4096, "layer0_down_projection", 797, "fp32", LOCAL_DIM),
+    "logits": (32, 32256, None, None, "fp32", 8064),
+}
 
 # name, word offset, words, representation, logical values/groups per PE
 SEGMENTS = [
@@ -98,8 +113,7 @@ def compare_qscale(hardware, software, word, words, groups):
 
 
 def compare_fxp32(hardware, software, word, words, values):
-    different = 0
-    max_raw = 0
+    different = max_raw = 0
     first = None
     for pe in range(NUM_PES):
         hw = segment_bytes(hardware, pe, word, words)
@@ -115,80 +129,9 @@ def compare_fxp32(hardware, software, word, words, values):
     return different, max_raw, first
 
 
-def compare_fp32(hardware, software, word, words, values):
-    sum_e2 = 0.0
-    sum_s2 = 0.0
-    max_abs = 0.0
-    finite = 0
-    nonfinite = 0
-    first = None
-    for pe in range(NUM_PES):
-        hw = segment_bytes(hardware, pe, word, words)
-        sw = segment_bytes(software, pe, word, words)
-        for index in range(values):
-            h = struct.unpack_from("<f", hw, index * 4)[0]
-            s = struct.unpack_from("<f", sw, index * 4)[0]
-            if not math.isfinite(h) or not math.isfinite(s):
-                nonfinite += 1
-                if first is None and h != s:
-                    first = "PE%d index%d HW=%r SW=%r" % (pe, index, h, s)
-                continue
-            error = h - s
-            finite += 1
-            sum_e2 += error * error
-            sum_s2 += s * s
-            max_abs = max(max_abs, abs(error))
-            if first is None and error != 0.0:
-                first = "PE%d index%d HW=%.9g SW=%.9g" % (
-                    pe, index, h, s)
-    rmse = math.sqrt(sum_e2 / finite) if finite else float("inf")
-    rel_l2 = (math.sqrt(sum_e2 / sum_s2) if sum_s2 else
-              (0.0 if sum_e2 == 0.0 else float("inf")))
-    return rel_l2, rmse, max_abs, nonfinite, first
-
-
-def compare_deep_i32(hardware, software, word):
-    different = 0
-    max_raw = 0
-    first = None
-    for pe in range(NUM_PES):
-        hw = segment_bytes(hardware, pe, word, Q_DEEP_WORDS)
-        sw = segment_bytes(software, pe, word, Q_DEEP_WORDS)
-        for index in range(Q_DEEP_VALUES):
-            h = struct.unpack_from("<i", hw, index * 4)[0]
-            s = struct.unpack_from("<i", sw, index * 4)[0]
-            if h != s:
-                different += 1
-                max_raw = max(max_raw, abs(h - s))
-                if first is None:
-                    first = "PE%d group%d row%d HW=%d SW=%d" % (
-                        pe, index // Q_DEEP_ROWS,
-                        index % Q_DEEP_ROWS, h, s)
-    return different, max_raw, first
-
-
-def compare_deep_words(hardware, software, word):
-    different = 0
-    first = None
-    for pe in range(NUM_PES):
-        hw = segment_bytes(hardware, pe, word, Q_DEEP_GROUPS)
-        sw = segment_bytes(software, pe, word, Q_DEEP_GROUPS)
-        for index, (h, s) in enumerate(zip(hw, sw)):
-            if h != s:
-                different += 1
-                if first is None:
-                    first = "PE%d group%d byte%d HW=0x%02x SW=0x%02x" % (
-                        pe, index // WORD_BYTES, index % WORD_BYTES, h, s)
-    return different, first
-
-
-def compare_deep_fp32(hardware, software, word, values, grouped):
-    different_bits = 0
-    sum_e2 = 0.0
-    sum_s2 = 0.0
-    max_abs = 0.0
-    finite = 0
-    nonfinite = 0
+def fp32_stats(hardware, software, word, values, grouped=False):
+    different_bits = finite = nonfinite = 0
+    sum_e2 = sum_s2 = max_abs = 0.0
     first = None
     words = (values + 15) // 16
     for pe in range(NUM_PES):
@@ -202,12 +145,10 @@ def compare_deep_fp32(hardware, software, word, values, grouped):
             if hb != sb:
                 different_bits += 1
                 if first is None:
-                    location = ("group%d row%d" %
-                                (index // Q_DEEP_ROWS,
-                                 index % Q_DEEP_ROWS)) if grouped else (
-                                     "row%d" % index)
-                    first = "PE%d %s HW=%.9g SW=%.9g" % (
-                        pe, location, h, s)
+                    loc = ("group%d row%d" % (index // DEEP_ROWS,
+                                               index % DEEP_ROWS)
+                           if grouped else "row%d" % index)
+                    first = "PE%d %s HW=%.9g SW=%.9g" % (pe, loc, h, s)
             if not math.isfinite(h) or not math.isfinite(s):
                 nonfinite += 1
                 continue
@@ -219,42 +160,74 @@ def compare_deep_fp32(hardware, software, word, values, grouped):
     rmse = math.sqrt(sum_e2 / finite) if finite else float("inf")
     rel_l2 = (math.sqrt(sum_e2 / sum_s2) if sum_s2 else
               (0.0 if sum_e2 == 0.0 else float("inf")))
-    return (different_bits, rel_l2, rmse, max_abs, nonfinite, first)
+    return different_bits, rel_l2, rmse, max_abs, nonfinite, first
+
+
+def compare_deep_i32(hardware, software, word, values):
+    different = max_raw = 0
+    first = None
+    words = (values + 15) // 16
+    for pe in range(NUM_PES):
+        hw = segment_bytes(hardware, pe, word, words)
+        sw = segment_bytes(software, pe, word, words)
+        for index in range(values):
+            h = struct.unpack_from("<i", hw, index * 4)[0]
+            s = struct.unpack_from("<i", sw, index * 4)[0]
+            if h != s:
+                different += 1
+                max_raw = max(max_raw, abs(h - s))
+                if first is None:
+                    first = "PE%d group%d row%d HW=%d SW=%d" % (
+                        pe, index // DEEP_ROWS, index % DEEP_ROWS, h, s)
+    return different, max_raw, first
+
+
+def compare_deep_words(hardware, software, word, groups):
+    different = 0
+    first = None
+    for pe in range(NUM_PES):
+        hw = segment_bytes(hardware, pe, word, groups)
+        sw = segment_bytes(software, pe, word, groups)
+        for index, pair in enumerate(zip(hw, sw)):
+            h, s = pair
+            if h != s:
+                different += 1
+                if first is None:
+                    first = "PE%d group%d byte%d HW=0x%02x SW=0x%02x" % (
+                        pe, index // WORD_BYTES, index % WORD_BYTES, h, s)
+    return different, first
 
 
 def fp32_add(first, second):
-    """Round an addition exactly once to IEEE-754 binary32."""
     return struct.unpack("<f", struct.pack("<f", first + second))[0]
 
 
-def replay_o_reduction(data):
-    """Replay the hardware PE reduction tree from captured local partials."""
+def replay_fp32_reduction(data, partial_values, output_word, local_rows):
+    words = (partial_values + 15) // 16
     local = []
     for pe in range(NUM_PES):
-        raw = segment_bytes(data, pe, Q_LOCAL_PARTIAL_WORD, 256)
-        local.append(struct.unpack("<4096f", raw))
-
-    outputs = [
-        segment_bytes(data, pe, 258, 64) for pe in range(NUM_PES)
-    ]
+        raw = segment_bytes(data, pe, DEEP_LOCAL_PARTIAL_WORD, words)
+        local.append(struct.unpack("<%df" % partial_values, raw))
+    outputs = [segment_bytes(data, pe, output_word,
+                             (local_rows + 15) // 16)
+               for pe in range(NUM_PES)]
     different = 0
     max_abs = 0.0
     first = None
-    for row in range(NUM_PES * LOCAL_DIM):
-        sum01 = fp32_add(local[0][row], local[1][row])
-        sum23 = fp32_add(local[2][row], local[3][row])
-        expected = fp32_add(sum01, sum23)
-        owner = row // LOCAL_DIM
-        local_row = row % LOCAL_DIM
-        actual = struct.unpack_from("<f", outputs[owner], local_row * 4)[0]
-        expected_bits = struct.unpack("<I", struct.pack("<f", expected))[0]
-        actual_bits = struct.unpack("<I", struct.pack("<f", actual))[0]
-        if expected_bits != actual_bits:
+    for row in range(partial_values):
+        expected = fp32_add(fp32_add(local[0][row], local[1][row]),
+                            fp32_add(local[2][row], local[3][row]))
+        owner = row // local_rows
+        actual = struct.unpack_from("<f", outputs[owner],
+                                    (row % local_rows) * 4)[0]
+        eb = struct.unpack("<I", struct.pack("<f", expected))[0]
+        ab = struct.unpack("<I", struct.pack("<f", actual))[0]
+        if eb != ab:
             different += 1
             if math.isfinite(expected) and math.isfinite(actual):
                 max_abs = max(max_abs, abs(actual - expected))
             if first is None:
-                first = "row%d HW/output=%.9g replay=%.9g" % (
+                first = "row%d output=%.9g replay=%.9g" % (
                     row, actual, expected)
     return different, max_abs, first
 
@@ -263,11 +236,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--hardware", required=True)
     parser.add_argument("--software", required=True)
-    parser.add_argument("--deep-mode", choices=("q", "o"), default="o",
-                        help="projection stored in the shared deep trace region")
-    parser.add_argument("--threshold", type=float, default=1.0e-5,
-                        help="relative-L2 threshold for FP32 checkpoints")
+    parser.add_argument("--deep-layer", type=int, default=0)
+    parser.add_argument("--deep-mode", choices=tuple(MODE_INFO), default="o")
+    parser.add_argument("--threshold", type=float, default=1.0e-5)
     args = parser.parse_args()
+    if args.deep_layer < 0 or args.deep_layer > 32:
+        parser.error("--deep-layer must be in [0,32]")
+    if (args.deep_layer == 32) != (args.deep_mode == "logits"):
+        parser.error("layer 32 and mode logits must be selected together")
     try:
         hardware = read_dump(args.hardware)
         software = read_dump(args.software)
@@ -277,11 +253,13 @@ def main():
 
     print("hardware=%s" % os.path.abspath(args.hardware))
     print("software=%s" % os.path.abspath(args.software))
-    print("bytes=%d layout=[4 PE][1205 x 64-byte stage words]" % DUMP_BYTES)
+    print("bytes=%d layout=[4 PE][%d x 64-byte stage words]" %
+          (DUMP_BYTES, STAGE_WORDS_PER_PE))
+    print("selector=layer%d/%s" % (args.deep_layer, args.deep_mode))
+
     first_bad = None
     stage_bad = {}
     for name, word, words, kind, count in SEGMENTS:
-        bad = False
         detail = None
         if kind == "qscale":
             qdiff, sdiff, detail = compare_qscale(
@@ -297,112 +275,108 @@ def main():
             summary = "different=%d/%d max_raw_diff=%d" % (
                 different, NUM_PES * count, max_raw)
         else:
-            rel_l2, rmse, max_abs, nonfinite, detail = compare_fp32(
-                hardware, software, word, words, count)
+            result = fp32_stats(hardware, software, word, count)
+            _, rel_l2, rmse, max_abs, nonfinite, detail = result
             bad = rel_l2 > args.threshold or nonfinite != 0
-            summary = (
-                "rel_l2=%.8g rmse=%.8g max_abs=%.8g nonfinite=%d" %
-                (rel_l2, rmse, max_abs, nonfinite))
-        print("%-29s %s%s" %
-              (name, summary, "  BAD" if bad else ""))
+            summary = "rel_l2=%.8g rmse=%.8g max_abs=%.8g nonfinite=%d" % (
+                rel_l2, rmse, max_abs, nonfinite)
+        print("%-29s %s%s" % (name, summary, "  BAD" if bad else ""))
         if bad and detail:
             print("  first: %s" % detail)
         if bad and first_bad is None:
             first_bad = name
         stage_bad[name] = bad
 
-    deep_label = args.deep_mode.upper()
-    deep_prefix = args.deep_mode + "_"
-    print("\nDeep %s localization:" % deep_label)
+    groups, outputs, stage_name, stage_word, stage_kind, local_rows = \
+        MODE_INFO[args.deep_mode]
+    audit_values = groups * DEEP_ROWS
+    prefix = args.deep_mode + "_"
+    print("\nDeep layer%d/%s localization:" %
+          (args.deep_layer, args.deep_mode.upper()))
     deep_bad = {}
     for name, word in [
-            (deep_prefix + "activation_consumed", Q_ACTIVATION_WORD),
-            (deep_prefix + "packed_weight_rows0_3", Q_WEIGHT_WORD)]:
-        different, detail = compare_deep_words(hardware, software, word)
+            (prefix + "activation_consumed", DEEP_ACTIVATION_WORD),
+            (prefix + "packed_weight_rows0_3", DEEP_WEIGHT_WORD)]:
+        different, detail = compare_deep_words(
+            hardware, software, word, groups)
         deep_bad[name] = different != 0
-        total = NUM_PES * Q_DEEP_GROUPS * WORD_BYTES
         print("%-29s bytes_different=%d/%d%s" % (
-            name, different, total, "  BAD" if different else ""))
+            name, different, NUM_PES * groups * WORD_BYTES,
+            "  BAD" if different else ""))
         if detail:
             print("  first: %s" % detail)
 
+    dot_name = prefix + "group_dot_i32"
     different, max_raw, detail = compare_deep_i32(
-        hardware, software, Q_GROUP_DOT_WORD)
-    dot_name = deep_prefix + "group_dot_i32"
+        hardware, software, DEEP_GROUP_DOT_WORD, audit_values)
     deep_bad[dot_name] = different != 0
     print("%-29s different=%d/%d max_raw_diff=%d%s" % (
-        dot_name, different, NUM_PES * Q_DEEP_VALUES,
-        max_raw, "  BAD" if different else ""))
+        dot_name, different, NUM_PES * audit_values, max_raw,
+        "  BAD" if different else ""))
     if detail:
         print("  first: %s" % detail)
 
     for name, word, values, grouped in [
-            (deep_prefix + "weight_scale_fp32", Q_WEIGHT_SCALE_WORD,
-             Q_DEEP_VALUES, True),
-            (deep_prefix + "cumulative_fp32", Q_CUMULATIVE_WORD,
-             Q_DEEP_VALUES, True),
-            (deep_prefix + "local_partial_fp32", Q_LOCAL_PARTIAL_WORD,
-             4096, False)]:
-        result = compare_deep_fp32(
-            hardware, software, word, values, grouped)
-        different_bits, rel_l2, rmse, max_abs, nonfinite, detail = result
-        bad = different_bits != 0 or nonfinite != 0
+            (prefix + "weight_scale_fp32", DEEP_WEIGHT_SCALE_WORD,
+             audit_values, True),
+            (prefix + "cumulative_fp32", DEEP_CUMULATIVE_WORD,
+             audit_values, True),
+            (prefix + "local_partial_fp32", DEEP_LOCAL_PARTIAL_WORD,
+             outputs, False)]:
+        result = fp32_stats(hardware, software, word, values, grouped)
+        different, rel_l2, rmse, max_abs, nonfinite, detail = result
+        bad = different != 0 or nonfinite != 0
         deep_bad[name] = bad
-        print("%-29s bits_different=%d/%d rel_l2=%.8g "
-              "rmse=%.8g max_abs=%.8g nonfinite=%d%s" % (
-                  name, different_bits, NUM_PES * values, rel_l2,
-                  rmse, max_abs, nonfinite, "  BAD" if bad else ""))
+        print("%-29s bits_different=%d/%d rel_l2=%.8g rmse=%.8g "
+              "max_abs=%.8g nonfinite=%d%s" % (
+                  name, different, NUM_PES * values, rel_l2, rmse,
+                  max_abs, nonfinite, "  BAD" if bad else ""))
         if detail:
             print("  first: %s" % detail)
 
-    if args.deep_mode == "o":
+    replay_names = []
+    if args.deep_layer == 0 and stage_kind == "fp32" and stage_word is not None:
         for source_name, data in (("hardware", hardware),
                                   ("software", software)):
-            different, max_abs, detail = replay_o_reduction(data)
-            name = "o_%s_reduction_replay" % source_name
+            different, max_abs, detail = replay_fp32_reduction(
+                data, outputs, stage_word, local_rows)
+            name = "%s_%s_reduction_replay" % (args.deep_mode, source_name)
+            replay_names.append(name)
             deep_bad[name] = different != 0
             print("%-29s bits_different=%d/%d max_abs=%.8g%s" % (
-                name, different, NUM_PES * LOCAL_DIM, max_abs,
+                name, different, outputs, max_abs,
                 "  BAD" if different else ""))
             if detail:
                 print("  first: %s" % detail)
 
-    activation_name = deep_prefix + "activation_consumed"
-    weight_name = deep_prefix + "packed_weight_rows0_3"
-    scale_name = deep_prefix + "weight_scale_fp32"
-    cumulative_name = deep_prefix + "cumulative_fp32"
-    partial_name = deep_prefix + "local_partial_fp32"
-    hardware_replay_name = "o_hardware_reduction_replay"
-    software_replay_name = "o_software_reduction_replay"
-    if deep_bad[activation_name]:
-        localization = "%s activation delivery/addressing" % deep_label
-    elif deep_bad[weight_name]:
-        localization = "%s packed-weight stream/address ordering" % deep_label
+    if deep_bad[prefix + "activation_consumed"]:
+        localization = "activation delivery/addressing"
+    elif deep_bad[prefix + "packed_weight_rows0_3"]:
+        localization = "packed-weight stream/address ordering"
     elif deep_bad[dot_name]:
         localization = "packed INT4xINT14 MAC arithmetic"
-    elif deep_bad[scale_name]:
-        localization = "%s weight-scale stream/address ordering" % deep_label
-    elif deep_bad[cumulative_name]:
+    elif deep_bad[prefix + "weight_scale_fp32"]:
+        localization = "weight-scale stream/address ordering"
+    elif deep_bad[prefix + "cumulative_fp32"]:
         localization = "FP32 contribution/accumulation or group ordering"
-    elif deep_bad[partial_name]:
-        localization = "local MAC outside audited rows 0..3 or local packet ordering"
-    elif args.deep_mode == "o" and deep_bad[software_replay_name]:
-        localization = "software trace/reference reduction is internally inconsistent"
-    elif args.deep_mode == "o" and deep_bad[hardware_replay_name]:
-        localization = "4-PE AXIS reduction/routing or final output store"
-    elif stage_bad.get("layer0_%s_projection%s" % (
-            args.deep_mode, "_q17" if args.deep_mode == "q" else ""), False):
-        localization = "4-PE AXIS reduction/routing, conversion, or store"
+    elif deep_bad[prefix + "local_partial_fp32"]:
+        localization = "local MAC outside audited rows 0..3 or packet ordering"
+    elif len(replay_names) == 2 and deep_bad[replay_names[1]]:
+        localization = "software oracle/reduction trace is inconsistent"
+    elif len(replay_names) == 2 and deep_bad[replay_names[0]]:
+        localization = "4-PE AXIS reduction/routing or output store"
+    elif args.deep_layer == 0 and stage_name and stage_bad.get(stage_name, False):
+        localization = "4-PE reduction/routing, conversion, or output store"
     else:
-        localization = "no %s-path divergence detected" % deep_label
-    print("DEEP-%s RESULT: %s" % (deep_label, localization))
+        localization = "no selected deep-path divergence detected"
+    print("DEEP RESULT: %s" % localization)
 
     any_deep_bad = any(deep_bad.values())
     if first_bad is None and not any_deep_bad:
-        print("RESULT: all layer-zero stage checkpoints match.")
+        print("RESULT: stage checkpoints and selected deep trace match.")
         return 0
     if first_bad is None:
-        print("RESULT: normal stages match; deep %s trace diverges." % deep_label)
+        print("RESULT: normal stages match; selected deep trace diverges.")
         return 1
     print("RESULT: first divergent stage: %s" % first_bad)
     return 1

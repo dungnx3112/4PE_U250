@@ -8,8 +8,11 @@
 #include "swiftkv_attention.hpp"
 
 #ifdef INT4_ENABLE_LAYER_TRACE
-#define INT4_KERNEL_TRACE_DECL , int4_output_word_t* layer_trace
-#define INT4_KERNEL_TRACE_ARG , layer_trace
+#define INT4_KERNEL_TRACE_DECL                                        \
+    , int4_output_word_t* layer_trace                                 \
+    , ap_uint<6> trace_layer                                          \
+    , ap_uint<3> trace_mode
+#define INT4_KERNEL_TRACE_ARG , layer_trace, trace_layer, trace_mode
 #else
 #define INT4_KERNEL_TRACE_DECL
 #define INT4_KERNEL_TRACE_ARG
@@ -111,6 +114,8 @@ extern "C" void int4_decoder_pe0_kernel(
 #pragma HLS INTERFACE s_axilite port=kv_cache bundle=control
 #ifdef INT4_ENABLE_LAYER_TRACE
 #pragma HLS INTERFACE s_axilite port=layer_trace bundle=control
+#pragma HLS INTERFACE s_axilite port=trace_layer bundle=control
+#pragma HLS INTERFACE s_axilite port=trace_mode bundle=control
 #endif
 #pragma HLS INTERFACE s_axilite port=return bundle=control
 
@@ -193,6 +198,8 @@ extern "C" void int4_decoder_pe1_kernel(
 #pragma HLS INTERFACE s_axilite port=kv_cache bundle=control
 #ifdef INT4_ENABLE_LAYER_TRACE
 #pragma HLS INTERFACE s_axilite port=layer_trace bundle=control
+#pragma HLS INTERFACE s_axilite port=trace_layer bundle=control
+#pragma HLS INTERFACE s_axilite port=trace_mode bundle=control
 #endif
 #pragma HLS INTERFACE s_axilite port=return bundle=control
 
@@ -313,6 +320,8 @@ extern "C" void int4_decoder_pe2_kernel(
 #pragma HLS INTERFACE s_axilite port=kv_cache bundle=control
 #ifdef INT4_ENABLE_LAYER_TRACE
 #pragma HLS INTERFACE s_axilite port=layer_trace bundle=control
+#pragma HLS INTERFACE s_axilite port=trace_layer bundle=control
+#pragma HLS INTERFACE s_axilite port=trace_mode bundle=control
 #endif
 #pragma HLS INTERFACE s_axilite port=return bundle=control
 
@@ -426,6 +435,8 @@ extern "C" void int4_decoder_pe3_kernel(
 #pragma HLS INTERFACE s_axilite port=kv_cache bundle=control
 #ifdef INT4_ENABLE_LAYER_TRACE
 #pragma HLS INTERFACE s_axilite port=layer_trace bundle=control
+#pragma HLS INTERFACE s_axilite port=trace_layer bundle=control
+#pragma HLS INTERFACE s_axilite port=trace_mode bundle=control
 #endif
 #pragma HLS INTERFACE s_axilite port=return bundle=control
 

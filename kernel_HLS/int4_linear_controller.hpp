@@ -61,6 +61,7 @@ void int4_linear_local_stage_pe##PE(                                   \
     int4_output_word_t output_mem[INT4_MAX_LOCAL_OUTPUT_WORDS],        \
     ap_uint<3> mode,                                                   \
     ap_uint<24> weight_word_offset,                                    \
+    bool capture_deep,                                                 \
     hls::stream<int4_reduction_packet_t>& partial_stream,              \
     hls::stream<int4_reduction_packet_t>& completed_stream             \
     INT4_LINEAR_TRACE_DECL)

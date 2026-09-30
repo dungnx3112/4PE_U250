@@ -176,20 +176,21 @@ static constexpr int INT4_STAGE_TRACE_SWIGLU_WORD =
     INT4_STAGE_TRACE_UP_WORD + INT4_HIDDEN_WORDS_PER_PE;
 static constexpr int INT4_STAGE_TRACE_DOWN_WORD =
     INT4_STAGE_TRACE_SWIGLU_WORD + INT4_TRACE_QSCALE_HIDDEN_WORDS;
-// Deep layer-0 Q diagnostics.  The normal stage trace only exposes the
-// quantized RMS input and the fully reduced Q output, which cannot distinguish
-// a local MAC/scale error from an AXI-Stream reduction error.  The regions
-// below retain every PE-local Q partial plus a group-by-group audit trail for
-// output rows 0..3 (the first final Q mismatch always includes row zero).
+// Runtime-selectable deep linear diagnostics. One XCLBIN can capture any
+// layer/mode without rebuilding. The fixed-capacity region is sized for the
+// largest operation (logits rows and down-projection input groups); only the
+// selected operation's valid prefix is written.
 static constexpr int INT4_Q_DEEP_ROWS = INT4_REDUCTION_LANES;
+static constexpr int INT4_DEEP_MAX_LOCAL_GROUPS =
+    INT4_LOCAL_GROUPS_HIDDEN;
 static constexpr int INT4_Q_DEEP_VALUES =
-    INT4_LOCAL_GROUPS_DIM * INT4_Q_DEEP_ROWS;
+    INT4_DEEP_MAX_LOCAL_GROUPS * INT4_Q_DEEP_ROWS;
 static constexpr int INT4_Q_DEEP_WORDS =
     INT4_Q_DEEP_VALUES / INT4_OUTPUTS_PER_WORD;
 static constexpr int INT4_Q_LOCAL_PARTIAL_PACKETS =
-    INT4_DIM / INT4_REDUCTION_LANES;
+    INT4_PADDED_VOCAB_SIZE / INT4_REDUCTION_LANES;
 static constexpr int INT4_Q_LOCAL_PARTIAL_WORDS =
-    INT4_DIM / INT4_OUTPUTS_PER_WORD;
+    INT4_PADDED_VOCAB_SIZE / INT4_OUTPUTS_PER_WORD;
 static constexpr int INT4_STAGE_TRACE_Q_LOCAL_PARTIAL_WORD =
     INT4_STAGE_TRACE_DOWN_WORD + INT4_VECTOR_WORDS_PER_PE;
 static constexpr int INT4_STAGE_TRACE_Q_GROUP_DOT_WORD =
@@ -202,20 +203,20 @@ static constexpr int INT4_STAGE_TRACE_Q_CUMULATIVE_WORD =
 static constexpr int INT4_STAGE_TRACE_Q_ACTIVATION_WORD =
     INT4_STAGE_TRACE_Q_CUMULATIVE_WORD + INT4_Q_DEEP_WORDS;
 static constexpr int INT4_STAGE_TRACE_Q_WEIGHT_WORD =
-    INT4_STAGE_TRACE_Q_ACTIVATION_WORD + INT4_LOCAL_GROUPS_DIM;
+    INT4_STAGE_TRACE_Q_ACTIVATION_WORD + INT4_DEEP_MAX_LOCAL_GROUPS;
 static constexpr int INT4_STAGE_TRACE_WORDS_PER_PE =
-    INT4_STAGE_TRACE_Q_WEIGHT_WORD + INT4_LOCAL_GROUPS_DIM;
+    INT4_STAGE_TRACE_Q_WEIGHT_WORD + INT4_DEEP_MAX_LOCAL_GROUPS;
 static constexpr int INT4_LAYER_TRACE_WORDS_PER_PE =
     INT4_LAYER_TRACE_RESIDUAL_WORDS_PER_PE +
     INT4_STAGE_TRACE_WORDS_PER_PE;
 
-static_assert(INT4_Q_DEEP_WORDS == 8,
-              "four Q rows across 32 local groups must occupy eight words");
-static_assert(INT4_Q_LOCAL_PARTIAL_WORDS == 256,
-              "one complete PE-local Q partial must occupy 256 words");
-static_assert(INT4_STAGE_TRACE_WORDS_PER_PE == 1205,
+static_assert(INT4_Q_DEEP_WORDS == 22,
+              "four rows across 88 local groups must occupy 22 words");
+static_assert(INT4_Q_LOCAL_PARTIAL_WORDS == 2016,
+              "largest complete PE-local partial must occupy 2016 words");
+static_assert(INT4_STAGE_TRACE_WORDS_PER_PE == 3119,
               "layer-zero full-stage trace layout changed unexpectedly");
-static_assert(INT4_LAYER_TRACE_WORDS_PER_PE == 5365,
+static_assert(INT4_LAYER_TRACE_WORDS_PER_PE == 7279,
               "combined residual/stage trace layout changed unexpectedly");
 
 static_assert(INT4_LOCAL_DIM == 1024,
