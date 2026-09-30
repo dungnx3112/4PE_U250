@@ -17,10 +17,16 @@ set_clock_uncertainty 0.270
 
 # The generic runtime-mode top must expose capacity for the largest matrix
 # (logits) and the complete forensic trace during C/RTL co-simulation.
-set_directive_interface -mode m_axi -depth 266112 \
+set_directive_interface -mode m_axi -bundle gmem_weight -depth 266112 \
     int4_linear_local_stage_pe0 weight_mem
-set_directive_interface -mode m_axi -depth 7279 \
+set_directive_interface -mode m_axi -bundle gmem_trace -depth 7279 \
     int4_linear_local_stage_pe0 q_deep_trace
+set_directive_interface -mode ap_memory \
+    int4_linear_local_stage_pe0 activation_q
+set_directive_interface -mode ap_memory \
+    int4_linear_local_stage_pe0 activation_scale
+set_directive_interface -mode ap_memory \
+    int4_linear_local_stage_pe0 output_mem
 
 csim_design -clean
 csynth_design
