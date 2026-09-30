@@ -222,10 +222,49 @@ def compare_deep_fp32(hardware, software, word, values, grouped):
     return (different_bits, rel_l2, rmse, max_abs, nonfinite, first)
 
 
+def fp32_add(first, second):
+    """Round an addition exactly once to IEEE-754 binary32."""
+    return struct.unpack("<f", struct.pack("<f", first + second))[0]
+
+
+def replay_o_reduction(data):
+    """Replay the hardware PE reduction tree from captured local partials."""
+    local = []
+    for pe in range(NUM_PES):
+        raw = segment_bytes(data, pe, Q_LOCAL_PARTIAL_WORD, 256)
+        local.append(struct.unpack("<4096f", raw))
+
+    outputs = [
+        segment_bytes(data, pe, 258, 64) for pe in range(NUM_PES)
+    ]
+    different = 0
+    max_abs = 0.0
+    first = None
+    for row in range(NUM_PES * LOCAL_DIM):
+        sum01 = fp32_add(local[0][row], local[1][row])
+        sum23 = fp32_add(local[2][row], local[3][row])
+        expected = fp32_add(sum01, sum23)
+        owner = row // LOCAL_DIM
+        local_row = row % LOCAL_DIM
+        actual = struct.unpack_from("<f", outputs[owner], local_row * 4)[0]
+        expected_bits = struct.unpack("<I", struct.pack("<f", expected))[0]
+        actual_bits = struct.unpack("<I", struct.pack("<f", actual))[0]
+        if expected_bits != actual_bits:
+            different += 1
+            if math.isfinite(expected) and math.isfinite(actual):
+                max_abs = max(max_abs, abs(actual - expected))
+            if first is None:
+                first = "row%d HW/output=%.9g replay=%.9g" % (
+                    row, actual, expected)
+    return different, max_abs, first
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--hardware", required=True)
     parser.add_argument("--software", required=True)
+    parser.add_argument("--deep-mode", choices=("q", "o"), default="o",
+                        help="projection stored in the shared deep trace region")
     parser.add_argument("--threshold", type=float, default=1.0e-5,
                         help="relative-L2 threshold for FP32 checkpoints")
     args = parser.parse_args()
@@ -272,11 +311,13 @@ def main():
             first_bad = name
         stage_bad[name] = bad
 
-    print("\nDeep Q localization:")
+    deep_label = args.deep_mode.upper()
+    deep_prefix = args.deep_mode + "_"
+    print("\nDeep %s localization:" % deep_label)
     deep_bad = {}
     for name, word in [
-            ("q_activation_consumed", Q_ACTIVATION_WORD),
-            ("q_packed_weight_rows0_3", Q_WEIGHT_WORD)]:
+            (deep_prefix + "activation_consumed", Q_ACTIVATION_WORD),
+            (deep_prefix + "packed_weight_rows0_3", Q_WEIGHT_WORD)]:
         different, detail = compare_deep_words(hardware, software, word)
         deep_bad[name] = different != 0
         total = NUM_PES * Q_DEEP_GROUPS * WORD_BYTES
@@ -287,19 +328,20 @@ def main():
 
     different, max_raw, detail = compare_deep_i32(
         hardware, software, Q_GROUP_DOT_WORD)
-    deep_bad["q_group_dot_i32"] = different != 0
+    dot_name = deep_prefix + "group_dot_i32"
+    deep_bad[dot_name] = different != 0
     print("%-29s different=%d/%d max_raw_diff=%d%s" % (
-        "q_group_dot_i32", different, NUM_PES * Q_DEEP_VALUES,
+        dot_name, different, NUM_PES * Q_DEEP_VALUES,
         max_raw, "  BAD" if different else ""))
     if detail:
         print("  first: %s" % detail)
 
     for name, word, values, grouped in [
-            ("q_weight_scale_fp32", Q_WEIGHT_SCALE_WORD,
+            (deep_prefix + "weight_scale_fp32", Q_WEIGHT_SCALE_WORD,
              Q_DEEP_VALUES, True),
-            ("q_cumulative_fp32", Q_CUMULATIVE_WORD,
+            (deep_prefix + "cumulative_fp32", Q_CUMULATIVE_WORD,
              Q_DEEP_VALUES, True),
-            ("q_local_partial_fp32", Q_LOCAL_PARTIAL_WORD,
+            (deep_prefix + "local_partial_fp32", Q_LOCAL_PARTIAL_WORD,
              4096, False)]:
         result = compare_deep_fp32(
             hardware, software, word, values, grouped)
@@ -313,30 +355,54 @@ def main():
         if detail:
             print("  first: %s" % detail)
 
-    if deep_bad["q_activation_consumed"]:
-        localization = "activation delivery/addressing inside the Q MAC"
-    elif deep_bad["q_packed_weight_rows0_3"]:
-        localization = "Q packed-weight stream/address ordering"
-    elif deep_bad["q_group_dot_i32"]:
+    if args.deep_mode == "o":
+        for source_name, data in (("hardware", hardware),
+                                  ("software", software)):
+            different, max_abs, detail = replay_o_reduction(data)
+            name = "o_%s_reduction_replay" % source_name
+            deep_bad[name] = different != 0
+            print("%-29s bits_different=%d/%d max_abs=%.8g%s" % (
+                name, different, NUM_PES * LOCAL_DIM, max_abs,
+                "  BAD" if different else ""))
+            if detail:
+                print("  first: %s" % detail)
+
+    activation_name = deep_prefix + "activation_consumed"
+    weight_name = deep_prefix + "packed_weight_rows0_3"
+    scale_name = deep_prefix + "weight_scale_fp32"
+    cumulative_name = deep_prefix + "cumulative_fp32"
+    partial_name = deep_prefix + "local_partial_fp32"
+    hardware_replay_name = "o_hardware_reduction_replay"
+    software_replay_name = "o_software_reduction_replay"
+    if deep_bad[activation_name]:
+        localization = "%s activation delivery/addressing" % deep_label
+    elif deep_bad[weight_name]:
+        localization = "%s packed-weight stream/address ordering" % deep_label
+    elif deep_bad[dot_name]:
         localization = "packed INT4xINT14 MAC arithmetic"
-    elif deep_bad["q_weight_scale_fp32"]:
-        localization = "Q weight-scale stream/address ordering"
-    elif deep_bad["q_cumulative_fp32"]:
+    elif deep_bad[scale_name]:
+        localization = "%s weight-scale stream/address ordering" % deep_label
+    elif deep_bad[cumulative_name]:
         localization = "FP32 contribution/accumulation or group ordering"
-    elif deep_bad["q_local_partial_fp32"]:
+    elif deep_bad[partial_name]:
         localization = "local MAC outside audited rows 0..3 or local packet ordering"
-    elif stage_bad.get("layer0_q_projection_q17", False):
-        localization = "4-PE AXIS reduction/routing, final Q15.17 conversion, or store"
+    elif args.deep_mode == "o" and deep_bad[software_replay_name]:
+        localization = "software trace/reference reduction is internally inconsistent"
+    elif args.deep_mode == "o" and deep_bad[hardware_replay_name]:
+        localization = "4-PE AXIS reduction/routing or final output store"
+    elif stage_bad.get("layer0_%s_projection%s" % (
+            args.deep_mode, "_q17" if args.deep_mode == "q" else ""), False):
+        localization = "4-PE AXIS reduction/routing, conversion, or store"
     else:
-        localization = "no Q-path divergence detected"
-    print("DEEP-Q RESULT: %s" % localization)
+        localization = "no %s-path divergence detected" % deep_label
+    print("DEEP-%s RESULT: %s" % (deep_label, localization))
 
     any_deep_bad = any(deep_bad.values())
     if first_bad is None and not any_deep_bad:
         print("RESULT: all layer-zero stage checkpoints match.")
         return 0
     if first_bad is None:
-        print("RESULT: normal stages match; deep Q trace diverges.")
+        print("RESULT: normal stages match; deep %s trace diverges." % deep_label)
         return 1
     print("RESULT: first divergent stage: %s" % first_bad)
     return 1

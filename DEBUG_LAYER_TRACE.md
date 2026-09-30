@@ -28,14 +28,16 @@ build:
 - SwiGLU INT14/E8M0 output;
 - Down projection.
 
-For the layer-zero Q projection, the trace also records enough intermediate
-state to distinguish local GEMV arithmetic from the 4-PE reduction path:
+For the layer-zero Q and O projections, one shared deep region records enough
+intermediate state to distinguish local GEMV arithmetic from the 4-PE
+reduction path. O runs after Q and intentionally leaves its data in that
+region; use `--deep-mode q` with the analyzer for older Q-only XCLBINs:
 
 - every PE-local FP32 partial for all 4096 output rows;
-- the exact INT14 activation word consumed by the Q MAC for every local group;
+- the exact INT14 activation word consumed by the selected MAC for every local group;
 - the exact packed INT4 weights consumed for rows 0..3 in every local group;
 - raw INT32 group dots for output rows 0..3 and all 32 local G32 groups;
-- the matching FP32 Q weight scale for each audited group;
+- the matching FP32 weight scale for each audited group;
 - the cumulative FP32 row sum after every audited group.
 
 The deep stage trace is exactly 308,480 bytes per token
@@ -178,12 +180,15 @@ debug build:
 env -u LD_LIBRARY_PATH -u PYTHONHOME -u PYTHONPATH \
   /usr/bin/python3 scripts/analyze_stage_trace.py \
   --hardware "$HW_ROOT/stage/stage_trace_pos0000_token15043.bin" \
-  --software "$SW_ROOT/stage/stage_trace_pos0000_token15043.bin"
+  --software "$SW_ROOT/stage/stage_trace_pos0000_token15043.bin" \
+  --deep-mode o
 ```
 
-The analyzer prints `DEEP-Q RESULT` after the normal stage comparison. Its
+The analyzer prints `DEEP-O RESULT` after the normal stage comparison. Its
 result separates packed dot/activation/weight ordering, scale addressing,
-FP32 accumulation, PE-local packet ordering, and the final 4-PE AXIS
-reduction/conversion/store path. INT14/E8M0 and Q15.17 checkpoints are
+FP32 accumulation, and PE-local packet ordering. For O, it also replays the
+bit-exact `(PE0 + PE1) + (PE2 + PE3)` tree from the captured local partials,
+checking both the FPGA output and the software reference before blaming the
+final AXIS reduction/store path. INT14/E8M0 and Q15.17 checkpoints are
 compared exactly; FP32 projections report relative L2, RMSE, and maximum
 absolute error.

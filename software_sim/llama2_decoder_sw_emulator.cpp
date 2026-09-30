@@ -1002,7 +1002,12 @@ float* forward(
                               STAGE_ATTN_QSCALE_WORD);
         }
 
-        sharded_gemv_4pe(layer.w_o, attn_act, proj_o);
+        // The shared deep-linear trace region is written by Q first and then
+        // overwritten by layer-0 O, leaving the first divergent projection
+        // available without increasing the host/kernel trace ABI again.
+        sharded_gemv_4pe(
+            layer.w_o, attn_act, proj_o,
+            l == 0 && !g_dump_stage_trace_dir.empty());
         if (l == 0 && !g_dump_stage_trace_dir.empty()) {
             pack_stage_fp32(proj_o, LOCAL_DIM, STAGE_O_WORD);
         }

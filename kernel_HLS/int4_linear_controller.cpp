@@ -162,8 +162,10 @@ static ap_uint<24> int4_command_weight_offset(
 static bool int4_command_captures_deep_q(
     int4_linear_command_t command) {
 #pragma HLS INLINE
-    return int4_command_mode(command) == INT4_LINEAR_Q &&
-           int4_command_weight_offset(command) == 0;
+    const int mode = (int)int4_command_mode(command);
+    const int offset = (int)int4_command_weight_offset(command);
+    return (mode == INT4_LINEAR_Q || mode == INT4_LINEAR_O) &&
+           offset == int4_weight_offset(0, mode);
 }
 #endif
 
@@ -1097,7 +1099,10 @@ static void int4_dump_q_deep_trace(
     ap_uint<3> mode,
     ap_uint<24> weight_word_offset) {
 #pragma HLS INLINE off
-    if (mode != INT4_LINEAR_Q || weight_word_offset != 0) return;
+    if ((mode != INT4_LINEAR_Q && mode != INT4_LINEAR_O) ||
+        weight_word_offset != (ap_uint<24>)int4_weight_offset(0, mode)) {
+        return;
+    }
     int4_dump_q_packet_region<INT4_Q_LOCAL_PARTIAL_PACKETS>(
         q_local_partial, q_deep_trace,
         INT4_STAGE_TRACE_Q_LOCAL_PARTIAL_WORD);
