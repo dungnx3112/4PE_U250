@@ -161,14 +161,7 @@ void int4_decoder_local_pe_##PE(                                       \
     int4_quant_word_t activation_q[INT4_MAX_LOCAL_GROUPS];            \
     int4_act_scale_t activation_scale[INT4_MAX_LOCAL_GROUPS];                   \
     _Pragma("HLS BIND_STORAGE variable=norm_cache type=ram_2p impl=uram latency=3") \
-    _Pragma("HLS BIND_STORAGE variable=residual type=ram_2p impl=bram latency=1") \
-    _Pragma("HLS BIND_STORAGE variable=projection type=ram_2p impl=bram latency=1") \
-    _Pragma("HLS BIND_STORAGE variable=q type=ram_2p impl=bram latency=1")       \
-    _Pragma("HLS BIND_STORAGE variable=k type=ram_2p impl=bram latency=1")       \
-    _Pragma("HLS BIND_STORAGE variable=v type=ram_2p impl=bram latency=1")       \
-    _Pragma("HLS BIND_STORAGE variable=gate type=ram_2p impl=bram latency=1")    \
     _Pragma("HLS BIND_STORAGE variable=activation_q type=ram_2p impl=bram latency=1") \
-    _Pragma("HLS BIND_STORAGE variable=activation_scale type=ram_2p impl=bram latency=1") \
     const ap_uint<12> local_position = position_stream.read();         \
     if (local_position == 0) {                                        \
         int4_preload_local_metadata<PE>(                              \
