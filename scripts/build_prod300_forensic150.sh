@@ -274,6 +274,7 @@ forensic_worker() (
         "JOBS=$jobs_per_build"
         "REBUILD_XO=1"
         "REUSE_XO=0"
+        "RUN_FORENSIC_PREFLIGHT=0"
     )
     if [[ -n "${U250_PLATFORM:-}" ]]; then
         build_env+=("U250_PLATFORM=$U250_PLATFORM")
