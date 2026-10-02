@@ -150,19 +150,24 @@ mkdir -p "$work_root"
 git clone --local --no-checkout "$repo_root" "$prod_repo" \
     2>&1 | tee "$log_root/clone_prod.log"
 (( PIPESTATUS[0] == 0 )) || fail "failed to create production checkout"
-git -C "$prod_repo" checkout --detach "$head_full" \
-    2>&1 | tee -a "$log_root/clone_prod.log"
+(
+    cd "$prod_repo" || exit 1
+    git checkout --detach "$head_full"
+) 2>&1 | tee -a "$log_root/clone_prod.log"
 (( PIPESTATUS[0] == 0 )) || fail "failed to checkout production revision"
 
 git clone --local --no-checkout "$repo_root" "$debug_repo" \
     2>&1 | tee "$log_root/clone_debug.log"
 (( PIPESTATUS[0] == 0 )) || fail "failed to create forensic checkout"
-git -C "$debug_repo" checkout --detach "$head_full" \
-    2>&1 | tee -a "$log_root/clone_debug.log"
+(
+    cd "$debug_repo" || exit 1
+    git checkout --detach "$head_full"
+) 2>&1 | tee -a "$log_root/clone_debug.log"
 (( PIPESTATUS[0] == 0 )) || fail "failed to checkout forensic revision"
 
 for checkout in "$prod_repo" "$debug_repo"; do
-    [[ "$(git -C "$checkout" rev-parse HEAD)" == "$head_full" ]] ||
+    checkout_head=$(cd "$checkout" && git rev-parse HEAD)
+    [[ "$checkout_head" == "$head_full" ]] ||
         fail "revision mismatch in $checkout"
 done
 
