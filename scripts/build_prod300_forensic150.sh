@@ -19,7 +19,7 @@ set -uo pipefail
 # Useful overrides:
 #   JOBS_PER_BUILD=32        # total load is roughly 2x this value
 #   SKIP_GIT_PULL=1          # only when HEAD was already verified
-#   EXPECTED_COMMIT=1f1881e
+#   EXPECTED_COMMIT=ea491c9   # commit containing the HLS latency fix
 #   U250_PLATFORM=/absolute/path/to/platform.xpfm
 #   DUAL_WORK_ROOT=/scratch/$USER/dual_build_...
 
@@ -27,7 +27,7 @@ script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 repo_root=$(cd -- "$script_dir/.." && pwd -P)
 cd "$repo_root"
 
-expected_commit=${EXPECTED_COMMIT:-1f1881e}
+expected_commit=${EXPECTED_COMMIT:-ea491c9}
 git_remote=${GIT_REMOTE:-origin}
 git_branch=${GIT_BRANCH:-debug}
 skip_git_pull=${SKIP_GIT_PULL:-0}
