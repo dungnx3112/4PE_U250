@@ -167,7 +167,7 @@ void int4_decoder_local_pe_##PE(                                       \
     _Pragma("HLS BIND_STORAGE variable=k type=ram_2p impl=bram latency=2")       \
     _Pragma("HLS BIND_STORAGE variable=v type=ram_2p impl=bram latency=2")       \
     _Pragma("HLS BIND_STORAGE variable=gate type=ram_2p impl=bram latency=2")    \
-    _Pragma("HLS BIND_STORAGE variable=activation_q type=ram_2p impl=bram latency=2") \
+    _Pragma("HLS BIND_STORAGE variable=activation_q type=ram_2p impl=bram latency=1") \
     _Pragma("HLS BIND_STORAGE variable=activation_scale type=ram_2p impl=bram latency=2") \
     const ap_uint<12> local_position = position_stream.read();         \
     if (local_position == 0) {                                        \
