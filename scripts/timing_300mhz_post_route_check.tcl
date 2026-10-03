@@ -41,9 +41,9 @@ proc require_route_count_zero {label pattern report} {
 }
 
 require_route_count_zero "unrouted nets" \
-    {# of unrouted nets[. ]*:[[:space:]]*([0-9]+)[[:space:]]*:} $route_report
+    {# of unrouted nets[^:\r\n]*:[[:space:]]*([0-9]+)} $route_report
 require_route_count_zero "nets with routing errors" \
-    {# of nets with routing errors[. ]*:[[:space:]]*([0-9]+)[[:space:]]*:} $route_report
+    {# of nets with routing errors[^:\r\n]*:[[:space:]]*([0-9]+)} $route_report
 
 set timing_report_path [file normalize [file join $run_directory final_timing_summary.rpt]]
 report_timing_summary -delay_type min_max -report_unconstrained \

@@ -50,6 +50,25 @@ if {[string first {[file isdirectory $candidate_run_directory]} \
     error "FAIL: post-route checker accepts a stale current_run directory"
 }
 
+# Vivado 2023.2 terminates route-count lines at the integer.  A former parser
+# incorrectly required a second colon after that integer and rejected valid
+# reports such as "# of unrouted nets... : 0".
+foreach route_parse_case [list \
+        [list "unrouted nets" \
+            {# of unrouted nets[^:\r\n]*:[[:space:]]*([0-9]+)} \
+            {# of unrouted nets........................ : 0} 0] \
+        [list "nets with routing errors" \
+            {# of nets with routing errors[^:\r\n]*:[[:space:]]*([0-9]+)} \
+            {# of nets with routing errors............. : 12} 12]] {
+    lassign $route_parse_case label pattern sample expected
+    if {![regexp $pattern $sample -> actual] || $actual != $expected} {
+        error "FAIL: route-status parser rejected '$label' sample"
+    }
+    if {[string first $pattern $post_route_text] < 0} {
+        error "FAIL: post-route checker does not use tested '$label' pattern"
+    }
+}
+
 set mock_generation 1
 set mock_get_cells_calls 0
 
