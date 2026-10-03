@@ -5,10 +5,22 @@
 puts "INFO: loading [file normalize [info script]]"
 
 set run_directory [pwd]
-if {![catch {set candidate_run_directory [get_property DIRECTORY [current_run]]}] &&
-        $candidate_run_directory ne ""} {
-    set run_directory $candidate_run_directory
+# A DCP opened outside its original implementation project can retain a
+# relative current_run DIRECTORY (typically .runs/impl_1).  In that case the
+# directory is metadata from the checkpoint, not a usable report location.
+# Standalone timing gates may also provide an explicit destination before
+# sourcing this hook.
+if {[info exists timing300_report_directory] &&
+        $timing300_report_directory ne ""} {
+    set run_directory [file normalize $timing300_report_directory]
+} elseif {![catch {
+        set candidate_run_directory [get_property DIRECTORY [current_run]]
+    }] && $candidate_run_directory ne "" &&
+        [file isdirectory $candidate_run_directory]} {
+    set run_directory [file normalize $candidate_run_directory]
 }
+file mkdir $run_directory
+puts "INFO: 300MHz post-route: report_directory=$run_directory"
 
 set route_report_path [file normalize [file join $run_directory final_route_status.rpt]]
 # Use the report command's native file output.  `redirect` is unavailable in

@@ -34,6 +34,22 @@ if {[string first {require_numeric_path_slack} $timing_gate_text] < 0} {
     error "FAIL: routed timing gate lacks null/non-numeric path protection"
 }
 
+set post_route_path [file join $script_dir timing_300mhz_post_route_check.tcl]
+set handle [open $post_route_path r]
+set post_route_text [read $handle]
+close $handle
+if {![info complete $post_route_text]} {
+    error "FAIL: incomplete Tcl syntax in timing_300mhz_post_route_check.tcl"
+}
+if {[string first {[info exists timing300_report_directory]} \
+        $post_route_text] < 0} {
+    error "FAIL: post-route checker lacks an explicit report-directory override"
+}
+if {[string first {[file isdirectory $candidate_run_directory]} \
+        $post_route_text] < 0} {
+    error "FAIL: post-route checker accepts a stale current_run directory"
+}
+
 set mock_generation 1
 set mock_get_cells_calls 0
 
