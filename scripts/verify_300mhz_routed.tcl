@@ -1,19 +1,27 @@
 # Usage:
 #   vivado -mode batch -source verify_300mhz_routed.tcl -tclargs \
-#     <routed.dcp> <output_directory> ?gate_label?
+#     <routed.dcp> <output_directory> ?gate_label? ?expected_period_ns?
 #
 # This is a hard build gate: an XCLBIN is not accepted unless both setup and
 # hold timing close on the routed checkpoint.
 
-if {$argc < 2 || $argc > 3} {
-    error "Usage: verify_300mhz_routed.tcl <routed.dcp> <output_directory> ?gate_label?"
+if {$argc < 2 || $argc > 4} {
+    error "Usage: verify_300mhz_routed.tcl <routed.dcp> <output_directory> ?gate_label? ?expected_period_ns?"
 }
 
 set dcp_path [file normalize [lindex $argv 0]]
 set report_dir [file normalize [lindex $argv 1]]
 set gate_label "300MHz"
-if {$argc == 3} {
+set expected_kernel_period_ns 3.333333
+if {$argc >= 3} {
     set gate_label [lindex $argv 2]
+}
+if {$argc == 4} {
+    set expected_kernel_period_ns [lindex $argv 3]
+}
+if {![string is double -strict $expected_kernel_period_ns] ||
+        $expected_kernel_period_ns <= 0.0} {
+    error "Expected kernel period must be a positive number, got '$expected_kernel_period_ns'"
 }
 if {![file exists $dcp_path]} {
     error "Routed checkpoint does not exist: $dcp_path"
@@ -40,11 +48,10 @@ proc require_numeric_path_slack {paths label} {
 
 open_checkpoint $dcp_path
 
-# A passing 270 MHz DCP must never be accepted as a 300 MHz image merely
-# because this script was given a 300MHz label.  Vitis names the generated
-# kernel clock consistently for this platform; validate its actual period in
-# the routed checkpoint before looking at slack.
-set expected_kernel_period_ns 3.333333
+# A routed DCP must never be accepted under the wrong clock target merely
+# because it was given a different label. Vitis names the generated kernel
+# clock consistently for this platform, so validate its actual period before
+# looking at slack.
 set kernel_clock_name clk_out1_ulp_clk_wiz_0
 set kernel_clocks [get_clocks -quiet $kernel_clock_name]
 if {[llength $kernel_clocks] != 1} {
@@ -55,7 +62,7 @@ if {![string is double -strict $kernel_period_ns]} {
     error "$gate_label timing gate received non-numeric kernel period '$kernel_period_ns'"
 }
 if {abs($kernel_period_ns - $expected_kernel_period_ns) > 0.002} {
-    error "$gate_label timing gate rejected routed clock period ${kernel_period_ns}ns; expected ${expected_kernel_period_ns}ns (300 MHz)"
+    error "$gate_label timing gate rejected routed clock period ${kernel_period_ns}ns; expected ${expected_kernel_period_ns}ns"
 }
 
 set setup_paths [get_timing_paths -quiet -delay_type max -max_paths 1 -nworst 1]
@@ -75,11 +82,11 @@ set route_status [report_route_status -return_string]
 set route_report [open [file join $report_dir timing_gate_route_status.rpt] w]
 puts $route_report $route_status
 close $route_report
-if {![regexp {# of routable nets\.*\s*:\s*([0-9]+)} \
+if {![regexp {# of routable nets[^:\r\n]*:[[:space:]]*([0-9]+)} \
         $route_status -> routable_nets] ||
-    ![regexp {# of fully routed nets\.*\s*:\s*([0-9]+)} \
+    ![regexp {# of fully routed nets[^:\r\n]*:[[:space:]]*([0-9]+)} \
         $route_status -> fully_routed_nets] ||
-    ![regexp {# of nets with routing errors\.*\s*:\s*([0-9]+)} \
+    ![regexp {# of nets with routing errors[^:\r\n]*:[[:space:]]*([0-9]+)} \
         $route_status -> route_errors]} {
     error "Timing gate could not parse report_route_status"
 }

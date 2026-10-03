@@ -33,6 +33,9 @@ if {![info complete $timing_gate_text]} {
 if {[string first {require_numeric_path_slack} $timing_gate_text] < 0} {
     error "FAIL: routed timing gate lacks null/non-numeric path protection"
 }
+if {[string first {?expected_period_ns?} $timing_gate_text] < 0} {
+    error "FAIL: routed timing gate cannot validate non-300MHz checkpoints"
+}
 
 set post_route_path [file join $script_dir timing_300mhz_post_route_check.tcl]
 set handle [open $post_route_path r]
@@ -50,13 +53,15 @@ if {[string first {[file isdirectory $candidate_run_directory]} \
     error "FAIL: post-route checker accepts a stale current_run directory"
 }
 
-# Vivado 2023.2 terminates route-count lines at the integer.  A former parser
-# incorrectly required a second colon after that integer and rejected valid
-# reports such as "# of unrouted nets... : 0".
+# Validate the three route-status fields used by both routed gates. Vivado
+# 2023.2 does not emit a generic "unrouted nets" summary line.
 foreach route_parse_case [list \
-        [list "unrouted nets" \
-            {# of unrouted nets[^:\r\n]*:[[:space:]]*([0-9]+)} \
-            {# of unrouted nets........................ : 0} 0] \
+        [list "routable nets" \
+            {# of routable nets[^:\r\n]*:[[:space:]]*([0-9]+)} \
+            {# of routable nets........................ : 1234} 1234] \
+        [list "fully routed nets" \
+            {# of fully routed nets[^:\r\n]*:[[:space:]]*([0-9]+)} \
+            {# of fully routed nets................... : 1234} 1234] \
         [list "nets with routing errors" \
             {# of nets with routing errors[^:\r\n]*:[[:space:]]*([0-9]+)} \
             {# of nets with routing errors............. : 12} 12]] {
@@ -66,6 +71,9 @@ foreach route_parse_case [list \
     }
     if {[string first $pattern $post_route_text] < 0} {
         error "FAIL: post-route checker does not use tested '$label' pattern"
+    }
+    if {[string first $pattern $timing_gate_text] < 0} {
+        error "FAIL: routed timing gate does not use tested '$label' pattern"
     }
 }
 

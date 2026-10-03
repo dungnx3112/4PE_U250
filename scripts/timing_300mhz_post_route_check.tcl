@@ -30,20 +30,23 @@ set route_report_file [open $route_report_path r]
 set route_report [read $route_report_file]
 close $route_report_file
 
-proc require_route_count_zero {label pattern report} {
+proc require_route_count {label pattern report} {
     if {![regexp $pattern $report -> count]} {
         error "300MHz post-route: could not parse '$label' from route status report"
     }
     puts "INFO: 300MHz post-route: $label=$count"
-    if {$count != 0} {
-        error "300MHz post-route: $label must be zero, got $count"
-    }
+    return $count
 }
 
-require_route_count_zero "unrouted nets" \
-    {# of unrouted nets[^:\r\n]*:[[:space:]]*([0-9]+)} $route_report
-require_route_count_zero "nets with routing errors" \
-    {# of nets with routing errors[^:\r\n]*:[[:space:]]*([0-9]+)} $route_report
+set routable_nets [require_route_count "routable nets" \
+    {# of routable nets[^:\r\n]*:[[:space:]]*([0-9]+)} $route_report]
+set fully_routed_nets [require_route_count "fully routed nets" \
+    {# of fully routed nets[^:\r\n]*:[[:space:]]*([0-9]+)} $route_report]
+set route_errors [require_route_count "nets with routing errors" \
+    {# of nets with routing errors[^:\r\n]*:[[:space:]]*([0-9]+)} $route_report]
+if {$routable_nets != $fully_routed_nets || $route_errors != 0} {
+    error "300MHz post-route: routing incomplete ($fully_routed_nets/$routable_nets fully routed, $route_errors errors)"
+}
 
 set timing_report_path [file normalize [file join $run_directory final_timing_summary.rpt]]
 report_timing_summary -delay_type min_max -report_unconstrained \
