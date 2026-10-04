@@ -35,6 +35,10 @@ Environment overrides:
                     One-shot deadlock build: add full trace/counters, AXI
                     protocol checkers, and System ILA to all 12 AXI streams.
                     Implies ENABLE_STALL_PROFILE=1.
+  ENABLE_O_PROJECTION_ILA=1
+                    Insert one native ILA around the selected PE's SwiftKV ->
+                    activation BRAM -> O-projection boundary. Configure with
+                    O_ILA_PE, O_ILA_DEPTH and O_ILA_DATA_BITS.
   DEBUG_CLOCK_HZ=N  Link clock for profile builds (default: 150000000). The
                     production build remains fixed at 300000000 Hz.
   JOBS=<N>          Parallel synthesis/linking jobs (default: nproc)
@@ -53,6 +57,7 @@ reuse_xo=${REUSE_XO:-0}
 rebuild_xo=${REBUILD_XO:-0}
 enable_stall_profile=${ENABLE_STALL_PROFILE:-0}
 enable_full_stream_debug=${ENABLE_FULL_STREAM_DEBUG:-0}
+enable_o_projection_ila=${ENABLE_O_PROJECTION_ILA:-0}
 debug_clock_hz=${DEBUG_CLOCK_HZ:-150000000}
 detected_jobs=$(nproc 2>/dev/null || echo 32)
 if (( detected_jobs < 8 )); then
@@ -66,6 +71,10 @@ if [[ "$enable_stall_profile" != "0" && "$enable_stall_profile" != "1" ]]; then
 fi
 if [[ "$enable_full_stream_debug" != "0" && "$enable_full_stream_debug" != "1" ]]; then
     echo "ERROR: ENABLE_FULL_STREAM_DEBUG must be 0 or 1." >&2
+    exit 2
+fi
+if [[ "$enable_o_projection_ila" != "0" && "$enable_o_projection_ila" != "1" ]]; then
+    echo "ERROR: ENABLE_O_PROJECTION_ILA must be 0 or 1." >&2
     exit 2
 fi
 if (( enable_full_stream_debug == 1 )); then
@@ -91,7 +100,7 @@ stream_debug_specs=(
 )
 
 link_clock_hz=300000000
-if (( enable_stall_profile == 1 )); then
+if (( enable_stall_profile == 1 || enable_o_projection_ila == 1 )); then
     if [[ ! "$debug_clock_hz" =~ ^[0-9]+$ ]] ||
        (( debug_clock_hz < 100000000 || debug_clock_hz > 300000000 )); then
         echo "ERROR: DEBUG_CLOCK_HZ must be an integer from 100000000 to 300000000." >&2
@@ -441,6 +450,9 @@ else
     constraints_dir="$repo_root/constraints"
 fi
 pre_place_tcl="$constraints_dir/pre_place.tcl"
+if (( enable_o_projection_ila == 1 )); then
+    pre_place_tcl="$constraints_dir/pre_place_o_projection_ila.tcl"
+fi
 pre_physopt_tcl="$constraints_dir/pre_physopt.tcl"
 # Squeeze server configuration: scale Vivado synth.jobs and impl.jobs to 32 32
 synth_jobs=$(( jobs >= 32 ? 32 : jobs ))
@@ -482,7 +494,7 @@ echo "    pre_place.tcl   -> $pre_place_tcl"
 echo "    pre_physopt.tcl -> $pre_physopt_tcl"
 
 vpp_debug_flag=""
-if (( enable_stall_profile == 1 )); then
+if (( enable_stall_profile == 1 || enable_o_projection_ila == 1 )); then
     vpp_debug_flag="-g"
 fi
 
@@ -511,7 +523,7 @@ if [[ ! -s "$candidate_output" ]]; then
     exit 1
 fi
 
-if (( enable_stall_profile == 1 )); then
+if (( enable_stall_profile == 1 || enable_o_projection_ila == 1 )); then
     if ! command -v xclbinutil >/dev/null 2>&1; then
         echo "ERROR: xclbinutil is required to verify the profile xclbin." >&2
         exit 1
@@ -550,6 +562,23 @@ if (( enable_stall_profile == 1 )); then
         cp -f "$ltx_source" "${candidate_output}.ltx"
         echo "[OK] All 12 stream names are present in DEBUG_IP_LAYOUT."
         echo "[OK] System ILA probes: $ltx_source"
+    fi
+
+    if (( enable_o_projection_ila == 1 )); then
+        ila_name="ila_o_projection_pe${O_ILA_PE:-0}"
+        if ! grep -Fqi "$ila_name" "$debug_layout"; then
+            echo "ERROR: '$ila_name' is missing from DEBUG_IP_LAYOUT." >&2
+            echo "       Refusing to publish an xclbin without the requested O-projection ILA." >&2
+            exit 1
+        fi
+        ltx_source=$(find "$run_dir" -type f -name '*.ltx' -size +0c -print -quit 2>/dev/null || true)
+        if [[ -z "$ltx_source" ]]; then
+            echo "ERROR: O-projection ILA was requested but v++ produced no non-empty .ltx file." >&2
+            exit 1
+        fi
+        cp -f "$ltx_source" "${candidate_output}.ltx"
+        echo "[OK] O-projection ILA is present in DEBUG_IP_LAYOUT."
+        echo "[OK] O-projection ILA probes: $ltx_source"
     fi
 fi
 
@@ -591,6 +620,12 @@ EOF
         echo "Full-stream debug:    VERIFIED (12/12 AXIS links)"
         echo "System ILA probes:    ${resolved_output}.ltx"
     fi
+fi
+
+if (( enable_o_projection_ila == 1 )); then
+    echo "O-projection ILA:    PE${O_ILA_PE:-0}, depth=${O_ILA_DEPTH:-4096}, data_bits=${O_ILA_DATA_BITS:-32}"
+    echo "System ILA probes:   ${resolved_output}.ltx"
+    echo "Suggested trigger:   o_start == 1, capture position 50%"
 fi
 
 echo "All logs saved to:    $log_dir"
