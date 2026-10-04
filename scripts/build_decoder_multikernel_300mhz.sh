@@ -36,9 +36,10 @@ Environment overrides:
                     protocol checkers, and System ILA to all 12 AXI streams.
                     Implies ENABLE_STALL_PROFILE=1.
   ENABLE_O_PROJECTION_ILA=1
-                    Insert one native ILA around the selected PE's SwiftKV ->
-                    activation BRAM -> O-projection boundary. Configure with
-                    O_ILA_PE, O_ILA_DEPTH and O_ILA_DATA_BITS.
+                    Link a PE0 XO containing an HDL-instantiated ILA around
+                    SwiftKV -> activation BRAM -> O-projection. This is the
+                    debug-instantiation flow required by U250 DFX platforms.
+                    Configure capture depth with O_ILA_DEPTH.
   DEBUG_CLOCK_HZ=N  Link clock for profile builds (default: 150000000). The
                     production build remains fixed at 300000000 Hz.
   JOBS=<N>          Parallel synthesis/linking jobs (default: nproc)
@@ -75,6 +76,15 @@ if [[ "$enable_full_stream_debug" != "0" && "$enable_full_stream_debug" != "1" ]
 fi
 if [[ "$enable_o_projection_ila" != "0" && "$enable_o_projection_ila" != "1" ]]; then
     echo "ERROR: ENABLE_O_PROJECTION_ILA must be 0 or 1." >&2
+    exit 2
+fi
+if (( enable_o_projection_ila == 1 && reuse_xo != 1 )); then
+    echo "ERROR: ENABLE_O_PROJECTION_ILA=1 currently requires REUSE_XO=1." >&2
+    echo "       The existing PE0 XO is repackaged with an HDL-instantiated ILA before link." >&2
+    exit 2
+fi
+if (( enable_o_projection_ila == 1 )) && [[ "${O_ILA_PE:-0}" != "0" ]]; then
+    echo "ERROR: the HDL-instantiated O-projection ILA currently supports O_ILA_PE=0 only." >&2
     exit 2
 fi
 if (( enable_full_stream_debug == 1 )); then
@@ -231,7 +241,9 @@ if [[ ! -f "$config_path" ]]; then
     exit 1
 fi
 
-if (( enable_stall_profile == 1 )); then
+if (( enable_o_projection_ila == 1 )); then
+    xo_output_dir="$repo_root/build_multikernel_300mhz/o_projection_ila_xo"
+elif (( enable_stall_profile == 1 )); then
     xo_output_dir="$repo_root/build_multikernel_300mhz/profile_xo"
 else
     xo_output_dir="$repo_root"
@@ -243,6 +255,33 @@ xo_files=(
     "$xo_output_dir/int4_decoder_pe2_kernel_300mhz.xo"
     "$xo_output_dir/int4_decoder_pe3_kernel_300mhz.xo"
 )
+
+if (( enable_o_projection_ila == 1 )); then
+    source_xo_dir=${O_ILA_SOURCE_XO_DIR:-$repo_root}
+    source_xo_pe0="$source_xo_dir/int4_decoder_pe0_kernel_300mhz.xo"
+    if [[ ! -s "$source_xo_pe0" && \
+          -s "$repo_root/build_multikernel_300mhz/layer_trace_xo/int4_decoder_pe0_kernel_300mhz.xo" ]]; then
+        source_xo_dir="$repo_root/build_multikernel_300mhz/layer_trace_xo"
+        source_xo_pe0="$source_xo_dir/int4_decoder_pe0_kernel_300mhz.xo"
+    fi
+    if [[ ! -s "$source_xo_pe0" ]]; then
+        echo "ERROR: cannot find the source PE0 XO for HDL ILA instantiation." >&2
+        echo "       Set O_ILA_SOURCE_XO_DIR to the directory containing the four 300 MHz XOs." >&2
+        exit 1
+    fi
+
+    echo "Preparing HDL-instantiated O-projection ILA XO from: $source_xo_dir"
+    bash "$scripts_dir/package_o_projection_ila_xo.sh" \
+        "$source_xo_pe0" "${xo_files[0]}"
+    for pe in 1 2 3; do
+        source_xo="$source_xo_dir/int4_decoder_pe${pe}_kernel_300mhz.xo"
+        if [[ ! -s "$source_xo" ]]; then
+            echo "ERROR: source PE${pe} XO is missing: $source_xo" >&2
+            exit 1
+        fi
+        cp -fL "$source_xo" "${xo_files[$pe]}"
+    done
+fi
 
 run_id=$(date +%Y%m%d-%H%M%S)-$$
 run_dir="$repo_root/build_multikernel_300mhz/runs/$run_id"
@@ -450,9 +489,6 @@ else
     constraints_dir="$repo_root/constraints"
 fi
 pre_place_tcl="$constraints_dir/pre_place.tcl"
-if (( enable_o_projection_ila == 1 )); then
-    pre_place_tcl="$constraints_dir/pre_place_o_projection_ila.tcl"
-fi
 pre_physopt_tcl="$constraints_dir/pre_physopt.tcl"
 # Squeeze server configuration: scale Vivado synth.jobs and impl.jobs to 32 32
 synth_jobs=$(( jobs >= 32 ? 32 : jobs ))
@@ -623,7 +659,7 @@ EOF
 fi
 
 if (( enable_o_projection_ila == 1 )); then
-    echo "O-projection ILA:    PE${O_ILA_PE:-0}, depth=${O_ILA_DEPTH:-4096}, data_bits=${O_ILA_DATA_BITS:-32}"
+    echo "O-projection ILA:    PE0 HDL instance, depth=${O_ILA_DEPTH:-4096}"
     echo "System ILA probes:   ${resolved_output}.ltx"
     echo "Suggested trigger:   o_start == 1, capture position 50%"
 fi
