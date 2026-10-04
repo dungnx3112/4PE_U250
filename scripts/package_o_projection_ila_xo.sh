@@ -10,7 +10,8 @@ source_xo=$(realpath "$1")
 output_xo=$(realpath -m "$2")
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 repo_root=$(cd -- "$script_dir/.." && pwd -P)
-depth=${O_ILA_DEPTH:-4096}
+depth=${O_ILA_DEPTH:-1024}
+control_depth=${O_ILA_CONTROL_DEPTH:-1024}
 part=${O_ILA_PART:-xcu250-figd2104-2L-e}
 if [[ -n "${PYTHON_BIN:-}" ]]; then
     python_bin=$PYTHON_BIN
@@ -71,17 +72,20 @@ export O_ILA_IP_ROOT="$ip_root"
 export O_ILA_WORK_DIR="$vivado_dir"
 export O_ILA_PART="$part"
 export O_ILA_DEPTH="$depth"
+export O_ILA_CONTROL_DEPTH="$control_depth"
 "$vivado_bin" -mode batch -nojournal -nolog -notrace \
     -source "$script_dir/create_o_projection_ila_ip.tcl"
 
-if ! grep -Fq 'O_PROJECTION_ILA_RTL_INSTANTIATION' "$rtl"; then
-    echo "ERROR: PE0 RTL instrumentation marker is missing after patching." >&2
+if ! grep -Fq 'O_PROJECTION_FORENSIC_ILA_V2' "$rtl"; then
+    echo "ERROR: PE0 forensic RTL instrumentation marker is missing after patching." >&2
     exit 1
 fi
-if [[ ! -s "$ip_root/subcore/ila_o_projection_pe0/ila_o_projection_pe0.xci" ]]; then
-    echo "ERROR: packaged ILA XCI is missing." >&2
-    exit 1
-fi
+for core in ila_o_projection_pe0_control ila_o_projection_pe0_data; do
+    if [[ ! -s "$ip_root/subcore/$core/$core.xci" ]]; then
+        echo "ERROR: packaged forensic ILA XCI is missing: $core" >&2
+        exit 1
+    fi
+done
 
 candidate="$work_dir/instrumented.xo"
 (
@@ -90,6 +94,7 @@ candidate="$work_dir/instrumented.xo"
 )
 mv -f "$candidate" "$output_xo"
 
-echo "[OK] HDL-instantiated O-projection ILA XO: $output_xo"
-echo "     Source: $source_xo"
-echo "     Depth:  $depth"
+echo "[OK] Comprehensive HDL-instantiated O-projection forensic XO: $output_xo"
+echo "     Source:        $source_xo"
+echo "     Control depth: $control_depth"
+echo "     Data depth:    $depth"

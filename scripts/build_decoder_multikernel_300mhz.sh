@@ -36,10 +36,10 @@ Environment overrides:
                     protocol checkers, and System ILA to all 12 AXI streams.
                     Implies ENABLE_STALL_PROFILE=1.
   ENABLE_O_PROJECTION_ILA=1
-                    Link a PE0 XO containing an HDL-instantiated ILA around
-                    SwiftKV -> activation BRAM -> O-projection. This is the
-                    debug-instantiation flow required by U250 DFX platforms.
-                    Configure capture depth with O_ILA_DEPTH.
+                    Link a PE0 XO containing two HDL-instantiated forensic
+                    ILAs around SwiftKV -> activation BRAM -> O-projection ->
+                    save/writeback. Full 448/512-bit data buses are captured.
+                    Configure depths with O_ILA_DEPTH/O_ILA_CONTROL_DEPTH.
   DEBUG_CLOCK_HZ=N  Link clock for profile builds (default: 150000000). The
                     production build remains fixed at 300000000 Hz.
   JOBS=<N>          Parallel synthesis/linking jobs (default: nproc)
@@ -601,20 +601,21 @@ if (( enable_stall_profile == 1 || enable_o_projection_ila == 1 )); then
     fi
 
     if (( enable_o_projection_ila == 1 )); then
-        ila_name="ila_o_projection_pe${O_ILA_PE:-0}"
-        if ! grep -Fqi "$ila_name" "$debug_layout"; then
-            echo "ERROR: '$ila_name' is missing from DEBUG_IP_LAYOUT." >&2
-            echo "       Refusing to publish an xclbin without the requested O-projection ILA." >&2
-            exit 1
-        fi
+        for ila_name in ila_o_projection_pe0_control ila_o_projection_pe0_data; do
+            if ! grep -Fqi "$ila_name" "$debug_layout"; then
+                echo "ERROR: '$ila_name' is missing from DEBUG_IP_LAYOUT." >&2
+                echo "       Refusing to publish an xclbin without both forensic ILAs." >&2
+                exit 1
+            fi
+        done
         ltx_source=$(find "$run_dir" -type f -name '*.ltx' -size +0c -print -quit 2>/dev/null || true)
         if [[ -z "$ltx_source" ]]; then
             echo "ERROR: O-projection ILA was requested but v++ produced no non-empty .ltx file." >&2
             exit 1
         fi
         cp -f "$ltx_source" "${candidate_output}.ltx"
-        echo "[OK] O-projection ILA is present in DEBUG_IP_LAYOUT."
-        echo "[OK] O-projection ILA probes: $ltx_source"
+        echo "[OK] Both O-projection forensic ILAs are present in DEBUG_IP_LAYOUT."
+        echo "[OK] O-projection forensic probes: $ltx_source"
     fi
 fi
 
@@ -659,9 +660,10 @@ EOF
 fi
 
 if (( enable_o_projection_ila == 1 )); then
-    echo "O-projection ILA:    PE0 HDL instance, depth=${O_ILA_DEPTH:-4096}"
+    echo "O-projection ILAs:   PE0 control+full-data HDL instances"
+    echo "Control/data depth:  ${O_ILA_CONTROL_DEPTH:-1024}/${O_ILA_DEPTH:-1024}"
     echo "System ILA probes:   ${resolved_output}.ltx"
-    echo "Suggested trigger:   o_start == 1, capture position 50%"
+    echo "Suggested triggers:  control.probe0=o_start; data probe1/7/10/14/16/19"
 fi
 
 echo "All logs saved to:    $log_dir"

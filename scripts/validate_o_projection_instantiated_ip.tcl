@@ -38,9 +38,13 @@ if {[llength $dcp] == 0 || ![file isfile [lindex $dcp 0]]} {
 }
 
 open_checkpoint [lindex $dcp 0]
-set ila_cells [get_cells -hierarchical -quiet -regexp {^.*/ila_o_projection_pe0_inst$}]
-if {[llength $ila_cells] == 0} {
-    error "Synthesized PE0 IP contains no HDL-instantiated O-projection ILA"
+set ila_cells {}
+foreach instance {ila_o_projection_pe0_control_inst ila_o_projection_pe0_data_inst} {
+    set cells [get_cells -hierarchical -quiet -regexp "^.*/${instance}$"]
+    if {[llength $cells] != 1} {
+        error "Synthesized PE0 IP expected one $instance, found [llength $cells]"
+    }
+    lappend ila_cells [lindex $cells 0]
 }
-puts "PASS O_PROJECTION_ILA_HDL_INSTANCE cells=$ila_cells dcp=[lindex $dcp 0]"
+puts "PASS O_PROJECTION_FORENSIC_ILA_HDL_INSTANCES cells=$ila_cells dcp=[lindex $dcp 0]"
 close_project
