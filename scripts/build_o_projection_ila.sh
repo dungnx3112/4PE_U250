@@ -9,8 +9,8 @@ export ENABLE_O_PROJECTION_ILA=1
 export O_ILA_PE=${O_ILA_PE:-0}
 export O_ILA_DEPTH=${O_ILA_DEPTH:-1024}
 export O_ILA_CONTROL_DEPTH=${O_ILA_CONTROL_DEPTH:-1024}
-export DEBUG_CLOCK_HZ=${DEBUG_CLOCK_HZ:-150000000}
-export XCLBIN_OUTPUT=${XCLBIN_OUTPUT:-int4_decoder_multikernel_150mhz_o_projection_forensic_final.xclbin}
+export DEBUG_CLOCK_HZ=${DEBUG_CLOCK_HZ:-100000000}
+export XCLBIN_OUTPUT=${XCLBIN_OUTPUT:-int4_decoder_multikernel_100mhz_o_projection_forensic_final.xclbin}
 export REUSE_XO=${REUSE_XO:-1}
 
 exec bash "$script_dir/build_decoder_multikernel_300mhz.sh" "$@"
