@@ -825,6 +825,7 @@ struct Config {
     float repeat_penalty = 1.0f;
     std::uint64_t seed = 42;
     bool tokenize_only = false;
+    bool pause_after_load = false;
     bool verbose = false;
 };
 
@@ -846,6 +847,7 @@ void print_usage(const char* program) {
         << "  --dump-logits DIR   dump all 32256 raw FP32 logits for every step\n"
         << "  --dump-residuals DIR dump the final 4096-value FP32 residual for every step\n"
         << "  --device ID         BDF or numeric XRT device index\n"
+        << "  --pause-after-load  wait after loading xclbin so hardware ILAs can be armed\n"
         << "  --verbose           print initialization, per-PE timing, token IDs, and statistics\n"
         << "  --tokenize-only     print prompt token IDs without loading FPGA\n";
 }
@@ -910,6 +912,7 @@ Config parse_args(int argc, char** argv) {
         else if (argument == "--embeddings") config.embeddings = next();
         else if (argument == "--prompt") config.prompt = next();
         else if (argument == "--tokenize-only") config.tokenize_only = true;
+        else if (argument == "--pause-after-load") config.pause_after_load = true;
         else if (argument == "--verbose") config.verbose = true;
         else if (argument == "--max-tokens") {
             config.max_tokens = parse_positive_int(next(), "--max-tokens");
@@ -1122,6 +1125,14 @@ int main(int argc, char** argv) {
         const auto uuid = device.load_xclbin(config.xclbin);
         if (config.verbose) {
             std::cout << "[Init] xclbin loaded OK." << std::endl;
+        }
+        if (config.pause_after_load) {
+            std::cout
+                << "[ILA] XCLBIN loaded. Refresh Vivado Hardware Manager, "
+                   "arm both ILAs, then press ENTER to continue..."
+                << std::flush;
+            std::string ignored;
+            std::getline(std::cin, ignored);
         }
 
         auto kernel0 = open_kernel(device, uuid,
