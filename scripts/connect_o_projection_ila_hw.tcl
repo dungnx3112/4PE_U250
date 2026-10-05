@@ -316,7 +316,10 @@ proc ::o_projection_ila::main {} {
     puts "data   : $data_ila"
     puts "ltx    : $ltx_file"
     puts ""
-    puts "Next: set control probe28 == 1 and data probe10 == 1, then arm both cores."
+    puts "Next (default checkpoint is the O-projection output):"
+    puts "  source scripts/capture_o_projection_ila.tcl"
+    puts "Optional checkpoint selection before source:"
+    puts "  set ::env(O_ILA_CAPTURE_POINT) input_write|input_read|partial|completed|output|projection_read|residual"
 }
 
 ::o_projection_ila::main

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Dedicated hardware build for the Attention -> O-projection boundary.
-# PE0 is the default because the observed group-0 mismatch occurred there.
+# Dedicated hardware build for the complete PE0 O-projection path:
+# Attention -> activation RAM -> linear/reduction -> projection -> residual.
+# One xclbin supports every checkpoint selected by capture_o_projection_ila.tcl.
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 
 export ENABLE_O_PROJECTION_ILA=1

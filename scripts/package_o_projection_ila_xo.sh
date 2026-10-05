@@ -76,7 +76,7 @@ export O_ILA_CONTROL_DEPTH="$control_depth"
 "$vivado_bin" -mode batch -nojournal -nolog -notrace \
     -source "$script_dir/create_o_projection_ila_ip.tcl"
 
-if ! grep -Fq 'O_PROJECTION_FORENSIC_ILA_V2' "$rtl"; then
+if ! grep -Fq 'O_PROJECTION_FORENSIC_ILA_V3' "$rtl"; then
     echo "ERROR: PE0 forensic RTL instrumentation marker is missing after patching." >&2
     exit 1
 fi

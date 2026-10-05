@@ -58,20 +58,32 @@ proc create_forensic_ila {ip_root module_name depth widths advanced_trigger} {
     return $ila
 }
 
-# probe0..probe56: PE0/O control, addresses, full-bus fingerprints, and AXI.
+# probe0..probe56: O-qualified context, boundary checkpoints, fingerprints,
+# residual add, and the AXI weight-read channel.
 set control_widths {
-    1 1 1 1 1 1 1 1 20
-    7 1 1 32 7 1 1 32 7 1 8
-    7 1 32 7 1 8
-    9 1 1 1 32 9 1 32 4 9 32
-    1 1 64 1 1 64 1 32 1 1 2
-    1 1 64 32 1 1 1 2 32
+    1 3 6 3 12 1 1 1 1 1 1 1 1 20
+    1 7 32 1 7 32 1 7 8
+    1 7 32 1 7 8
+    1 1 32 1 1 32
+    1 9 1 1 32
+    1 9 32
+    1 6 32
+    1 6 32
+    1 1 64 32 1 1 2 32
 }
 
-# probe0..probe22: complete raw data buses; total width is 3959 bits.
+# probe0..probe39: complete O-boundary buses; total width is 3795 bits.
 set data_widths {
-    1 1 448 1 448 8 8 1 448 8 1 512
-    1 512 1 512 1 1 512 1 1 512 20
+    1 3 6 3 12 1 1
+    1 7 448 8
+    1 7 448 1 7 8
+    1 7 448 1 7 8
+    1 128 1 128
+    1 9 512
+    1 9 512
+    1 6 512
+    1 6 512
+    20
 }
 
 file mkdir $work_dir

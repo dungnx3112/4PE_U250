@@ -38,7 +38,9 @@ Environment overrides:
   ENABLE_O_PROJECTION_ILA=1
                     Link a PE0 XO containing two HDL-instantiated forensic
                     ILAs around SwiftKV -> activation BRAM -> O-projection ->
-                    save/writeback. Full 448/512-bit data buses are captured.
+                    4-PE reduction -> projection RAM -> residual add. O-only
+                    triggers prevent Q/K/V stages from satisfying the trigger.
+                    Full 128/448/512-bit boundary buses are captured.
                     Configure depths with O_ILA_DEPTH/O_ILA_CONTROL_DEPTH.
   DEBUG_CLOCK_HZ=N  Link clock for profile builds (default: 150000000). The
                     production build remains fixed at 300000000 Hz.
@@ -660,10 +662,12 @@ EOF
 fi
 
 if (( enable_o_projection_ila == 1 )); then
-    echo "O-projection ILAs:   PE0 control+full-data HDL instances"
+    echo "O-projection ILAs:   PE0 O-qualified control+full-data HDL instances"
     echo "Control/data depth:  ${O_ILA_CONTROL_DEPTH:-1024}/${O_ILA_DEPTH:-1024}"
     echo "System ILA probes:   ${resolved_output}.ltx"
-    echo "Suggested triggers:  control.probe0=o_start; data probe1/7/10/14/16/19"
+    echo "Capture checkpoints: input_write,input_read,partial,completed,output,projection_read,residual"
+    echo "Vivado Tcl:          source scripts/connect_o_projection_ila_hw.tcl"
+    echo "                     source scripts/capture_o_projection_ila.tcl"
 fi
 
 echo "All logs saved to:    $log_dir"
