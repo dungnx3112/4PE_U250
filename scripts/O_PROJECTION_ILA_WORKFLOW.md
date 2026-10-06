@@ -1,14 +1,16 @@
 # PE0 O-projection forensic workflow
 
-This build reuses the four existing XO files. It modifies only the packaged
-PE0 RTL to add two ILAs; it does not rebuild or change the HLS algorithm.
+For a new HLS fix, use the one-command rebuild below. It regenerates all four
+XOs, verifies that the activation-snapshot fix is present in their RTL, adds
+the two PE0 ILAs, and performs one v++ link. `build_o_projection_ila.sh` alone
+only repackages existing XOs and must not be used after changing HLS sources.
 
 ## 1. Build on the FPGA server
 
 ```bash
 cd /home/s23521141_truongnh/XuanDung_AnhDuc/XuanDung/4PE_U250_forensic
 git pull origin main
-bash scripts/build_o_projection_ila.sh
+bash scripts/rebuild_o_projection_fixed.sh
 ```
 
 The build must produce both files:
