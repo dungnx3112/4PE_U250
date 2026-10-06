@@ -18,6 +18,7 @@
 # Optional:
 #   set ::env(O_ILA_TRIGGER_POSITION) 960
 #   set ::env(O_ILA_CAPTURE_DIR) /absolute/output/directory
+#   set ::env(O_ILA_CONTINUE_FIFO) /tmp/fifo-to-release-paused-host
 
 namespace eval ::o_projection_capture {
     variable script_dir [file dirname [file normalize [info script]]]
@@ -132,7 +133,19 @@ proc ::o_projection_capture::main {} {
     run_hw_ila $control_ila
 
     banner "BOTH O-PROJECTION ILAS ARMED"
-    puts "Return to the paused host program and press Enter now."
+    set continue_fifo [env_or_default O_ILA_CONTINUE_FIFO ""]
+    if {$continue_fifo ne ""} {
+        if {![file exists $continue_fifo]} {
+            error "O_ILA_CONTINUE_FIFO does not exist: $continue_fifo"
+        }
+        set continue_channel [open $continue_fifo w]
+        puts $continue_channel ""
+        flush $continue_channel
+        close $continue_channel
+        puts "INFO: Released the paused host through $continue_fifo"
+    } else {
+        puts "Return to the paused host program and press Enter now."
+    }
     puts "Vivado will wait until the selected O-only checkpoint occurs."
 
     wait_on_hw_ila $control_ila

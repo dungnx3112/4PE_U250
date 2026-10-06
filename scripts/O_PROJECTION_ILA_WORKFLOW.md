@@ -76,3 +76,23 @@ input_write -> input_read -> partial -> completed -> output
 
 Every trigger is qualified by `mode == 3` (`INT4_LINEAR_O`). Q, K, V, GATE,
 UP, and DOWN traffic therefore cannot trigger these captures.
+
+## Automated capture
+
+The complete host/XVC/Vivado sequence can run without the GUI:
+
+```bash
+bash scripts/run_o_projection_capture.sh input_read
+```
+
+To capture every checkpoint sequentially:
+
+```bash
+bash scripts/run_o_projection_capture.sh all
+```
+
+If `input_write` has already been captured, run only the remaining checkpoints:
+
+```bash
+bash scripts/run_o_projection_capture.sh remaining
+```
