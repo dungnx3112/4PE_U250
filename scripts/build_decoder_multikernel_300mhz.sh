@@ -561,7 +561,7 @@ if [[ ! -s "$candidate_output" ]]; then
     exit 1
 fi
 
-if (( enable_stall_profile == 1 || enable_o_projection_ila == 1 )); then
+if (( enable_stall_profile == 1 )); then
     if ! command -v xclbinutil >/dev/null 2>&1; then
         echo "ERROR: xclbinutil is required to verify the profile xclbin." >&2
         exit 1
@@ -602,23 +602,32 @@ if (( enable_stall_profile == 1 || enable_o_projection_ila == 1 )); then
         echo "[OK] System ILA probes: $ltx_source"
     fi
 
-    if (( enable_o_projection_ila == 1 )); then
-        for ila_name in ila_o_projection_pe0_control ila_o_projection_pe0_data; do
-            if ! grep -Fqi "$ila_name" "$debug_layout"; then
-                echo "ERROR: '$ila_name' is missing from DEBUG_IP_LAYOUT." >&2
-                echo "       Refusing to publish an xclbin without both forensic ILAs." >&2
-                exit 1
-            fi
-        done
-        ltx_source=$(find "$run_dir" -type f -name '*.ltx' -size +0c -print -quit 2>/dev/null || true)
-        if [[ -z "$ltx_source" ]]; then
-            echo "ERROR: O-projection ILA was requested but v++ produced no non-empty .ltx file." >&2
+fi
+
+# RTL-instantiated Vivado ILAs are described by the generated probes file,
+# not by XRT's DEBUG_IP_LAYOUT profiling section. In particular, older XRT
+# xclbinutil releases can report that section as absent for a valid Vitis 2023.2
+# device image. Validate the authoritative .ltx cell names instead.
+if (( enable_o_projection_ila == 1 )); then
+    ltx_source="${candidate_output%.xclbin}.ltx"
+    if [[ ! -s "$ltx_source" ]]; then
+        echo "ERROR: O-projection ILA was requested but v++ produced no matching .ltx file." >&2
+        echo "       Expected: $ltx_source" >&2
+        exit 1
+    fi
+    for ila_instance in \
+        ila_o_projection_pe0_control_inst \
+        ila_o_projection_pe0_data_inst; do
+        if ! grep -aFqi "$ila_instance" "$ltx_source"; then
+            echo "ERROR: '$ila_instance' is missing from the generated probes file." >&2
+            echo "       Refusing to publish an xclbin without both forensic ILAs." >&2
+            echo "       Probes file: $ltx_source" >&2
             exit 1
         fi
-        cp -f "$ltx_source" "${candidate_output}.ltx"
-        echo "[OK] Both O-projection forensic ILAs are present in DEBUG_IP_LAYOUT."
-        echo "[OK] O-projection forensic probes: $ltx_source"
-    fi
+    done
+    cp -f "$ltx_source" "${candidate_output}.ltx"
+    echo "[OK] Both RTL-instantiated O-projection ILAs are present in the .ltx file."
+    echo "[OK] O-projection forensic probes: $ltx_source"
 fi
 
 # Publish final output

@@ -18,6 +18,17 @@ int4_decoder_multikernel_100mhz_o_projection_forensic_final.xclbin
 int4_decoder_multikernel_100mhz_o_projection_forensic_final.xclbin.ltx
 ```
 
+If `v++` completed but an older `xclbinutil` rejected `DEBUG_IP_LAYOUT`, publish
+the already-built candidate without rebuilding:
+
+```bash
+bash scripts/publish_o_projection_candidate.sh \
+  build_multikernel_300mhz/runs/<run-id>
+```
+
+The publisher verifies both ILA instance names in the matching `.ltx` file and
+preserves any previous final artifacts with a timestamped backup suffix.
+
 ## 2. Connect Vivado
 
 Load the new xclbin with the host program and pause the host immediately after
