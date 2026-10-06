@@ -951,6 +951,32 @@ commit_local_output_word_loop:
     }
 }
 
+// Materialize the producer-owned activation memories into storage owned by
+// this linear-stage invocation before its DATAFLOW region starts.  In the
+// integrated decoder, attention/SwiGLU writes activation_q/activation_scale
+// and the linear stage immediately becomes their next owner.  Reading the
+// shared BRAM directly from the first DATAFLOW process leaves its first
+// address exposed to the inter-function RAM-port hand-off latency; hardware
+// ILA captures showed group 0 returning the previous stage's word while all
+// subsequent groups were correct.  This explicit, sequential copy is both a
+// completion barrier and a private read buffer for the linear accumulator.
+static void int4_snapshot_local_activation(
+    const int4_quant_word_t source_q[INT4_MAX_LOCAL_GROUPS],
+    const int4_act_scale_t source_scale[INT4_MAX_LOCAL_GROUPS],
+    int4_quant_word_t snapshot_q[INT4_MAX_LOCAL_GROUPS],
+    int4_act_scale_t snapshot_scale[INT4_MAX_LOCAL_GROUPS],
+    ap_uint<3> mode) {
+#pragma HLS INLINE off
+    const int total_groups = int4_mode_local_groups((int)mode);
+snapshot_local_activation_loop:
+    for (int group = 0; group < total_groups; ++group) {
+#pragma HLS LOOP_TRIPCOUNT min=32 max=88
+#pragma HLS PIPELINE II=1
+        snapshot_q[group] = source_q[group];
+        snapshot_scale[group] = source_scale[group];
+    }
+}
+
 template <int PE_ID>
 static void int4_run_local_linear_stage(
     const int4_weight_word_t* weight_mem,
@@ -962,12 +988,20 @@ static void int4_run_local_linear_stage(
     hls::stream<int4_reduction_packet_t>& partial_stream,
     hls::stream<int4_reduction_packet_t>& completed_stream) {
 #pragma HLS INLINE off
+    int4_quant_word_t activation_q_snapshot[INT4_MAX_LOCAL_GROUPS];
+    int4_act_scale_t activation_scale_snapshot[INT4_MAX_LOCAL_GROUPS];
+#pragma HLS BIND_STORAGE variable=activation_q_snapshot type=ram_2p impl=bram latency=1
+#pragma HLS BIND_STORAGE variable=activation_scale_snapshot type=ram_2p impl=bram latency=1
+
     hls::stream<int4_output_word_t> staged_output;
 #pragma HLS STREAM variable=staged_output depth=INT4_MAX_LOCAL_OUTPUT_WORDS
 #pragma HLS BIND_STORAGE variable=staged_output type=fifo impl=bram
 
+    int4_snapshot_local_activation(
+        activation_q, activation_scale,
+        activation_q_snapshot, activation_scale_snapshot, mode);
     int4_run_local_linear_stage_dataflow<PE_ID>(
-        weight_mem, activation_q, activation_scale,
+        weight_mem, activation_q_snapshot, activation_scale_snapshot,
         mode, weight_word_offset, partial_stream, completed_stream,
         staged_output);
     int4_commit_local_output<PE_ID>(staged_output, output_mem, mode);

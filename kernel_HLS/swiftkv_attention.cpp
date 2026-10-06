@@ -1,5 +1,6 @@
 #include "swiftkv_attention.hpp"
 #include "int4_numeric.hpp"
+#include "int4_task_control.hpp"
 
 #include <hls_stream.h>
 #include <hls_math.h>
@@ -2656,7 +2657,8 @@ static void swiftkv_collect_pe_output_e8m0(
     hls::stream<int4_quant_word_t>& quantized_stream,
     hls::stream<float>& scale_stream,
     int4_quant_word_t quantized_buffer[INT4_MAX_LOCAL_GROUPS],
-    int4_act_scale_t scale_buffer[INT4_MAX_LOCAL_GROUPS]) {
+    int4_act_scale_t scale_buffer[INT4_MAX_LOCAL_GROUPS],
+    hls::stream<int4_completion_token_t>& collect_done_stream) {
 #pragma HLS INLINE off
 collect_pe_e8m0_group_loop:
     for (int group = 0;
@@ -2672,6 +2674,11 @@ collect_pe_e8m0_group_loop:
             (int4_act_scale_t)0 :
             (int4_act_scale_t)(scale_exp + 127 + INT4_ACTIVATION_BITS - 2);
     }
+    // Signal that every activation_q[] and activation_scale[] entry has been
+    // written.  The caller must read this token before returning so that HLS
+    // cannot pipeline-overlap this function with the downstream LINEAR_STAGE
+    // that reads activation_q immediately after attention_local_body returns.
+    collect_done_stream.write(1);
 }
 
 // Select one 38-bit RoPE pair through an explicitly pipelined local mux.  The
@@ -2769,18 +2776,25 @@ static void int4_swiftkv_attention_local_body(
     hls::stream<float> scale_stream;
     hls::stream<swiftkv_pe_command_t> command_stream;
     hls::stream<swiftkv_completion_t> done_stream;
+    // Explicit barrier: collect writes this token only after the last
+    // activation_q[] entry is committed.  Reading it here ensures HLS
+    // cannot return from this function before activation_q is fully written,
+    // preventing a race with the downstream LINEAR_STAGE (O projection).
+    hls::stream<int4_completion_token_t> collect_done_stream;
 #pragma HLS STREAM variable=cosine_stream depth=64
 #pragma HLS STREAM variable=sine_stream depth=64
 #pragma HLS STREAM variable=quantized_stream depth=64
 #pragma HLS STREAM variable=scale_stream depth=64
 #pragma HLS STREAM variable=command_stream depth=2
 #pragma HLS STREAM variable=done_stream depth=2
+#pragma HLS STREAM variable=collect_done_stream depth=2
 #pragma HLS BIND_STORAGE variable=cosine_stream type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=sine_stream type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=quantized_stream type=fifo impl=bram
 #pragma HLS BIND_STORAGE variable=scale_stream type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=command_stream type=fifo impl=srl
 #pragma HLS BIND_STORAGE variable=done_stream type=fifo impl=srl
+#pragma HLS BIND_STORAGE variable=collect_done_stream type=fifo impl=srl
 
     swiftkv_seed_local_pe<PE_ID>(
         rope_lut_ddr, layer_index, position,
@@ -2790,10 +2804,18 @@ static void int4_swiftkv_attention_local_body(
         cosine_stream, sine_stream,
         quantized_stream, scale_stream,
         command_stream, done_stream);
+    // Drain the PE done-token first so the run_pe pipeline can retire,
+    // then collect quantized results into activation_q.  The collect
+    // function writes collect_done_stream as its final action; reading
+    // it below creates an explicit RAW dependency that prevents HLS from
+    // starting the caller's next sequential statement (LINEAR_STAGE)
+    // before every activation_q[] write has completed.
+    swiftkv_consume_local_done<PE_ID>(done_stream);
     swiftkv_collect_pe_output_e8m0<PE_ID>(
         quantized_stream, scale_stream,
-        activation_q, activation_scale);
-    swiftkv_consume_local_done<PE_ID>(done_stream);
+        activation_q, activation_scale,
+        collect_done_stream);
+    (void)collect_done_stream.read();
 }
 
 void int4_swiftkv_attention_pe0(
