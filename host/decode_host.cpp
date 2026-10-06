@@ -78,6 +78,15 @@ constexpr std::size_t MODEL_BANK_BYTES_DENSE =
     MODEL_BANK_WORDS_DENSE * DDR_WORD_BYTES;
 constexpr std::size_t MODEL_BANK_WORDS = MODEL_BANK_WORDS_LEGACY;
 constexpr std::size_t MODEL_BANK_BYTES = MODEL_BANK_BYTES_LEGACY;
+constexpr std::size_t MODEL_DATA_BASE_WORD = 4160ULL;
+constexpr std::size_t LINEAR_MATRIX_WORDS = 33792ULL;
+constexpr std::size_t O_PROJECTION_WORD_OFFSET =
+    MODEL_DATA_BASE_WORD + 3ULL * LINEAR_MATRIX_WORDS;
+constexpr std::size_t O_PROJECTION_SUPERBLOCK_WORDS = 4224ULL;
+constexpr std::size_t O_PROJECTION_BYTE_OFFSET =
+    O_PROJECTION_WORD_OFFSET * DDR_WORD_BYTES;
+constexpr std::size_t O_PROJECTION_SUPERBLOCK_BYTES =
+    O_PROJECTION_SUPERBLOCK_WORDS * DDR_WORD_BYTES;
 constexpr std::size_t ROPE_LUT_WORDS = 32768ULL;
 constexpr std::size_t ROPE_LUT_BYTES = ROPE_LUT_WORDS * DDR_WORD_BYTES;
 constexpr std::size_t RESIDUAL_WORDS = (DIM / NUM_PES) / OUTPUTS_PER_WORD;
@@ -191,6 +200,56 @@ void load_bo_from_file(xrt::bo& bo, const std::string& path,
                   << elapsed_ms(read_begin, read_end) << " ms, sync="
                   << elapsed_ms(read_end, sync_end) << " ms)" << std::endl;
     }
+}
+
+void verify_o_projection_device_region(
+    xrt::bo& bo, const std::string& path, int pe) {
+    std::vector<std::uint8_t> expected(O_PROJECTION_SUPERBLOCK_BYTES);
+    std::ifstream input(path, std::ios::binary);
+    if (!input) {
+        throw std::runtime_error("cannot open " + path);
+    }
+    input.seekg(static_cast<std::streamoff>(O_PROJECTION_BYTE_OFFSET));
+    if (!input) {
+        throw std::runtime_error("cannot seek O-projection region in " + path);
+    }
+    input.read(reinterpret_cast<char*>(expected.data()),
+               static_cast<std::streamsize>(expected.size()));
+    if (static_cast<std::size_t>(input.gcount()) != expected.size()) {
+        throw std::runtime_error("short O-projection region read in " + path);
+    }
+
+    const auto begin = Clock::now();
+    bo.sync(XCL_BO_SYNC_BO_FROM_DEVICE,
+            O_PROJECTION_SUPERBLOCK_BYTES,
+            O_PROJECTION_BYTE_OFFSET);
+    const auto end = Clock::now();
+    const auto* actual = bo.map<std::uint8_t*>();
+    const auto mismatch = std::mismatch(
+        expected.begin(), expected.end(),
+        actual + O_PROJECTION_BYTE_OFFSET);
+    if (mismatch.first != expected.end()) {
+        const std::size_t byte_in_region =
+            static_cast<std::size_t>(mismatch.first - expected.begin());
+        const std::size_t absolute_byte =
+            O_PROJECTION_BYTE_OFFSET + byte_in_region;
+        std::ostringstream message;
+        message << "PE" << pe << " O-projection DDR readback mismatch"
+                << " at absolute byte " << absolute_byte
+                << " (word " << absolute_byte / DDR_WORD_BYTES
+                << ", byte-in-word " << absolute_byte % DDR_WORD_BYTES
+                << "): file=0x" << std::hex
+                << static_cast<unsigned int>(*mismatch.first)
+                << " device=0x"
+                << static_cast<unsigned int>(
+                       actual[O_PROJECTION_BYTE_OFFSET + byte_in_region]);
+        throw std::runtime_error(message.str());
+    }
+    std::cout << "[Verify] PASS PE" << pe
+              << " O-projection DDR readback: "
+              << O_PROJECTION_SUPERBLOCK_BYTES << " bytes match ("
+              << std::fixed << std::setprecision(1)
+              << elapsed_ms(begin, end) << " ms)" << std::endl;
 }
 
 std::vector<float> load_embeddings(const std::string& path, bool verbose) {
@@ -826,6 +885,7 @@ struct Config {
     std::uint64_t seed = 42;
     bool tokenize_only = false;
     bool pause_after_load = false;
+    bool verify_device_model = false;
     bool verbose = false;
 };
 
@@ -848,6 +908,7 @@ void print_usage(const char* program) {
         << "  --dump-residuals DIR dump the final 4096-value FP32 residual for every step\n"
         << "  --device ID         BDF or numeric XRT device index\n"
         << "  --pause-after-load  wait after loading xclbin so hardware ILAs can be armed\n"
+        << "  --verify-device-model read back each PE's first O-projection superblock\n"
         << "  --verbose           print initialization, per-PE timing, token IDs, and statistics\n"
         << "  --tokenize-only     print prompt token IDs without loading FPGA\n";
 }
@@ -913,6 +974,9 @@ Config parse_args(int argc, char** argv) {
         else if (argument == "--prompt") config.prompt = next();
         else if (argument == "--tokenize-only") config.tokenize_only = true;
         else if (argument == "--pause-after-load") config.pause_after_load = true;
+        else if (argument == "--verify-device-model") {
+            config.verify_device_model = true;
+        }
         else if (argument == "--verbose") config.verbose = true;
         else if (argument == "--max-tokens") {
             config.max_tokens = parse_positive_int(next(), "--max-tokens");
@@ -1202,6 +1266,18 @@ int main(int argc, char** argv) {
                           config.verbose);
         load_bo_from_file(model3, bank_path(3), detected_model_bytes,
                           config.verbose);
+
+        if (config.verify_device_model) {
+            if (detected_model_bytes != MODEL_BANK_BYTES_DENSE) {
+                throw std::runtime_error(
+                    "--verify-device-model requires dense 865071104-byte banks");
+            }
+            verify_o_projection_device_region(model0, bank_path(0), 0);
+            verify_o_projection_device_region(model1, bank_path(1), 1);
+            verify_o_projection_device_region(model2, bank_path(2), 2);
+            verify_o_projection_device_region(model3, bank_path(3), 3);
+            std::cout << "PASS DEVICE_MODEL_READBACK" << std::endl;
+        }
 
         load_bo_from_file(rope0, config.rope_lut, ROPE_LUT_BYTES,
                           config.verbose);
