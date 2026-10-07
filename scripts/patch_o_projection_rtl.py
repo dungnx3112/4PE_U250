@@ -18,6 +18,22 @@ def require_signal(text: str, signal: str) -> None:
         raise RuntimeError(f"required RTL signal is missing: {signal}")
 
 
+def declared_identifier(text: str, label: str, candidates) -> str:
+    """Resolve a probeable Verilog identifier across HLS RTL variants."""
+    for candidate in candidates:
+        declaration = (
+            rf"\b(?:wire|reg|logic)\s+"
+            rf"(?:signed\s+)?(?:\[[^\]]+\]\s+)?"
+            rf"{re.escape(candidate)}\s*;"
+        )
+        if re.search(declaration, text):
+            return candidate
+    raise RuntimeError(
+        f"cannot resolve declared RTL signal for {label}; "
+        f"tried: {', '.join(candidates)}"
+    )
+
+
 def instance_suffix(text: str, prefix: str, terminal: str) -> str:
     match = re.search(rf"\b{re.escape(prefix)}_fu_(\d+)_{terminal}\b", text)
     if not match:
@@ -103,6 +119,59 @@ def main() -> None:
         ],
     )
 
+    # HLS may optimize a dedicated RAM write-enable away when the corresponding
+    # port is write-only, using CE as the effective write event instead.  It may
+    # also connect the active producer directly to the inferred RAM and omit the
+    # parent mux signal.  Resolve every write-side probe from declarations so a
+    # child port name cannot be mistaken for a probeable parent identifier.
+    swift_q_write_enable = declared_identifier(
+        text,
+        "SwiftKV activation-q write event",
+        [f"{swift}_activation_q_we1", f"{swift}_activation_q_ce1"],
+    )
+    ram_q_write_enable = declared_identifier(
+        text,
+        "activation-q RAM write event",
+        [
+            "activation_q_we1",
+            "activation_q_ce1",
+            swift_q_write_enable,
+        ],
+    )
+    ram_q_write_address = declared_identifier(
+        text,
+        "activation-q RAM write address",
+        ["activation_q_address1", f"{swift}_activation_q_address1"],
+    )
+    ram_q_write_data = declared_identifier(
+        text,
+        "activation-q RAM write data",
+        ["activation_q_d1", f"{swift}_activation_q_d1"],
+    )
+    ram_scale_write_enable = declared_identifier(
+        text,
+        "activation-scale RAM write event",
+        [
+            "activation_scale_we1",
+            "activation_scale_ce1",
+            f"{swift}_activation_scale_we1",
+            f"{swift}_activation_scale_ce1",
+        ],
+    )
+    ram_scale_write_address = declared_identifier(
+        text,
+        "activation-scale RAM write address",
+        [
+            "activation_scale_address1",
+            f"{swift}_activation_scale_address1",
+        ],
+    )
+    ram_scale_write_data = declared_identifier(
+        text,
+        "activation-scale RAM write data",
+        ["activation_scale_d1", f"{swift}_activation_scale_d1"],
+    )
+
     fsm_match = re.search(r"\breg\s+\[(\d+):0\]\s+ap_CS_fsm\s*;", text)
     if not fsm_match:
         raise RuntimeError("cannot resolve PE0 parent FSM width")
@@ -123,8 +192,8 @@ wire [2:0] o_ila_stage = {stage};
 wire o_ila_is_o = (o_ila_mode == 3'd3);
 wire o_ila_o_linear_start = {linear}_ap_start & o_ila_is_o;
 wire o_ila_o_linear_done = {linear}_ap_done & o_ila_is_o;
-wire o_ila_o_swift_q_we = {swift}_activation_q_we1 & o_ila_is_o;
-wire o_ila_o_ram_q_write_we = activation_q_we1 & o_ila_is_o;
+wire o_ila_o_swift_q_we = {swift_q_write_enable} & o_ila_is_o;
+wire o_ila_o_ram_q_write_we = {ram_q_write_enable} & o_ila_is_o;
 wire o_ila_o_q_ce = activation_q_ce0 & o_ila_is_o;
 wire o_ila_o_scale_ce = activation_scale_ce0 & o_ila_is_o;
 wire o_ila_o_partial_write = linear_partial0_write & o_ila_is_o;
@@ -137,7 +206,7 @@ wire o_ila_o_residual_we = {residual}_residual_we1 & o_ila_is_o;
 // Full-bus XOR fingerprints give the control trace visibility into every data
 // bit; the data ILA below records the corresponding complete raw buses.
 wire [31:0] o_ila_swift_q_fold = {xor_fold(swift + '_activation_q_d1', 448)};
-wire [31:0] o_ila_ram_q_write_fold = {xor_fold('activation_q_d1', 448)};
+wire [31:0] o_ila_ram_q_write_fold = {xor_fold(ram_q_write_data, 448)};
 wire [31:0] o_ila_ram_q_read_fold = {xor_fold('activation_q_q0', 448)};
 wire [31:0] o_ila_partial_fold = {xor_fold('linear_partial0_din', 128)};
 wire [31:0] o_ila_completed_fold = {xor_fold('linear_output0_dout', 128)};
@@ -167,11 +236,11 @@ wire [31:0] o_ila_gmem_read_fold = {xor_fold('m_axi_gmem0_RDATA', 512)};
         ("swift_q_addr", f"{swift}_activation_q_address1", 7),
         ("swift_q_fold", "o_ila_swift_q_fold", 32),
         ("o_ram_q_write", "o_ila_o_ram_q_write_we", 1),
-        ("ram_q_write_addr", "activation_q_address1", 7),
+        ("ram_q_write_addr", ram_q_write_address, 7),
         ("ram_q_write_fold", "o_ila_ram_q_write_fold", 32),
-        ("ram_scale_we", "activation_scale_we1", 1),
-        ("ram_scale_addr", "activation_scale_address1", 7),
-        ("ram_scale_data", "activation_scale_d1", 8),
+        ("ram_scale_we", ram_scale_write_enable, 1),
+        ("ram_scale_addr", ram_scale_write_address, 7),
+        ("ram_scale_data", ram_scale_write_data, 8),
         ("o_input_read", "o_ila_o_q_ce", 1),
         ("o_q_addr", f"{linear}_activation_q_address0", 7),
         ("o_q_fold", "o_ila_ram_q_read_fold", 32),
@@ -221,11 +290,11 @@ wire [31:0] o_ila_gmem_read_fold = {xor_fold('m_axi_gmem0_RDATA', 512)};
         ("swift_q_data", f"{swift}_activation_q_d1", 448),
         ("swift_scale_data", f"{swift}_activation_scale_d1", 8),
         ("o_ram_q_write", "o_ila_o_ram_q_write_we", 1),
-        ("ram_q_write_addr", "activation_q_address1", 7),
-        ("ram_q_write_data", "activation_q_d1", 448),
-        ("ram_scale_we", "activation_scale_we1", 1),
-        ("ram_scale_addr", "activation_scale_address1", 7),
-        ("ram_scale_data", "activation_scale_d1", 8),
+        ("ram_q_write_addr", ram_q_write_address, 7),
+        ("ram_q_write_data", ram_q_write_data, 448),
+        ("ram_scale_we", ram_scale_write_enable, 1),
+        ("ram_scale_addr", ram_scale_write_address, 7),
+        ("ram_scale_data", ram_scale_write_data, 8),
         ("o_input_read", "o_ila_o_q_ce", 1),
         ("o_q_addr", f"{linear}_activation_q_address0", 7),
         ("o_q_data", "activation_q_q0", 448),
