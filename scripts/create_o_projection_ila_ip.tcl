@@ -85,6 +85,9 @@ set data_widths {
     1 6 512
     20
 }
+if {[info exists ::env(O_DEEP_ILA)] && $::env(O_DEEP_ILA) eq "1"} {
+    source [file join $ip_root hdl verilog boundary_ila_widths.tcl]
+}
 
 file mkdir $work_dir
 create_project -force o_projection_ila_ip $work_dir -part $part

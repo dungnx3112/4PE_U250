@@ -6,7 +6,7 @@ usage() {
 Usage: scripts/run_o_projection_capture.sh <checkpoint|remaining|all>
 
 Checkpoints:
-  input_write input_read partial completed output projection_read residual
+  input_write input_read partial completed output projection_read residual deep
 
 Examples:
   bash scripts/run_o_projection_capture.sh input_read
@@ -33,6 +33,7 @@ fi
 
 checkpoint=$1
 checkpoints=(input_write input_read partial completed output projection_read residual)
+if [[ "$checkpoint" == deep ]]; then checkpoints+=(deep); fi
 remaining_checkpoints=(input_read partial completed output projection_read residual)
 if [[ "$checkpoint" == all || "$checkpoint" == remaining ]]; then
     selected_checkpoints=("${checkpoints[@]}")
@@ -91,6 +92,9 @@ for tool in "$xvc_bin" "$vivado_bin" ss pgrep grep mkfifo; do
 done
 
 case "$checkpoint" in
+    deep)
+        default_trigger_position=512
+        ;;
     input_read|partial|completed)
         default_trigger_position=0
         ;;
@@ -101,8 +105,15 @@ esac
 trigger_position=${O_ILA_TRIGGER_POSITION:-$default_trigger_position}
 
 run_id=$(date +%Y%m%d-%H%M%S)-$checkpoint
-evidence_dir="$repo_root/debug_runs/o_projection_auto/$run_id"
+evidence_dir=${O_ILA_EVIDENCE_DIR:-"$repo_root/debug_runs/o_projection_auto/$run_id"}
 mkdir -p "$evidence_dir"
+if [[ "$checkpoint" == deep ]]; then
+    if [[ ! -s "${xclbin}.deep.json" ]]; then
+        echo "ERROR: deep probe manifest is missing: ${xclbin}.deep.json" >&2; exit 1
+    fi
+    cp "${xclbin}.deep.json" "$evidence_dir/deep_ila_manifest.json"
+fi
+sha256sum "$host" "$xclbin" "$ltx" > "$evidence_dir/artifacts.sha256"
 fifo="/tmp/o_ila_continue.$$.fifo"
 host_log="$evidence_dir/host.log"
 xvc_log="$evidence_dir/xvc.log"
@@ -194,6 +205,7 @@ export O_ILA_LTX="$ltx"
 export O_ILA_CAPTURE_POINT="$checkpoint"
 export O_ILA_TRIGGER_POSITION="$trigger_position"
 export O_ILA_CONTINUE_FIFO="$fifo"
+export O_ILA_CAPTURE_DIR=${O_ILA_CAPTURE_DIR:-"$evidence_dir/capture"}
 
 set +e
 "$vivado_bin" -mode batch -nojournal -nolog -notrace \

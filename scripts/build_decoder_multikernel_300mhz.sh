@@ -628,6 +628,15 @@ if (( enable_o_projection_ila == 1 )); then
     cp -f "$ltx_source" "${candidate_output}.ltx"
     echo "[OK] Both RTL-instantiated O-projection ILAs are present in the .ltx file."
     echo "[OK] O-projection forensic probes: $ltx_source"
+    if [[ "${O_DEEP_ILA:-0}" == "1" ]]; then
+        for instance in ila_o_projection_pe0_deep_inputs_inst ila_o_projection_pe0_deep_math_inst; do
+            if ! grep -aFqi "$instance" "$ltx_source"; then
+                echo "ERROR: required deep ILA is missing from LTX: $instance" >&2
+                exit 1
+            fi
+        done
+        cp "${xo_files[0]}.deep.json" "${resolved_output}.deep.json"
+    fi
 fi
 
 # Publish final output

@@ -68,6 +68,12 @@ fi
 env -u LD_LIBRARY_PATH -u PYTHONHOME -u PYTHONPATH \
     "$python_bin" "$script_dir/patch_o_projection_rtl.py" "$rtl"
 
+if [[ "${O_DEEP_ILA:-0}" == "1" ]]; then
+    env -u LD_LIBRARY_PATH -u PYTHONHOME -u PYTHONPATH \
+        "$python_bin" "$script_dir/patch_o_projection_deep_rtl.py" \
+        "$ip_root/hdl/verilog"
+fi
+
 export O_ILA_IP_ROOT="$ip_root"
 export O_ILA_WORK_DIR="$vivado_dir"
 export O_ILA_PART="$part"
@@ -75,6 +81,18 @@ export O_ILA_DEPTH="$depth"
 export O_ILA_CONTROL_DEPTH="$control_depth"
 "$vivado_bin" -mode batch -nojournal -nolog -notrace \
     -source "$script_dir/create_o_projection_ila_ip.tcl"
+
+if [[ "${O_DEEP_ILA:-0}" == "1" ]]; then
+    "$vivado_bin" -mode batch -nojournal -nolog -notrace \
+        -source "$script_dir/create_o_projection_deep_ila_ip.tcl"
+    for core in ila_o_projection_pe0_deep_inputs ila_o_projection_pe0_deep_math; do
+        if [[ ! -s "$ip_root/subcore/$core/$core.xci" ]]; then
+            echo "ERROR: deep ILA XCI is missing: $core" >&2
+            exit 1
+        fi
+    done
+    cp "$ip_root/hdl/verilog/deep_ila_manifest.json" "${output_xo}.deep.json"
+fi
 
 if ! grep -Fq 'O_PROJECTION_FORENSIC_ILA_V3' "$rtl"; then
     echo "ERROR: PE0 forensic RTL instrumentation marker is missing after patching." >&2

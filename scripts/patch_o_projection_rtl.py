@@ -2,6 +2,7 @@
 """Instantiate comprehensive PE0 O-projection forensic ILAs in an unpacked XO."""
 
 import argparse
+import os
 import re
 from pathlib import Path
 
@@ -525,6 +526,19 @@ wire [31:0] o_ila_gmem_read_fold = {xor_fold('m_axi_gmem0_RDATA', 512)};
         ("residual_write_data", residual_write_data, 512),
         ("parent_fsm", fsm_expression, 20),
     ]
+
+    if os.environ.get("O_DEEP_ILA") == "1":
+        # Preserve the activation golden and partial output while reserving
+        # PE0 BRAM for the two internal ILAs. The original boundary build
+        # retains its full 3795-bit probe set when O_DEEP_ILA is not enabled.
+        keep = {"mode", "layer", "stage", "position", "parent_fsm",
+                "ram_q_write_addr", "ram_q_write_data", "ram_scale_addr",
+                "ram_scale_data", "partial_data", "completed_data"}
+        data_probes = [p for p in data_probes if p[2] == 1 or p[0] in keep]
+        widths_file = rtl_path.parent / "boundary_ila_widths.tcl"
+        with widths_file.open("w", encoding="utf-8", newline="\n") as handle:
+            handle.write("set data_widths {%s}\n" % " ".join(
+                str(p[2]) for p in data_probes))
 
     for _, expression, _ in control_probes + data_probes:
         base_signal = expression.split("[")[0]

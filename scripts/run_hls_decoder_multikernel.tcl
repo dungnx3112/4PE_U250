@@ -36,6 +36,10 @@ if {[info exists ::env(XO_OUTPUT_DIR)] && $::env(XO_OUTPUT_DIR) ne ""} {
 file mkdir $xo_output_dir
 
 set cflags "-std=c++11 -DAP_INT_MAX_W=4096 -I$kernel_dir"
+if {[info exists ::env(INT4_HLS_EXTRA_CFLAGS)] &&
+    $::env(INT4_HLS_EXTRA_CFLAGS) ne ""} {
+    append cflags " " $::env(INT4_HLS_EXTRA_CFLAGS)
+}
 set production_sources [list \
     [file join $kernel_dir "swiftkv_attention.cpp"] \
     [file join $kernel_dir "int4_linear_controller.cpp"] \
