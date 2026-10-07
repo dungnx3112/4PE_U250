@@ -49,6 +49,53 @@ def memory_write_bundle(text: str, label: str, candidates):
     )
 
 
+def memory_instance_ports(
+    text: str,
+    label: str,
+    anchor_port: str,
+    anchor_signal: str,
+    ports,
+):
+    """Resolve named-port connections from the RAM instance owning a signal.
+
+    HLS sometimes removes the output_mem ports from the linear-stage wrapper and
+    connects the projection RAM to a deeper/inlined function instead.  The RAM
+    instance is the stable boundary, so resolve its actual connections instead
+    of assuming a particular ``grp_*_fu_*`` producer name.
+    """
+    # Match from the instance-name line rather than the module-type line. HLS
+    # RAMs have a multi-line ``#(...)`` parameter block between the two.
+    instance_pattern = re.compile(
+        r"(?ms)^[ \t]*[A-Za-z_]\w*[ \t]*\("
+        r"(?P<body>.*?)^[ \t]*\);"
+    )
+    anchor_pattern = re.compile(
+        rf"\.{re.escape(anchor_port)}\s*\(\s*"
+        rf"{re.escape(anchor_signal)}\s*\)"
+    )
+    for instance_match in instance_pattern.finditer(text):
+        body = instance_match.group("body")
+        if not anchor_pattern.search(body):
+            continue
+        resolved = {}
+        for port in ports:
+            connection = re.search(
+                rf"\.{re.escape(port)}\s*\(\s*"
+                r"([A-Za-z_][A-Za-z0-9_$]*)\s*\)",
+                body,
+            )
+            if not connection:
+                raise RuntimeError(
+                    f"cannot resolve .{port} connection in {label} RAM instance"
+                )
+            resolved[port] = connection.group(1)
+        return resolved
+    raise RuntimeError(
+        f"cannot find {label} RAM instance containing "
+        f".{anchor_port}({anchor_signal})"
+    )
+
+
 def instance_suffix(text: str, prefix: str, terminal: str) -> str:
     match = re.search(rf"\b{re.escape(prefix)}_fu_(\d+)_{terminal}\b", text)
     if not match:
@@ -246,6 +293,17 @@ def main() -> None:
         "O activation-scale read event",
         [f"{linear}_activation_scale_ce0", "activation_scale_ce0"],
     )
+    projection_write = memory_instance_ports(
+        text,
+        "projection",
+        "q0",
+        "projection_q0",
+        ("address1", "ce1", "we1", "d1"),
+    )
+    output_write_address = projection_write["address1"]
+    output_write_ce = projection_write["ce1"]
+    output_write_enable = projection_write["we1"]
+    output_write_data = projection_write["d1"]
 
     fsm_match = re.search(r"\breg\s+\[(\d+):0\]\s+ap_CS_fsm\s*;", text)
     if not fsm_match:
@@ -273,7 +331,7 @@ wire o_ila_o_q_ce = {q_read_enable} & o_ila_is_o;
 wire o_ila_o_scale_ce = {scale_read_enable} & o_ila_is_o;
 wire o_ila_o_partial_write = linear_partial0_write & o_ila_is_o;
 wire o_ila_o_completed_read = linear_output0_read & o_ila_is_o;
-wire o_ila_o_output_we = {linear}_output_mem_we1 & o_ila_is_o;
+wire o_ila_o_output_we = {output_write_enable} & o_ila_is_o;
 wire o_ila_o_projection_read_ce = projection_ce0 & o_ila_is_o;
 wire o_ila_o_residual_read_ce = {residual}_residual_ce0 & o_ila_is_o;
 wire o_ila_o_residual_we = {residual}_residual_we1 & o_ila_is_o;
@@ -285,7 +343,7 @@ wire [31:0] o_ila_ram_q_write_fold = {xor_fold(ram_q_write_data, 448)};
 wire [31:0] o_ila_ram_q_read_fold = {xor_fold('activation_q_q0', 448)};
 wire [31:0] o_ila_partial_fold = {xor_fold('linear_partial0_din', 128)};
 wire [31:0] o_ila_completed_fold = {xor_fold('linear_output0_dout', 128)};
-wire [31:0] o_ila_o_output_fold = {xor_fold(linear + '_output_mem_d1', 512)};
+wire [31:0] o_ila_o_output_fold = {xor_fold(output_write_data, 512)};
 wire [31:0] o_ila_projection_read_fold = {xor_fold('projection_q0', 512)};
 wire [31:0] o_ila_residual_read_fold = {xor_fold('residual_q0', 512)};
 wire [31:0] o_ila_residual_write_fold = {xor_fold(residual + '_residual_d1', 512)};
@@ -329,9 +387,9 @@ wire [31:0] o_ila_gmem_read_fold = {xor_fold('m_axi_gmem0_RDATA', 512)};
         ("completed_empty_n", "linear_output0_empty_n", 1),
         ("completed_fold", "o_ila_completed_fold", 32),
         ("o_output_we", "o_ila_o_output_we", 1),
-        ("o_output_addr", f"{linear}_output_mem_address1", 9),
-        ("o_output_ce", f"{linear}_output_mem_ce1", 1),
-        ("projection_we", "projection_we1", 1),
+        ("o_output_addr", output_write_address, 9),
+        ("o_output_ce", output_write_ce, 1),
+        ("projection_we", output_write_enable, 1),
         ("o_output_fold", "o_ila_o_output_fold", 32),
         ("o_projection_read", "o_ila_o_projection_read_ce", 1),
         ("projection_read_addr", "projection_address0", 9),
@@ -381,8 +439,8 @@ wire [31:0] o_ila_gmem_read_fold = {xor_fold('m_axi_gmem0_RDATA', 512)};
         ("o_completed_read", "o_ila_o_completed_read", 1),
         ("completed_data", "linear_output0_dout", 128),
         ("o_output_we", "o_ila_o_output_we", 1),
-        ("o_output_addr", f"{linear}_output_mem_address1", 9),
-        ("o_output_data", f"{linear}_output_mem_d1", 512),
+        ("o_output_addr", output_write_address, 9),
+        ("o_output_data", output_write_data, 512),
         ("o_projection_read", "o_ila_o_projection_read_ce", 1),
         ("projection_read_addr", "projection_address0", 9),
         ("projection_read_data", "projection_q0", 512),
