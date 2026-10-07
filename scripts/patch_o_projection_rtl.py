@@ -96,6 +96,41 @@ def memory_instance_ports(
     )
 
 
+def memory_instance_write_bundle(
+    text: str,
+    label: str,
+    anchor_port: str,
+    anchor_signal: str,
+):
+    """Resolve a RAM write bundle from either a dedicated or shared port."""
+    for port_index in ("1", "0"):
+        ports = tuple(
+            f"{base}{port_index}" for base in ("address", "ce", "we", "d")
+        )
+        try:
+            resolved = memory_instance_ports(
+                text,
+                label,
+                anchor_port,
+                anchor_signal,
+                ports,
+            )
+        except RuntimeError as error:
+            if "cannot resolve" in str(error):
+                continue
+            raise
+        return (
+            port_index,
+            resolved[f"address{port_index}"],
+            resolved[f"ce{port_index}"],
+            resolved[f"we{port_index}"],
+            resolved[f"d{port_index}"],
+        )
+    raise RuntimeError(
+        f"cannot resolve port-1 or port-0 write bundle in {label} RAM instance"
+    )
+
+
 def instance_suffix(text: str, prefix: str, terminal: str) -> str:
     match = re.search(rf"\b{re.escape(prefix)}_fu_(\d+)_{terminal}\b", text)
     if not match:
@@ -293,17 +328,55 @@ def main() -> None:
         "O activation-scale read event",
         [f"{linear}_activation_scale_ce0", "activation_scale_ce0"],
     )
-    projection_write = memory_instance_ports(
+    projection_read = memory_instance_ports(
         text,
         "projection",
         "q0",
         "projection_q0",
-        ("address1", "ce1", "we1", "d1"),
+        ("address0", "ce0"),
     )
-    output_write_address = projection_write["address1"]
-    output_write_ce = projection_write["ce1"]
-    output_write_enable = projection_write["we1"]
-    output_write_data = projection_write["d1"]
+    (
+        projection_write_port,
+        output_write_address,
+        output_write_ce,
+        output_write_enable,
+        output_write_data,
+    ) = memory_instance_write_bundle(
+        text,
+        "projection",
+        "q0",
+        "projection_q0",
+    )
+    projection_read_address = projection_read["address0"]
+    projection_read_enable = projection_read["ce0"]
+    projection_read_condition = projection_read_enable
+    if projection_write_port == "0":
+        projection_read_condition += f" & ~{output_write_enable}"
+
+    residual_read = memory_instance_ports(
+        text,
+        "residual",
+        "q0",
+        "residual_q0",
+        ("address0", "ce0"),
+    )
+    (
+        residual_write_port,
+        residual_write_address,
+        residual_write_ce,
+        residual_write_enable,
+        residual_write_data,
+    ) = memory_instance_write_bundle(
+        text,
+        "residual",
+        "q0",
+        "residual_q0",
+    )
+    residual_read_address = residual_read["address0"]
+    residual_read_enable = residual_read["ce0"]
+    residual_read_condition = residual_read_enable
+    if residual_write_port == "0":
+        residual_read_condition += f" & ~{residual_write_enable}"
 
     fsm_match = re.search(r"\breg\s+\[(\d+):0\]\s+ap_CS_fsm\s*;", text)
     if not fsm_match:
@@ -331,10 +404,10 @@ wire o_ila_o_q_ce = {q_read_enable} & o_ila_is_o;
 wire o_ila_o_scale_ce = {scale_read_enable} & o_ila_is_o;
 wire o_ila_o_partial_write = linear_partial0_write & o_ila_is_o;
 wire o_ila_o_completed_read = linear_output0_read & o_ila_is_o;
-wire o_ila_o_output_we = {output_write_enable} & o_ila_is_o;
-wire o_ila_o_projection_read_ce = projection_ce0 & o_ila_is_o;
-wire o_ila_o_residual_read_ce = {residual}_residual_ce0 & o_ila_is_o;
-wire o_ila_o_residual_we = {residual}_residual_we1 & o_ila_is_o;
+wire o_ila_o_output_we = {output_write_ce} & {output_write_enable} & o_ila_is_o;
+wire o_ila_o_projection_read_ce = {projection_read_condition} & o_ila_is_o;
+wire o_ila_o_residual_read_ce = {residual_read_condition} & o_ila_is_o;
+wire o_ila_o_residual_we = {residual_write_ce} & {residual_write_enable} & o_ila_is_o;
 
 // Full-bus XOR fingerprints give the control trace visibility into every data
 // bit; the data ILA below records the corresponding complete raw buses.
@@ -346,7 +419,7 @@ wire [31:0] o_ila_completed_fold = {xor_fold('linear_output0_dout', 128)};
 wire [31:0] o_ila_o_output_fold = {xor_fold(output_write_data, 512)};
 wire [31:0] o_ila_projection_read_fold = {xor_fold('projection_q0', 512)};
 wire [31:0] o_ila_residual_read_fold = {xor_fold('residual_q0', 512)};
-wire [31:0] o_ila_residual_write_fold = {xor_fold(residual + '_residual_d1', 512)};
+wire [31:0] o_ila_residual_write_fold = {xor_fold(residual_write_data, 512)};
 wire [31:0] o_ila_gmem_read_fold = {xor_fold('m_axi_gmem0_RDATA', 512)};
 """
 
@@ -392,13 +465,13 @@ wire [31:0] o_ila_gmem_read_fold = {xor_fold('m_axi_gmem0_RDATA', 512)};
         ("projection_we", output_write_enable, 1),
         ("o_output_fold", "o_ila_o_output_fold", 32),
         ("o_projection_read", "o_ila_o_projection_read_ce", 1),
-        ("projection_read_addr", "projection_address0", 9),
+        ("projection_read_addr", projection_read_address, 9),
         ("projection_read_fold", "o_ila_projection_read_fold", 32),
         ("o_residual_read", "o_ila_o_residual_read_ce", 1),
-        ("residual_read_addr", f"{residual}_residual_address0", 6),
+        ("residual_read_addr", residual_read_address, 6),
         ("residual_read_fold", "o_ila_residual_read_fold", 32),
         ("o_residual_we", "o_ila_o_residual_we", 1),
-        ("residual_write_addr", f"{residual}_residual_address1", 6),
+        ("residual_write_addr", residual_write_address, 6),
         ("residual_write_fold", "o_ila_residual_write_fold", 32),
         ("axi_arvalid", "m_axi_gmem0_ARVALID", 1),
         ("axi_arready", "m_axi_gmem0_ARREADY", 1),
@@ -442,14 +515,14 @@ wire [31:0] o_ila_gmem_read_fold = {xor_fold('m_axi_gmem0_RDATA', 512)};
         ("o_output_addr", output_write_address, 9),
         ("o_output_data", output_write_data, 512),
         ("o_projection_read", "o_ila_o_projection_read_ce", 1),
-        ("projection_read_addr", "projection_address0", 9),
+        ("projection_read_addr", projection_read_address, 9),
         ("projection_read_data", "projection_q0", 512),
         ("o_residual_read", "o_ila_o_residual_read_ce", 1),
-        ("residual_read_addr", f"{residual}_residual_address0", 6),
+        ("residual_read_addr", residual_read_address, 6),
         ("residual_read_data", "residual_q0", 512),
         ("o_residual_we", "o_ila_o_residual_we", 1),
-        ("residual_write_addr", f"{residual}_residual_address1", 6),
-        ("residual_write_data", f"{residual}_residual_d1", 512),
+        ("residual_write_addr", residual_write_address, 6),
+        ("residual_write_data", residual_write_data, 512),
         ("parent_fsm", fsm_expression, 20),
     ]
 
