@@ -22,6 +22,10 @@ Usage:
 Options:
   -i, --prompt TEXT       Input prompt text (default: Hello; -p also accepted)
   -n, --max-tokens N      Number of tokens to generate (default: 32)
+  -r, --repeat-penalty F  Penalize repeated tokens (default: 1.0; try 1.1)
+  -t, --temperature F     Sampling temperature (default: 0 = greedy)
+      --top-p F           Nucleus sampling threshold (default: 0.9)
+      --seed N            Sampling seed (default: 42)
       --time             Print per-token timing and detailed host diagnostics
   -d, --device DEVICE     XRT device BDF (default: 0000:13:00.0)
       --host-bin PATH     Path to the host executable
@@ -34,6 +38,7 @@ Examples:
   ./run_inference.sh build/model_300mhz.xclbin
   ./run_inference.sh build/model_300mhz.xclbin -i "Hello" -n 64
   ./run_inference.sh build/model_300mhz.xclbin -i "Xin chao" -n 32 --time
+  ./run_inference.sh build/model_300mhz.xclbin -i "Viet Nam is a country" -n 100 -r 1.1
 
 Without --time, stdout contains only generated text (the input prompt is not
 echoed). Errors are still printed to stderr. Host output is saved to the log.
@@ -118,6 +123,10 @@ shift
 
 PROMPT="${PROMPT:-Hello}"
 MAX_TOKENS="${MAX_TOKENS:-32}"
+REPEAT_PENALTY="${REPEAT_PENALTY:-1.0}"
+TEMPERATURE="${TEMPERATURE:-0}"
+TOP_P="${TOP_P:-0.9}"
+SEED="${SEED:-42}"
 DEVICE="${DEVICE:-0000:13:00.0}"
 HOST_BIN="${HOST_BIN:-}"
 DATA_DIR="${DATA_DIR:-/dev/shm/4PE_U250_dense}"
@@ -146,6 +155,26 @@ while [[ $# -gt 0 ]]; do
     -n|--max-tokens)
       [[ $# -ge 2 ]] || die "$1 requires a value"
       MAX_TOKENS="$2"
+      shift 2
+      ;;
+    -r|--repeat-penalty)
+      [[ $# -ge 2 ]] || die "$1 requires a value"
+      REPEAT_PENALTY="$2"
+      shift 2
+      ;;
+    -t|--temperature)
+      [[ $# -ge 2 ]] || die "$1 requires a value"
+      TEMPERATURE="$2"
+      shift 2
+      ;;
+    --top-p)
+      [[ $# -ge 2 ]] || die "$1 requires a value"
+      TOP_P="$2"
+      shift 2
+      ;;
+    --seed)
+      [[ $# -ge 2 ]] || die "$1 requires a value"
+      SEED="$2"
       shift 2
       ;;
     -d|--device)
@@ -223,6 +252,10 @@ declare -a CMD=(
   --embeddings "${DATA_DIR}/embeddings.bin"
   --prompt "${PROMPT}"
   --max-tokens "${MAX_TOKENS}"
+  --repeat-penalty "${REPEAT_PENALTY}"
+  --temperature "${TEMPERATURE}"
+  --top-p "${TOP_P}"
+  --seed "${SEED}"
 )
 if (( SHOW_TIME )); then
   CMD+=(--verbose)
