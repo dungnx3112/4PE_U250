@@ -228,4 +228,49 @@ printf 'Command:'
 printf ' %q' "${CMD[@]}"
 printf '\n\n'
 
+set +e
 "${CMD[@]}" 2>&1 | tee "${LOG_FILE}"
+RUN_STATUS=${PIPESTATUS[0]}
+set -e
+
+if (( RUN_STATUS != 0 )); then
+  printf '\nInference failed with exit code %d. See: %s\n' \
+    "${RUN_STATUS}" "${LOG_FILE}" >&2
+  exit "${RUN_STATUS}"
+fi
+
+TOKEN_TIMING_SUMMARY="$({
+  awk '
+    {
+      value = $0
+      sub(/^.*\[Run\] pos=[0-9]+ done in /, "", value)
+      if (value == $0) {
+        next
+      }
+      sub(/ ms.*$/, "", value)
+      if (value !~ /^[0-9]+([.][0-9]+)?$/) {
+        next
+      }
+
+      latency = value + 0
+      sum += latency
+      count++
+      if (count == 1 || latency < minimum) minimum = latency
+      if (count == 1 || latency > maximum) maximum = latency
+    }
+    END {
+      if (count > 0) {
+        average = sum / count
+        printf "[Token timing] count=%d avg=%.3f ms/token min=%.3f ms max=%.3f ms throughput=%.3f tok/s", \
+          count, average, minimum, maximum, 1000.0 / average
+      }
+    }
+  ' "${LOG_FILE}"
+} || true)"
+
+if [[ -n "${TOKEN_TIMING_SUMMARY}" ]]; then
+  printf '\n%s\n' "${TOKEN_TIMING_SUMMARY}"
+else
+  printf '\n[Token timing] No per-token timing lines found in %s\n' \
+    "${LOG_FILE}" >&2
+fi
