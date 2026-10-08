@@ -35,7 +35,7 @@ Examples:
   ./run_inference.sh build/model_300mhz.xclbin -i "Hello" -n 64
   ./run_inference.sh build/model_300mhz.xclbin -i "Xin chao" -n 32 --time
 
-Decoding always uses greedy argmax on raw logits, without repetition penalty.
+Decoding uses greedy argmax after applying a fixed repetition penalty of 1.1.
 
 Without --time, stdout contains only generated text (the input prompt is not
 echoed). Errors are still printed to stderr. Host output is saved to the log.
@@ -232,9 +232,9 @@ fi
 if (( EXTRA_ARGS_COUNT > 0 )); then
   CMD+=("${EXTRA_ARGS[@]}")
 fi
-# Keep raw-logit argmax explicit, including when an old config sets sampling
-# defaults or extra host options contain sampling overrides (last value wins).
-CMD+=(--temperature 0 --repeat-penalty 1.0)
+# Keep greedy decoding with repetition penalty explicit, including when an old
+# config or extra host options contain sampling overrides (last value wins).
+CMD+=(--temperature 0 --repeat-penalty 1.1)
 
 if (( SHOW_TIME )); then
   printf 'XCLBIN : %s\n' "${XCLBIN}"
