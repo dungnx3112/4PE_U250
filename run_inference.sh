@@ -214,6 +214,7 @@ declare -a CMD=(
   --embeddings "${DATA_DIR}/embeddings.bin"
   --prompt "${PROMPT}"
   --max-tokens "${MAX_TOKENS}"
+  --verbose
 )
 if (( EXTRA_ARGS_COUNT > 0 )); then
   CMD+=("${EXTRA_ARGS[@]}")
@@ -273,4 +274,30 @@ if [[ -n "${TOKEN_TIMING_SUMMARY}" ]]; then
 else
   printf '\n[Token timing] No per-token timing lines found in %s\n' \
     "${LOG_FILE}" >&2
+fi
+
+GENERATION_TIMING_SUMMARY="$({
+  awk '
+    /\[Stats\].*total_inference_ms=/ {
+      total_ms = 0
+      generated = 0
+      throughput = 0
+      for (i = 1; i <= NF; i++) {
+        split($i, pair, "=")
+        if (pair[1] == "total_inference_ms") total_ms = pair[2] + 0
+        if (pair[1] == "generated") generated = pair[2] + 0
+        if (pair[1] == "effective_tok/s") throughput = pair[2] + 0
+      }
+    }
+    END {
+      if (generated > 0 && total_ms > 0) {
+        printf "[Generation timing] generated=%d avg=%.3f ms/token total=%.3f ms throughput=%.3f tok/s", \
+          generated, total_ms / generated, total_ms, throughput
+      }
+    }
+  ' "${LOG_FILE}"
+} || true)"
+
+if [[ -n "${GENERATION_TIMING_SUMMARY}" ]]; then
+  printf '%s\n' "${GENERATION_TIMING_SUMMARY}"
 fi
