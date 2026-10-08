@@ -20,8 +20,9 @@ Usage:
   ./run_inference.sh XCLBIN [PROMPT] [options] [-- extra-host-options]
 
 Options:
-  -p, --prompt TEXT       Prompt to run (default: Hello)
+  -i, --prompt TEXT       Input prompt text (default: Hello; -p also accepted)
   -n, --max-tokens N      Number of tokens to generate (default: 32)
+      --time             Print per-token timing and detailed host diagnostics
   -d, --device DEVICE     XRT device BDF (default: 0000:13:00.0)
       --host-bin PATH     Path to the host executable
       --data-dir DIR      Model data directory
@@ -31,8 +32,11 @@ Options:
 
 Examples:
   ./run_inference.sh build/model_300mhz.xclbin
-  ./run_inference.sh build/model_300mhz.xclbin "Hello" -n 64
-  ./run_inference.sh build/model_300mhz.xclbin -p "Xin chao" -d 0
+  ./run_inference.sh build/model_300mhz.xclbin -i "Hello" -n 64
+  ./run_inference.sh build/model_300mhz.xclbin -i "Xin chao" -n 32 --time
+
+Without --time, stdout contains only generated text (the input prompt is not
+echoed). Errors are still printed to stderr. Host output is saved to the log.
 
 Optional run_inference.env beside this script:
   HOST_BIN=/absolute/path/to/host_binary
@@ -118,6 +122,7 @@ DEVICE="${DEVICE:-0000:13:00.0}"
 HOST_BIN="${HOST_BIN:-}"
 DATA_DIR="${DATA_DIR:-/dev/shm/4PE_U250_dense}"
 LOG_FILE=""
+SHOW_TIME=0
 
 # A second positional argument is accepted as the prompt for quick runs.
 if [[ $# -gt 0 && "$1" != -* ]]; then
@@ -129,10 +134,14 @@ declare -a EXTRA_ARGS=()
 EXTRA_ARGS_COUNT=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -p|--prompt)
+    -i|-p|--prompt)
       [[ $# -ge 2 ]] || die "$1 requires a value"
       PROMPT="$2"
       shift 2
+      ;;
+    --time)
+      SHOW_TIME=1
+      shift
       ;;
     -n|--max-tokens)
       [[ $# -ge 2 ]] || die "$1 requires a value"
@@ -214,30 +223,58 @@ declare -a CMD=(
   --embeddings "${DATA_DIR}/embeddings.bin"
   --prompt "${PROMPT}"
   --max-tokens "${MAX_TOKENS}"
-  --verbose
 )
+if (( SHOW_TIME )); then
+  CMD+=(--verbose)
+fi
 if (( EXTRA_ARGS_COUNT > 0 )); then
   CMD+=("${EXTRA_ARGS[@]}")
 fi
 
-printf 'XCLBIN : %s\n' "${XCLBIN}"
-printf 'Device : %s\n' "${DEVICE}"
-printf 'Host   : %s\n' "${HOST_BIN}"
-printf 'Data   : %s\n' "${DATA_DIR}"
-printf 'Log    : %s\n' "${LOG_FILE}"
-printf 'Command:'
-printf ' %q' "${CMD[@]}"
-printf '\n\n'
+if (( SHOW_TIME )); then
+  printf 'XCLBIN : %s\n' "${XCLBIN}"
+  printf 'Device : %s\n' "${DEVICE}"
+  printf 'Host   : %s\n' "${HOST_BIN}"
+  printf 'Data   : %s\n' "${DATA_DIR}"
+  printf 'Log    : %s\n' "${LOG_FILE}"
+  printf 'Command:'
+  printf ' %q' "${CMD[@]}"
+  printf '\n\n'
+fi
 
 set +e
-"${CMD[@]}" 2>&1 | tee "${LOG_FILE}"
-RUN_STATUS=${PIPESTATUS[0]}
+if (( SHOW_TIME )); then
+  "${CMD[@]}" 2>&1 | tee "${LOG_FILE}"
+  PIPE_STATUSES=("${PIPESTATUS[@]}")
+else
+  # decode_host echoes the literal input prompt before streaming generated
+  # pieces. Skip that exact byte prefix on stdout, including UTF-8 prompts.
+  # Keep stderr separate so errors are never mistaken for prompt/text bytes.
+  PROMPT_BYTES=$(printf '%s' "${PROMPT}" | wc -c)
+  : > "${LOG_FILE}"
+  "${CMD[@]}" 2> >(tee -a "${LOG_FILE}" >&2) \
+    | tee -a "${LOG_FILE}" | tail -c "+$((PROMPT_BYTES + 1))"
+  PIPE_STATUSES=("${PIPESTATUS[@]}")
+fi
+RUN_STATUS=${PIPE_STATUSES[0]}
 set -e
 
 if (( RUN_STATUS != 0 )); then
   printf '\nInference failed with exit code %d. See: %s\n' \
     "${RUN_STATUS}" "${LOG_FILE}" >&2
   exit "${RUN_STATUS}"
+fi
+
+for PIPE_STATUS in "${PIPE_STATUSES[@]}"; do
+  if (( PIPE_STATUS != 0 )); then
+    printf '\nError: output/logging pipeline failed (exit code %d).\n' \
+      "${PIPE_STATUS}" >&2
+    exit "${PIPE_STATUS}"
+  fi
+done
+
+if (( ! SHOW_TIME )); then
+  exit 0
 fi
 
 TOKEN_TIMING_SUMMARY="$({
