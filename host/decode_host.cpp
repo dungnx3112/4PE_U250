@@ -1586,10 +1586,8 @@ int main(int argc, char** argv) {
         int previous_token = prompt_tokens.back();
 
         if (config.verbose) {
-            std::cout << "[Generate] ";
+            std::cout << "[Generate] " << config.prompt << std::flush;
         }
-        std::cout << config.prompt;
-        std::cout.flush();
         while (static_cast<int>(generated_tokens.size()) < config.max_tokens) {
             const int next_token = token_result.next_token;
             if (next_token == 1 || next_token == 2) {
@@ -1601,8 +1599,7 @@ int main(int argc, char** argv) {
             generated_tokens.push_back(next_token);
             token_history.push_back(next_token);
             generated_text += piece;
-            std::cout << piece;
-            std::cout.flush();
+            std::cout << piece << std::flush;
 
             if (static_cast<int>(generated_tokens.size()) >=
                     config.max_tokens ||

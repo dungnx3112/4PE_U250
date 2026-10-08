@@ -37,8 +37,9 @@ Examples:
 
 Decoding uses greedy argmax after applying a fixed repetition penalty of 1.1.
 
-Without --time, stdout contains only generated text (the input prompt is not
-echoed). Errors are still printed to stderr. Host output is saved to the log.
+Without --time, stdout streams each generated token piece immediately and
+contains only generated text (the input prompt is not echoed). Errors are
+still printed to stderr. Host output is saved to the log.
 
 Optional run_inference.env beside this script:
   HOST_BIN=/absolute/path/to/host_binary
@@ -252,13 +253,12 @@ if (( SHOW_TIME )); then
   "${CMD[@]}" 2>&1 | tee "${LOG_FILE}"
   PIPE_STATUSES=("${PIPESTATUS[@]}")
 else
-  # decode_host echoes the literal input prompt before streaming generated
-  # pieces. Skip that exact byte prefix on stdout, including UTF-8 prompts.
-  # Keep stderr separate so errors are never mistaken for prompt/text bytes.
-  PROMPT_BYTES=$(printf '%s' "${PROMPT}" | wc -c)
+  # decode_host emits generated pieces only in quiet mode and flushes after
+  # every token. Forward them directly so no filter can buffer the stream.
+  # Keep stderr separate so errors are never mistaken for generated text.
   : > "${LOG_FILE}"
   "${CMD[@]}" 2> >(tee -a "${LOG_FILE}" >&2) \
-    | tee -a "${LOG_FILE}" | tail -c "+$((PROMPT_BYTES + 1))"
+    | tee -a "${LOG_FILE}"
   PIPE_STATUSES=("${PIPESTATUS[@]}")
 fi
 RUN_STATUS=${PIPE_STATUSES[0]}
