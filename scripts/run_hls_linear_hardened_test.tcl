@@ -1,7 +1,7 @@
 set root [file normalize [file join [file dirname [info script]] ..]]
 set implementation 3
 if {[info exists ::env(O_ACCUM_IMPL)]} { set implementation $::env(O_ACCUM_IMPL) }
-if {$implementation ni {0 1 2 3}} { error "O_ACCUM_IMPL must be 0, 1, 2 or 3" }
+if {$implementation ni {0 1 2 3 4}} { error "O_ACCUM_IMPL must be 0, 1, 2, 3 or 4" }
 set project [file join $root _evidence_analysis linear_hardened_test v${implementation}]
 open_project -reset $project
 set_top linear_hardened_rtl_test

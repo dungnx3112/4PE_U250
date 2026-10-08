@@ -10,13 +10,14 @@
 // 0: original continuous pipeline; 1: group-latched packed MAC;
 // 2: group-latched independent signed MACs;
 // 3: hardened scalar MAC plus explicit block splitting and scale-tile latch.
+// 4: continuous scalar MAC with per-iteration Q/scale reads, same safe ingress.
 // Keep 0/1/2 available as forensic controls. The default favors correctness
 // and simpler ownership/scheduling boundaries over continuous-loop throughput.
 #ifndef INT4_ACCUM_DEBUG_VARIANT
 #define INT4_ACCUM_DEBUG_VARIANT 3
 #endif
-#if INT4_ACCUM_DEBUG_VARIANT < 0 || INT4_ACCUM_DEBUG_VARIANT > 3
-#error "INT4_ACCUM_DEBUG_VARIANT must be 0, 1, 2 or 3"
+#if INT4_ACCUM_DEBUG_VARIANT < 0 || INT4_ACCUM_DEBUG_VARIANT > 4
+#error "INT4_ACCUM_DEBUG_VARIANT must be 0, 1, 2, 3 or 4"
 #endif
 
 // Convert Q1.15 signed fixed-point (ap_int<16>) to float.
@@ -279,7 +280,7 @@ static void int4_split_local_weight_words(
 #pragma HLS INLINE off
     const int4_weight_request_t request = request_stream.read();
     const ap_uint<16> block_count = request.range(39, 24);
-#if INT4_ACCUM_DEBUG_VARIANT == 3
+#if INT4_ACCUM_DEBUG_VARIANT >= 3
     // Every dense superblock has 128 scale words followed by 4096 weights.
     // Separate destination loops avoid a pipelined conditional demux and
     // its rolling offset at the boundary. Blocking FIFO writes preserve order.
@@ -372,6 +373,95 @@ pack_local_scale_tile_loop:
     }
 }
 
+#if INT4_ACCUM_DEBUG_VARIANT == 4
+typedef ap_uint<512 * INT4_ACTIVE_SCALE_WORDS_PER_TILE> int4_scale_snapshot_t;
+
+static void int4_prefetch_scale_snapshots(
+    ap_uint<16> total_tiles,
+    hls::stream_of_blocks<int4_scale_tile_block_t>& scale_blocks,
+    hls::stream<int4_scale_snapshot_t>& snapshots) {
+#pragma HLS INLINE off
+prefetch_scale_tile_loop:
+    for (ap_uint<16> tile = 0; tile < total_tiles; ++tile) {
+#pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min=128 max=1008
+        int4_weight_scale_word_t words[INT4_ACTIVE_SCALE_WORDS_PER_TILE];
+#pragma HLS ARRAY_PARTITION variable=words complete
+        {
+            hls::read_lock<int4_scale_tile_block_t> source(scale_blocks);
+        prefetch_scale_word_loop:
+            for (int word = 0; word < INT4_ACTIVE_SCALE_WORDS_PER_TILE; ++word) {
+#pragma HLS PIPELINE II=1
+                words[word] = source[word];
+            }
+        }
+        int4_scale_snapshot_t packet;
+        for (int word = 0; word < INT4_ACTIVE_SCALE_WORDS_PER_TILE; ++word) {
+#pragma HLS UNROLL
+            packet.range(512 * word + 511, 512 * word) = words[word];
+        }
+        snapshots.write(packet);
+    }
+}
+
+static void int4_emit_scale_snapshots(
+    ap_uint<16> total_tiles,
+    hls::stream<int4_scale_snapshot_t>& snapshots,
+    hls::stream<int4_weight_scale_t>& scale_lane0,
+    hls::stream<int4_weight_scale_t>& scale_lane1,
+    hls::stream<int4_weight_scale_t>& scale_lane2,
+    hls::stream<int4_weight_scale_t>& scale_lane3) {
+#pragma HLS INLINE off
+emit_scale_snapshot_tile_loop:
+    for (ap_uint<16> tile = 0; tile < total_tiles; ++tile) {
+#pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min=128 max=1008
+        // This packet is a private copy for the whole 256-word output loop.
+        // The prefetch process can fill the next packet during this loop.
+        const int4_scale_snapshot_t packet = snapshots.read();
+        int4_weight_scale_word_t words[INT4_ACTIVE_SCALE_WORDS_PER_TILE];
+#pragma HLS ARRAY_PARTITION variable=words complete
+        for (int word = 0; word < INT4_ACTIVE_SCALE_WORDS_PER_TILE; ++word) {
+#pragma HLS UNROLL
+            words[word] = packet.range(512 * word + 511, 512 * word);
+        }
+    emit_scale_snapshot_word_loop:
+        for (int flat = 0; flat < INT4_WEIGHT_WORDS_PER_TILE; ++flat) {
+#pragma HLS PIPELINE II=1
+            const int row_block = flat & (INT4_ROW_BLOCKS - 1);
+            const int g128 = (flat / INT4_ROW_BLOCKS) >> 2;
+            const int scalar0 = (row_block & 3) * 8 + g128;
+            const int4_weight_scale_word_t scale_word = words[row_block >> 2];
+            scale_lane0.write((int4_weight_scale_t)scale_word.range(
+                16 * scalar0 + 15, 16 * scalar0));
+            scale_lane1.write((int4_weight_scale_t)scale_word.range(
+                16 * (scalar0 + 2) + 15, 16 * (scalar0 + 2)));
+            scale_lane2.write((int4_weight_scale_t)scale_word.range(
+                16 * (scalar0 + 4) + 15, 16 * (scalar0 + 4)));
+            scale_lane3.write((int4_weight_scale_t)scale_word.range(
+                16 * (scalar0 + 6) + 15, 16 * (scalar0 + 6)));
+        }
+    }
+}
+
+static void int4_prefetch_and_emit_scale_tiles(
+    ap_uint<16> total_tiles,
+    hls::stream_of_blocks<int4_scale_tile_block_t>& scale_blocks,
+    hls::stream<int4_weight_scale_t>& scale_lane0,
+    hls::stream<int4_weight_scale_t>& scale_lane1,
+    hls::stream<int4_weight_scale_t>& scale_lane2,
+    hls::stream<int4_weight_scale_t>& scale_lane3) {
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW disable_start_propagation
+    hls::stream<int4_scale_snapshot_t> snapshots;
+#pragma HLS STREAM variable=snapshots depth=2
+#pragma HLS BIND_STORAGE variable=snapshots type=fifo impl=srl
+    int4_prefetch_scale_snapshots(total_tiles, scale_blocks, snapshots);
+    int4_emit_scale_snapshots(total_tiles, snapshots,
+        scale_lane0, scale_lane1, scale_lane2, scale_lane3);
+}
+#endif
+
 // Expand one packed tile into four raw-Q1.15 scale lanes in MAC consumption
 // order.  Conversion to FP32 is performed by the MAC pipeline, so this stage
 // needs no duplicated floating-point converters.
@@ -389,10 +479,14 @@ static void int4_emit_local_scale_tiles(
     const ap_uint<16> total_tiles =
         block_count * (ap_uint<16>)INT4_TILES_PER_BLOCK;
 
+#if INT4_ACCUM_DEBUG_VARIANT == 4
+    int4_prefetch_and_emit_scale_tiles(total_tiles, scale_blocks,
+        scale_lane0, scale_lane1, scale_lane2, scale_lane3);
+#else
 emit_local_scale_tile_loop:
     for (ap_uint<16> tile = 0; tile < total_tiles; ++tile) {
 #pragma HLS LOOP_TRIPCOUNT min=128 max=1008
-#if INT4_ACCUM_DEBUG_VARIANT == 3
+#if INT4_ACCUM_DEBUG_VARIANT >= 3
 #pragma HLS LOOP_FLATTEN off
         // Finish all BRAM reads while holding the block lock, then emit from
         // private registers. No scale_blocks RAM read or lock transition can
@@ -418,7 +512,7 @@ emit_local_scale_tile_loop:
             const int g128 = group_in_tile >> 2;
             const int r_local = row_block & 3;
             const int word_index = row_block >> 2;
-#if INT4_ACCUM_DEBUG_VARIANT == 3
+#if INT4_ACCUM_DEBUG_VARIANT >= 3
             const int4_weight_scale_word_t scale_word = latched_scale[word_index];
 #else
             const int4_weight_scale_word_t scale_word = scale_tile[word_index];
@@ -437,6 +531,7 @@ emit_local_scale_tile_loop:
                 16 * scalar3 + 15, 16 * scalar3));
         }
     }
+#endif
 }
 
 typedef int4_reduction_packet_t
@@ -615,6 +710,57 @@ local_partial_output_tile_loop:
                     current_quantized = next_quantized;
                 }
             }
+    }
+#elif INT4_ACCUM_DEBUG_VARIANT == 4
+    // One accepted weight word is one iteration. Read the immutable stage
+    // snapshot by this iteration's group address, so HLS pipelines Q, scale
+    // and row metadata with the arithmetic instead of a mutable hand-off.
+    // The same row is revisited only after 32 accepted iterations; retain
+    // that true RAM dependency for the scheduler (do not declare it false).
+fast_output_tile_loop:
+    for (int output_tile = 0; output_tile < output_tiles; ++output_tile) {
+#pragma HLS LOOP_TRIPCOUNT min=32 max=252
+#pragma HLS LOOP_FLATTEN off
+        hls::write_lock<int4_partial_tile_block_t> partial(partial_blocks);
+    fast_continuous_mac_loop:
+        for (int word_index = 0; word_index < total_weight_words; ++word_index) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=1024 max=2816
+            const int row_block = word_index & (INT4_ROW_BLOCKS - 1);
+            const int global_group = word_index / INT4_ROW_BLOCKS;
+            const int4_quant_word_t quantized = activation_q[global_group];
+            const int4_act_scale_t raw_act_scale = activation_scale[global_group];
+            const int act_exp = (int)raw_act_scale - 127 -
+                (INT4_ACTIVATION_BITS - 1);
+            const float act_scale_f = hls::ldexpf(1.0f, act_exp);
+            const int4_weight_word_t weight = weight_stream.read();
+            int4_weight_scale_t weight_scale_q[INT4_ROW_BLOCK];
+#pragma HLS ARRAY_PARTITION variable=weight_scale_q complete
+            weight_scale_q[0] = scale_lane0.read();
+            weight_scale_q[1] = scale_lane1.read();
+            weight_scale_q[2] = scale_lane2.read();
+            weight_scale_q[3] = scale_lane3.read();
+            int4_group_acc_t integer_sum[INT4_ROW_BLOCK];
+#pragma HLS ARRAY_PARTITION variable=integer_sum complete
+            int4_debug_group_dot(quantized, weight, integer_sum);
+            const bool is_first = global_group == 0;
+            int4_reduction_packet_t partial_packet = is_first
+                ? (int4_reduction_packet_t)0 : partial[row_block];
+        fast_update_lane_loop:
+            for (int lane = 0; lane < INT4_ROW_BLOCK; ++lane) {
+#pragma HLS UNROLL
+                const float combined_scale =
+                    int4_q115_to_float(weight_scale_q[lane]) * act_scale_f;
+                const float contribution = (float)integer_sum[lane] * combined_scale;
+#pragma HLS BIND_OP variable=contribution op=mul impl=dsp
+                const float previous = int4_fp32_from_bits(
+                    partial_packet.range(32 * lane + 31, 32 * lane));
+                const float updated = is_first ? contribution : previous + contribution;
+                partial_packet.range(32 * lane + 31, 32 * lane) =
+                    int4_fp32_to_bits(updated);
+            }
+            partial[row_block] = partial_packet;
+        }
     }
 #else
     // Deliberately drain each G32 row loop before changing Q/scale. This is

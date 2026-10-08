@@ -109,7 +109,10 @@ int main() {
     failures += run_case(INT4_LINEAR_O, 4, true, 0);
     failures += run_case(INT4_LINEAR_DOWN, 16, true, 1);
     failures += run_case(INT4_LINEAR_O, 4, false, 2);
-    std::printf("%s LINEAR_HARDENED_FULL_PATH checked=3072_fp32_lanes failures=%d\n",
+    // Sustained nonzero input with no artificial gaps exposes pipeline
+    // recurrence bugs and provides a comparable RTL throughput measurement.
+    failures += run_case(INT4_LINEAR_O, 16, false, 0);
+    std::printf("%s LINEAR_HARDENED_FULL_PATH checked=5120_fp32_lanes failures=%d\n",
         failures ? "FAIL" : "PASS", failures);
     return failures ? 1 : 0;
 }

@@ -143,3 +143,65 @@ tests. Full production PE0 HLS synthesis succeeded; local XO export hit the
 Windows path-length limit. No locally exported XO, full four-kernel routed
 image or hardware repair is claimed. The server launcher uses fresh Linux
 workspaces and must complete the exports, link and timing checks there.
+
+## Continuous scalar throughput candidate (variant 4)
+
+The default remains variant 3, the implementation tested on U250. Variant 4
+keeps the activation snapshot, independent signed MACs and explicit splitter,
+but reads Q/activation scale by the current word's group address in every
+iteration. It does not use row-28 Q prefetch, row-31 Q handoff or a mutable
+activation-scale recurrence. The MAC pipeline drains once per output tile,
+rather than once per group. The scheduler must retain the true partial-RAM
+dependency; no false-dependence directive is used.
+
+Scale prefetch copies eight words while holding the source block lock and
+publishes a complete 4096-bit snapshot through a two-packet FIFO. The emitter
+holds its own packet in registers for all 256 output words while prefetch
+prepares the next tile. FIFO stalls cannot overwrite that private packet.
+The emitter still drains between tiles; only the eight-word BRAM-copy latency
+is overlapped. The original variant-3 scale emitter is unchanged.
+
+The regression now adds 16 nonzero O output tiles without artificial gaps,
+in addition to the three previous backpressure/endpoint/repeated-call cases,
+for 5120 FP32 lane comparisons. Run variant 4 explicitly:
+
+```bash
+O_ACCUM_IMPL=4 vitis_hls -f scripts/run_hls_linear_hardened_test.tcl
+```
+
+Production build, fresh four-PE XOs, no ILA:
+
+```bash
+REBUILD_XO=1 REUSE_XO=0 \
+ENABLE_O_PROJECTION_ILA=0 ENABLE_STALL_PROFILE=0 ENABLE_FULL_STREAM_DEBUG=0 \
+INT4_HLS_EXTRA_CFLAGS='-DINT4_ACCUM_DEBUG_VARIANT=4' JOBS=8 \
+XCLBIN_OUTPUT=int4_decoder_multikernel_300mhz_fast_hardened_clean.xclbin \
+  bash scripts/build_decoder_multikernel_300mhz.sh
+```
+
+Any HLS/export failure now stops the build even when four old XO files exist.
+The ILA launcher continues to compare baseline against the card-tested
+variant 3; variant 4 uses the production build command above.
+
+The 46--47 ms target is about 13.8--14.1 million CU cycles at 300 MHz. A dense
+bank contains 13,516,736 512-bit words, giving roughly 45 ms for one word per
+clock before stage/DDR overhead. This is a throughput target, not a measured
+variant-4 hardware latency or a routed timing guarantee. The server must
+complete four-PE placement/routing and repeat the known token regressions.
+
+Local verification on 2026-10-08: variant 4 passed C simulation, synthesis
+and xsim C/RTL co-simulation with all 5120 FP32 lanes equal to the independent
+golden. Variant 3 passed the same expanded regression. Full production PE0
+synthesis also passed, with all loop constraints satisfied and estimated
+Fmax 315.18 MHz; its continuous MAC remained II=1 with 27-cycle iteration
+latency. The MAC process takes 1051 cycles for 1024 O words, versus about 2022
+cycles per output tile for variant 3. Scale emission takes 261 cycles per
+256 words, versus 273 for variant 3.
+
+Those are individual-process synthesis estimates. The regression's external
+model feeder dominates the no-gap transaction (77955 cycles for variant 4
+versus 77968 for variant 3), so that test proves correctness under stalls,
+not a board-level speedup. Production uses the separate burst DDR reader.
+Local logs are `_evidence_analysis/linear_fast_prefetch_v4_hls.log`,
+`_evidence_analysis/linear_fast_control_v3_hls.log` and
+`_evidence_analysis/linear_fast_prefetch_pe0_v4_hls.log`.
