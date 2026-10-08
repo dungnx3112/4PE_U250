@@ -22,7 +22,7 @@ Usage:
 Options:
   -p, --prompt TEXT       Prompt to run (default: Hello)
   -n, --max-tokens N      Number of tokens to generate (default: 32)
-  -d, --device DEVICE     XRT device index/BDF (default: DEVICE or 0)
+  -d, --device DEVICE     XRT device BDF (default: 0000:13:00.0)
       --host-bin PATH     Path to the host executable
       --data-dir DIR      Model data directory
                           (default: /dev/shm/4PE_U250_dense)
@@ -37,7 +37,7 @@ Examples:
 Optional run_inference.env beside this script:
   HOST_BIN=/absolute/path/to/host_binary
   DATA_DIR=/dev/shm/4PE_U250_dense
-  DEVICE=0
+  DEVICE=0000:13:00.0
 EOF
 }
 
@@ -114,7 +114,7 @@ shift
 
 PROMPT="${PROMPT:-Hello}"
 MAX_TOKENS="${MAX_TOKENS:-32}"
-DEVICE="${DEVICE:-0}"
+DEVICE="${DEVICE:-0000:13:00.0}"
 HOST_BIN="${HOST_BIN:-}"
 DATA_DIR="${DATA_DIR:-/dev/shm/4PE_U250_dense}"
 LOG_FILE=""
