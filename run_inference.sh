@@ -126,6 +126,7 @@ if [[ $# -gt 0 && "$1" != -* ]]; then
 fi
 
 declare -a EXTRA_ARGS=()
+EXTRA_ARGS_COUNT=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -p|--prompt)
@@ -161,6 +162,7 @@ while [[ $# -gt 0 ]]; do
     --)
       shift
       EXTRA_ARGS+=("$@")
+      EXTRA_ARGS_COUNT=$#
       break
       ;;
     -h|--help)
@@ -213,7 +215,9 @@ declare -a CMD=(
   --prompt "${PROMPT}"
   --max-tokens "${MAX_TOKENS}"
 )
-CMD+=("${EXTRA_ARGS[@]}")
+if (( EXTRA_ARGS_COUNT > 0 )); then
+  CMD+=("${EXTRA_ARGS[@]}")
+fi
 
 printf 'XCLBIN : %s\n' "${XCLBIN}"
 printf 'Device : %s\n' "${DEVICE}"
