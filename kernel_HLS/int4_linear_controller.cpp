@@ -20,13 +20,17 @@
 #error "INT4_ACCUM_DEBUG_VARIANT must be 0, 1, 2, 3 or 4"
 #endif
 
-// Convert Q1.15 signed fixed-point (ap_int<16>) to float.
-// Value = raw_bits * 2^-15.  One multiply; no branching.
-// This replaces the old int4_half_bits_to_float (FP16 → FP32) that required
-// subnormal/inf/nan handling and multiple bit-slice operations.
-static float int4_q115_to_float(int4_weight_scale_t bits) {
+// Apply the Q1.15 scale to the integer group sum before FP32 conversion.
+// The exact signed product is 23+16=39 bits; its fractional point and the
+// activation's power-of-two scale are applied together after conversion.
+static float int4_dequant_group_sum(
+    int4_group_acc_t group_sum,
+    int4_weight_scale_t weight_scale_q,
+    int activation_exponent) {
 #pragma HLS INLINE
-    return (float)(int)bits * (1.0f / 32768.0f);  // × 2^-15
+    const ap_int<39> scaled_integer = group_sum * weight_scale_q;
+    return hls::ldexpf((float)scaled_integer,
+                       activation_exponent - INT4_WEIGHT_SCALE_FRAC_BITS);
 }
 
 
@@ -619,7 +623,7 @@ local_partial_output_tile_loop:
         hls::write_lock<int4_partial_tile_block_t> partial(partial_blocks);
         int4_quant_word_t current_quantized = activation_q[0];
         int4_quant_word_t next_quantized = 0;
-        float current_act_scale = 0.0f;
+        int current_act_exp = 0;
 
         // Keep a single II=1 pipeline alive across every input tile.  The old
         // nested loop drained/refilled the 28-cycle FP pipeline once per tile.
@@ -637,13 +641,12 @@ local_partial_output_tile_loop:
                     next_quantized = activation_q[global_group + 1];
                 }
                 if (row_block == 0) {
-                    const int act_exp = (int)(activation_scale[global_group]) - 127 -
+                    current_act_exp = (int)(activation_scale[global_group]) - 127 -
                         (INT4_ACTIVATION_BITS - 1);
-                    current_act_scale = hls::ldexpf(1.0f, act_exp);
                 }
 
                 const int4_quant_word_t quantized = current_quantized;
-                const float act_scale_f = current_act_scale;
+                const int act_exp = current_act_exp;
                 const int4_weight_word_t weight = weight_stream.read();
                 int4_weight_scale_t weight_scale_q[INT4_ROW_BLOCK];
 #pragma HLS ARRAY_PARTITION variable=weight_scale_q complete
@@ -690,11 +693,8 @@ local_partial_output_tile_loop:
             local_partial_accumulate_lane_loop:
                 for (int lane = 0; lane < INT4_ROW_BLOCK; ++lane) {
 #pragma HLS UNROLL
-                    const float combined_scale =
-                        int4_q115_to_float(weight_scale_q[lane]) * act_scale_f;
-                    const float contribution =
-                        (float)integer_sum[lane] * combined_scale;
-#pragma HLS BIND_OP variable=contribution op=mul impl=dsp
+                    const float contribution = int4_dequant_group_sum(
+                        integer_sum[lane], weight_scale_q[lane], act_exp);
                     const float previous = int4_fp32_from_bits(
                         partial_packet.range(32 * lane + 31, 32 * lane));
                     const float updated = is_first
@@ -732,7 +732,6 @@ fast_output_tile_loop:
             const int4_act_scale_t raw_act_scale = activation_scale[global_group];
             const int act_exp = (int)raw_act_scale - 127 -
                 (INT4_ACTIVATION_BITS - 1);
-            const float act_scale_f = hls::ldexpf(1.0f, act_exp);
             const int4_weight_word_t weight = weight_stream.read();
             int4_weight_scale_t weight_scale_q[INT4_ROW_BLOCK];
 #pragma HLS ARRAY_PARTITION variable=weight_scale_q complete
@@ -749,10 +748,8 @@ fast_output_tile_loop:
         fast_update_lane_loop:
             for (int lane = 0; lane < INT4_ROW_BLOCK; ++lane) {
 #pragma HLS UNROLL
-                const float combined_scale =
-                    int4_q115_to_float(weight_scale_q[lane]) * act_scale_f;
-                const float contribution = (float)integer_sum[lane] * combined_scale;
-#pragma HLS BIND_OP variable=contribution op=mul impl=dsp
+                const float contribution = int4_dequant_group_sum(
+                    integer_sum[lane], weight_scale_q[lane], act_exp);
                 const float previous = int4_fp32_from_bits(
                     partial_packet.range(32 * lane + 31, 32 * lane));
                 const float updated = is_first ? contribution : previous + contribution;
@@ -765,7 +762,7 @@ fast_output_tile_loop:
 #else
     // Deliberately drain each G32 row loop before changing Q/scale. This is
     // a conservative implementation; throughput is lower than variant 0.
-    // It preserves weight/scale stream order and FP32 operation order.
+    // It preserves weight/scale stream order and FP32 accumulation order.
 debug_output_tile_loop:
     for (int output_tile = 0; output_tile < output_tiles; ++output_tile) {
 #pragma HLS LOOP_TRIPCOUNT min=32 max=252
@@ -781,7 +778,6 @@ debug_output_tile_loop:
             const int4_act_scale_t raw_act_scale = activation_scale[global_group];
             const int act_exp = (int)raw_act_scale - 127 -
                 (INT4_ACTIVATION_BITS - 1);
-            const float act_scale_f = hls::ldexpf(1.0f, act_exp);
             const bool is_first = global_group == 0;
         debug_group_row_loop:
             for (int row_block = 0; row_block < INT4_ROW_BLOCKS; ++row_block) {
@@ -801,11 +797,8 @@ debug_output_tile_loop:
             debug_update_lane_loop:
                 for (int lane = 0; lane < INT4_ROW_BLOCK; ++lane) {
 #pragma HLS UNROLL
-                    const float combined_scale =
-                        int4_q115_to_float(weight_scale_q[lane]) * act_scale_f;
-                    const float contribution =
-                        (float)integer_sum[lane] * combined_scale;
-#pragma HLS BIND_OP variable=contribution op=mul impl=dsp
+                    const float contribution = int4_dequant_group_sum(
+                        integer_sum[lane], weight_scale_q[lane], act_exp);
                     const float previous = int4_fp32_from_bits(
                         partial_packet.range(32 * lane + 31, 32 * lane));
                     const float updated = is_first ? contribution
